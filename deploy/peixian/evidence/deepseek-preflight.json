@@ -1,0 +1,8 @@
+{
+  "status_code": 200,
+  "models": [
+    "deepseek-flash",
+    "deepseek-v4-pro"
+  ],
+  "requested_model_available": true
+}

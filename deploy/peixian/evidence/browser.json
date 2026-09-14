@@ -1,0 +1,173 @@
+{
+  "status": "passed",
+  "completed_at": "2026-09-14T07:49:49.072783+00:00",
+  "image_id": "sha256:e3c38b633a40c03f1fbc90583b0b3a7d282a3e07be0dda0aa257a4046413d275",
+  "compose_sha256": "b2605512828e0ee8e90ed7755a5bac85f17ac67344bc5c19360f1180ce5801a1",
+  "method": "Two independent isolated Chromium contexts controlled by Playwright CLI; own HTTP Basic credentials; CDP Network.setCacheDisabled before first navigation; service workers blocked; only own loopback origin allowed. Native UI interactions and final screenshots visually inspected.",
+  "clients": {
+    "client-a": {
+      "client": "client-a",
+      "url": "http://127.0.0.1:14091/server/aHR0cDovLzEyNy4wLjAuMToxNDA5MQ/session/ses_f612e2dd2ffeZ39356O5sm0okh",
+      "title": "OpenCode",
+      "workspaceVisible": true,
+      "ownSessionVisible": true,
+      "foreignSessionAbsent": true,
+      "ownFileVisible": true,
+      "foreignFileAbsent": true,
+      "sendDisabled": true,
+      "onlyOwnOrigin": true,
+      "assets": [
+        {
+          "path": "/assets/index-BpB7SL4b.js",
+          "transferSize": 2740455,
+          "decodedBodySize": 2740155,
+          "status": 200
+        },
+        {
+          "path": "/assets/index-DLiUNAg_.css",
+          "transferSize": 482789,
+          "decodedBodySize": 482489,
+          "status": 200
+        },
+        {
+          "path": "/assets/zh-D74Y4t1y.js",
+          "transferSize": 60637,
+          "decodedBodySize": 60337,
+          "status": 200
+        },
+        {
+          "path": "/assets/zh-C5pDW30z.js",
+          "transferSize": 9580,
+          "decodedBodySize": 9280,
+          "status": 200
+        },
+        {
+          "path": "/assets/Inter.ttf",
+          "transferSize": 875008,
+          "decodedBodySize": 874708,
+          "status": 200
+        },
+        {
+          "path": "/assets/sprite-Fb-TFjRY.svg#Document",
+          "transferSize": 944258,
+          "decodedBodySize": 943958,
+          "status": 200
+        },
+        {
+          "path": "/assets/sprite-Fb-TFjRY.svg#Document",
+          "transferSize": 944258,
+          "decodedBodySize": 943958,
+          "status": 200
+        },
+        {
+          "path": "/assets/wasm-CG6Dc4jp.js",
+          "transferSize": 622678,
+          "decodedBodySize": 622378,
+          "status": 200
+        },
+        {
+          "path": "/assets/worker-CU6mbanM.js",
+          "transferSize": 207161,
+          "decodedBodySize": 206861,
+          "status": 200
+        },
+        {
+          "path": "/assets/worker-CU6mbanM.js",
+          "transferSize": 207161,
+          "decodedBodySize": 206861,
+          "status": 200
+        }
+      ],
+      "screenshot": "evidence/browser-client-a.png",
+      "screenshot_sha256": "1d2139885dd2199e79d0fcbc45e88b3f91d5bf74dd06a9c73eee8485682e8b53",
+      "console_errors_after_final_reload": 0
+    },
+    "client-b": {
+      "client": "client-b",
+      "url": "http://127.0.0.1:14092/server/aHR0cDovLzEyNy4wLjAuMToxNDA5Mg/session/ses_f612e2d84ffeHHiMgvqJRPmTr4",
+      "title": "OpenCode",
+      "workspaceVisible": true,
+      "ownSessionVisible": true,
+      "foreignSessionAbsent": true,
+      "ownFileVisible": true,
+      "foreignFileAbsent": true,
+      "sendDisabled": true,
+      "onlyOwnOrigin": true,
+      "assets": [
+        {
+          "path": "/assets/index-BpB7SL4b.js",
+          "transferSize": 2740455,
+          "decodedBodySize": 2740155,
+          "status": 200
+        },
+        {
+          "path": "/assets/index-DLiUNAg_.css",
+          "transferSize": 482789,
+          "decodedBodySize": 482489,
+          "status": 200
+        },
+        {
+          "path": "/assets/zh-D74Y4t1y.js",
+          "transferSize": 60637,
+          "decodedBodySize": 60337,
+          "status": 200
+        },
+        {
+          "path": "/assets/zh-C5pDW30z.js",
+          "transferSize": 9580,
+          "decodedBodySize": 9280,
+          "status": 200
+        },
+        {
+          "path": "/assets/Inter.ttf",
+          "transferSize": 875008,
+          "decodedBodySize": 874708,
+          "status": 200
+        },
+        {
+          "path": "/assets/sprite-Fb-TFjRY.svg#Document",
+          "transferSize": 944258,
+          "decodedBodySize": 943958,
+          "status": 200
+        },
+        {
+          "path": "/assets/sprite-Fb-TFjRY.svg#Document",
+          "transferSize": 944258,
+          "decodedBodySize": 943958,
+          "status": 200
+        },
+        {
+          "path": "/assets/wasm-CG6Dc4jp.js",
+          "transferSize": 622678,
+          "decodedBodySize": 622378,
+          "status": 200
+        },
+        {
+          "path": "/assets/worker-CU6mbanM.js",
+          "transferSize": 207161,
+          "decodedBodySize": 206861,
+          "status": 200
+        },
+        {
+          "path": "/assets/worker-CU6mbanM.js",
+          "transferSize": 207161,
+          "decodedBodySize": 206861,
+          "status": 200
+        }
+      ],
+      "screenshot": "evidence/browser-client-b.png",
+      "screenshot_sha256": "0ed16d086ec8334e06e7733250e01d836b7f6d8789fd840d4a33d5df89cc5a8b",
+      "console_errors_after_final_reload": 0
+    }
+  },
+  "observations": [
+    "Each project picker opened its own /workspace and showed only its synthetic session.",
+    "Native session view and file viewer showed respective synthetic contents; no model request was submitted.",
+    "The 9 earlier client-a network console errors occurred during the separately recorded stop/recreate exercise; after recovery and reload both contexts had zero console errors."
+  ],
+  "not_verified": [
+    "Physical second computer or LAN ingress probe",
+    "Real model inference",
+    "Native Linux host deployment"
+  ]
+}

@@ -1,0 +1,11 @@
+.secrets/
+.runtime/
+.build-cache/
+__pycache__/
+*.pyc
+node_modules/
+.venv/
+dist/
+wheels/
+.playwright-cli/
+output/

@@ -1,0 +1,74 @@
+{
+  "client": "client-b",
+  "url": "http://127.0.0.1:14092/server/aHR0cDovLzEyNy4wLjAuMToxNDA5Mg/session/ses_f612e2d84ffeHHiMgvqJRPmTr4",
+  "title": "OpenCode",
+  "workspaceVisible": true,
+  "ownSessionVisible": true,
+  "foreignSessionAbsent": true,
+  "ownFileVisible": true,
+  "foreignFileAbsent": true,
+  "sendDisabled": true,
+  "onlyOwnOrigin": true,
+  "assets": [
+    {
+      "path": "/assets/index-BpB7SL4b.js",
+      "transferSize": 2740455,
+      "decodedBodySize": 2740155,
+      "status": 200
+    },
+    {
+      "path": "/assets/index-DLiUNAg_.css",
+      "transferSize": 482789,
+      "decodedBodySize": 482489,
+      "status": 200
+    },
+    {
+      "path": "/assets/zh-D74Y4t1y.js",
+      "transferSize": 60637,
+      "decodedBodySize": 60337,
+      "status": 200
+    },
+    {
+      "path": "/assets/zh-C5pDW30z.js",
+      "transferSize": 9580,
+      "decodedBodySize": 9280,
+      "status": 200
+    },
+    {
+      "path": "/assets/Inter.ttf",
+      "transferSize": 875008,
+      "decodedBodySize": 874708,
+      "status": 200
+    },
+    {
+      "path": "/assets/sprite-Fb-TFjRY.svg#Document",
+      "transferSize": 944258,
+      "decodedBodySize": 943958,
+      "status": 200
+    },
+    {
+      "path": "/assets/sprite-Fb-TFjRY.svg#Document",
+      "transferSize": 944258,
+      "decodedBodySize": 943958,
+      "status": 200
+    },
+    {
+      "path": "/assets/wasm-CG6Dc4jp.js",
+      "transferSize": 622678,
+      "decodedBodySize": 622378,
+      "status": 200
+    },
+    {
+      "path": "/assets/worker-CU6mbanM.js",
+      "transferSize": 207161,
+      "decodedBodySize": 206861,
+      "status": 200
+    },
+    {
+      "path": "/assets/worker-CU6mbanM.js",
+      "transferSize": 207161,
+      "decodedBodySize": 206861,
+      "status": 200
+    }
+  ]
+}

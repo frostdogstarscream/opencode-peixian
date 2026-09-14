@@ -1,0 +1,8 @@
+{
+  "name": "peixian-opencode-runtime-config",
+  "version": "1.18.30-r1",
+  "private": true,
+  "dependencies": {
+    "@opencode-ai/plugin": "1.18.30"
+  }
+}

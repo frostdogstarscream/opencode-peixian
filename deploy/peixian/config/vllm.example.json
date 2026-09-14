@@ -1,0 +1,22 @@
+{
+  "autoupdate": false,
+  "share": "disabled",
+  "enabled_providers": ["intranet"],
+  "model": "intranet/REPLACE_WITH_SERVED_MODEL_ID",
+  "small_model": "intranet/REPLACE_WITH_SERVED_MODEL_ID",
+  "provider": {
+    "intranet": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Intranet vLLM",
+      "options": {
+        "baseURL": "{env:INTERNAL_LLM_BASE_URL}",
+        "apiKey": "{env:INTERNAL_LLM_API_KEY}"
+      },
+      "models": {
+        "REPLACE_WITH_SERVED_MODEL_ID": {"name": "DeepSeek V4 Flash"}
+      }
+    }
+  },
+  "plugin": [],
+  "mcp": {}
+}

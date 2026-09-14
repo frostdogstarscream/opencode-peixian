@@ -1,0 +1,722 @@
+{
+  "started_at": "2026-09-14T07:29:00.273278+00:00",
+  "run_id": "c6c30dbb94e84a7fa7696326b53e927a",
+  "expected_version": "1.18.30",
+  "compose_sha256": "b2605512828e0ee8e90ed7755a5bac85f17ac67344bc5c19360f1180ce5801a1",
+  "lifecycle_completed": true,
+  "runtime": {
+    "client-a": {
+      "image_id": "sha256:e3c38b633a40c03f1fbc90583b0b3a7d282a3e07be0dda0aa257a4046413d275",
+      "platform": "linux/amd64"
+    },
+    "client-b": {
+      "image_id": "sha256:e3c38b633a40c03f1fbc90583b0b3a7d282a3e07be0dda0aa257a4046413d275",
+      "platform": "linux/amd64"
+    },
+    "client-a-entry": {
+      "image_id": "sha256:e3c38b633a40c03f1fbc90583b0b3a7d282a3e07be0dda0aa257a4046413d275",
+      "platform": "linux/amd64"
+    },
+    "client-b-entry": {
+      "image_id": "sha256:e3c38b633a40c03f1fbc90583b0b3a7d282a3e07be0dda0aa257a4046413d275",
+      "platform": "linux/amd64"
+    }
+  },
+  "checks": [
+    {
+      "name": "client-a: health/version",
+      "passed": true,
+      "evidence": {
+        "healthy": true,
+        "version": "1.18.30"
+      }
+    },
+    {
+      "name": "client-a: local HTML available",
+      "passed": true
+    },
+    {
+      "name": "client-a: rejects anonymous",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-a: rejects wrong password",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-a: rejects other client's credentials",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-b: health/version",
+      "passed": true,
+      "evidence": {
+        "healthy": true,
+        "version": "1.18.30"
+      }
+    },
+    {
+      "name": "client-b: local HTML available",
+      "passed": true
+    },
+    {
+      "name": "client-b: rejects anonymous",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-b: rejects wrong password",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-b: rejects other client's credentials",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-a: ordinary user and hardened container",
+      "passed": true,
+      "evidence": {
+        "user": "10001:10001",
+        "readonly_rootfs": true,
+        "privileged": false,
+        "cap_drop": [
+          "ALL"
+        ],
+        "security_opt": [
+          "no-new-privileges:true"
+        ],
+        "memory": 2147483648,
+        "nano_cpus": 2000000000,
+        "pids_limit": 256,
+        "ports": {},
+        "mounts": [
+          {
+            "type": "volume",
+            "destination": "/home/opencode",
+            "writable": true,
+            "name": "peixian-opencode_client-a-home"
+          },
+          {
+            "type": "volume",
+            "destination": "/workspace",
+            "writable": true,
+            "name": "peixian-opencode_client-a-workspace"
+          },
+          {
+            "type": "bind",
+            "destination": "/run/secrets/opencode-password",
+            "writable": false,
+            "name": null
+          }
+        ],
+        "xdg": {
+          "HOME": "/home/opencode",
+          "XDG_CONFIG_HOME": "/home/opencode/.config",
+          "XDG_DATA_HOME": "/home/opencode/.local/share",
+          "XDG_CACHE_HOME": "/home/opencode/.cache",
+          "XDG_STATE_HOME": "/home/opencode/.local/state"
+        }
+      }
+    },
+    {
+      "name": "client-a: resource limits",
+      "passed": true
+    },
+    {
+      "name": "client-a: expected HOME/XDG",
+      "passed": true
+    },
+    {
+      "name": "client-a: agent publishes no host ports",
+      "passed": true,
+      "evidence": {}
+    },
+    {
+      "name": "client-a: dedicated home and workspace volumes",
+      "passed": true
+    },
+    {
+      "name": "client-a: no host directory or Docker socket mounts",
+      "passed": true
+    },
+    {
+      "name": "client-a: isolated temporary filesystem",
+      "passed": true
+    },
+    {
+      "name": "client-a: one internal network",
+      "passed": true
+    },
+    {
+      "name": "client-a: runtime user and XDG match",
+      "passed": true,
+      "evidence": {
+        "uid": 10001,
+        "gid": 10001,
+        "xdg": {
+          "HOME": "/home/opencode",
+          "XDG_CONFIG_HOME": "/home/opencode/.config",
+          "XDG_DATA_HOME": "/home/opencode/.local/share",
+          "XDG_CACHE_HOME": "/home/opencode/.cache",
+          "XDG_STATE_HOME": "/home/opencode/.local/state"
+        }
+      }
+    },
+    {
+      "name": "client-a: no active IPv4 default route",
+      "passed": true
+    },
+    {
+      "name": "client-b: ordinary user and hardened container",
+      "passed": true,
+      "evidence": {
+        "user": "10001:10001",
+        "readonly_rootfs": true,
+        "privileged": false,
+        "cap_drop": [
+          "ALL"
+        ],
+        "security_opt": [
+          "no-new-privileges:true"
+        ],
+        "memory": 2147483648,
+        "nano_cpus": 2000000000,
+        "pids_limit": 256,
+        "ports": {},
+        "mounts": [
+          {
+            "type": "volume",
+            "destination": "/home/opencode",
+            "writable": true,
+            "name": "peixian-opencode_client-b-home"
+          },
+          {
+            "type": "volume",
+            "destination": "/workspace",
+            "writable": true,
+            "name": "peixian-opencode_client-b-workspace"
+          },
+          {
+            "type": "bind",
+            "destination": "/run/secrets/opencode-password",
+            "writable": false,
+            "name": null
+          }
+        ],
+        "xdg": {
+          "HOME": "/home/opencode",
+          "XDG_CONFIG_HOME": "/home/opencode/.config",
+          "XDG_DATA_HOME": "/home/opencode/.local/share",
+          "XDG_CACHE_HOME": "/home/opencode/.cache",
+          "XDG_STATE_HOME": "/home/opencode/.local/state"
+        }
+      }
+    },
+    {
+      "name": "client-b: resource limits",
+      "passed": true
+    },
+    {
+      "name": "client-b: expected HOME/XDG",
+      "passed": true
+    },
+    {
+      "name": "client-b: agent publishes no host ports",
+      "passed": true,
+      "evidence": {}
+    },
+    {
+      "name": "client-b: dedicated home and workspace volumes",
+      "passed": true
+    },
+    {
+      "name": "client-b: no host directory or Docker socket mounts",
+      "passed": true
+    },
+    {
+      "name": "client-b: isolated temporary filesystem",
+      "passed": true
+    },
+    {
+      "name": "client-b: one internal network",
+      "passed": true
+    },
+    {
+      "name": "client-b: runtime user and XDG match",
+      "passed": true,
+      "evidence": {
+        "uid": 10001,
+        "gid": 10001,
+        "xdg": {
+          "HOME": "/home/opencode",
+          "XDG_CONFIG_HOME": "/home/opencode/.config",
+          "XDG_DATA_HOME": "/home/opencode/.local/share",
+          "XDG_CACHE_HOME": "/home/opencode/.cache",
+          "XDG_STATE_HOME": "/home/opencode/.local/state"
+        }
+      }
+    },
+    {
+      "name": "client-b: no active IPv4 default route",
+      "passed": true
+    },
+    {
+      "name": "A/B share no persistent volume",
+      "passed": true
+    },
+    {
+      "name": "A/B share no container network",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: ordinary user and hardened container",
+      "passed": true,
+      "evidence": {
+        "user": "10001:10001",
+        "readonly_rootfs": true,
+        "privileged": false,
+        "cap_drop": [
+          "ALL"
+        ],
+        "security_opt": [
+          "no-new-privileges:true"
+        ],
+        "sysctls": {
+          "net.ipv4.ip_forward": "0"
+        },
+        "ports": {
+          "4096/tcp": [
+            {
+              "HostIp": "127.0.0.1",
+              "HostPort": "14091"
+            }
+          ]
+        },
+        "upstream_host": "client-a",
+        "upstream_port": "4096",
+        "entrypoint": [
+          "python3",
+          "/opt/peixian/tcp-forward.py"
+        ],
+        "command": [],
+        "mounts": []
+      }
+    },
+    {
+      "name": "client-a-entry: only expected loopback port published",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: no persistent volumes, secret mounts or password environment",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: fixed upstream is its own agent",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: fixed TCP forwarder command",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: entry resource limits",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: configured IPv4 forwarding disabled",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: runtime UID and forwarding state",
+      "passed": true,
+      "evidence": {
+        "uid": 10001,
+        "gid": 10001,
+        "ip_forward": "0"
+      }
+    },
+    {
+      "name": "client-a-entry: own internal plus one entry network",
+      "passed": true,
+      "evidence": {
+        "internal": [
+          "peixian-opencode_client-a"
+        ],
+        "entry": [
+          "peixian-opencode_entry-a"
+        ]
+      }
+    },
+    {
+      "name": "client-a-entry: IPv6 disabled on peixian-opencode_client-a",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: network contains only its own components (peixian-opencode_client-a)",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: IPv6 disabled on peixian-opencode_entry-a",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: network contains only its own components (peixian-opencode_entry-a)",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: ordinary user and hardened container",
+      "passed": true,
+      "evidence": {
+        "user": "10001:10001",
+        "readonly_rootfs": true,
+        "privileged": false,
+        "cap_drop": [
+          "ALL"
+        ],
+        "security_opt": [
+          "no-new-privileges:true"
+        ],
+        "sysctls": {
+          "net.ipv4.ip_forward": "0"
+        },
+        "ports": {
+          "4096/tcp": [
+            {
+              "HostIp": "127.0.0.1",
+              "HostPort": "14092"
+            }
+          ]
+        },
+        "upstream_host": "client-b",
+        "upstream_port": "4096",
+        "entrypoint": [
+          "python3",
+          "/opt/peixian/tcp-forward.py"
+        ],
+        "command": [],
+        "mounts": []
+      }
+    },
+    {
+      "name": "client-b-entry: only expected loopback port published",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: no persistent volumes, secret mounts or password environment",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: fixed upstream is its own agent",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: fixed TCP forwarder command",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: entry resource limits",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: configured IPv4 forwarding disabled",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: runtime UID and forwarding state",
+      "passed": true,
+      "evidence": {
+        "uid": 10001,
+        "gid": 10001,
+        "ip_forward": "0"
+      }
+    },
+    {
+      "name": "client-b-entry: own internal plus one entry network",
+      "passed": true,
+      "evidence": {
+        "internal": [
+          "peixian-opencode_client-b"
+        ],
+        "entry": [
+          "peixian-opencode_entry-b"
+        ]
+      }
+    },
+    {
+      "name": "client-b-entry: IPv6 disabled on peixian-opencode_client-b",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: network contains only its own components (peixian-opencode_client-b)",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: IPv6 disabled on peixian-opencode_entry-b",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: network contains only its own components (peixian-opencode_entry-b)",
+      "passed": true
+    },
+    {
+      "name": "A/B entries share no external network",
+      "passed": true
+    },
+    {
+      "name": "A/B session IDs differ",
+      "passed": true
+    },
+    {
+      "name": "client-a: list contains own session only",
+      "passed": true
+    },
+    {
+      "name": "client-a: own session detail",
+      "passed": true
+    },
+    {
+      "name": "client-a: foreign session ID unavailable",
+      "passed": true,
+      "evidence": {
+        "status": 404
+      }
+    },
+    {
+      "name": "client-a: SSE has own event, no other client's event in observed window",
+      "passed": true,
+      "evidence": {
+        "events_observed": 4,
+        "post_delivery_window_seconds": 3
+      }
+    },
+    {
+      "name": "client-b: list contains own session only",
+      "passed": true
+    },
+    {
+      "name": "client-b: own session detail",
+      "passed": true
+    },
+    {
+      "name": "client-b: foreign session ID unavailable",
+      "passed": true,
+      "evidence": {
+        "status": 404
+      }
+    },
+    {
+      "name": "client-b: SSE has own event, no other client's event in observed window",
+      "passed": true,
+      "evidence": {
+        "events_observed": 4,
+        "post_delivery_window_seconds": 3
+      }
+    },
+    {
+      "name": "client-a: synthetic workspace file written",
+      "passed": true
+    },
+    {
+      "name": "client-a: file API returns own marker",
+      "passed": true
+    },
+    {
+      "name": "client-b: synthetic workspace file written",
+      "passed": true
+    },
+    {
+      "name": "client-b: file API returns own marker",
+      "passed": true
+    },
+    {
+      "name": "client-a: peers and own entry have testable IPv4 addresses",
+      "passed": true
+    },
+    {
+      "name": "client-a: own agent/entry reachable; peer agent/entries and public TCP blocked",
+      "passed": true,
+      "evidence": [
+        {
+          "probe": "own_agent_control",
+          "connected": true
+        },
+        {
+          "probe": "own_entry_control",
+          "connected": true
+        },
+        {
+          "probe": "peer_agent",
+          "connected": false,
+          "error_type": "OSError",
+          "errno": 101
+        },
+        {
+          "probe": "peer_entry_address_0",
+          "connected": false,
+          "error_type": "OSError",
+          "errno": 101
+        },
+        {
+          "probe": "peer_entry_address_1",
+          "connected": false,
+          "error_type": "OSError",
+          "errno": 101
+        },
+        {
+          "probe": "public_ipv4_without_dns",
+          "connected": false,
+          "error_type": "OSError",
+          "errno": 101
+        }
+      ]
+    },
+    {
+      "name": "client-b: peers and own entry have testable IPv4 addresses",
+      "passed": true
+    },
+    {
+      "name": "client-b: own agent/entry reachable; peer agent/entries and public TCP blocked",
+      "passed": true,
+      "evidence": [
+        {
+          "probe": "own_agent_control",
+          "connected": true
+        },
+        {
+          "probe": "own_entry_control",
+          "connected": true
+        },
+        {
+          "probe": "peer_agent",
+          "connected": false,
+          "error_type": "OSError",
+          "errno": 101
+        },
+        {
+          "probe": "peer_entry_address_0",
+          "connected": false,
+          "error_type": "OSError",
+          "errno": 101
+        },
+        {
+          "probe": "peer_entry_address_1",
+          "connected": false,
+          "error_type": "OSError",
+          "errno": 101
+        },
+        {
+          "probe": "public_ipv4_without_dns",
+          "connected": false,
+          "error_type": "OSError",
+          "errno": 101
+        }
+      ]
+    },
+    {
+      "name": "client-a: stop/start retains container",
+      "passed": true
+    },
+    {
+      "name": "client-a: session persists after stop/start",
+      "passed": true
+    },
+    {
+      "name": "client-a: file API returns own marker",
+      "passed": true
+    },
+    {
+      "name": "client-b: session persists after stop/start",
+      "passed": true
+    },
+    {
+      "name": "client-b: file API returns own marker",
+      "passed": true
+    },
+    {
+      "name": "client-b: container unchanged after stop/start",
+      "passed": true
+    },
+    {
+      "name": "client-a: volume identity unchanged after stop/start",
+      "passed": true
+    },
+    {
+      "name": "client-a: recreate replaced container",
+      "passed": true
+    },
+    {
+      "name": "client-a: session persists after recreate",
+      "passed": true
+    },
+    {
+      "name": "client-a: file API returns own marker",
+      "passed": true
+    },
+    {
+      "name": "client-b: session persists after recreate",
+      "passed": true
+    },
+    {
+      "name": "client-b: file API returns own marker",
+      "passed": true
+    },
+    {
+      "name": "client-b: container unchanged after recreate",
+      "passed": true
+    },
+    {
+      "name": "client-a: volume identity unchanged after recreate",
+      "passed": true
+    },
+    {
+      "name": "client-b: remained healthy during A lifecycle operations",
+      "passed": true,
+      "evidence": {
+        "health_samples": 12,
+        "failed_samples": 0,
+        "sampling_interval_seconds": 0.5
+      }
+    }
+  ],
+  "not_verified": [
+    "Real model inference and tool calls",
+    "Browser rendering and separate browser profiles",
+    "Access from a physical LAN client",
+    "Proof that initial volumes were empty before first startup"
+  ],
+  "network_routes": {
+    "client-a": "Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\t\tMTU\tWindow\tIRTT                                                       \neth0\t000015AC\t00000000\t0001\t0\t0\t0\t0000FFFF\t0\t0\t0                                                                               \n",
+    "client-b": "Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\t\tMTU\tWindow\tIRTT                                                       \neth0\t000016AC\t00000000\t0001\t0\t0\t0\t0000FFFF\t0\t0\t0                                                                               \n"
+  },
+  "synthetic_records": {
+    "client-a": {
+      "session_id": "ses_f612e2dd2ffeZ39356O5sm0okh",
+      "file": ".peixian-verification/c6c30dbb94e84a7fa7696326b53e927a.txt",
+      "content_sha256": "dc676d0d69d8dd2a6f34dcb6853e1a8e16f657f9f8bd62657d2dc309a25b8728"
+    },
+    "client-b": {
+      "session_id": "ses_f612e2d84ffeHHiMgvqJRPmTr4",
+      "file": ".peixian-verification/c6c30dbb94e84a7fa7696326b53e927a.txt",
+      "content_sha256": "dc42d5243d334c08f320a524cf31a817f1098986e16f15063cb7e46ffc7b6e81"
+    }
+  },
+  "finished_at": "2026-09-14T07:29:19.663253+00:00",
+  "status": "passed"
+}

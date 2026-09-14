@@ -1,0 +1,444 @@
+{
+  "started_at": "2026-09-14T08:11:45.234918+00:00",
+  "run_id": "6fb7fef774b34ade846f771c60ff374e",
+  "provider_id": "deepseek",
+  "model_id": "deepseek-flash",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "client-a: config response contains no real DeepSeek key",
+      "passed": true
+    },
+    {
+      "name": "client-a: provider response contains no real DeepSeek key",
+      "passed": true
+    },
+    {
+      "name": "client-a: default model is configured DeepSeek Flash",
+      "passed": true,
+      "evidence": {
+        "model": "deepseek/deepseek-flash",
+        "small_model": "deepseek/deepseek-flash"
+      }
+    },
+    {
+      "name": "client-a: configured provider/model are available and connected",
+      "passed": true
+    },
+    {
+      "name": "client-a: rejects other client's credentials in live mode",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-a: rejects anonymous in live mode",
+      "passed": true
+    },
+    {
+      "name": "client-a: rejects wrong password in live mode",
+      "passed": true
+    },
+    {
+      "name": "client-a: own synthetic tool file created",
+      "passed": true
+    },
+    {
+      "name": "client-b: config response contains no real DeepSeek key",
+      "passed": true
+    },
+    {
+      "name": "client-b: provider response contains no real DeepSeek key",
+      "passed": true
+    },
+    {
+      "name": "client-b: default model is configured DeepSeek Flash",
+      "passed": true,
+      "evidence": {
+        "model": "deepseek/deepseek-flash",
+        "small_model": "deepseek/deepseek-flash"
+      }
+    },
+    {
+      "name": "client-b: configured provider/model are available and connected",
+      "passed": true
+    },
+    {
+      "name": "client-b: rejects other client's credentials in live mode",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-b: rejects anonymous in live mode",
+      "passed": true
+    },
+    {
+      "name": "client-b: rejects wrong password in live mode",
+      "passed": true
+    },
+    {
+      "name": "client-b: own synthetic tool file created",
+      "passed": true
+    },
+    {
+      "name": "client-a: prompt budget respected (answer)",
+      "passed": true
+    },
+    {
+      "name": "client-a: answer response contains no real key",
+      "passed": true
+    },
+    {
+      "name": "client-a: answer history contains no real key",
+      "passed": true
+    },
+    {
+      "name": "client-a: answer uses requested model without reported error",
+      "passed": true
+    },
+    {
+      "name": "client-a: answer has a real short answer with its own marker",
+      "passed": true
+    },
+    {
+      "name": "client-a: short answer executed no tools",
+      "passed": true
+    },
+    {
+      "name": "client-a: prompt budget respected (tool)",
+      "passed": true
+    },
+    {
+      "name": "client-a: tool response contains no real key",
+      "passed": true
+    },
+    {
+      "name": "client-a: tool history contains no real key",
+      "passed": true
+    },
+    {
+      "name": "client-a: tool uses requested model without reported error",
+      "passed": true
+    },
+    {
+      "name": "client-a: tool has a real short answer with its own marker",
+      "passed": true
+    },
+    {
+      "name": "client-a: exactly one read tool completed on its own file",
+      "passed": true
+    },
+    {
+      "name": "client-a: completed read output contains own file marker",
+      "passed": true
+    },
+    {
+      "name": "client-b: prompt budget respected (answer)",
+      "passed": true
+    },
+    {
+      "name": "client-b: answer response contains no real key",
+      "passed": true
+    },
+    {
+      "name": "client-b: answer history contains no real key",
+      "passed": true
+    },
+    {
+      "name": "client-b: answer uses requested model without reported error",
+      "passed": true
+    },
+    {
+      "name": "client-b: answer has a real short answer with its own marker",
+      "passed": true
+    },
+    {
+      "name": "client-b: short answer executed no tools",
+      "passed": true
+    },
+    {
+      "name": "client-b: prompt budget respected (tool)",
+      "passed": true
+    },
+    {
+      "name": "client-b: tool response contains no real key",
+      "passed": true
+    },
+    {
+      "name": "client-b: tool history contains no real key",
+      "passed": true
+    },
+    {
+      "name": "client-b: tool uses requested model without reported error",
+      "passed": true
+    },
+    {
+      "name": "client-b: tool has a real short answer with its own marker",
+      "passed": true
+    },
+    {
+      "name": "client-b: exactly one read tool completed on its own file",
+      "passed": true
+    },
+    {
+      "name": "client-b: completed read output contains own file marker",
+      "passed": true
+    },
+    {
+      "name": "client-a: observed test events contain no real key",
+      "passed": true
+    },
+    {
+      "name": "client-a: SSE excludes the other client's test session IDs and markers",
+      "passed": true
+    },
+    {
+      "name": "client-a: answer streamed real text deltas",
+      "passed": true
+    },
+    {
+      "name": "client-a: tool streamed real text deltas",
+      "passed": true
+    },
+    {
+      "name": "client-a: lists its live sessions and excludes foreign sessions",
+      "passed": true
+    },
+    {
+      "name": "client-a: foreign live session ID is unavailable",
+      "passed": true,
+      "evidence": {
+        "status": 404
+      }
+    },
+    {
+      "name": "client-a: foreign live session ID is unavailable",
+      "passed": true,
+      "evidence": {
+        "status": 404
+      }
+    },
+    {
+      "name": "client-b: observed test events contain no real key",
+      "passed": true
+    },
+    {
+      "name": "client-b: SSE excludes the other client's test session IDs and markers",
+      "passed": true
+    },
+    {
+      "name": "client-b: answer streamed real text deltas",
+      "passed": true
+    },
+    {
+      "name": "client-b: tool streamed real text deltas",
+      "passed": true
+    },
+    {
+      "name": "client-b: lists its live sessions and excludes foreign sessions",
+      "passed": true
+    },
+    {
+      "name": "client-b: foreign live session ID is unavailable",
+      "passed": true,
+      "evidence": {
+        "status": 404
+      }
+    },
+    {
+      "name": "client-b: foreign live session ID is unavailable",
+      "passed": true,
+      "evidence": {
+        "status": 404
+      }
+    }
+  ],
+  "prompt_requests": {
+    "client-a": 2,
+    "client-b": 2
+  },
+  "per_client_prompt_budget": 2,
+  "scope": "One short answer and one synthetic-file read task per client; model requests are not retried by this script.",
+  "not_verified": [
+    "Self-hosted vLLM",
+    "Business data or analysis skills",
+    "Production workload, sustained concurrency or long-context quality"
+  ],
+  "config_sha256": {
+    "compose.yaml": "b2605512828e0ee8e90ed7755a5bac85f17ac67344bc5c19360f1180ce5801a1",
+    "compose.deepseek.yaml": "12c243eabe1532be605faa9e81c79b3c30d7eac4a3f6cbf154e219c885da622e",
+    "config/deepseek.json": "b192564bde8f3ccd4261ad9016318af04c1bd7cb0f52f8b12ce9914b3bd194b1"
+  },
+  "synthetic_records": {
+    "client-a": {
+      "sessions": {
+        "answer": "ses_f61071d7cffe8tZ3yN7rtzK4rY",
+        "tool": "ses_f61071d6bffeDt5EvFCPQXTLG3"
+      },
+      "file": "/workspace/.peixian-deepseek/6fb7fef774b34ade846f771c60ff374e/marker.txt",
+      "content_sha256": "ea5786d4b4896df818c9fa995ed5c81f430efe4ecee918c43e456e3f102dd918"
+    },
+    "client-b": {
+      "sessions": {
+        "answer": "ses_f61071881ffej6KCL4JamMo0Os",
+        "tool": "ses_f6107186fffeAIeAb3W3fe1EIS"
+      },
+      "file": "/workspace/.peixian-deepseek/6fb7fef774b34ade846f771c60ff374e/marker.txt",
+      "content_sha256": "1827f1e12f00cfa5a76b0f90fe9d5b3b625c7f70c2a0debb094b59aad7ff8a17"
+    }
+  },
+  "responses": {
+    "client-a": {
+      "answer": {
+        "session_id": "ses_f61071d7cffe8tZ3yN7rtzK4rY",
+        "text": "REPLY_client_a_9ac7bca739ca4128",
+        "assistant_message_ids": [
+          "msg_09ef8e7e30013P80DmDUNtXwlH"
+        ],
+        "tokens": [
+          {
+            "total": 2104,
+            "input": 2089,
+            "output": 15,
+            "reasoning": 0,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          }
+        ],
+        "tool_parts": []
+      },
+      "tool": {
+        "session_id": "ses_f61071d6bffeDt5EvFCPQXTLG3",
+        "text": "FILE_client_a_ce0f87050f4e400e",
+        "assistant_message_ids": [
+          "msg_09ef8ee21001Rgvj2NclT86PDw",
+          "msg_09ef8f0d50010cKnxr32b422Z3"
+        ],
+        "tokens": [
+          {
+            "total": 2849,
+            "input": 734,
+            "output": 67,
+            "reasoning": 0,
+            "cache": {
+              "read": 2048,
+              "write": 0
+            }
+          },
+          {
+            "total": 2949,
+            "input": 247,
+            "output": 14,
+            "reasoning": 0,
+            "cache": {
+              "read": 2688,
+              "write": 0
+            }
+          }
+        ],
+        "tool_parts": [
+          {
+            "id": "prt_09ef8f052001zH2mc168z10zpz",
+            "call_id": "call_00_7GK8aaOcmKIyiDQcgmNg9937",
+            "tool": "read",
+            "status": "completed",
+            "input": {
+              "filePath": "/workspace/.peixian-deepseek/6fb7fef774b34ade846f771c60ff374e/marker.txt"
+            },
+            "output_sha256": "9a28580fda99244ecea60f311d0c44355f224c2c3d0fec5476f7bd42f6382906",
+            "output_contains_expected_marker": true
+          }
+        ]
+      }
+    },
+    "client-b": {
+      "answer": {
+        "session_id": "ses_f61071881ffej6KCL4JamMo0Os",
+        "text": "REPLY_client_b_1f05df72342e4242",
+        "assistant_message_ids": [
+          "msg_09ef8f42a0010C87dBwwyKgC0G"
+        ],
+        "tokens": [
+          {
+            "total": 2104,
+            "input": 169,
+            "output": 15,
+            "reasoning": 0,
+            "cache": {
+              "read": 1920,
+              "write": 0
+            }
+          }
+        ],
+        "tool_parts": []
+      },
+      "tool": {
+        "session_id": "ses_f6107186fffeAIeAb3W3fe1EIS",
+        "text": "FILE_client_b_b4a6e20313c84eb9",
+        "assistant_message_ids": [
+          "msg_09ef8f8de001NYM3DoGQJg8Iuz",
+          "msg_09ef8fcd3001dKZBJqfyFz9U5H"
+        ],
+        "tokens": [
+          {
+            "total": 2849,
+            "input": 222,
+            "output": 67,
+            "reasoning": 0,
+            "cache": {
+              "read": 2560,
+              "write": 0
+            }
+          },
+          {
+            "total": 2949,
+            "input": 247,
+            "output": 14,
+            "reasoning": 0,
+            "cache": {
+              "read": 2688,
+              "write": 0
+            }
+          }
+        ],
+        "tool_parts": [
+          {
+            "id": "prt_09ef8fc790011VzGKB6qpZzVA5",
+            "call_id": "call_00_MI4o5Z6AQjE8A1ZM93SD0760",
+            "tool": "read",
+            "status": "completed",
+            "input": {
+              "filePath": "/workspace/.peixian-deepseek/6fb7fef774b34ade846f771c60ff374e/marker.txt"
+            },
+            "output_sha256": "357324ddb90f3ba9174f06f742e665a8856d13ec0ea6ca83f7f0a3f0bd8ef805",
+            "output_contains_expected_marker": true
+          }
+        ]
+      }
+    }
+  },
+  "sse": {
+    "client-a": {
+      "observed_test_events": 126,
+      "text_delta_counts": {
+        "answer": 15,
+        "tool": 14
+      },
+      "post_response_window_seconds": 3
+    },
+    "client-b": {
+      "observed_test_events": 126,
+      "text_delta_counts": {
+        "answer": 15,
+        "tool": 14
+      },
+      "post_response_window_seconds": 3
+    }
+  },
+  "finished_at": "2026-09-14T08:11:56.440274+00:00"
+}

@@ -1,0 +1,108 @@
+{
+  "status": "passed",
+  "started_at": "2026-09-14T08:20:12.151103+00:00",
+  "checks": [
+    {
+      "name": "manage.ps1 up completes",
+      "passed": true
+    },
+    {
+      "name": "deepseek.ps1 stop completes",
+      "passed": true
+    },
+    {
+      "name": "deepseek.ps1 disable completes",
+      "passed": true
+    },
+    {
+      "name": "client-a: disable restores no-model baseline",
+      "passed": true
+    },
+    {
+      "name": "client-a: disable preserves sessions",
+      "passed": true
+    },
+    {
+      "name": "client-a: disable preserves file_sha256",
+      "passed": true
+    },
+    {
+      "name": "client-a: disable preserves volumes",
+      "passed": true
+    },
+    {
+      "name": "client-b: disable restores no-model baseline",
+      "passed": true
+    },
+    {
+      "name": "client-b: disable preserves sessions",
+      "passed": true
+    },
+    {
+      "name": "client-b: disable preserves file_sha256",
+      "passed": true
+    },
+    {
+      "name": "client-b: disable preserves volumes",
+      "passed": true
+    },
+    {
+      "name": "client-a-deepseek: stopped on disable",
+      "passed": true
+    },
+    {
+      "name": "client-b-deepseek: stopped on disable",
+      "passed": true
+    },
+    {
+      "name": "disabled marker absent",
+      "passed": true
+    },
+    {
+      "name": "deepseek.ps1 enable completes",
+      "passed": true
+    },
+    {
+      "name": "client-a: model restored",
+      "passed": true
+    },
+    {
+      "name": "client-a: re-enable preserves sessions",
+      "passed": true
+    },
+    {
+      "name": "client-a: re-enable preserves file_sha256",
+      "passed": true
+    },
+    {
+      "name": "client-a: re-enable preserves volumes",
+      "passed": true
+    },
+    {
+      "name": "client-b: model restored",
+      "passed": true
+    },
+    {
+      "name": "client-b: re-enable preserves sessions",
+      "passed": true
+    },
+    {
+      "name": "client-b: re-enable preserves file_sha256",
+      "passed": true
+    },
+    {
+      "name": "client-b: re-enable preserves volumes",
+      "passed": true
+    },
+    {
+      "name": "enabled marker restored",
+      "passed": true
+    }
+  ],
+  "completed_at": "2026-09-14T08:20:49.681584+00:00",
+  "model_requests_submitted": 0,
+  "script_sha256": {
+    "manage.ps1": "26c9f97a8646d57cfde139dbe618adcb96be9d02fe80c0ce761b7e2ae74d8933",
+    "deepseek.ps1": "737e952466012dbf8249497e723364b60ad83e0a679df636a80695672e90553d"
+  }
+}

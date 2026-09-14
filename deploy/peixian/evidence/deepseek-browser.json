@@ -1,0 +1,55 @@
+{
+  "status": "passed",
+  "observed_at": "2026-09-14T08:20:33.086990+00:00",
+  "scope": "Read-only native browser review of already completed synthetic DeepSeek tool sessions",
+  "new_model_requests_sent": 0,
+  "credential_file_contents_read_or_printed": false,
+  "model_displayed": true,
+  "answer_displayed": true,
+  "clients": {
+    "client-a": {
+      "url": "http://127.0.0.1:14091/server/aHR0cDovLzEyNy4wLjAuMToxNDA5MQ/session/ses_f61071d6bffeDt5EvFCPQXTLG3",
+      "session_id": "ses_f61071d6bffeDt5EvFCPQXTLG3",
+      "session_title": "SYNTHETIC-DEEPSEEK-client-a-tool-6fb7fef774b34ade846f771c60ff374e",
+      "model_displayed": true,
+      "model_label": "DeepSeek V4.1 Flash",
+      "answer_displayed": true,
+      "answer_sha256": "ea5786d4b4896df818c9fa995ed5c81f430efe4ecee918c43e456e3f102dd918",
+      "completed_read_displayed": true,
+      "read_count": 1,
+      "visible_tool_label": "读取 marker.txt",
+      "screenshot": "evidence/deepseek-browser-client-a.png",
+      "screenshot_sha256": "c5f06322a8664d9434af7fe404b14e52c4ca19a4373e1e6a223dec4c10acb1b4",
+      "screenshot_visually_reviewed": true,
+      "browser_session": "peixian-model-a",
+      "browser_session_closed": true
+    },
+    "client-b": {
+      "url": "http://127.0.0.1:14092/server/aHR0cDovLzEyNy4wLjAuMToxNDA5Mg/session/ses_f6107186fffeAIeAb3W3fe1EIS",
+      "session_id": "ses_f6107186fffeAIeAb3W3fe1EIS",
+      "session_title": "SYNTHETIC-DEEPSEEK-client-b-tool-6fb7fef774b34ade846f771c60ff374e",
+      "model_displayed": true,
+      "model_label": "DeepSeek V4.1 Flash",
+      "answer_displayed": true,
+      "answer_sha256": "1827f1e12f00cfa5a76b0f90fe9d5b3b625c7f70c2a0debb094b59aad7ff8a17",
+      "completed_read_displayed": true,
+      "read_count": 1,
+      "visible_tool_label": "读取 marker.txt",
+      "screenshot": "evidence/deepseek-browser-client-b.png",
+      "screenshot_sha256": "e39e9e47d9b05d2215f2e270135981b3c8d5b0e61d567275ee11f581c9b4405d",
+      "screenshot_visually_reviewed": true,
+      "browser_session": "peixian-model-b",
+      "browser_session_closed": true
+    }
+  },
+  "native_ui_observations": [
+    "A/B均通过独立浏览器会话打开各自/workspace中的既有合成工具会话。",
+    "两页的模型选择器均实际显示DeepSeek V4.1 Flash，可访问性快照亦显示Build · DeepSeek V4.1 Flash。",
+    "两页均实际显示已探索、1次读取及展开后的读取marker.txt记录。",
+    "A/B分别显示不同的合成文件内容回答，截图已进行视觉复核。",
+    "没有发送提示词、执行新模型请求或修改代码；两个本轮浏览器会话已关闭。"
+  ],
+  "not_verified": [
+    "This browser step did not create another model/tool request; the existing execution is covered by the separate API report."
+  ]
+}

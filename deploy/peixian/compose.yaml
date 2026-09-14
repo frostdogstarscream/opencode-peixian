@@ -1,0 +1,140 @@
+name: peixian-opencode
+
+x-opencode: &opencode
+  image: peixian-opencode:1.18.30-r1
+  build:
+    context: .
+    dockerfile: Dockerfile
+  user: "10001:10001"
+  init: true
+  restart: unless-stopped
+  read_only: true
+  working_dir: /workspace
+  cpus: 2.0
+  mem_limit: 2g
+  pids_limit: 256
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp:rw,nosuid,nodev,size=128m,mode=1777
+  stop_grace_period: 20s
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-tcp-entry: &tcp-entry
+  image: peixian-opencode:1.18.30-r1
+  entrypoint: ["python3", "/opt/peixian/tcp-forward.py"]
+  command: []
+  user: "10001:10001"
+  init: true
+  restart: unless-stopped
+  read_only: true
+  cpus: 0.25
+  mem_limit: 128m
+  pids_limit: 64
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  sysctls:
+    net.ipv4.ip_forward: "0"
+  tmpfs:
+    - /tmp:rw,nosuid,nodev,size=16m,mode=1777
+  stop_grace_period: 20s
+  healthcheck:
+    test: ["CMD", "python3", "-c", "import socket; socket.create_connection(('127.0.0.1', 4096), timeout=2).close()"]
+    interval: 10s
+    timeout: 3s
+    start_period: 5s
+    retries: 6
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  client-a:
+    <<: *opencode
+    environment:
+      OPENCODE_SERVER_USERNAME: client-a
+    volumes:
+      - client-a-home:/home/opencode
+      - client-a-workspace:/workspace
+    secrets:
+      - source: client-a-password
+        target: opencode-password
+    networks:
+      - client-a
+
+  client-b:
+    <<: *opencode
+    environment:
+      OPENCODE_SERVER_USERNAME: client-b
+    volumes:
+      - client-b-home:/home/opencode
+      - client-b-workspace:/workspace
+    secrets:
+      - source: client-b-password
+        target: opencode-password
+    networks:
+      - client-b
+
+  client-a-entry:
+    <<: *tcp-entry
+    environment:
+      UPSTREAM_HOST: client-a
+      UPSTREAM_PORT: "4096"
+      LISTEN_PORT: "4096"
+      OPENCODE_PASSWORD_FILE: ""
+    ports:
+      - "127.0.0.1:14091:4096"
+    depends_on:
+      client-a:
+        condition: service_healthy
+    networks:
+      - client-a
+      - entry-a
+
+  client-b-entry:
+    <<: *tcp-entry
+    environment:
+      UPSTREAM_HOST: client-b
+      UPSTREAM_PORT: "4096"
+      LISTEN_PORT: "4096"
+      OPENCODE_PASSWORD_FILE: ""
+    ports:
+      - "127.0.0.1:14092:4096"
+    depends_on:
+      client-b:
+        condition: service_healthy
+    networks:
+      - client-b
+      - entry-b
+
+secrets:
+  client-a-password:
+    file: ./.secrets/client-a.password
+  client-b-password:
+    file: ./.secrets/client-b.password
+
+networks:
+  client-a:
+    internal: true
+  client-b:
+    internal: true
+  entry-a:
+    internal: false
+  entry-b:
+    internal: false
+
+volumes:
+  client-a-home:
+  client-a-workspace:
+  client-b-home:
+  client-b-workspace:

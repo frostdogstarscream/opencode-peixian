@@ -1,0 +1,71 @@
+# Local opt-in test profile; compose.yaml and its offline acceptance remain intact.
+x-deepseek-egress: &deepseek-egress
+  image: peixian-opencode:1.18.30-r1
+  entrypoint: ["python3", "/opt/peixian/api-forward.py"]
+  command: []
+  user: "10001:10001"
+  init: true
+  restart: unless-stopped
+  read_only: true
+  cpus: 0.5
+  mem_limit: 128m
+  pids_limit: 64
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  sysctls:
+    net.ipv4.ip_forward: "0"
+  tmpfs:
+    - /tmp:rw,nosuid,nodev,size=16m,mode=1777
+  environment:
+    DEEPSEEK_API_KEY_FILE: /run/secrets/deepseek-api-key
+  volumes:
+    - ./api-forward.py:/opt/peixian/api-forward.py:ro
+  healthcheck:
+    test: ["CMD", "python3", "-c", "import socket; socket.create_connection(('127.0.0.1',8080),timeout=2).close()"]
+    interval: 10s
+    timeout: 3s
+    start_period: 5s
+    retries: 6
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  client-a:
+    volumes:
+      - ./config/deepseek.json:/opt/peixian/config/opencode.json:ro
+    depends_on:
+      client-a-deepseek:
+        condition: service_healthy
+  client-b:
+    volumes:
+      - ./config/deepseek.json:/opt/peixian/config/opencode.json:ro
+    depends_on:
+      client-b-deepseek:
+        condition: service_healthy
+  client-a-deepseek:
+    <<: *deepseek-egress
+    secrets:
+      - source: client-a-deepseek-key
+        target: deepseek-api-key
+    networks:
+      client-a:
+        aliases: [deepseek-api]
+      entry-a: {}
+  client-b-deepseek:
+    <<: *deepseek-egress
+    secrets:
+      - source: client-b-deepseek-key
+        target: deepseek-api-key
+    networks:
+      client-b:
+        aliases: [deepseek-api]
+      entry-b: {}
+
+secrets:
+  client-a-deepseek-key:
+    file: ./.secrets/client-a.deepseek-key
+  client-b-deepseek-key:
+    file: ./.secrets/client-b.deepseek-key

@@ -1,0 +1,388 @@
+{
+  "status": "passed",
+  "started_at": "2026-09-14T07:29:18.596560+00:00",
+  "image_id": "sha256:e3c38b633a40c03f1fbc90583b0b3a7d282a3e07be0dda0aa257a4046413d275",
+  "compose_sha256": "b2605512828e0ee8e90ed7755a5bac85f17ac67344bc5c19360f1180ce5801a1",
+  "project": "peixian-opencode-cold-20260914072918-1d564ef46911",
+  "expected_version": "1.18.30",
+  "scope": "A separate Compose copy created from absent volumes; this does not assert that the main project's volumes were unused",
+  "checks": [
+    {
+      "name": "Two valid distinct credentials",
+      "passed": true
+    },
+    {
+      "name": "Current image is linux/amd64",
+      "passed": true
+    },
+    {
+      "name": "Main Compose unchanged while generating copy",
+      "passed": true
+    },
+    {
+      "name": "Unique project has no preexisting containers, volumes, or networks",
+      "passed": true,
+      "evidence": {
+        "containers": [],
+        "volumes": [],
+        "networks": []
+      }
+    },
+    {
+      "name": "Loopback port 14093 is available",
+      "passed": true
+    },
+    {
+      "name": "Loopback port 14094 is available",
+      "passed": true
+    },
+    {
+      "name": "client-a: uses accepted image in cold project",
+      "passed": true
+    },
+    {
+      "name": "client-b: uses accepted image in cold project",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: uses accepted image in cold project",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: uses accepted image in cold project",
+      "passed": true
+    },
+    {
+      "name": "Volume belongs to cold project: peixian-opencode-cold-20260914072918-1d564ef46911_client-a-home",
+      "passed": true
+    },
+    {
+      "name": "Volume belongs to cold project: peixian-opencode-cold-20260914072918-1d564ef46911_client-a-workspace",
+      "passed": true
+    },
+    {
+      "name": "Volume belongs to cold project: peixian-opencode-cold-20260914072918-1d564ef46911_client-b-home",
+      "passed": true
+    },
+    {
+      "name": "Volume belongs to cold project: peixian-opencode-cold-20260914072918-1d564ef46911_client-b-workspace",
+      "passed": true
+    },
+    {
+      "name": "client-a: fresh HOME and workspace volumes",
+      "passed": true
+    },
+    {
+      "name": "client-a: agent has only one internal network and no published ports",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: only cold loopback port is published",
+      "passed": true
+    },
+    {
+      "name": "client-b: fresh HOME and workspace volumes",
+      "passed": true
+    },
+    {
+      "name": "client-b: agent has only one internal network and no published ports",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: only cold loopback port is published",
+      "passed": true
+    },
+    {
+      "name": "Four distinct volumes match the cold configuration",
+      "passed": true
+    },
+    {
+      "name": "client-a: cold health and version",
+      "passed": true,
+      "evidence": {
+        "healthy": true,
+        "version": "1.18.30"
+      }
+    },
+    {
+      "name": "client-a: rejects anonymous",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-a: rejects wrong password",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-a: rejects other client",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-a: initial session list is empty",
+      "passed": true
+    },
+    {
+      "name": "client-a: no connected providers",
+      "passed": true
+    },
+    {
+      "name": "client-a: local HTML is served",
+      "passed": true
+    },
+    {
+      "name": "client-a: a real local JavaScript or CSS asset is served",
+      "passed": true,
+      "evidence": [
+        {
+          "path": "/assets/index-BpB7SL4b.js",
+          "status": 200,
+          "content_type": "text/javascript",
+          "bytes": 2740155
+        }
+      ]
+    },
+    {
+      "name": "client-b: cold health and version",
+      "passed": true,
+      "evidence": {
+        "healthy": true,
+        "version": "1.18.30"
+      }
+    },
+    {
+      "name": "client-b: rejects anonymous",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-b: rejects wrong password",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-b: rejects other client",
+      "passed": true,
+      "evidence": {
+        "status": 401
+      }
+    },
+    {
+      "name": "client-b: initial session list is empty",
+      "passed": true
+    },
+    {
+      "name": "client-b: no connected providers",
+      "passed": true
+    },
+    {
+      "name": "client-b: local HTML is served",
+      "passed": true
+    },
+    {
+      "name": "client-b: a real local JavaScript or CSS asset is served",
+      "passed": true,
+      "evidence": [
+        {
+          "path": "/assets/index-BpB7SL4b.js",
+          "status": 200,
+          "content_type": "text/javascript",
+          "bytes": 2740155
+        }
+      ]
+    },
+    {
+      "name": "client-a: no active default route",
+      "passed": true,
+      "evidence": {
+        "ipv4_default": false,
+        "ipv6_default": false
+      }
+    },
+    {
+      "name": "client-a: self reachable, peer and public blocked",
+      "passed": true,
+      "evidence": {
+        "self": true,
+        "peer": false,
+        "public": false
+      }
+    },
+    {
+      "name": "client-b: no active default route",
+      "passed": true,
+      "evidence": {
+        "ipv4_default": false,
+        "ipv6_default": false
+      }
+    },
+    {
+      "name": "client-b: self reachable, peer and public blocked",
+      "passed": true,
+      "evidence": {
+        "self": true,
+        "peer": false,
+        "public": false
+      }
+    },
+    {
+      "name": "client-a: no dependency download errors in startup logs",
+      "passed": true,
+      "evidence": {
+        "matching_lines": {
+          "npm_install_failure": 0,
+          "download_failure": 0,
+          "network_dependency_error": 0
+        },
+        "log_sha256": "5026af7207d38fac9f43fd8b6129aad7a474651400307b71547c899d1bd4bf69",
+        "log_bytes": 49
+      }
+    },
+    {
+      "name": "client-b: no dependency download errors in startup logs",
+      "passed": true,
+      "evidence": {
+        "matching_lines": {
+          "npm_install_failure": 0,
+          "download_failure": 0,
+          "network_dependency_error": 0
+        },
+        "log_sha256": "5026af7207d38fac9f43fd8b6129aad7a474651400307b71547c899d1bd4bf69",
+        "log_bytes": 49
+      }
+    },
+    {
+      "name": "Image and main Compose remained unchanged",
+      "passed": true
+    },
+    {
+      "name": "Cold copy stopped; main project was not targeted",
+      "passed": true
+    }
+  ],
+  "runtime": {
+    "client-a": {
+      "container_id": "c50e112b36806349c749d51b65a87b3dde3ed1e4a712e06bcdbe7e8d80375fd3",
+      "image_id": "sha256:e3c38b633a40c03f1fbc90583b0b3a7d282a3e07be0dda0aa257a4046413d275",
+      "platform": "linux/amd64"
+    },
+    "client-b": {
+      "container_id": "2d3d94fc6786875fa1c9189e8c358c9ffc8ac983dc6edcfa1551716185445839",
+      "image_id": "sha256:e3c38b633a40c03f1fbc90583b0b3a7d282a3e07be0dda0aa257a4046413d275",
+      "platform": "linux/amd64"
+    },
+    "client-a-entry": {
+      "container_id": "2284a4e53f65bfdf6d352274bffb4000191d75dd8eb7aa1042ae0de13882512a",
+      "image_id": "sha256:e3c38b633a40c03f1fbc90583b0b3a7d282a3e07be0dda0aa257a4046413d275",
+      "platform": "linux/amd64"
+    },
+    "client-b-entry": {
+      "container_id": "f07cebb9fb94a85c4124abeb1a668bc344c6258ea208ee8e1edb1e6c35a0fb03",
+      "image_id": "sha256:e3c38b633a40c03f1fbc90583b0b3a7d282a3e07be0dda0aa257a4046413d275",
+      "platform": "linux/amd64"
+    }
+  },
+  "volumes": [
+    {
+      "name": "peixian-opencode-cold-20260914072918-1d564ef46911_client-a-home",
+      "driver": "local",
+      "created_at": "2026-09-14T07:29:21Z",
+      "project": "peixian-opencode-cold-20260914072918-1d564ef46911"
+    },
+    {
+      "name": "peixian-opencode-cold-20260914072918-1d564ef46911_client-a-workspace",
+      "driver": "local",
+      "created_at": "2026-09-14T07:29:21Z",
+      "project": "peixian-opencode-cold-20260914072918-1d564ef46911"
+    },
+    {
+      "name": "peixian-opencode-cold-20260914072918-1d564ef46911_client-b-home",
+      "driver": "local",
+      "created_at": "2026-09-14T07:29:21Z",
+      "project": "peixian-opencode-cold-20260914072918-1d564ef46911"
+    },
+    {
+      "name": "peixian-opencode-cold-20260914072918-1d564ef46911_client-b-workspace",
+      "driver": "local",
+      "created_at": "2026-09-14T07:29:21Z",
+      "project": "peixian-opencode-cold-20260914072918-1d564ef46911"
+    }
+  ],
+  "networks": [
+    {
+      "name": "peixian-opencode-cold-20260914072918-1d564ef46911_client-a",
+      "id": "f49dd1960ae2479e4bf4c55d04bfdb07ddc27d249d7c4b656b5074a7d913fb14",
+      "internal": true,
+      "project": "peixian-opencode-cold-20260914072918-1d564ef46911"
+    },
+    {
+      "name": "peixian-opencode-cold-20260914072918-1d564ef46911_client-b",
+      "id": "a36eb555cba4b1205b7f67f0b320f5e2634b2a8fd8a9d40cb1e0c892400535f6",
+      "internal": true,
+      "project": "peixian-opencode-cold-20260914072918-1d564ef46911"
+    },
+    {
+      "name": "peixian-opencode-cold-20260914072918-1d564ef46911_entry-a",
+      "id": "fcb7a40ab21767139b887fa13f1086127265757660c0544099fcc9e400cf7887",
+      "internal": false,
+      "project": "peixian-opencode-cold-20260914072918-1d564ef46911"
+    },
+    {
+      "name": "peixian-opencode-cold-20260914072918-1d564ef46911_entry-b",
+      "id": "f0579db441d5265e3a1b4978a38f8ed7824b62bbd029ee9ca2bd69936594cd91",
+      "internal": false,
+      "project": "peixian-opencode-cold-20260914072918-1d564ef46911"
+    }
+  ],
+  "not_verified": [
+    "Real model inference",
+    "Browser rendering",
+    "First startup history of the main project"
+  ],
+  "before_creation": {
+    "containers": [],
+    "volumes": [],
+    "networks": []
+  },
+  "expected_resources": {
+    "volumes": [
+      "peixian-opencode-cold-20260914072918-1d564ef46911_client-a-home",
+      "peixian-opencode-cold-20260914072918-1d564ef46911_client-a-workspace",
+      "peixian-opencode-cold-20260914072918-1d564ef46911_client-b-home",
+      "peixian-opencode-cold-20260914072918-1d564ef46911_client-b-workspace"
+    ],
+    "networks": [
+      "peixian-opencode-cold-20260914072918-1d564ef46911_client-a",
+      "peixian-opencode-cold-20260914072918-1d564ef46911_client-b",
+      "peixian-opencode-cold-20260914072918-1d564ef46911_entry-a",
+      "peixian-opencode-cold-20260914072918-1d564ef46911_entry-b"
+    ]
+  },
+  "copy_config": ".runtime/cold-20260914072918-1d564ef46911/compose.json",
+  "copy_config_sha256": "b8f25126927160d14978546a7fcc1c0a2ac62f097727e262b86421c46c2029a2",
+  "created_from_absent_volumes": true,
+  "cleanup": {
+    "action": "stop only",
+    "attempted": true,
+    "volumes_removal_requested": false,
+    "stopped": true,
+    "retained_volumes": [
+      "peixian-opencode-cold-20260914072918-1d564ef46911_client-a-home",
+      "peixian-opencode-cold-20260914072918-1d564ef46911_client-a-workspace",
+      "peixian-opencode-cold-20260914072918-1d564ef46911_client-b-home",
+      "peixian-opencode-cold-20260914072918-1d564ef46911_client-b-workspace"
+    ]
+  },
+  "finished_at": "2026-09-14T07:29:44.377437+00:00"
+}

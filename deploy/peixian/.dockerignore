@@ -1,0 +1,9 @@
+**
+!Dockerfile
+!entrypoint.sh
+!healthcheck.py
+!tcp-forward.py
+!config/
+!config/opencode.json
+!config/package.json
+!config/package-lock.json

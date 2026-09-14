@@ -1,0 +1,178 @@
+{
+  "status": "passed",
+  "completed_at": "2026-09-14T08:12:09.012936+00:00",
+  "checks": [
+    {
+      "name": "client-a: healthy",
+      "passed": true
+    },
+    {
+      "name": "client-a: non-root and no capabilities",
+      "passed": true
+    },
+    {
+      "name": "client-a: readonly/no privilege",
+      "passed": true
+    },
+    {
+      "name": "client-b: healthy",
+      "passed": true
+    },
+    {
+      "name": "client-b: non-root and no capabilities",
+      "passed": true
+    },
+    {
+      "name": "client-b: readonly/no privilege",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: healthy",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: non-root and no capabilities",
+      "passed": true
+    },
+    {
+      "name": "client-a-entry: readonly/no privilege",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: healthy",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: non-root and no capabilities",
+      "passed": true
+    },
+    {
+      "name": "client-b-entry: readonly/no privilege",
+      "passed": true
+    },
+    {
+      "name": "client-a-deepseek: healthy",
+      "passed": true
+    },
+    {
+      "name": "client-a-deepseek: non-root and no capabilities",
+      "passed": true
+    },
+    {
+      "name": "client-a-deepseek: readonly/no privilege",
+      "passed": true
+    },
+    {
+      "name": "client-b-deepseek: healthy",
+      "passed": true
+    },
+    {
+      "name": "client-b-deepseek: non-root and no capabilities",
+      "passed": true
+    },
+    {
+      "name": "client-b-deepseek: readonly/no privilege",
+      "passed": true
+    },
+    {
+      "name": "client-a: only own internal network",
+      "passed": true
+    },
+    {
+      "name": "client-a: no actual model key mount",
+      "passed": true
+    },
+    {
+      "name": "client-a: relay has no published host port",
+      "passed": true
+    },
+    {
+      "name": "client-a: relay has only own networks",
+      "passed": true
+    },
+    {
+      "name": "client-a: relay has no data volume",
+      "passed": true
+    },
+    {
+      "name": "client-a: blocked_0",
+      "passed": true
+    },
+    {
+      "name": "client-a: blocked_1",
+      "passed": true
+    },
+    {
+      "name": "client-a: blocked_2",
+      "passed": true
+    },
+    {
+      "name": "client-a: reject_0",
+      "passed": true
+    },
+    {
+      "name": "client-a: reject_1",
+      "passed": true
+    },
+    {
+      "name": "client-a: reject_2",
+      "passed": true
+    },
+    {
+      "name": "client-a: no_default_ipv4_route",
+      "passed": true
+    },
+    {
+      "name": "client-b: only own internal network",
+      "passed": true
+    },
+    {
+      "name": "client-b: no actual model key mount",
+      "passed": true
+    },
+    {
+      "name": "client-b: relay has no published host port",
+      "passed": true
+    },
+    {
+      "name": "client-b: relay has only own networks",
+      "passed": true
+    },
+    {
+      "name": "client-b: relay has no data volume",
+      "passed": true
+    },
+    {
+      "name": "client-b: blocked_0",
+      "passed": true
+    },
+    {
+      "name": "client-b: blocked_1",
+      "passed": true
+    },
+    {
+      "name": "client-b: blocked_2",
+      "passed": true
+    },
+    {
+      "name": "client-b: reject_0",
+      "passed": true
+    },
+    {
+      "name": "client-b: reject_1",
+      "passed": true
+    },
+    {
+      "name": "client-b: reject_2",
+      "passed": true
+    },
+    {
+      "name": "client-b: no_default_ipv4_route",
+      "passed": true
+    }
+  ],
+  "config_sha256": "b192564bde8f3ccd4261ad9016318af04c1bd7cb0f52f8b12ce9914b3bd194b1",
+  "overlay_sha256": "12c243eabe1532be605faa9e81c79b3c30d7eac4a3f6cbf154e219c885da622e",
+  "relay_sha256": "73bf68804a37c347c9abe91880298764b5fac62ed86c7d22b07f47a0b506d12a",
+  "boundary": "OpenCode remains on its own internal network. Per-client HTTPS gateway has its own ordinary egress network, fixed api.deepseek.com destination enforced by gateway code, and only its model key mounted. No real model key is mounted in OpenCode."
+}

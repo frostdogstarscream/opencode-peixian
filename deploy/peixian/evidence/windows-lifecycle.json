@@ -1,0 +1,270 @@
+{
+  "started_at": "2026-09-14T07:42:32.301179+00:00",
+  "status": "passed",
+  "script_sha256": "fb094afe2ed42ef63e0f152a905d95ebc4d51b49dc541604997884c9611e8090",
+  "source_api_report_sha256": "1c847907b83b6b2744dbf929f71f1aea79c0b0ed881b2d212dc03ed615a744f7",
+  "checks": [
+    {
+      "name": "client-a session preserved before lifecycle",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-a file preserved before lifecycle",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-b session preserved before lifecycle",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-b file preserved before lifecycle",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "B container unchanged before lifecycle",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "manage stop stopped only A agent",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-a session preserved after start",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-a file preserved after start",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-b session preserved after start",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-b file preserved after start",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "B container unchanged after start",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "manage start keeps A container identity",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-a session preserved after recreate",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-a file preserved after recreate",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-b session preserved after recreate",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-b file preserved after recreate",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "B container unchanged after recreate",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "manage recreate replaced A container",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "B stayed healthy and retained container identity throughout",
+      "passed": true,
+      "evidence": {
+        "samples": 21,
+        "failed_samples": 0
+      }
+    },
+    {
+      "name": "Original 91-check API report unchanged",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-a session preserved final",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-a file preserved final",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-b session preserved final",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "client-b file preserved final",
+      "passed": true,
+      "evidence": null
+    },
+    {
+      "name": "B container unchanged final",
+      "passed": true,
+      "evidence": null
+    }
+  ],
+  "commands": [
+    {
+      "action": "stop",
+      "client": "client-a",
+      "exit_code": 0
+    },
+    {
+      "action": "start",
+      "client": "client-a",
+      "exit_code": 0
+    },
+    {
+      "action": "recreate",
+      "client": "client-a",
+      "exit_code": 0
+    },
+    {
+      "action": "start",
+      "client": "client-a",
+      "exit_code": 0
+    }
+  ],
+  "final_recovery": {
+    "attempted": true,
+    "a_healthy": true
+  },
+  "b_samples": [
+    {
+      "at": "2026-09-14T07:42:33.597913+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:34.729868+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:35.928925+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:37.139743+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:38.265433+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:39.373125+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:40.470835+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:41.582601+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:42.673620+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:43.785149+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:44.906336+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:46.030370+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:47.165976+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:48.272935+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:49.374240+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:50.471986+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:51.571272+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:52.669120+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:53.786951+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:54.893812+00:00",
+      "healthy": true,
+      "same_container": true
+    },
+    {
+      "at": "2026-09-14T07:42:56.012019+00:00",
+      "healthy": true,
+      "same_container": true
+    }
+  ],
+  "finished_at": "2026-09-14T07:42:57.759529+00:00"
+}

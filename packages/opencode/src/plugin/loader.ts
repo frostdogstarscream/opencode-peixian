@@ -9,6 +9,7 @@ import {
   type PluginSource,
 } from "./shared"
 import { ConfigPlugin } from "@/config/plugin"
+import { ConfigPeixian } from "@/config/peixian"
 import { ConfigPluginV1 } from "@opencode-ai/core/v1/config/plugin"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 
@@ -198,6 +199,25 @@ export namespace PluginLoader {
     finish?: (load: Loaded, origin: ConfigPlugin.Origin, retry: boolean) => Promise<R | undefined>
     missing?: (value: Missing, origin: ConfigPlugin.Origin, retry: boolean) => Promise<R | undefined>
     report?: Report
+  }
+
+  // Published entries are exact files. Do not resolve package.json exports or invoke npm.
+  export async function loadManaged(items: ConfigPlugin.Origin[]): Promise<Loaded[]> {
+    const published = await ConfigPeixian.read()
+    const loaded: Loaded[] = []
+    for (const item of items) {
+      const spec = await ConfigPeixian.plugin(published.root, ConfigPlugin.pluginSpecifier(item.spec))
+      loaded.push({
+        spec,
+        options: ConfigPlugin.pluginOptions(item.spec),
+        deprecated: false,
+        source: "file",
+        target: spec,
+        entry: spec,
+        mod: await import(spec),
+      })
+    }
+    return loaded
   }
 
   // Resolve and load all configured plugins in parallel.

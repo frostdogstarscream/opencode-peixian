@@ -2,7 +2,7 @@ import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { describe, expect } from "bun:test"
 import path from "path"
-import { Effect } from "effect"
+import { Cause, Effect, Exit } from "effect"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import type { Tool } from "@/tool/tool"
 import { assertExternalDirectoryEffect } from "../../src/tool/external-directory"
@@ -154,3 +154,22 @@ describe("tool.assertExternalDirectory", () => {
     )
   }
 })
+
+it.live("managed boundary cannot be bypassed by a cwd-check exemption", () =>
+  Effect.gen(function* () {
+    const previous = process.env.PEIXIAN_MANAGED_ROOT
+    const { requests, ctx } = makeCtx()
+    process.env.PEIXIAN_MANAGED_ROOT = "/managed"
+    try {
+      const result = yield* assertExternalDirectoryEffect(ctx, "/managed/opencode.json", { bypass: true }).pipe(
+        Effect.exit,
+      )
+      expect(Exit.isFailure(result)).toBe(true)
+      if (Exit.isFailure(result)) expect(String(Cause.squash(result.cause))).toContain("Managed tools can only access")
+      expect(requests).toEqual([])
+    } finally {
+      if (previous === undefined) delete process.env.PEIXIAN_MANAGED_ROOT
+      else process.env.PEIXIAN_MANAGED_ROOT = previous
+    }
+  }),
+)

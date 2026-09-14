@@ -606,3 +606,41 @@ describe("tool.read binary detection", () => {
     }),
   )
 })
+
+describe("managed read boundary", () => {
+  it.instance("rejects an out-of-root target before permission or file changes", () =>
+    Effect.gen(function* () {
+      const test = yield* TestInstance
+      const filepath = path.join(test.directory, "managed-boundary.txt")
+      yield* Effect.promise(() => Bun.write(filepath, "synthetic"))
+      const tool = yield* init()
+      const previous = process.env.PEIXIAN_MANAGED_ROOT
+      let requests = 0
+      process.env.PEIXIAN_MANAGED_ROOT = "/managed"
+      try {
+        const result = yield* tool
+          .execute(
+            { filePath: filepath },
+            {
+              ...ctx,
+              extra: { bypassCwdCheck: true },
+              ask: () =>
+                Effect.sync(() => {
+                  requests += 1
+                }),
+            },
+          )
+          .pipe(Effect.exit)
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result)) {
+          expect(String(Cause.squash(result.cause))).toContain("Managed tools can only access")
+        }
+        expect(requests).toBe(0)
+        expect(yield* Effect.promise(() => Bun.file(filepath).text())).toBe("synthetic")
+      } finally {
+        if (previous === undefined) delete process.env.PEIXIAN_MANAGED_ROOT
+        else process.env.PEIXIAN_MANAGED_ROOT = previous
+      }
+    }),
+  )
+})

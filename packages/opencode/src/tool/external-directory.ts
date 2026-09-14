@@ -1,4 +1,6 @@
 import path from "path"
+import { ConfigPeixian } from "@/config/peixian"
+import { assertManagedPath } from "./managed-path"
 import { Effect } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import type * as Tool from "./tool"
@@ -18,6 +20,13 @@ export const assertExternalDirectoryEffect = Effect.fn("Tool.assertExternalDirec
   options?: Options,
 ) {
   if (!target) return false
+
+  if (ConfigPeixian.enabled()) {
+    yield* Effect.tryPromise({
+      try: () => assertManagedPath(target, ["/workspace", "/files"]),
+      catch: () => new Error("Managed tools can only access the workspace and files directories"),
+    }).pipe(Effect.orDie)
+  }
 
   if (options?.bypass) return false
 

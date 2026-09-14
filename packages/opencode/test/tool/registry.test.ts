@@ -570,3 +570,35 @@ describe("tool.registry", () => {
     }),
   )
 })
+
+it.instance("managed mode never imports automatically discovered custom tools", () =>
+  Effect.gen(function* () {
+    const test = yield* TestInstance
+    const root = path.join(test.directory, "published")
+    yield* Effect.promise(() => Bun.write(path.join(root, "opencode.json"), "{}"))
+    yield* Effect.promise(() =>
+      Bun.write(
+        path.join(test.directory, ".opencode/tools/unapproved.ts"),
+        'throw new Error("unapproved automatic tool was imported")',
+      ),
+    )
+    yield* Effect.acquireRelease(
+      Effect.sync(() => {
+        const previous = process.env.PEIXIAN_MANAGED_ROOT
+        process.env.PEIXIAN_MANAGED_ROOT = root
+        return previous
+      }),
+      (previous) =>
+        Effect.sync(() => {
+          if (previous === undefined) delete process.env.PEIXIAN_MANAGED_ROOT
+          else process.env.PEIXIAN_MANAGED_ROOT = previous
+        }),
+    )
+    const registry = yield* ToolRegistry.Service
+    const ids = yield* registry.ids()
+    expect(ids).not.toContain("unapproved")
+    for (const name of ["read", "write", "edit", "glob", "grep", "skill", "question"]) {
+      expect(ids).toContain(name)
+    }
+  }),
+)

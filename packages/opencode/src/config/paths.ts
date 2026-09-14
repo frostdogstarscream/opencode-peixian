@@ -1,6 +1,7 @@
 export * as ConfigPaths from "./paths"
 
 import path from "path"
+import { ConfigPeixian } from "./peixian"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { Global } from "@opencode-ai/core/global"
 import { unique } from "remeda"
@@ -21,6 +22,7 @@ export const files = Effect.fn("ConfigPaths.projectFiles")(function* (
 })
 
 export const directories = Effect.fn("ConfigPaths.directories")(function* (directory: string, worktree?: string) {
+  if (ConfigPeixian.enabled()) return []
   const afs = yield* FSUtil.Service
   return unique([
     Global.Path.config,

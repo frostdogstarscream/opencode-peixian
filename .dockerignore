@@ -10,3 +10,17 @@ node_modules
 **/.turbo
 **/.vite
 **/coverage
+
+# Peixian build contexts must never include local credentials or state.
+**/.secrets
+**/.runtime
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/output
+!packages/peixian-console/dist
+!packages/peixian-console/dist/**
+
+**/.scratch
+
+**/.test-runs

@@ -31,6 +31,7 @@ import { ConfigCommand } from "./command"
 import { ConfigManaged } from "./managed"
 import { ConfigParse } from "./parse"
 import { ConfigPaths } from "./paths"
+import { ConfigPeixian } from "./peixian"
 import { ConfigPlugin } from "./plugin"
 import { ConfigVariable } from "./variable"
 import { ConfigV2Compat } from "./v2-compat"
@@ -257,7 +258,47 @@ const layer = Layer.effect(
       return yield* loadConfig(text, { path: filepath }, env)
     })
 
+    const loadPeixian = Effect.fn("Config.loadPeixian")(function* () {
+      const published = yield* Effect.promise(() => ConfigPeixian.read())
+      const decoded = Schema.decodeUnknownExit(Schema.fromJsonString(ConfigV1.Info))(published.text, {
+        onExcessProperty: "error",
+        propertyOrder: "original",
+      })
+      if (Exit.isFailure(decoded)) {
+        return yield* Effect.die(new Error("Managed opencode.json is invalid; no fallback configuration was loaded"))
+      }
+      const config = decoded.value
+      const skillRoot = path.join(published.root, "skills")
+      if (
+        config.skills?.urls?.length ||
+        config.skills?.paths?.some((item) => !path.isAbsolute(item) || path.resolve(item) !== skillRoot)
+      ) {
+        return yield* Effect.die(new Error("Managed skills may only use the published skills directory"))
+      }
+      const plugins = yield* Effect.promise(() =>
+        Promise.all(
+          (config.plugin ?? []).map(async (item) => {
+            const spec = await ConfigPeixian.plugin(published.root, ConfigPlugin.pluginSpecifier(item))
+            return Array.isArray(item) ? ([spec, item[1]] as ConfigPluginV1.Spec) : spec
+          }),
+        ),
+      )
+      return {
+        config: {
+          ...config,
+          plugin: plugins,
+          plugin_origins: plugins.map((spec) => ({ spec, source: published.file, scope: "global" as const })),
+          skills: { paths: [skillRoot] },
+        },
+        // Native file discovery and npm installation must never run in managed mode.
+        directories: [],
+        deps: [],
+        consoleState: { consoleManagedProviders: [], activeOrgName: undefined, switchableOrgCount: 0 },
+      } satisfies State
+    })
+
     const loadGlobal = Effect.fnUntraced(function* (env?: Record<string, string>) {
+      if (ConfigPeixian.enabled()) return (yield* loadPeixian()).config
       let result: Info = {}
       // Seed the default global config with the schema for editor completion, but avoid writing when the user
       // explicitly routes config through env-provided paths or content.
@@ -303,6 +344,7 @@ const layer = Layer.effect(
     )
 
     const getGlobal = Effect.fn("Config.getGlobal")(function* () {
+      if (ConfigPeixian.enabled()) return (yield* loadPeixian()).config
       return yield* cachedGlobal
     })
 
@@ -327,6 +369,7 @@ const layer = Layer.effect(
 
     const loadInstanceState = Effect.fn("Config.loadInstanceState")(
       function* (ctx: InstanceContext) {
+        if (ConfigPeixian.enabled()) return yield* loadPeixian()
         const auth = yield* authSvc.all().pipe(Effect.orDie)
 
         let result: Info = {}
@@ -636,6 +679,7 @@ const layer = Layer.effect(
     })
 
     const update = Effect.fn("Config.update")(function* (config: Info) {
+      ConfigPeixian.assertWritable()
       const dir = yield* InstanceState.directory
       const file = path.join(dir, "config.json")
       const existing = yield* loadFile(file)
@@ -654,6 +698,7 @@ const layer = Layer.effect(
     })
 
     const updateGlobal = Effect.fn("Config.updateGlobal")(function* (config: Info) {
+      ConfigPeixian.assertWritable()
       const file = globalConfigFile()
       const before = (yield* readConfigFile(file)) ?? "{}"
       const patch = writableGlobal(config)

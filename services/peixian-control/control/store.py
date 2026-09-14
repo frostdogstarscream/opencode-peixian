@@ -1,0 +1,191 @@
+from contextlib import contextmanager
+from pathlib import Path
+import hashlib
+import json
+import os
+import secrets
+import sqlite3
+import time
+import uuid
+
+from argon2 import PasswordHasher
+from cryptography.fernet import Fernet
+
+
+def ident():
+    return uuid.uuid4().hex
+
+
+def now():
+    return int(time.time())
+
+
+def encode(value):
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def digest(value):
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+class Store:
+    def __init__(self, root, key_file, worker_key_file, admin_password_file):
+        self.root = Path(root)
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.path = self.root / "control.sqlite3"
+        self.cipher = Fernet(Path(key_file).read_bytes().strip())
+        self.worker_key = Path(worker_key_file).read_text().strip()
+        if len(self.worker_key) < 32:
+            raise ValueError("Worker credential is invalid")
+        self.passwords = PasswordHasher()
+        with self.tx() as db:
+            db.executescript("""
+                CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,username TEXT UNIQUE NOT NULL,password TEXT NOT NULL,role TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,must_change INTEGER NOT NULL DEFAULT 1,auth_version INTEGER NOT NULL DEFAULT 1,created INTEGER NOT NULL);
+                CREATE TABLE IF NOT EXISTS auth(hash TEXT PRIMARY KEY,uid TEXT NOT NULL,kind TEXT NOT NULL,name TEXT,csrf TEXT,expires INTEGER NOT NULL,version INTEGER NOT NULL,created INTEGER NOT NULL);
+                CREATE TABLE IF NOT EXISTS runtimes(uid TEXT PRIMARY KEY,id TEXT UNIQUE NOT NULL,status TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,desired INTEGER NOT NULL DEFAULT 1,reserved INTEGER NOT NULL DEFAULT 1,error TEXT,spec TEXT NOT NULL,updated INTEGER NOT NULL);
+                CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,uid TEXT NOT NULL,action TEXT NOT NULL,status TEXT NOT NULL,revision INTEGER NOT NULL,lease TEXT,heartbeat INTEGER,attempts INTEGER NOT NULL DEFAULT 0,error TEXT,created INTEGER NOT NULL,updated INTEGER NOT NULL);
+                CREATE INDEX IF NOT EXISTS jobs_status ON jobs(status,created);
+                CREATE TABLE IF NOT EXISTS models(id TEXT PRIMARY KEY,name TEXT NOT NULL,description TEXT NOT NULL,base_url TEXT NOT NULL,model_id TEXT NOT NULL,secret TEXT NOT NULL,enabled INTEGER NOT NULL,is_default INTEGER NOT NULL);
+                CREATE TABLE IF NOT EXISTS grants(uid TEXT NOT NULL,kind TEXT NOT NULL,resource TEXT NOT NULL,PRIMARY KEY(uid,kind,resource));
+                CREATE TABLE IF NOT EXISTS plugins(id TEXT NOT NULL,version TEXT NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL,manifest TEXT NOT NULL,path TEXT NOT NULL,digest TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 1,PRIMARY KEY(id,version));
+                CREATE TABLE IF NOT EXISTS installs(uid TEXT NOT NULL,plugin TEXT NOT NULL,version TEXT NOT NULL,enabled INTEGER NOT NULL,config TEXT NOT NULL,previous TEXT,PRIMARY KEY(uid,plugin));
+                CREATE TABLE IF NOT EXISTS skills(id TEXT PRIMARY KEY,uid TEXT NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL,content TEXT NOT NULL,enabled INTEGER NOT NULL,version INTEGER NOT NULL,history TEXT NOT NULL,UNIQUE(uid,name));
+                CREATE TABLE IF NOT EXISTS templates(id TEXT PRIMARY KEY,name TEXT NOT NULL,description TEXT NOT NULL,content TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY,actor TEXT NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,created INTEGER NOT NULL);
+                CREATE TABLE IF NOT EXISTS files(uid TEXT NOT NULL,id TEXT NOT NULL,metadata TEXT NOT NULL,PRIMARY KEY(uid,id));
+            """)
+            if not db.execute("SELECT 1 FROM users WHERE role='admin'").fetchone():
+                password = Path(admin_password_file).read_text().strip()
+                if len(password) < 16:
+                    raise ValueError("Administrator bootstrap password is invalid")
+                db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,?,?)", (ident(), "admin", self.passwords.hash(password), "admin", now()))
+
+    @contextmanager
+    def tx(self):
+        db = sqlite3.connect(self.path, timeout=20)
+        db.row_factory = sqlite3.Row
+        db.execute("PRAGMA journal_mode=WAL")
+        db.execute("PRAGMA foreign_keys=ON")
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            yield db
+            db.commit()
+        except BaseException:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    def rows(self, query, args=()):
+        with self.tx() as db:
+            return [dict(row) for row in db.execute(query, args)]
+
+    def one(self, query, args=()):
+        result = self.rows(query, args)
+        return result[0] if result else None
+
+    def encrypt(self, value):
+        return self.cipher.encrypt(encode(value).encode()).decode()
+
+    def decrypt(self, value):
+        return json.loads(self.cipher.decrypt(value.encode()))
+
+    def audit(self, actor, action, target):
+        with self.tx() as db:
+            db.execute("INSERT INTO audit VALUES(?,?,?,?,?)", (ident(), actor, action, target, now()))
+
+    def set_grants(self, db, uid, kind, values):
+        if kind not in ("model", "plugin") or not isinstance(values, list) or len(values) > 100:
+            raise ValueError("授权列表格式不正确")
+        if any(not isinstance(value, str) or not value or len(value) > 100 for value in values):
+            raise ValueError("授权列表格式不正确")
+        table = "models" if kind == "model" else "plugins"
+        for value in set(values):
+            if not db.execute(f"SELECT 1 FROM {table} WHERE id=? AND enabled=1", (value,)).fetchone():
+                raise ValueError("授权目标不存在或不可用")
+        db.execute("DELETE FROM grants WHERE uid=? AND kind=?", (uid, kind))
+        db.executemany("INSERT INTO grants VALUES(?,?,?)", [(uid, kind, value) for value in set(values)])
+
+    def queue(self, uid, action="apply"):
+        with self.tx() as db:
+            return self.queue_in_transaction(db, uid, action)
+
+    def queue_in_transaction(self, db, uid, action="apply"):
+        if action not in ("apply", "pause", "resume", "provision"):
+            raise ValueError("环境操作不支持")
+        runtime = db.execute("SELECT * FROM runtimes WHERE uid=?", (uid,)).fetchone()
+        if not runtime:
+            raise ValueError("Environment is not registered")
+        desired = runtime["desired"] + (action == "apply")
+        existing = db.execute("SELECT * FROM jobs WHERE uid=? AND status IN ('queued','running') ORDER BY created,rowid", (uid,)).fetchall()
+        pause = next((job for job in existing if job["action"] == "pause"), None)
+        if action == "pause" and pause:
+            return dict(pause)
+        if action == "apply":
+            db.execute("UPDATE runtimes SET desired=?,updated=? WHERE uid=?", (desired, now(), uid))
+            if pause:
+                return dict(pause)
+            # Configuration editing must not silently start an unreserved runtime.
+            if not runtime["reserved"]:
+                return {"id": None, "uid": uid, "action": action, "status": "deferred", "revision": desired}
+            if existing and existing[-1]["action"] in ("apply", "provision", "resume"):
+                return dict(existing[-1])
+        if existing and action != "pause":
+            raise ValueError("该环境正在处理其他操作，请稍后重试")
+        if action in ("resume", "provision") and not runtime["reserved"]:
+            count = db.execute("SELECT count(*) FROM runtimes WHERE reserved=1").fetchone()[0]
+            if count >= int(os.getenv("MAX_RUNTIMES", "4")):
+                raise ValueError("运行环境名额已满，请先暂停其他环境")
+            db.execute("UPDATE runtimes SET reserved=1 WHERE uid=?", (uid,))
+        job_id = ident()
+        state = {"apply": "updating", "provision": "provisioning", "resume": "provisioning", "pause": "updating"}[action]
+        db.execute("UPDATE runtimes SET desired=?,status=?,error=NULL,updated=? WHERE uid=?", (desired, state, now(), uid))
+        db.execute("INSERT INTO jobs(id,uid,action,status,revision,created,updated) VALUES(?,?,?,'queued',?,?,?)",
+                   (job_id, uid, action, desired, now(), now()))
+        return {"id": job_id, "uid": uid, "action": action, "status": "queued", "revision": desired}
+
+    def update_user(self, uid, data):
+        with self.tx() as db:
+            target = db.execute("SELECT role,active FROM users WHERE id=?", (uid,)).fetchone()
+            if not target or target["role"] != "user":
+                raise ValueError("普通用户账号不存在")
+            for kind, key in (("model", "model_ids"), ("plugin", "plugin_ids")):
+                if key in data:
+                    self.set_grants(db, uid, kind, data[key])
+            active = bool(target["active"])
+            if "active" in data:
+                if not isinstance(data["active"], bool):
+                    raise ValueError("账号启用状态必须是布尔值")
+                active = data["active"]
+                db.execute("UPDATE users SET active=?,auth_version=auth_version+1 WHERE id=?", (active, uid))
+                db.execute("DELETE FROM auth WHERE uid=?", (uid,))
+            if not active and ("model_ids" in data or "plugin_ids" in data):
+                db.execute("UPDATE runtimes SET desired=desired+1,updated=? WHERE uid=?", (now(), uid))
+            # Login revocation and its durable stop request commit together.
+            job = self.queue_in_transaction(db, uid, "apply" if active else "pause")
+        return self.user(uid), job
+
+    def user(self, uid):
+        user = self.one("SELECT id,username,role,active,must_change AS must_change_password FROM users WHERE id=?", (uid,))
+        if user:
+            user["active"] = bool(user["active"])
+            user["must_change_password"] = bool(user["must_change_password"])
+            user["runtime"] = self.one("SELECT id,status,revision,desired,error FROM runtimes WHERE uid=?", (uid,))
+        return user
+
+    def create_user(self, username, password, legacy=None, *, model_ids=None, plugin_ids=None):
+        uid, rid = ident(), ident()
+        spec = {"gateway_key": secrets.token_urlsafe(48), "agent_password": secrets.token_urlsafe(48), "legacy": legacy}
+        with self.tx() as db:
+            count = db.execute("SELECT count(*) FROM runtimes WHERE reserved=1").fetchone()[0]
+            if count >= int(os.getenv("MAX_RUNTIMES", "4")):
+                raise ValueError("运行环境名额已满，请先暂停其他环境")
+            if db.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone():
+                raise ValueError("账号已存在")
+            db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,'user',?)", (uid, username, self.passwords.hash(password), now()))
+            self.set_grants(db, uid, "model", [] if model_ids is None else model_ids)
+            self.set_grants(db, uid, "plugin", [] if plugin_ids is None else plugin_ids)
+            db.execute("INSERT INTO runtimes(uid,id,status,spec,updated) VALUES(?,?,'pending',?,?)", (uid, rid, self.encrypt(spec), now()))
+            job_id = ident()
+            db.execute("INSERT INTO jobs(id,uid,action,status,revision,created,updated) VALUES(?,?,'provision','queued',1,?,?)", (job_id, uid, now(), now()))
+        return self.user(uid), {"id": job_id, "status": "queued"}

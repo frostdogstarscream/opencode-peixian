@@ -27,6 +27,7 @@ import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { errorMessage } from "@/util/error"
 import { PluginLoader } from "./loader"
+import { ConfigPeixian } from "@/config/peixian"
 import { parsePluginSpecifier, readPluginId, readV1Plugin, resolvePluginId } from "./shared"
 import { registerAdapter } from "@/control-plane/adapters"
 import type { WorkspaceAdapter } from "@/control-plane/types"
@@ -167,7 +168,8 @@ const layer = Layer.effect(
           $: typeof Bun === "undefined" ? undefined : Bun.$,
         }
 
-        for (const plugin of flags.disableDefaultPlugins ? [] : internalPlugins(flags)) {
+        const managed = ConfigPeixian.enabled()
+        for (const plugin of managed || flags.disableDefaultPlugins ? [] : internalPlugins(flags)) {
           const init = yield* Effect.tryPromise({
             try: () => plugin(input),
             catch: errorMessage,
@@ -178,43 +180,48 @@ const layer = Layer.effect(
           if (init._tag === "Some") hooks.push(init.value)
         }
 
-        const plugins = flags.pure ? [] : (cfg.plugin_origins ?? [])
+        const plugins = flags.pure && !managed ? [] : (cfg.plugin_origins ?? [])
         if (flags.pure && cfg.plugin_origins?.length) {
         }
-        if (plugins.length) yield* config.waitForDependencies()
+        if (plugins.length && !managed) yield* config.waitForDependencies()
 
         const loaded = yield* Effect.promise(() =>
-          PluginLoader.loadExternal({
-            items: plugins,
-            kind: "server",
-            report: {
-              start(candidate) {},
-              missing(candidate, _retry, message) {},
-              error(candidate, _retry, stage, error, resolved) {
-                const spec = candidate.plan.spec
-                const cause = error instanceof Error ? (error.cause ?? error) : error
-                const message = stage === "load" ? errorMessage(error) : errorMessage(cause)
+          managed
+            ? PluginLoader.loadManaged(plugins)
+            : PluginLoader.loadExternal({
+                items: plugins,
+                kind: "server",
+                report: {
+                  start(candidate) {},
+                  missing(candidate, _retry, message) {
+                    if (managed) throw new Error("Published plugin has no server entry")
+                  },
+                  error(candidate, _retry, stage, error, resolved) {
+                    if (managed) throw new Error("Published plugin failed to load")
+                    const spec = candidate.plan.spec
+                    const cause = error instanceof Error ? (error.cause ?? error) : error
+                    const message = stage === "load" ? errorMessage(error) : errorMessage(cause)
 
-                if (stage === "install") {
-                  const parsed = parsePluginSpecifier(spec)
-                  publishPluginError(`Failed to install plugin ${parsed.pkg}@${parsed.version}: ${message}`)
-                  return
-                }
+                    if (stage === "install") {
+                      const parsed = parsePluginSpecifier(spec)
+                      publishPluginError(`Failed to install plugin ${parsed.pkg}@${parsed.version}: ${message}`)
+                      return
+                    }
 
-                if (stage === "compatibility") {
-                  publishPluginError(`Plugin ${spec} skipped: ${message}`)
-                  return
-                }
+                    if (stage === "compatibility") {
+                      publishPluginError(`Plugin ${spec} skipped: ${message}`)
+                      return
+                    }
 
-                if (stage === "entry") {
-                  publishPluginError(`Failed to load plugin ${spec}: ${message}`)
-                  return
-                }
+                    if (stage === "entry") {
+                      publishPluginError(`Failed to load plugin ${spec}: ${message}`)
+                      return
+                    }
 
-                publishPluginError(`Failed to load plugin ${spec}: ${message}`)
-              },
-            },
-          }),
+                    publishPluginError(`Failed to load plugin ${spec}: ${message}`)
+                  },
+                },
+              }),
         )
         for (const load of loaded) {
           if (!load) continue
@@ -229,7 +236,8 @@ const layer = Layer.effect(
             },
           }).pipe(
             Effect.tapError((error) => Effect.logError("failed to load plugin", { path: load.spec, error })),
-            Effect.catch(() => {
+            Effect.catch((error) => {
+              if (managed) return Effect.die(new Error("Published plugin failed to initialize"))
               // TODO: make proper events for this
               // events.publish(Session.Event.Error, {
               //   error: new NamedError.Unknown({
@@ -248,7 +256,7 @@ const layer = Layer.effect(
             catch: errorMessage,
           }).pipe(
             Effect.tapError((error) => Effect.logError("plugin config hook failed", { error })),
-            Effect.ignore,
+            Effect.catch(() => (managed ? Effect.die(new Error("Published plugin config hook failed")) : Effect.void)),
           )
         }
 

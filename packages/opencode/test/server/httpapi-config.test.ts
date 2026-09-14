@@ -108,3 +108,37 @@ describe("config HttpApi", () => {
     }),
   )
 })
+
+it.live("managed mode denies local and global config PATCH with declared 403 responses", () =>
+  Effect.gen(function* () {
+    const tmp = yield* tmpdirEffect({ config: { username: "original" } })
+    yield* Effect.acquireRelease(
+      Effect.sync(() => {
+        const previous = process.env.PEIXIAN_MANAGED_ROOT
+        process.env.PEIXIAN_MANAGED_ROOT = tmp.path
+        return previous
+      }),
+      (previous) =>
+        Effect.sync(() => {
+          if (previous === undefined) delete process.env.PEIXIAN_MANAGED_ROOT
+          else process.env.PEIXIAN_MANAGED_ROOT = previous
+        }),
+    )
+    for (const endpoint of ["/config", "/global/config"]) {
+      const response = yield* Effect.promise(() =>
+        Promise.resolve(
+          app().request(endpoint, {
+            method: "PATCH",
+            headers: { "content-type": "application/json", "x-opencode-directory": tmp.path },
+            body: JSON.stringify({ username: "changed" }),
+          }),
+        ),
+      )
+      expect(response.status).toBe(403)
+    }
+    expect(yield* Effect.promise(() => Bun.file(path.join(tmp.path, "opencode.json")).json())).toMatchObject({
+      username: "original",
+    })
+    expect(yield* Effect.promise(() => Bun.file(path.join(tmp.path, "config.json")).exists())).toBe(false)
+  }),
+)

@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('init','build','up','status','stop','start','worker','worker-start','worker-stop','export')]
+    [ValidateSet('init','build','up','status','stop','start','backup','worker','worker-start','worker-stop','export')]
     [string]$Action
 )
 $ErrorActionPreference = 'Stop'
@@ -11,6 +11,18 @@ $consoleCompose = Join-Path $PSScriptRoot 'compose.console.yaml'
 function Invoke-ConsoleCommand([string]$Program, [string[]]$Arguments) {
     & $Program @Arguments
     if ($LASTEXITCODE -ne 0) { throw 'Console operation failed; existing data was preserved.' }
+}
+function Start-CheckedConsole {
+    $guardOutput = & $consolePython (Join-Path $PSScriptRoot 'console-guard.py') check --compose $consoleCompose
+    if ($LASTEXITCODE -ne 0) { throw 'Control schema compatibility check failed; existing data was preserved.' }
+    $guardResult = $guardOutput | ConvertFrom-Json
+    if ($guardResult.status -ne 'passed' -or $guardResult.image_id -notmatch '^sha256:[0-9a-f]{64}$') { throw 'Invalid control image verification result.' }
+    $previousImage = $env:PEIXIAN_CONTROL_IMAGE
+    try {
+        # Start the checked immutable image, even if its friendly tag is rebuilt concurrently.
+        $env:PEIXIAN_CONTROL_IMAGE = $guardResult.image_id
+        Invoke-ConsoleCommand 'docker' @('compose','-f',$consoleCompose,'up','-d','--no-build','--pull','never','--wait')
+    } finally { $env:PEIXIAN_CONTROL_IMAGE = $previousImage }
 }
 function Get-ConsoleWorker {
     $recordPath = Join-Path $PSScriptRoot '.runtime/console-worker.process.json'
@@ -68,7 +80,7 @@ switch ($Action) {
             } finally { Pop-Location }
             Invoke-ConsoleCommand 'docker' @('build','-f','services/peixian-control/Gateway.Dockerfile','-t','peixian-gateway:console-r1','.')
             Invoke-ConsoleCommand 'docker' @('build','-f','deploy/peixian/Managed.Dockerfile','-t','peixian-opencode:1.18.30-managed-r1','.')
-            Invoke-ConsoleCommand 'docker' @('build','-f','services/peixian-control/Dockerfile','-t','peixian-control:console-r1','.')
+            Invoke-ConsoleCommand 'docker' @('build','-f','services/peixian-control/Dockerfile','-t','peixian-control:console-r2-roles','.')
         } finally { Pop-Location }
     }
     'up' {
@@ -77,11 +89,17 @@ switch ($Action) {
             $existing = & docker ps --filter name=^/peixian-console$ --format '{{.Names}}'
             if ($existing -ne 'peixian-console') { throw 'Port 14090 is occupied; no process was stopped.' }
         }
-        Invoke-ConsoleCommand 'docker' @('compose','-f',$consoleCompose,'up','-d','--no-build','--pull','never','--wait')
+        Start-CheckedConsole
     }
     'status' { Invoke-ConsoleCommand 'docker' @('compose','-f',$consoleCompose,'ps','--all') }
     'stop' { Invoke-ConsoleCommand 'docker' @('compose','-f',$consoleCompose,'stop') }
-    'start' { Invoke-ConsoleCommand 'docker' @('compose','-f',$consoleCompose,'up','-d','--no-build','--pull','never','--wait') }
+    'start' {
+        Start-CheckedConsole
+    }
+    'backup' {
+        if (Get-ConsoleWorker) { throw 'Stop the idle console worker before creating an upgrade backup.' }
+        Invoke-ConsoleCommand $consolePython @((Join-Path $PSScriptRoot 'console-guard.py'),'backup','--compose',$consoleCompose)
+    }
     'worker' { Invoke-ConsoleCommand $consolePython @((Join-Path $PSScriptRoot 'console-worker.py')) }
     'worker-start' { Start-ConsoleWorker }
     'worker-stop' { Stop-ConsoleWorker }
@@ -89,7 +107,7 @@ switch ($Action) {
         $consoleExport = Join-Path $PSScriptRoot 'dist/console'
         New-Item -ItemType Directory -Path $consoleExport -Force | Out-Null
         $consoleArchive = Join-Path $consoleExport 'peixian-console-images.tar'
-        Invoke-ConsoleCommand 'docker' @('save','-o',$consoleArchive,'peixian-control:console-r1','peixian-gateway:console-r1','peixian-opencode:1.18.30-managed-r1')
+        Invoke-ConsoleCommand 'docker' @('save','-o',$consoleArchive,'peixian-control:console-r2-roles','peixian-gateway:console-r1','peixian-opencode:1.18.30-managed-r1')
         (Get-FileHash -Algorithm SHA256 -LiteralPath $consoleArchive).Hash.ToLower() + '  peixian-console-images.tar' | Set-Content -Encoding ascii -LiteralPath ($consoleArchive + '.sha256')
     }
 }

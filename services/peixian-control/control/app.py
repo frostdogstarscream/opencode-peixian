@@ -65,6 +65,10 @@ def principal(request: Request):
     record = s.one("SELECT a.*,u.role,u.username,u.active,u.must_change,u.auth_version FROM auth a JOIN users u ON u.id=a.uid WHERE a.hash=?", (digest(token),)) if token else None
     if not record or not record["active"] or record["expires"] < now() or record["version"] != record["auth_version"]:
         fail("登录已失效，请重新登录", 401)
+    from .roles import CAPABILITIES
+    if record["role"] not in CAPABILITIES:
+        fail("账号角色无效", 403)
+    request.state.management_actor = {"uid": record["uid"], "role": record["role"]}
     if request.method not in ("GET", "HEAD", "OPTIONS") and record["kind"] == "session":
         origin_ok(request)
         if not hmac.compare_digest(request.headers.get("x-csrf-token", ""), record["csrf"] or ""):
@@ -74,11 +78,17 @@ def principal(request: Request):
     return record
 
 
-def admin(request: Request):
-    user = principal(request)
-    if user["role"] != "admin":
-        fail("无权使用管理功能", 403)
-    return user
+def require_capability(name):
+    def check(request: Request):
+        from .roles import capabilities
+        user = principal(request)
+        if name not in capabilities(user["role"]):
+            fail("无权使用此管理功能", 403)
+        return user
+    return check
+
+
+admin = require_capability("users.manage")
 
 
 def normal(request: Request):
@@ -310,9 +320,34 @@ def create_app(store=None):
         yield
         await app.state.http.aclose()
 
-    app = FastAPI(title="沛县分析控制台", version="1.0.0", lifespan=lifespan, docs_url=None, redoc_url=None)
+    app = FastAPI(title="沛县分析控制台", version="1.1.0", lifespan=lifespan, docs_url=None, redoc_url=None)
 
     app.add_middleware(RequestLimits)
+
+    @app.middleware("http")
+    async def management_audit(request, call_next):
+        if not request.url.path.startswith(PREFIX + "/admin/"):
+            return await call_next(request)
+        from .roles import MANAGEMENT_ACTIONS
+        result = "failed"
+        try:
+            response = await call_next(request)
+            result = "success" if response.status_code < 400 else "denied" if response.status_code < 500 else "failed"
+            return response
+        finally:
+            if hasattr(app.state, "store"):
+                route = request.scope.get("route")
+                action = MANAGEMENT_ACTIONS.get(getattr(route, "name", ""), "management.request")
+                if action == "runtime.manage" and request.path_params.get("action") in ("pause", "resume", "retry", "apply"):
+                    action = "runtime." + request.path_params["action"]
+                actor = getattr(request.state, "management_actor", {"uid": "anonymous", "role": "anonymous"})
+                target = getattr(request.state, "management_target", None)
+                if target is None:
+                    target = next((request.path_params[key] for key in ("uid", "mid", "pid", "tid") if key in request.path_params), "platform")
+                # Never persist request bodies, query strings, URLs, headers or arbitrary paths.
+                if not isinstance(target, str) or not re.fullmatch(r"[A-Za-z0-9_.@-]{1,128}", target):
+                    target = "invalid-target"
+                app.state.store.audit(actor["uid"], action, target, actor_role=actor["role"], result=result)
 
     @app.exception_handler(StarletteHTTPException)
     async def error(request, exc):
@@ -330,7 +365,7 @@ def create_app(store=None):
 
     @app.get("/health")
     async def health():
-        return {"status": "ok", "version": "1.0.0"}
+        return {"status": "ok", "version": "1.1.0", "schema_version": app.state.store.schema_version()}
 
     @app.post(PREFIX + "/auth/login")
     async def login(request: Request):
@@ -353,13 +388,15 @@ def create_app(store=None):
         token, csrf = secrets.token_urlsafe(48), secrets.token_urlsafe(32)
         with s.tx() as db:
             db.execute("INSERT INTO auth VALUES(?,?,?,?,?,?,?,?)", (digest(token), user["id"], "session", "browser", csrf, now() + 28800, user["auth_version"], now()))
-        response = JSONResponse({"user": s.user(user["id"]), "csrf_token": csrf})
+        from .roles import capabilities
+        response = JSONResponse({"user": s.user(user["id"]), "csrf_token": csrf, "capabilities": capabilities(user["role"])})
         response.set_cookie("px_session", token, httponly=True, samesite="strict", secure=os.getenv("COOKIE_SECURE") == "true", max_age=28800, path="/")
         return response
 
     @app.get(PREFIX + "/me")
     async def me(request: Request, user=Depends(principal)):
-        return {"user": app.state.store.user(user["uid"]), "csrf_token": user["csrf"]}
+        from .roles import capabilities
+        return {"user": app.state.store.user(user["uid"]), "csrf_token": user["csrf"], "capabilities": capabilities(user["role"])}
 
     @app.post(PREFIX + "/auth/logout")
     async def logout(request: Request, user=Depends(principal)):

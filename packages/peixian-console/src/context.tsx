@@ -1,8 +1,10 @@
 import { createContext, useContext } from "solid-js"
 import type { Accessor } from "solid-js"
-import type { User } from "./types"
+import type { Capability, User } from "./types"
 export type ConsoleContext = {
   user: Accessor<User>
+  capabilities: Accessor<Capability[]>
+  can: (capability: Capability) => boolean
   notify: (message: string, kind?: "success" | "error") => void
   refreshUser: () => Promise<void>
   changed: Accessor<number>

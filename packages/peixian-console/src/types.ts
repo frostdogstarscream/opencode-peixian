@@ -1,15 +1,26 @@
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
+export type Role = "super_admin" | "admin" | "user"
+export type Capability =
+  | "business.use"
+  | "users.manage"
+  | "admins.manage"
+  | "models.manage"
+  | "audit.read"
+  | "plugins.manage"
+  | "templates.manage"
+  | "runtimes.manage"
+  | "jobs.read"
 export type User = {
   id: string
   username: string
-  role: "admin" | "user"
+  role: Role
   must_change_password: boolean
   active?: boolean
   model_ids?: string[]
   plugin_ids?: string[]
   runtime?: { id?: string; status: string; revision?: number; error?: string }
 }
-export type Auth = { user: User; csrf_token: string }
+export type Auth = { user: User; csrf_token: string; capabilities: Capability[] }
 export type Session = { id: string; title: string; status?: string; updated_at?: string; time?: { updated?: number } }
 export type Part = {
   id?: string
@@ -110,6 +121,8 @@ export type Audit = {
   id: string
   action?: string
   actor?: string
+  actor_role?: Role
+  result?: "success" | "denied" | "failed"
   username?: string
   target?: string
   status?: string

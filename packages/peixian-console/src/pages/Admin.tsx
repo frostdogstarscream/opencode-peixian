@@ -15,10 +15,45 @@ import {
   Toggle,
 } from "../components"
 import { useConsole } from "../context"
-import type { Audit, Job, Model, Plugin, Skill, User } from "../types"
+import {
+  adminResources,
+  canManageUser,
+  roleNames,
+  userCreateBody,
+  userGrantBody,
+  visibleManagementTabs,
+} from "../access"
+import type { ManagementTab } from "../access"
+import type { Audit, Capability, Job, Model, Plugin, Skill, User } from "../types"
+const auditActions: Record<string, string> = {
+  "user.list": "查看用户列表",
+  "user.create": "创建账号",
+  "user.update": "修改账号设置",
+  "user.password_reset": "重置账号密码",
+  "runtime.pause": "暂停空间",
+  "runtime.resume": "恢复空间",
+  "runtime.retry": "重试空间任务",
+  "runtime.apply": "应用空间配置",
+  "runtime.manage": "管理运行环境",
+  "job.list": "查看空间任务",
+  "audit.read": "查看操作记录",
+  "plugin.list": "查看插件目录",
+  "plugin.publish": "发布插件版本",
+  "plugin.publication_update": "修改插件版本状态",
+  "model.list": "查看模型列表",
+  "model.create": "添加模型",
+  "model.update": "更新模型配置",
+  "model.test": "测试模型连接",
+  "template.create": "创建技能模板",
+  "template.list": "查看技能模板",
+  "template.update": "更新技能模板",
+  "template.delete": "删除技能模板",
+  "management.request": "其他管理请求",
+}
 export default function Admin() {
   const app = useConsole()
-  const [tab, setTab] = createSignal("users")
+  const [tab, setTab] = createSignal<ManagementTab>("users")
+  const tabs = () => visibleManagementTabs(app.capabilities())
   const [users, setUsers] = createSignal<User[]>([])
   const [models, setModels] = createSignal<Model[]>([])
   const [plugins, setPlugins] = createSignal<Plugin[]>([])
@@ -33,6 +68,7 @@ export default function Admin() {
   const [userForm, setUserForm] = createSignal<Partial<User>>()
   const [username, setUsername] = createSignal("")
   const [password, setPassword] = createSignal("")
+  const [newRole, setNewRole] = createSignal<"user" | "admin">("user")
   const [modelIds, setModelIds] = createSignal<string[]>([])
   const [pluginIds, setPluginIds] = createSignal<string[]>([])
   const [modelForm, setModelForm] = createSignal<Partial<Model>>()
@@ -49,43 +85,100 @@ export default function Admin() {
   const [templateContent, setTemplateContent] = createSignal("")
   const [reset, setReset] = createSignal<User>()
   const [resetPassword, setResetPassword] = createSignal("")
+  const [auditActor, setAuditActor] = createSignal("")
+  const [auditAction, setAuditAction] = createSignal("")
+  const [auditResult, setAuditResult] = createSignal("")
+  const [auditQuery, setAuditQuery] = createSignal("")
+  let refreshGeneration = 0
+  let previousTab: ManagementTab | undefined
   let zipInput!: HTMLInputElement
   async function refresh() {
-    try {
-      const result = await Promise.all([
-        list<User>("/admin/users"),
-        list<Model>("/admin/models"),
-        list<Plugin>("/admin/plugins"),
-        list<Skill>("/admin/templates"),
-        list<Job>("/admin/jobs"),
-        list<Audit>("/admin/audit"),
-      ])
-      setUsers(result[0])
-      setModels(result[1].map((item) => ({ ...item, enabled: !!item.enabled, is_default: !!item.is_default })))
-      const catalog = new Map<string, Plugin>()
-      for (const item of result[2]) {
-        const existing = catalog.get(item.id)
-        const version = { version: item.version, enabled: !!item.enabled }
-        if (existing) existing.versions?.push(version)
-        else catalog.set(item.id, { ...item, enabled: !!item.enabled, versions: [version] })
+    const generation = ++refreshGeneration
+    const resources = adminResources(tab(), app.capabilities())
+    if (previousTab !== tab()) setLoading(true)
+    previousTab = tab()
+    const results = await Promise.allSettled(
+      resources.map((resource) =>
+        list<User | Model | Plugin | Skill | Job | Audit>(
+          "/admin/" + resource + (resource === "audit" ? auditQuery() : ""),
+        ),
+      ),
+    )
+    if (generation !== refreshGeneration) return
+    const errors: string[] = []
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        errors.push(safeMessage(result.reason instanceof Error ? result.reason.message : undefined))
+        return
       }
-      setPlugins([...catalog.values()])
-      setTemplates(result[3])
-      setJobs(result[4])
-      setAudit(result[5])
-      setError("")
-    } catch (error) {
-      setError((error as Error).message)
-    } finally {
-      setLoading(false)
-    }
+      switch (resources[index]) {
+        case "users":
+          setUsers(result.value as User[])
+          break
+        case "models":
+          setModels(
+            (result.value as Model[]).map((item) => ({
+              ...item,
+              enabled: !!item.enabled,
+              is_default: !!item.is_default,
+            })),
+          )
+          break
+        case "plugins": {
+          const catalog = new Map<string, Plugin>()
+          for (const item of result.value as Plugin[]) {
+            const existing = catalog.get(item.id)
+            const version = { version: item.version, enabled: !!item.enabled }
+            if (existing) existing.versions?.push(version)
+            else catalog.set(item.id, { ...item, enabled: !!item.enabled, versions: [version] })
+          }
+          setPlugins([...catalog.values()])
+          break
+        }
+        case "templates":
+          setTemplates(result.value as Skill[])
+          break
+        case "jobs":
+          setJobs(result.value as Job[])
+          break
+        case "audit":
+          setAudit(result.value as Audit[])
+          break
+      }
+    })
+    setError([...new Set(errors)].join("；"))
+    setLoading(false)
   }
   createEffect(() => {
     app.changed()
+    if (!tabs().some((item) => item.id === tab())) {
+      const first = tabs()[0]
+      if (first) setTab(first.id)
+    }
     void refresh()
   })
+  function allowed(capability: Capability) {
+    if (app.can(capability)) return true
+    app.notify("当前账号没有执行此管理操作的权限。", "error")
+    return false
+  }
+  function manageable(user: User) {
+    return canManageUser(app.capabilities(), user, app.user().id)
+  }
+  function filterAudit(event?: SubmitEvent) {
+    event?.preventDefault()
+    const parameters = new URLSearchParams()
+    if (auditActor()) parameters.set("actor", auditActor())
+    if (auditAction()) parameters.set("action", auditAction())
+    if (auditResult()) parameters.set("result", auditResult())
+    const query = parameters.size ? "?" + parameters : ""
+    if (query === auditQuery()) void refresh()
+    else setAuditQuery(query)
+  }
   function editUser(value: Partial<User> = {}) {
+    if (!allowed("users.manage") || (value.id && (!manageable(value as User) || value.role !== "user"))) return
     setUserForm(value)
+    setNewRole("user")
     setUsername(value.username ?? "")
     setPassword("")
     setModelIds(value.model_ids ?? [])
@@ -93,6 +186,7 @@ export default function Admin() {
     setError("")
   }
   function editModel(value: Partial<Model> = {}) {
+    if (!allowed("models.manage")) return
     setModelForm(value)
     setModelName(value.name ?? "")
     setModelDesc(value.description ?? "")
@@ -104,6 +198,7 @@ export default function Admin() {
     setError("")
   }
   function editTemplate(value: Partial<Skill> = {}) {
+    if (!allowed("templates.manage")) return
     setTemplateForm(value)
     setTemplateName(value.name ?? "")
     setTemplateDesc(value.description ?? "")
@@ -116,22 +211,32 @@ export default function Admin() {
   }
   async function saveUser(event: SubmitEvent) {
     event.preventDefault()
+    if (!allowed("users.manage")) return
     setBusy(true)
     try {
       if (userForm()?.id) {
-        await patch("/admin/users/" + userForm()!.id, { model_ids: modelIds(), plugin_ids: pluginIds() })
+        if (!manageable(userForm() as User) || userForm()?.role !== "user") throw new Error("此账号不能修改业务授权。")
+        await patch("/admin/users/" + userForm()!.id, userGrantBody(app.capabilities(), modelIds(), pluginIds()))
       } else {
-        const result = await post<{ user: User; password?: string }>("/admin/users", {
-          username: username().trim(),
-          password: password() || undefined,
-          model_ids: modelIds(),
-          plugin_ids: pluginIds(),
-        })
+        const result = await post<{ user: User; password?: string }>(
+          "/admin/users",
+          userCreateBody(app.capabilities(), {
+            username: username(),
+            password: password(),
+            role: newRole(),
+            modelIds: modelIds(),
+            pluginIds: pluginIds(),
+          }),
+        )
         if (result.password) setSecret({ username: result.user.username, password: result.password })
       }
       setUserForm(undefined)
       setPassword("")
-      app.notify("账号设置已保存，空间准备进度可在任务列表中查看。")
+      app.notify(
+        newRole() === "admin"
+          ? "管理员账号已创建，不分配业务工作空间。"
+          : "用户设置已保存，空间状态可在用户列表中查看。",
+      )
       await refresh()
     } catch (error) {
       setError((error as Error).message)
@@ -141,6 +246,7 @@ export default function Admin() {
   }
   async function saveModel(event: SubmitEvent) {
     event.preventDefault()
+    if (!allowed("models.manage")) return
     setBusy(true)
     try {
       const body = {
@@ -166,6 +272,7 @@ export default function Admin() {
   }
   async function saveTemplate(event: SubmitEvent) {
     event.preventDefault()
+    if (!allowed("templates.manage")) return
     setBusy(true)
     try {
       const body = { name: templateName().trim(), description: templateDesc().trim(), content: templateContent() }
@@ -181,6 +288,7 @@ export default function Admin() {
     }
   }
   async function operation(path: string, body: unknown = {}, showResult = false) {
+    if (!allowed(path.startsWith("/admin/models/") ? "models.manage" : "runtimes.manage")) return
     setBusy(true)
     try {
       const result = await post(path, body)
@@ -194,8 +302,8 @@ export default function Admin() {
     }
   }
   async function toggleAccount(user: User) {
-    if (user.id === app.user().id) {
-      app.notify("不能在这里停用当前登录账号。", "error")
+    if (!manageable(user)) {
+      app.notify("当前账号不能管理该用户。", "error")
       return
     }
     try {
@@ -207,6 +315,7 @@ export default function Admin() {
   }
   async function resetUser(event: SubmitEvent) {
     event.preventDefault()
+    if (!reset() || !manageable(reset()!)) return
     setBusy(true)
     try {
       const result = await post<{ password?: string }>("/admin/users/" + reset()!.id + "/reset-password", {
@@ -223,7 +332,7 @@ export default function Admin() {
     }
   }
   async function publish(file?: File) {
-    if (!file) return
+    if (!file || !allowed("plugins.manage")) return
     setBusy(true)
     try {
       const body = new FormData()
@@ -239,6 +348,7 @@ export default function Admin() {
     }
   }
   async function enablePlugin(item: Plugin, version: string, enabled: boolean) {
+    if (!allowed("plugins.manage")) return
     try {
       await patch("/admin/plugins/" + item.id + "/" + encodeURIComponent(version), { enabled })
       await refresh()
@@ -247,6 +357,7 @@ export default function Admin() {
     }
   }
   async function deleteTemplate(item: Skill) {
+    if (!allowed("templates.manage")) return
     if (!window.confirm("确定删除这个模板吗？用户已复制的个人技能会保留。")) return
     try {
       await remove("/admin/templates/" + item.id)
@@ -263,51 +374,57 @@ export default function Admin() {
       app.notify("请手动选择并复制密码。", "error")
     }
   }
-  const tabs = [
-    { id: "users", label: "账号与空间" },
-    { id: "models", label: "模型管理" },
-    { id: "plugins", label: "插件发布" },
-    { id: "templates", label: "技能模板" },
-    { id: "audit", label: "操作审计" },
-  ]
   return (
     <div class="content-page admin-page">
-      <PageHead eyebrow="系统管理" title="管理中心" text="统一管理账号、授权能力和独立工作空间。">
+      <PageHead
+        eyebrow={roleNames[app.user().role]}
+        title="管理中心"
+        text={
+          app.can("runtimes.manage")
+            ? "管理账号、平台能力和普通用户的独立工作空间。"
+            : "管理普通用户、模型配置和可见操作记录。"
+        }
+      >
         <Button icon="refresh" onClick={refresh}>
           刷新状态
         </Button>
       </PageHead>
-      <div class="stats-grid">
-        <div>
-          <span>账号总数</span>
-          <strong>{users().length}</strong>
-          <small>各账号数据独立</small>
+      <Show when={tab() === "users"}>
+        <div class="stats-grid">
+          <div>
+            <span>可见账号</span>
+            <strong>{users().length}</strong>
+            <small>管理账号不分配业务空间</small>
+          </div>
+          <Show when={app.can("runtimes.manage")}>
+            <div>
+              <span>运行中的空间</span>
+              <strong>
+                {users().filter((user) => ["ready", "running", "healthy"].includes(user.runtime?.status ?? "")).length}
+              </strong>
+              <small>普通用户的独立工作空间</small>
+            </div>
+          </Show>
+          <Show when={app.can("jobs.read")}>
+            <div>
+              <span>等待处理的任务</span>
+              <strong>
+                {jobs().filter((job) => ["queued", "pending", "running", "processing"].includes(job.status)).length}
+              </strong>
+              <small>开通与配置变更</small>
+            </div>
+          </Show>
+          <div>
+            <span>可用模型</span>
+            <strong>{models().filter((model) => model.enabled !== false).length}</strong>
+            <small>由管理员按账号授权</small>
+          </div>
         </div>
-        <div>
-          <span>运行中的空间</span>
-          <strong>
-            {users().filter((user) => ["ready", "running", "healthy"].includes(user.runtime?.status ?? "")).length}
-            <i> / 4</i>
-          </strong>
-          <small>默认同时运行上限</small>
-        </div>
-        <div>
-          <span>等待处理的任务</span>
-          <strong>
-            {jobs().filter((job) => ["queued", "pending", "running", "processing"].includes(job.status)).length}
-          </strong>
-          <small>开通与配置变更</small>
-        </div>
-        <div>
-          <span>可用模型</span>
-          <strong>{models().filter((model) => model.enabled !== false).length}</strong>
-          <small>由管理员按账号授权</small>
-        </div>
-      </div>
+      </Show>
       <ErrorLine message={error()} />
       <div class="section-toolbar">
         <div class="tabs scroll-tabs">
-          <For each={tabs}>
+          <For each={tabs()}>
             {(item) => (
               <button class={tab() === item.id ? "active" : ""} onClick={() => setTab(item.id)}>
                 {item.label}
@@ -338,14 +455,16 @@ export default function Admin() {
           </Match>
         </Switch>
       </div>
-      <input
-        ref={zipInput}
-        type="file"
-        accept=".zip"
-        class="visually-hidden"
-        aria-label="选择插件 ZIP 包"
-        onChange={(event) => void publish(event.currentTarget.files?.[0])}
-      />
+      <Show when={app.can("plugins.manage")}>
+        <input
+          ref={zipInput}
+          type="file"
+          accept=".zip"
+          class="visually-hidden"
+          aria-label="选择插件 ZIP 包"
+          onChange={(event) => void publish(event.currentTarget.files?.[0])}
+        />
+      </Show>
       <Show
         when={!loading()}
         fallback={
@@ -376,74 +495,99 @@ export default function Admin() {
                             <span class="avatar">{user.username.slice(0, 1).toUpperCase()}</span>
                             <div>
                               <strong>{user.username}</strong>
-                              <small>{user.role === "admin" ? "管理员" : "普通用户"}</small>
+                              <small>{roleNames[user.role]}</small>
                             </div>
                           </div>
                         </td>
                         <td>
-                          <Status value={user.runtime?.status} />
+                          <Show when={user.role === "user"} fallback={<span class="muted">不适用（管理账号）</span>}>
+                            <Show when={user.runtime} fallback={<span class="muted">尚未开通</span>}>
+                              <Status value={user.runtime?.status} />
+                            </Show>
+                          </Show>
                         </td>
                         <td>
                           <Status value={user.active === false ? "disabled" : "active"} />
                         </td>
                         <td>
                           <span class="muted">
-                            {user.model_ids?.length ?? 0} 个模型 · {user.plugin_ids?.length ?? 0} 个插件
+                            <Show when={user.role === "user"} fallback="不适用">
+                              {user.model_ids?.length ?? 0} 个模型
+                              <Show when={app.can("plugins.manage")}> · {user.plugin_ids?.length ?? 0} 个插件</Show>
+                            </Show>
                           </span>
                         </td>
                         <td>
-                          <div class="table-actions wrap">
-                            <Button variant="ghost" onClick={() => editUser(user)}>
-                              授权
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              onClick={() => {
-                                setReset(user)
-                                setResetPassword("")
-                              }}
-                            >
-                              重置密码
-                            </Button>
-                            <Show when={user.runtime}>
+                          <Show when={manageable(user)} fallback={<span class="muted">不可管理</span>}>
+                            <div class="table-actions wrap">
+                              <Show when={user.role === "user"}>
+                                <Button variant="ghost" onClick={() => editUser(user)}>
+                                  授权
+                                </Button>
+                              </Show>
                               <Button
                                 variant="ghost"
-                                disabled={busy()}
-                                onClick={() =>
-                                  void operation(
-                                    "/admin/users/" +
-                                      user.id +
-                                      "/runtime/" +
-                                      (["ready", "running", "healthy"].includes(user.runtime?.status ?? "")
-                                        ? "pause"
-                                        : user.runtime?.status === "failed"
-                                          ? "retry"
-                                          : "resume"),
-                                  )
-                                }
+                                onClick={() => {
+                                  setReset(user)
+                                  setResetPassword("")
+                                }}
                               >
-                                {["ready", "running", "healthy"].includes(user.runtime?.status ?? "")
-                                  ? "暂停"
-                                  : user.runtime?.status === "failed"
-                                    ? "重试"
-                                    : "恢复"}
+                                重置密码
                               </Button>
+                              <Show when={app.can("runtimes.manage") && user.role === "user" && user.runtime}>
+                                <Button
+                                  variant="ghost"
+                                  disabled={
+                                    busy() ||
+                                    user.active === false ||
+                                    !["ready", "running", "healthy", "failed", "paused", "stopped"].includes(
+                                      user.runtime?.status ?? "",
+                                    )
+                                  }
+                                  onClick={() =>
+                                    void operation(
+                                      "/admin/users/" +
+                                        user.id +
+                                        "/runtime/" +
+                                        (["ready", "running", "healthy"].includes(user.runtime?.status ?? "")
+                                          ? "pause"
+                                          : user.runtime?.status === "failed"
+                                            ? "retry"
+                                            : "resume"),
+                                    )
+                                  }
+                                >
+                                  {["ready", "running", "healthy"].includes(user.runtime?.status ?? "")
+                                    ? "暂停空间"
+                                    : user.runtime?.status === "failed"
+                                      ? "重试"
+                                      : ["paused", "stopped"].includes(user.runtime?.status ?? "")
+                                        ? "恢复空间"
+                                        : "处理中"}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  disabled={
+                                    busy() ||
+                                    user.active === false ||
+                                    !["ready", "running", "healthy", "paused", "stopped"].includes(
+                                      user.runtime?.status ?? "",
+                                    )
+                                  }
+                                  onClick={() => void operation("/admin/users/" + user.id + "/runtime/apply")}
+                                >
+                                  应用配置
+                                </Button>
+                              </Show>
                               <Button
-                                variant="ghost"
-                                disabled={busy()}
-                                onClick={() => void operation("/admin/users/" + user.id + "/runtime/apply")}
+                                variant={user.active === false ? "ghost" : "danger"}
+                                disabled={user.id === app.user().id}
+                                onClick={() => void toggleAccount(user)}
                               >
-                                应用配置
+                                {user.active === false ? "启用账号" : "停用账号"}
                               </Button>
-                            </Show>
-                            <Button
-                              variant={user.active === false ? "ghost" : "danger"}
-                              disabled={user.id === app.user().id}
-                              onClick={() => void toggleAccount(user)}
-                            >
-                              {user.active === false ? "启用账号" : "停用"}
-                            </Button>
-                          </div>
+                            </div>
+                          </Show>
                         </td>
                       </tr>
                     )}
@@ -451,59 +595,61 @@ export default function Admin() {
                 </tbody>
               </table>
             </div>
-            <section class="settings-card">
-              <div class="settings-heading">
-                <div>
-                  <h2>空间任务</h2>
-                  <p>开通与配置更新会进入任务队列，失败后可由管理员重试。</p>
+            <Show when={app.can("jobs.read")}>
+              <section class="settings-card">
+                <div class="settings-heading">
+                  <div>
+                    <h2>空间任务</h2>
+                    <p>开通与配置更新会进入任务队列，失败后可由超级管理员重试。</p>
+                  </div>
                 </div>
-              </div>
-              <Show when={jobs().length} fallback={<Empty icon="clock" title="暂无空间任务" />}>
-                <div class="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>任务</th>
-                        <th>账号</th>
-                        <th>状态</th>
-                        <th>提交时间</th>
-                        <th>说明</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <For each={jobs().slice(0, 30)}>
-                        {(job) => (
-                          <tr>
-                            <td>
-                              {(
-                                {
-                                  create: "开通空间",
-                                  provision: "开通空间",
-                                  apply: "应用配置",
-                                  pause: "暂停空间",
-                                  resume: "恢复空间",
-                                  retry: "恢复任务",
-                                } as Record<string, string>
-                              )[job.action ?? job.type ?? ""] ?? "空间维护"}
-                            </td>
-                            <td>
-                              {job.username ??
-                                users().find((user) => user.id === (job.user_id ?? job.uid))?.username ??
-                                "—"}
-                            </td>
-                            <td>
-                              <Status value={job.status} />
-                            </td>
-                            <td>{formatDate(job.created_at ?? job.created)}</td>
-                            <td class="muted">{job.error ? safeMessage(job.error) : "—"}</td>
-                          </tr>
-                        )}
-                      </For>
-                    </tbody>
-                  </table>
-                </div>
-              </Show>
-            </section>
+                <Show when={jobs().length} fallback={<Empty icon="clock" title="暂无空间任务" />}>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>任务</th>
+                          <th>账号</th>
+                          <th>状态</th>
+                          <th>提交时间</th>
+                          <th>说明</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <For each={jobs().slice(0, 30)}>
+                          {(job) => (
+                            <tr>
+                              <td>
+                                {(
+                                  {
+                                    create: "开通空间",
+                                    provision: "开通空间",
+                                    apply: "应用配置",
+                                    pause: "暂停空间",
+                                    resume: "恢复空间",
+                                    retry: "恢复任务",
+                                  } as Record<string, string>
+                                )[job.action ?? job.type ?? ""] ?? "空间维护"}
+                              </td>
+                              <td>
+                                {job.username ??
+                                  users().find((user) => user.id === (job.user_id ?? job.uid))?.username ??
+                                  "—"}
+                              </td>
+                              <td>
+                                <Status value={job.status} />
+                              </td>
+                              <td>{formatDate(job.created_at ?? job.created)}</td>
+                              <td class="muted">{job.error ? safeMessage(job.error) : "—"}</td>
+                            </tr>
+                          )}
+                        </For>
+                      </tbody>
+                    </table>
+                  </div>
+                </Show>
+              </section>
+            </Show>
           </Match>
           <Match when={tab() === "models"}>
             <div class="card-grid">
@@ -611,6 +757,54 @@ export default function Admin() {
             </div>
           </Match>
           <Match when={tab() === "audit"}>
+            <form class="audit-filters" onSubmit={filterAudit}>
+              <Field label="操作人">
+                <select value={auditActor()} onChange={(event) => setAuditActor(event.currentTarget.value)}>
+                  <option value="">全部可见操作人</option>
+                  <For each={users().some((user) => user.id === app.user().id) ? users() : [app.user(), ...users()]}>
+                    {(user) => (
+                      <option value={user.id}>
+                        {user.username} · {roleNames[user.role]}
+                      </option>
+                    )}
+                  </For>
+                </select>
+              </Field>
+              <Field label="操作类型">
+                <select value={auditAction()} onChange={(event) => setAuditAction(event.currentTarget.value)}>
+                  <option value="">全部操作</option>
+                  <For each={Object.entries(auditActions)}>
+                    {([value, label]) => <option value={value}>{label}</option>}
+                  </For>
+                </select>
+              </Field>
+              <Field label="执行结果">
+                <select value={auditResult()} onChange={(event) => setAuditResult(event.currentTarget.value)}>
+                  <option value="">全部结果</option>
+                  <option value="success">成功</option>
+                  <option value="denied">已拒绝</option>
+                  <option value="failed">失败</option>
+                </select>
+              </Field>
+              <div class="table-actions">
+                <Button type="submit" icon="search">
+                  筛选
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setAuditActor("")
+                    setAuditAction("")
+                    setAuditResult("")
+                    filterAudit()
+                  }}
+                >
+                  重置筛选
+                </Button>
+              </div>
+            </form>
+            <p class="muted">仅显示当前权限内最近 500 条匹配记录，不包含业务正文和凭据。</p>
             <Show when={audit().length} fallback={<Empty icon="shield" title="暂无操作记录" />}>
               <div class="table-wrap">
                 <table>
@@ -628,28 +822,16 @@ export default function Admin() {
                       {(item) => (
                         <tr>
                           <td class="nowrap">{formatDate(item.created_at ?? item.created)}</td>
-                          <td>{item.username ?? item.actor ?? "系统"}</td>
                           <td>
-                            {(
-                              {
-                                "password.changed": "修改登录密码",
-                                "user.create": "创建账号",
-                                "user.update": "修改账号授权",
-                                "user.password_reset": "重置账号密码",
-                                "runtime.pause": "暂停空间",
-                                "runtime.resume": "恢复空间",
-                                "runtime.retry": "重试空间任务",
-                                "runtime.apply": "应用空间配置",
-                                "plugin.configure": "配置业务插件",
-                                "plugin.publish": "发布插件版本",
-                                "model.create": "添加授权模型",
-                                "model.update": "更新模型配置",
-                              } as Record<string, string>
-                            )[item.action ?? ""] ?? "管理操作"}
+                            <strong>{safeMessage(item.username ?? item.actor, "系统")}</strong>
+                            <small class="audit-role">
+                              {item.actor_role ? (roleNames[item.actor_role] ?? "系统") : "系统"}
+                            </small>
                           </td>
+                          <td>{auditActions[item.action ?? ""] ?? "管理操作"}</td>
                           <td>{safeMessage(item.target, "—")}</td>
                           <td>
-                            <Status value={item.status ?? "recorded"} />
+                            <Status value={item.result ?? item.status ?? "recorded"} />
                           </td>
                         </tr>
                       )}
@@ -663,8 +845,12 @@ export default function Admin() {
       </Show>
       <Show when={userForm()}>
         <Modal
-          title={userForm()?.id ? "账号授权" : "创建账号与独立空间"}
-          text="每个账号对应一个独立工作空间，开通结果请查看任务进度。"
+          title={userForm()?.id ? "账号授权" : "创建账号"}
+          text={
+            newRole() === "admin"
+              ? "管理员仅使用管理功能，不分配业务工作空间，也不配置业务模型或插件授权。"
+              : "普通用户拥有独立业务工作空间。账号启停与空间运行状态分别管理。"
+          }
           wide
           onClose={() => {
             if (!busy()) setUserForm(undefined)
@@ -673,6 +859,17 @@ export default function Admin() {
           <form onSubmit={saveUser}>
             <ErrorLine message={error()} />
             <div class="form-grid">
+              <Show when={!userForm()?.id && app.can("admins.manage")}>
+                <Field label="账号角色" hint="创建后不能直接修改角色。">
+                  <select
+                    value={newRole()}
+                    onChange={(event) => setNewRole(event.currentTarget.value === "admin" ? "admin" : "user")}
+                  >
+                    <option value="user">普通用户</option>
+                    <option value="admin">管理员</option>
+                  </select>
+                </Field>
+              </Show>
               <Field label="账号" required>
                 <input
                   required
@@ -695,42 +892,46 @@ export default function Admin() {
                 </Field>
               </Show>
             </div>
-            <fieldset class="permission-picker">
-              <legend>授权模型</legend>
-              <For each={models()} fallback={<p class="muted">还没有模型，请先在模型管理中添加。</p>}>
-                {(item) => (
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={modelIds().includes(item.id)}
-                      onChange={() => selectPermission(item.id, "models")}
-                    />
-                    {item.name}
-                  </label>
-                )}
-              </For>
-            </fieldset>
-            <fieldset class="permission-picker">
-              <legend>授权插件</legend>
-              <For each={plugins()} fallback={<p class="muted">暂时没有已发布插件。</p>}>
-                {(item) => (
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={pluginIds().includes(item.id)}
-                      onChange={() => selectPermission(item.id, "plugins")}
-                    />
-                    {item.name}
-                  </label>
-                )}
-              </For>
-            </fieldset>
+            <Show when={newRole() === "user"}>
+              <fieldset class="permission-picker">
+                <legend>授权模型</legend>
+                <For each={models()} fallback={<p class="muted">还没有模型，请先在模型管理中添加。</p>}>
+                  {(item) => (
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={modelIds().includes(item.id)}
+                        onChange={() => selectPermission(item.id, "models")}
+                      />
+                      {item.name}
+                    </label>
+                  )}
+                </For>
+              </fieldset>
+            </Show>
+            <Show when={newRole() === "user" && app.can("plugins.manage")}>
+              <fieldset class="permission-picker">
+                <legend>授权插件</legend>
+                <For each={plugins()} fallback={<p class="muted">暂时没有已发布插件。</p>}>
+                  {(item) => (
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={pluginIds().includes(item.id)}
+                        onChange={() => selectPermission(item.id, "plugins")}
+                      />
+                      {item.name}
+                    </label>
+                  )}
+                </For>
+              </fieldset>
+            </Show>
             <div class="modal-actions">
               <Button type="button" onClick={() => setUserForm(undefined)}>
                 取消
               </Button>
               <Button type="submit" variant="primary" busy={busy()}>
-                {userForm()?.id ? "保存授权" : "创建并开通"}
+                {userForm()?.id ? "保存授权" : newRole() === "admin" ? "创建管理员" : "创建并开通"}
               </Button>
             </div>
           </form>

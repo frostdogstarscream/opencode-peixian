@@ -126,6 +126,7 @@ const statuses: Record<string, [string, string]> = {
   paused: ["已暂停", "muted"],
   disabled: ["已停用", "muted"],
   failed: ["处理失败", "bad"],
+  denied: ["已拒绝", "bad"],
   error: ["异常", "bad"],
   partial: ["部分可用", "warn"],
   no_text: ["未识别到文字", "warn"],

@@ -1,6 +1,7 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, Switch, Match } from "solid-js"
 import { api, ApiError, BASE, onUnauthorized, post, safeMessage, setAuth } from "./api"
-import type { Auth, User } from "./types"
+import type { Auth, Capability, User } from "./types"
+import { roleNames, visibleManagementTabs } from "./access"
 import { Button, ErrorLine, Field, Icon, Spinner, Status } from "./components"
 import { Context } from "./context"
 import Chat from "./pages/Chat"
@@ -26,6 +27,11 @@ export default function App() {
   const [disconnected, setDisconnected] = createSignal(false)
   const [toast, setToast] = createSignal<{ message: string; kind: string }>()
   const [dark, setDark] = createSignal(localStorage.getItem("peixian-theme") === "dark")
+  const capabilities = () => auth()?.capabilities ?? []
+  const can = (capability: Capability) => capabilities().includes(capability)
+  const management = () => visibleManagementTabs(capabilities()).length > 0
+  const defaultPage = () => (can("business.use") ? "chat" : management() ? "admin" : "settings")
+  const visiblePages = () => pages.filter((item) => item.id === "settings" || can("business.use"))
   let timer: ReturnType<typeof setTimeout> | undefined
   function notify(message: string, kind = "success") {
     clearTimeout(timer)
@@ -35,14 +41,14 @@ export default function App() {
   function accept(value: Auth) {
     setAuth(value)
     setSession(value)
-    if (value.user.role === "admin" && !value.user.runtime) setPage("admin")
+    setPage(defaultPage())
   }
   async function refreshUser() {
     const first = !auth()
     const data = await api<Auth>("/me")
     setAuth(data)
     setSession(data)
-    if (first && data.user.role === "admin" && !data.user.runtime) setPage("admin")
+    if (first) setPage(defaultPage())
   }
   async function initialize() {
     setLoading(true)
@@ -64,12 +70,17 @@ export default function App() {
   })
   onCleanup(() => clearTimeout(timer))
   createEffect(() => {
+    if (!auth()) return
+    if (page() === "admin" ? !management() : !visiblePages().some((item) => item.id === page())) setPage(defaultPage())
+  })
+  createEffect(() => {
     document.documentElement.dataset.theme = dark() ? "dark" : "light"
     localStorage.setItem("peixian-theme", dark() ? "dark" : "light")
   })
   const eventIdentity = createMemo(() => {
     const user = auth()?.user
     return user &&
+      can("business.use") &&
       !user.must_change_password &&
       ["ready", "running", "healthy", "updating", "applying"].includes(user.runtime?.status ?? "")
       ? user.id
@@ -103,7 +114,7 @@ export default function App() {
     if (!user || user.must_change_password) return
     void refreshUser().catch(() => {})
     if (
-      user.role === "admin" ||
+      !can("business.use") ||
       !["ready", "running", "healthy", "updating", "applying"].includes(user.runtime?.status ?? "")
     )
       setChanged((value) => value + 1)
@@ -135,7 +146,7 @@ export default function App() {
             when={!session().user.must_change_password}
             fallback={<PasswordGate user={session().user} onDone={refreshUser} />}
           >
-            <Context.Provider value={{ user: () => auth()!.user, notify, refreshUser, changed }}>
+            <Context.Provider value={{ user: () => auth()!.user, capabilities, can, notify, refreshUser, changed }}>
               <div class="app-shell">
                 <Show when={menu()}>
                   <button class="nav-overlay" aria-label="关闭导航" onClick={() => setMenu(false)} />
@@ -146,7 +157,7 @@ export default function App() {
                     href="#"
                     onClick={(event) => {
                       event.preventDefault()
-                      setPage("chat")
+                      setPage(defaultPage())
                       setMenu(false)
                     }}
                   >
@@ -157,10 +168,10 @@ export default function App() {
                     </span>
                   </a>
                   <div class="space-label">
-                    个人工作空间 <Icon name="lock" size={12} />
+                    {can("business.use") ? "个人工作空间" : "管理工作台"} <Icon name="lock" size={12} />
                   </div>
                   <nav aria-label="主导航">
-                    <For each={pages}>
+                    <For each={visiblePages()}>
                       {(item) => (
                         <button
                           class={page() === item.id ? "active" : ""}
@@ -178,7 +189,7 @@ export default function App() {
                         </button>
                       )}
                     </For>
-                    <Show when={session().user.role === "admin"}>
+                    <Show when={management()}>
                       <div class="nav-separator" />
                       <button
                         class={page() === "admin" ? "active" : ""}
@@ -195,13 +206,17 @@ export default function App() {
                   <div class="sidebar-bottom">
                     <div class="privacy-note">
                       <Icon name="shield" size={17} />
-                      <span>文件与对话在你的独立空间中保存</span>
+                      <span>
+                        {can("business.use")
+                          ? "文件与对话在你的独立空间中保存"
+                          : "按授权管理账号与能力，业务数据由用户自行访问"}
+                      </span>
                     </div>
                     <div class="account-row">
                       <span class="avatar">{session().user.username.slice(0, 1).toUpperCase()}</span>
                       <span>
                         <strong>{session().user.username}</strong>
-                        <small>{session().user.role === "admin" ? "系统管理员" : "工作台用户"}</small>
+                        <small>{roleNames[session().user.role]}</small>
                       </span>
                       <button
                         class="icon-button"
@@ -230,27 +245,34 @@ export default function App() {
                       <Show when={disconnected()}>
                         <span class="connection-note">正在恢复连接</span>
                       </Show>
-                      <Status value={auth()?.user.runtime?.status} />
+                      <Show
+                        when={can("business.use")}
+                        fallback={<span class="pill">{roleNames[session().user.role]}</span>}
+                      >
+                        <Status value={auth()?.user.runtime?.status} />
+                      </Show>
                     </div>
                   </header>
                   <div class={"page-body " + (page() === "chat" ? "chat-page-body" : "")}>
-                    <div class="chat-preserved" hidden={page() !== "chat"}>
-                      <Chat />
-                    </div>
+                    <Show when={can("business.use")}>
+                      <div class="chat-preserved" hidden={page() !== "chat"}>
+                        <Chat />
+                      </div>
+                    </Show>
                     <Switch>
-                      <Match when={page() === "files"}>
+                      <Match when={page() === "files" && can("business.use")}>
                         <Files />
                       </Match>
-                      <Match when={page() === "skills"}>
+                      <Match when={page() === "skills" && can("business.use")}>
                         <Skills />
                       </Match>
-                      <Match when={page() === "plugins"}>
+                      <Match when={page() === "plugins" && can("business.use")}>
                         <Plugins />
                       </Match>
                       <Match when={page() === "settings"}>
                         <Settings />
                       </Match>
-                      <Match when={page() === "admin" && session().user.role === "admin"}>
+                      <Match when={page() === "admin" && management()}>
                         <Admin />
                       </Match>
                     </Switch>

@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
-IMAGES = ["peixian-control:console-r1", "peixian-gateway:console-r1", "peixian-opencode:1.18.30-managed-r1"]
+IMAGES = ["peixian-control:console-r2-roles", "peixian-gateway:console-r1", "peixian-opencode:1.18.30-managed-r1"]
 
 def command(*values):
     result = subprocess.run(values, cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
@@ -43,6 +43,8 @@ def main():
         "branch": command("git", "branch", "--show-current"),
         "baseline": "c5632f795b4efefdaf6d31c24c120a1761ff6b98",
         "opencode_version": "1.18.30",
+        "control_schema_version": 2,
+        "rollback": "Use schema-compatible control images; run console-guard.py check before deployment.",
         "archive": archive.name, "archive_bytes": archive.stat().st_size, "archive_sha256": checksum.hexdigest(),
         "images": items, "frontend_assets": assets,
         "excludes": ["account_data", "credentials", "control_database", "private_snapshots"],

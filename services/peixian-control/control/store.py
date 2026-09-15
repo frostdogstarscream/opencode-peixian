@@ -11,6 +11,8 @@ import uuid
 from argon2 import PasswordHasher
 from cryptography.fernet import Fernet
 
+SCHEMA_VERSION = 2
+
 
 def ident():
     return uuid.uuid4().hex
@@ -39,7 +41,10 @@ class Store:
             raise ValueError("Worker credential is invalid")
         self.passwords = PasswordHasher()
         with self.tx() as db:
-            db.executescript("""
+            version = db.execute("PRAGMA user_version").fetchone()[0]
+            if version > SCHEMA_VERSION:
+                raise ValueError("Control database schema is newer than this application")
+            schema = """
                 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,username TEXT UNIQUE NOT NULL,password TEXT NOT NULL,role TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,must_change INTEGER NOT NULL DEFAULT 1,auth_version INTEGER NOT NULL DEFAULT 1,created INTEGER NOT NULL);
                 CREATE TABLE IF NOT EXISTS auth(hash TEXT PRIMARY KEY,uid TEXT NOT NULL,kind TEXT NOT NULL,name TEXT,csrf TEXT,expires INTEGER NOT NULL,version INTEGER NOT NULL,created INTEGER NOT NULL);
                 CREATE TABLE IF NOT EXISTS runtimes(uid TEXT PRIMARY KEY,id TEXT UNIQUE NOT NULL,status TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,desired INTEGER NOT NULL DEFAULT 1,reserved INTEGER NOT NULL DEFAULT 1,error TEXT,spec TEXT NOT NULL,updated INTEGER NOT NULL);
@@ -53,12 +58,43 @@ class Store:
                 CREATE TABLE IF NOT EXISTS templates(id TEXT PRIMARY KEY,name TEXT NOT NULL,description TEXT NOT NULL,content TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY,actor TEXT NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,created INTEGER NOT NULL);
                 CREATE TABLE IF NOT EXISTS files(uid TEXT NOT NULL,id TEXT NOT NULL,metadata TEXT NOT NULL,PRIMARY KEY(uid,id));
-            """)
-            if not db.execute("SELECT 1 FROM users WHERE role='admin'").fetchone():
-                password = Path(admin_password_file).read_text().strip()
-                if len(password) < 16:
-                    raise ValueError("Administrator bootstrap password is invalid")
-                db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,?,?)", (ident(), "admin", self.passwords.hash(password), "admin", now()))
+            """
+            # executescript implicitly commits an existing transaction. Execute the
+            # fixed statements separately so schema, roles and auth revoke commit together.
+            for statement in schema.split(";"):
+                if statement.strip():
+                    db.execute(statement)
+            if version < SCHEMA_VERSION:
+                self.migrate_roles(db, admin_password_file)
+            if not db.execute("SELECT 1 FROM users WHERE role='super_admin'").fetchone():
+                raise ValueError("Control database has no super administrator")
+            if db.execute("SELECT 1 FROM users WHERE role NOT IN ('super_admin','admin','user')").fetchone():
+                raise ValueError("Control database contains an unsupported role")
+
+    def migrate_roles(self, db, admin_password_file):
+        columns = {row["name"] for row in db.execute("PRAGMA table_info(audit)")}
+        if "actor_role" not in columns:
+            db.execute("ALTER TABLE audit ADD COLUMN actor_role TEXT NOT NULL DEFAULT 'unknown'")
+        if "result" not in columns:
+            db.execute("ALTER TABLE audit ADD COLUMN result TEXT NOT NULL DEFAULT 'success'")
+        old_admins = [row[0] for row in db.execute("SELECT id FROM users WHERE role='admin'")]
+        for uid in old_admins:
+            db.execute("UPDATE users SET role='super_admin',auth_version=auth_version+1 WHERE id=?", (uid,))
+            db.execute("DELETE FROM auth WHERE uid=?", (uid,))
+        if not db.execute("SELECT 1 FROM users WHERE role='super_admin'").fetchone():
+            password = Path(admin_password_file).read_text().strip()
+            if len(password) < 16:
+                raise ValueError("Administrator bootstrap password is invalid")
+            db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,?,?)",
+                       (ident(), "admin", self.passwords.hash(password), "super_admin", now()))
+        db.execute("UPDATE audit SET actor_role=COALESCE((SELECT role FROM users WHERE id=audit.actor),CASE WHEN actor='worker' THEN 'worker' ELSE 'unknown' END) WHERE actor_role='unknown'")
+        db.execute("INSERT INTO audit(id,actor,actor_role,action,target,result,created) VALUES(?,?,?,?,?,?,?)",
+                   (ident(), "system", "system", "schema.migrate", "control.roles.v2", "success", now()))
+        db.execute("PRAGMA user_version=2")
+
+    def schema_version(self):
+        with self.tx() as db:
+            return db.execute("PRAGMA user_version").fetchone()[0]
 
     @contextmanager
     def tx(self):
@@ -90,9 +126,11 @@ class Store:
     def decrypt(self, value):
         return json.loads(self.cipher.decrypt(value.encode()))
 
-    def audit(self, actor, action, target):
+    def audit(self, actor, action, target, *, actor_role=None, result="success"):
         with self.tx() as db:
-            db.execute("INSERT INTO audit VALUES(?,?,?,?,?)", (ident(), actor, action, target, now()))
+            role = db.execute("SELECT role FROM users WHERE id=?", (actor,)).fetchone()
+            db.execute("INSERT INTO audit(id,actor,actor_role,action,target,result,created) VALUES(?,?,?,?,?,?,?)",
+                       (ident(), actor, actor_role or (role[0] if role else "unknown"), action, target, result, now()))
 
     def set_grants(self, db, uid, kind, values):
         if kind not in ("model", "plugin") or not isinstance(values, list) or len(values) > 100:
@@ -144,11 +182,13 @@ class Store:
                    (job_id, uid, action, desired, now(), now()))
         return {"id": job_id, "uid": uid, "action": action, "status": "queued", "revision": desired}
 
-    def update_user(self, uid, data):
+    def update_user(self, uid, data, *, allow_admin=False):
         with self.tx() as db:
             target = db.execute("SELECT role,active FROM users WHERE id=?", (uid,)).fetchone()
-            if not target or target["role"] != "user":
-                raise ValueError("普通用户账号不存在")
+            if not target or target["role"] not in (("user", "admin") if allow_admin else ("user",)):
+                raise ValueError("可管理的账号不存在")
+            if target["role"] == "admin" and set(data) - {"active"}:
+                raise ValueError("管理员账号不接受业务授权")
             for kind, key in (("model", "model_ids"), ("plugin", "plugin_ids")):
                 if key in data:
                     self.set_grants(db, uid, kind, data[key])
@@ -159,10 +199,22 @@ class Store:
                 active = data["active"]
                 db.execute("UPDATE users SET active=?,auth_version=auth_version+1 WHERE id=?", (active, uid))
                 db.execute("DELETE FROM auth WHERE uid=?", (uid,))
-            if not active and ("model_ids" in data or "plugin_ids" in data):
-                db.execute("UPDATE runtimes SET desired=desired+1,updated=? WHERE uid=?", (now(), uid))
-            # Login revocation and its durable stop request commit together.
-            job = self.queue_in_transaction(db, uid, "apply" if active else "pause")
+            if target["role"] == "admin":
+                job = None
+            elif active and not target["active"]:
+                if db.execute("SELECT 1 FROM jobs WHERE uid=? AND action='pause' AND status IN ('queued','running')", (uid,)).fetchone():
+                    raise ValueError("账号停用尚未完成，请等待空间暂停后再启用")
+                # Resuming with new grants requires a new immutable config revision.
+                if "model_ids" in data or "plugin_ids" in data:
+                    db.execute("UPDATE runtimes SET desired=desired+1,updated=? WHERE uid=?", (now(), uid))
+                # Account activation, capacity reservation and resume are atomic.
+                # A full host or an in-flight job rolls all of them back.
+                job = self.queue_in_transaction(db, uid, "resume")
+            else:
+                if not active and ("model_ids" in data or "plugin_ids" in data):
+                    db.execute("UPDATE runtimes SET desired=desired+1,updated=? WHERE uid=?", (now(), uid))
+                # Editing an already active but manually paused account never resumes it.
+                job = self.queue_in_transaction(db, uid, "apply" if active else "pause")
         return self.user(uid), job
 
     def user(self, uid):
@@ -173,7 +225,19 @@ class Store:
             user["runtime"] = self.one("SELECT id,status,revision,desired,error FROM runtimes WHERE uid=?", (uid,))
         return user
 
-    def create_user(self, username, password, legacy=None, *, model_ids=None, plugin_ids=None):
+    def create_user(self, username, password, legacy=None, *, model_ids=None, plugin_ids=None, role="user"):
+        if role not in ("user", "admin"):
+            raise ValueError("账号角色不支持")
+        if role == "admin":
+            if legacy is not None or model_ids is not None or plugin_ids is not None:
+                raise ValueError("管理员账号不接受业务授权或运行环境")
+            uid = ident()
+            with self.tx() as db:
+                if db.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone():
+                    raise ValueError("账号已存在")
+                db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,?,?)",
+                           (uid, username, self.passwords.hash(password), role, now()))
+            return self.user(uid), None
         uid, rid = ident(), ident()
         spec = {"gateway_key": secrets.token_urlsafe(48), "agent_password": secrets.token_urlsafe(48), "legacy": legacy}
         with self.tx() as db:

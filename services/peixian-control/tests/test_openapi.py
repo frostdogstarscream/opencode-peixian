@@ -116,7 +116,8 @@ def test_security_cookie_csrf_bearer_and_worker_are_not_interchangeable(document
                 assert operation["x-internal"] is True
                 assert operation["x-role"] == "worker"
             elif path.startswith(P + "/admin/"):
-                assert operation["x-role"] == "admin"
+                assert operation["x-role"] in ("super_admin", "super_admin|admin")
+                assert operation["x-roles"] in (["super_admin"], ["super_admin", "admin"])
             elif path.startswith(P + "/"):
                 assert all("WorkerKey" not in alternative for alternative in operation["security"])
     assert document["components"]["securitySchemes"]["SessionCookie"]["name"] == "px_session"

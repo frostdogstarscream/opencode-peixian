@@ -180,7 +180,7 @@ def register_worker(app):
             serialized = encode(record)
             previous = db.execute("SELECT target FROM audit WHERE action='legacy.import' AND target=?", (serialized,)).fetchone()
             if not previous:
-                db.execute("INSERT INTO audit VALUES(?,?,?,?,?)", (ident(), "worker", "legacy.import", serialized, now()))
+                db.execute("INSERT INTO audit(id,actor,action,target,created,actor_role) VALUES(?,?,?,?,?,'worker')", (ident(), "worker", "legacy.import", serialized, now()))
             result = {"uid": uid, "runtime_id": runtime["id"], "created": created,
                       "status": runtime["status"], "revision": runtime["revision"], "desired": runtime["desired"]}
         return result
@@ -211,7 +211,7 @@ def register_worker(app):
                        ("迁移已由执行器回退", now(), uid))
             db.execute("UPDATE runtimes SET status='failed',reserved=0,error=?,updated=? WHERE uid=?",
                        ("迁移未完成，旧数据保留，请检查后重试", now(), uid))
-            db.execute("INSERT INTO audit VALUES(?,?,?,?,?)",
+            db.execute("INSERT INTO audit(id,actor,action,target,created,actor_role) VALUES(?,?,?,?,?,'worker')",
                        (ident(), "worker", "legacy.rollback",
                         encode({"uid": uid, "runtime_id": row["id"], "snapshot": record["snapshot"], "cleanup_confirmed": True}), now()))
         return {"ok": True, "uid": uid, "runtime_id": row["id"], "status": "failed"}
@@ -265,7 +265,7 @@ def register_worker(app):
                     fail(str(exc), 409)
                 db.execute("UPDATE users SET active=1,auth_version=auth_version+1 WHERE id=?", (uid,))
                 db.execute("DELETE FROM auth WHERE uid=?", (uid,))
-                db.execute("INSERT INTO audit VALUES(?,?,?,?,?)",
+                db.execute("INSERT INTO audit(id,actor,action,target,created,actor_role) VALUES(?,?,?,?,?,'worker')",
                            (ident(), "worker", "legacy.retry",
                             encode({"uid": uid, "runtime_id": runtime["id"], "snapshot": imported["snapshot"],
                                     "job_id": job["id"], "auth_version": user["auth_version"] + 1,

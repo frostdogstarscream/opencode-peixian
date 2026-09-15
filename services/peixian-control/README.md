@@ -1,5 +1,13 @@
 # 沛县分析控制层开发说明
 
+## 三角色版本说明
+
+本分支 `codex/peixian-p0-hardening` 使用 `super_admin/admin/user`。超级管理员管理普通用户和管理员，并独占平台插件、插件授权、现有模板及独立空间维护；管理员管理全部普通用户、模型和只读脱敏管理记录，不能操作插件授权、部门组织或独立环境维护。两个管理角色均无业务 runtime；普通用户保留个人 Skill 和已授权插件配置、启停及允许版本切换。
+
+旧 admin 的一次性迁移、旧认证撤销、schema 2 兼容检查与控制库备份见 [三角色说明](../../deploy/peixian/ROLES.md)。本次只调整现有模板权限，正式部门公共 Skill 的唯一审核主体已定为超级管理员，完整审核发布流程仍在正式方案批次 D。文档更新不证明运行迁移、部署或审核发布已验收。
+
+> 详细操作步骤见 [使用手册](../../deploy/peixian/USER_GUIDE.md)，或打开 [离线阅读版](../../deploy/peixian/USER_GUIDE.html)。涵盖超级管理员、管理员、普通用户、Python 调用、日常维护和常见问题。
+
 本目录实现按账号绑定的分析控制台后端、每账号 Gateway、文件解析及模型出口。普通用户可以在不同电脑登录同一账号，访问同一套独立环境；环境身份由服务端认证记录决定，不接受客户端自行指定账号、工作区、容器或模型接口地址。
 
 前端位于 [packages/peixian-console](../../packages/peixian-console)，宿主执行器及部署脚本位于 [deploy/peixian](../../deploy/peixian)。部署、迁移、备份和回退步骤见 [控制台操作手册](../../deploy/peixian/CONSOLE_OPERATIONS.md)。本文件面向开发和契约维护，不包含密钥值、真实账号记录或用户正文。
@@ -27,7 +35,7 @@
 | control/app.py | 身份校验、普通业务 API、文件引用、SSE、异常脱敏、应用组装 |
 | control/live_text.py | 有界的临时助手正文缓存、单账号单流写入及历史读取覆盖 |
 | control/catalog.py | 个人技能、模板复制、授权插件配置与连接测试 |
-| control/administration.py | 管理员账号、模型、插件发布、模板、任务及审计 API |
+| control/administration.py | 三角色账号/模型管理；super 专属插件、模板和环境任务；两管理角色只读脱敏审计 |
 | control/plugin_schema.py | 可渲染配置表单限制、递归凭据脱敏与空密码保留 |
 | control/store.py | SQLite 事务、账号/授权/任务状态、敏感配置加密 |
 | control/worker_api.py | 独立执行器认证、任务租约、配置一致性快照、受限迁移接口 |
@@ -36,7 +44,7 @@
 | gateway/storage.py、safe_fs.py | 原始上传配额、文件记录、Linux 目录 FD 与安全路径操作 |
 | gateway/parse_queue.py、parser.py | 单并发解析队列与受限解析子进程 |
 | gateway/model_relay.py | 每账号 OpenAI 兼容模型出口 |
-| gateway/plugin_test.py、plugin_probe.mjs | 管理员发布插件的命名 test 导出探测 |
+| gateway/plugin_test.py、plugin_probe.mjs | 超级管理员发布插件的命名 test 导出探测 |
 | examples/console_client.py | httpx 客户端：认证、文件、会话、事件、消息与停止生成 |
 | tests、gateway/tests | 合成数据与 MockTransport/TestClient 回归，不调用真实模型 |
 | docs/openapi.json | 可交付的静态 API 文档 |
@@ -52,15 +60,17 @@
 | 会话 | /sessions、/sessions/{sid}/messages、/sessions/{sid}/abort | 只处理当前账号固定工作区的会话 |
 | 事件 | /events | SSE 变更通知，客户端随后刷新消息和会话状态 |
 | 文件 | /files、/files/{fid}/text、preview、download；/results | 上传内容与结果文件使用不透明 ID，不接收任意本地路径 |
-| 技能与插件 | /skills、/templates、/plugins | 个人技能；管理员模板；已发布且授权的插件及个人配置 |
+| 技能与插件 | /skills、/templates、/plugins | 个人技能；超级管理员模板；已发布且授权的插件及个人配置 |
 | 确认 | /permissions、/questions 及各自回复接口 | 只处理本账号会话的权限确认和问题 |
-| 管理 | /admin/users、models、plugins、templates、jobs、audit | 管理资源与运行环境，不提供用户业务数据读取接口 |
+| 管理 | /admin/users、models、plugins、templates、jobs、audit | 按 ROLES.md 三角色、目标账号类型与字段白名单分别校验，不提供用户业务数据读取接口 |
+
+/admin/audit 只读脱敏，支持 actor 精确账号 ID、action 固定动作和 result=success/denied/failed 筛选，最多返回 500 条匹配记录；不提供任意内部负载读取。三角色控制库使用 PRAGMA user_version=2，旧 admin 单次迁为 super_admin 并撤销其旧认证；新建 admin 没有 runtime。部署前使用控制库备份和镜像兼容检查，详见 ROLES.md。
 
 完整的方法、请求体、状态码和具体路径以 [OpenAPI](docs/openapi.json) 为准。Gateway 私有文件接口有 metadata、rename、parse 等能力，不代表控制台公开了同名接口。原生 config/auth/MCP/PTY/shell/任意命令接口没有被公开。
 
 浏览器登录设置 HttpOnly、SameSite=Strict 的 `px_session` Cookie，最长 8 小时。Cookie 写请求必须携带 login/me 返回的 `X-CSRF-Token`，并通过 Origin 校验。Python 可使用个人创建的 Bearer Token；个人令牌有效期 30 天，不需要 Cookie 的 CSRF 头。不要将 Cookie 值当作个人 Bearer Token。
 
-初始密码必须先修改。改密、重置密码、停用账号、注销或撤销令牌会按各自规则撤销认证；SSE 连接持续核验当前认证。管理员与普通用户的业务路由分别校验角色，管理员不能通过普通业务 API 查看某个用户的数据。
+初始密码必须先修改。改密、重置密码、停用账号、注销或撤销令牌会按各自规则撤销认证；SSE 连接持续核验当前认证。三角色与目标账号类型逐接口校验；super_admin/admin 都不能通过普通业务 API 查看某个用户的数据。login/me 的 capabilities 为服务端生成，不接受客户端自报权限。
 
 `/internal/worker/*` 只接受 `X-Worker-Key`，不是普通 Bearer API。其配置快照可能含运行凭据，仅供可信宿主执行器使用。Gateway 的全部私有请求另用 `X-Peixian-Key`；Gateway 到 Agent 使用固定用户名 opencode 的 Basic Auth。
 
@@ -94,7 +104,7 @@
 
 ## 技能与插件配置应用
 
-管理员发布插件 ZIP 后，版本不可覆盖。用户只能选择已启用、已授权的发布版本，并按该版本表单保存自己的配置。GET /plugins 返回 `schemas` 版本映射；编辑旧版不能无条件套用最新版 schema。
+超级管理员发布插件 ZIP 后，版本不可覆盖。用户只能选择已启用、已授权的发布版本，并按该版本表单保存自己的配置。GET /plugins 返回 `schemas` 版本映射；编辑旧版不能无条件套用最新版 schema。
 
 配置表单只支持明确属性、关闭额外字段的嵌套对象，以及基础标量和非凭据标量数组。使用 writeOnly 或 password 格式标记的字段递归脱敏，响应只返回布尔状态树 `credentials_configured`。空密码字段可保留原值。脱敏始终依据已安装版本；该版本停用或元数据缺失时不会改用新版规则回显旧配置。
 
@@ -113,7 +123,7 @@
 | CONTROL_DATA | /data | 控制数据库及发布插件包目录 |
 | CONTROL_KEY_FILE | /run/secrets/control-key | Fernet 加密配置的密钥文件；备份数据库时必须保留对应密钥 |
 | WORKER_KEY_FILE | /run/secrets/worker-key | 独立宿主执行器认证文件，至少 32 字符 |
-| ADMIN_PASSWORD_FILE | /run/secrets/admin-password | 无管理员记录时使用的初始管理员密码文件，初始化要求至少 16 字符 |
+| ADMIN_PASSWORD_FILE | /run/secrets/admin-password | 全新库无超级管理员时初始化账号 admin（角色 super_admin）的密码文件，初始化要求至少 16 字符 |
 | CONSOLE_STATIC | /app/static | 前端构建产物目录；目录存在时提供静态资源与 SPA |
 | CONSOLE_ORIGINS | http://127.0.0.1:14090,http://localhost:14090 | 逗号分隔的精确允许 Origin |
 | COOKIE_SECURE | 未设置 | 值严格为 true 时，为登录 Cookie 设置 Secure；HTTPS 部署应配套启用 |
@@ -132,7 +142,7 @@
 | BUN_EXECUTABLE | /usr/local/bin/bun | Gateway 插件测试，固定已安装的 Bun 程序；测试需显式设置以避免跳过 |
 | ACCOUNT_ID | 必填，无默认 | Relay，必须与每个已配置模型的 allowed_user 一致；Gateway 可收到该变量，但身份校验依据私有令牌与挂载边界 |
 
-Relay 的 model-relay.json 只允许预配置的平台模型 ID、上游模型 ID、基地址、API key 和账号归属。真实密钥仅由 Relay 注入；Agent 使用本地模型出口地址与占位凭据。允许管理员显式配置内网 HTTP 服务；HTTPS 校验证书，不跟随重定向，不读取宿主代理环境。
+Relay 的 model-relay.json 只允许预配置的平台模型 ID、上游模型 ID、基地址、API key 和账号归属。真实密钥仅由 Relay 注入；Agent 使用本地模型出口地址与占位凭据。允许超级管理员或管理员显式配置内网 HTTP 服务；HTTPS 校验证书，不跟随重定向，不读取宿主代理环境。
 
 Gateway 生产模式要求 Linux 目录 FD 安全操作；Windows 降级只用于显式构造 Settings(require_linux=False) 的本地测试，没有环境变量可开启生产降级。上传配额和解析上限是代码常量；当前部署必须保持每个 Gateway 只有一个 uvicorn worker。
 

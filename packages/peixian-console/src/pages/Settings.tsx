@@ -1,7 +1,8 @@
 import { createEffect, createSignal, For, Show } from "solid-js"
 import { list, post, remove } from "../api"
-import { Button, Empty, ErrorLine, Field, formatDate, Icon, Modal, PageHead } from "../components"
+import { Button, Empty, ErrorLine, Field, formatDate, Icon, Modal, PageHead, Status } from "../components"
 import { useConsole } from "../context"
+import { roleNames } from "../access"
 type Token = { id: string; name: string; created_at?: string; created?: number; expires?: number }
 export default function Settings() {
   const app = useConsole()
@@ -91,7 +92,11 @@ export default function Settings() {
           </span>
           <div>
             <h2>账号信息</h2>
-            <p>账号由管理员开通，工作空间按账号独立。</p>
+            <p>
+              {app.can("business.use")
+                ? "普通用户工作空间按账号独立。"
+                : "管理账号不分配业务工作空间，按授权提供管理功能。"}
+            </p>
           </div>
         </div>
         <div class="account-summary">
@@ -101,12 +106,14 @@ export default function Settings() {
           </div>
           <div>
             <small>角色</small>
-            <strong>{app.user().role === "admin" ? "管理员" : "普通用户"}</strong>
+            <strong>{roleNames[app.user().role]}</strong>
           </div>
           <div>
             <small>空间状态</small>
             <strong>
-              {["ready", "running", "healthy"].includes(app.user().runtime?.status ?? "") ? "已就绪" : "准备或维护中"}
+              <Show when={app.can("business.use")} fallback="不适用（管理账号）">
+                <Status value={app.user().runtime?.status} />
+              </Show>
             </strong>
           </div>
         </div>

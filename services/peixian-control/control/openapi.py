@@ -65,7 +65,7 @@ def schemas():
     result = {
         "Error": obj({"message": STRING, "code": STRING, "request_id": STRING}, ("message", "code")),
         "Ok": obj({"ok": BOOL}, ("ok",), extra=True),
-        "Health": obj({"status": STRING, "version": STRING}, ("status", "version")),
+        "Health": obj({"status": STRING, "version": STRING, "schema_version": {"type": "integer", "const": 2}}, ("status", "version", "schema_version")),
         "LoginBody": obj({"username": STRING, "password": {"type": "string", "format": "password", "writeOnly": True}}, ("username", "password")),
         "PasswordBody": obj({"current_password": {"type": "string", "format": "password", "writeOnly": True}, "password": PASSWORD}, ("current_password", "password")),
         "TokenBody": obj({"name": {"type": "string", "maxLength": 80}}),
@@ -88,6 +88,7 @@ def schemas():
         "UserCreateBody": obj({
             "username": {"type": "string", "minLength": 3, "maxLength": 40, "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,39}$"},
             "password": {**PASSWORD, "description": "省略时生成初始密码，仅在本次响应返回；首次登录必须修改。"},
+            "role": {"type": "string", "enum": ["user", "admin"], "default": "user", "description": "仅超管可提交此字段；admin 操作者即使提交 role=user 也返回403。创建的管理员账号不创建业务环境且不得携带任何授权字段。"},
             "model_ids": ids, "plugin_ids": ids,
         }, ("username",)),
         "UserUpdateBody": obj({"active": BOOL, "model_ids": ids, "plugin_ids": ids}),
@@ -112,18 +113,20 @@ def schemas():
                                         "description": "管理员审核的 ZIP 包，含 manifest.json 与打包好的 .mjs 入口；最大 20 MiB。"}}, ("file",)),
         "Runtime": obj({"id": ID, "status": {"type": "string", "enum": ["pending", "provisioning", "updating", "ready", "paused", "failed"]},
                         "revision": INTEGER, "desired": INTEGER, "error": nullable(STRING)},
-                       ("id", "status", "revision", "desired"), extra=True),
-        "User": obj({"id": ID, "username": STRING, "role": {"type": "string", "enum": ["user", "admin"]},
+                       ("status",), extra=True, description="普通管理员查看他人环境只返回 status；不返回内部运行环境 ID、配置修订或错误详情。"),
+        "User": obj({"id": ID, "username": STRING, "role": {"type": "string", "enum": ["user", "admin", "super_admin"]},
                      "active": BOOL, "must_change_password": BOOL, "runtime": nullable(ref("Runtime")),
                      "model_ids": ids, "plugin_ids": ids},
                     ("id", "username", "role", "active", "must_change_password", "runtime"), extra=True),
-        "Identity": obj({"user": ref("User"), "csrf_token": nullable(STRING)}, ("user", "csrf_token")),
+        "Identity": obj({"user": ref("User"), "csrf_token": nullable(STRING),
+                         "capabilities": array({"type": "string", "enum": ["users.manage", "admins.manage", "models.manage", "audit.read", "plugins.manage", "templates.manage", "runtimes.manage", "jobs.read", "business.use"]})},
+                        ("user", "csrf_token", "capabilities")),
         "Token": obj({"id": ID, "name": STRING, "created": INTEGER, "expires": INTEGER}, ("id", "name", "created", "expires")),
         "TokenCreated": obj({"token": {"type": "string", "description": "只在创建响应返回一次；作为 Bearer 使用，不得写入日志。"},
                              "item": ref("Token")}, ("token", "item")),
         "Job": obj({"id": nullable(ID), "uid": ID, "action": STRING, "status": STRING,
                     "revision": INTEGER, "error": nullable(STRING), "created": INTEGER, "updated": INTEGER},
-                   ("id", "status"), extra=True),
+                   ("status",), extra=True, description="普通管理员由账号或模型变更触发的后台任务仅返回 status，不授予独立任务管理权限。"),
         "Queued": obj({"ok": BOOL, "id": ID, "job": nullable(ref("Job"))}, ("job",), extra=True),
         "UserChanged": obj({"user": ref("User"), "job": nullable(ref("Job")),
                             "password": {"type": "string", "description": "仅创建响应提供的初始密码；不持久化到客户端日志。"}},
@@ -186,7 +189,10 @@ def schemas():
                       ("id", "name", "relative_path", "size", "modified_at")),
         "Confirmation": obj({"id": ID, "sessionID": ID, "questions": array({"type": "object", "additionalProperties": True}),
                              "description": STRING}, ("id", "sessionID", "questions", "description")),
-        "Audit": obj({"id": ID, "actor": STRING, "action": STRING, "target": STRING, "created": INTEGER, "username": nullable(STRING)}, extra=True),
+        "Audit": obj({"id": ID, "actor": STRING, "actor_role": STRING, "action": STRING, "target": STRING,
+                      "result": {"type": "string", "enum": ["success", "denied", "failed"]},
+                      "created": INTEGER, "username": nullable(STRING)},
+                     ("id", "actor", "actor_role", "action", "target", "result", "created", "username")),
         "LeaseBody": obj({"lease": {"type": "string", "writeOnly": True}}, ("lease",)),
         "CompleteBody": obj({"lease": {"type": "string", "writeOnly": True}, "ok": BOOL, "deferred": BOOL,
                              "error": STRING, "rolled_back": BOOL, "cleanup_confirmed": BOOL}, ("lease",)),
@@ -266,12 +272,12 @@ CONTRACTS = {
     ("post", "/questions/{rid}/reply"): ("QuestionReplyBody", BOOL, "回答模型问题", "确认", "answers 按问题顺序排列，每题为选项字符串数组。"),
     ("post", "/questions/{rid}/reject"): ("QuestionRejectBody", BOOL, "拒绝回答模型问题", "确认", "仍需 JSON 对象请求体，可传空对象。"),
     ("get", "/admin/users"): (None, ref("UserList"), "列出账号与环境名额", "管理：账号", ""),
-    ("post", "/admin/users"): ("UserCreateBody", ref("UserChanged"), "创建账号并排队开通独立环境", "管理：账号", "账号与初始授权及开通任务在同一事务保存；202 不代表环境已就绪。"),
-    ("patch", "/admin/users/{uid}"): ("UserUpdateBody", ref("UserChanged"), "修改账号启用状态或授权", "管理：账号", "停用会立即撤销认证并排队停止环境；管理员不能据此访问该用户业务数据。"),
+    ("post", "/admin/users"): ("UserCreateBody", ref("UserChanged"), "创建普通用户或管理员", "管理：账号", "super_admin 可创建 user/admin；admin 只能创建 user，且不得提交 role 或 plugin_ids，即使值为 user 或空数组。角色默认 user。创建 user 时账号、初始授权与开通任务在同一事务保存；202 不代表环境已就绪。创建 admin 不接受 model_ids/plugin_ids，不创建环境，runtime 与 job 均为 null。未知字段或混合越权字段整笔拒绝。"),
+    ("patch", "/admin/users/{uid}"): ("UserUpdateBody", ref("UserChanged"), "修改账号启用状态或授权", "管理：账号", "admin 只能管理全部 user 的 active/model_ids，不得携带 plugin_ids。super_admin 另可管理 user 的插件授权及 admin 的 active；admin 账号不接受模型/插件授权。角色不可更改，super_admin 账号不能作为此接口目标。停用立即撤销认证；user 同事务排队停止环境，admin 无环境任务。原已停用 user 重新启用会同事务预留容量并排队 resume；容量不足或暂停任务仍在途返回409，账号仍停用。已启用但被超管手动暂停的账号不会因重复启用或修改授权自动恢复。混合越权字段整笔拒绝。"),
     ("post", "/admin/users/{uid}/reset-password"): ("PasswordResetBody", ref("PasswordReset"), "重设账号初始密码", "管理：账号", ""),
     ("post", "/admin/users/{uid}/runtime/{action}"): (None, ref("Queued"), "排队执行环境操作", "管理：账号", "pause 保留数据并停止环境；resume 恢复；retry 重试开通；apply 应用当前授权配置。"),
     ("get", "/admin/jobs"): (None, items(ref("Job")), "查看最近环境任务", "管理：审计", "最多最近 200 项。"),
-    ("get", "/admin/audit"): (None, items(ref("Audit")), "查看最近管理审计", "管理：审计", "最多最近 500 项；不提供用户业务消息或文件内容。"),
+    ("get", "/admin/audit"): (None, items(ref("Audit")), "查看最近管理审计", "管理：审计", "最多最近 500 项。actor 为账号 ID 精确筛选，action 为管理动作精确筛选，result 为 success/denied/failed。仅管理操作元数据；不包含业务调用、迁移负载、密钥、正文或文件路径。"),
     ("get", "/admin/models"): (None, items(ref("AdminModel")), "列出模型配置", "管理：模型", "返回 api_key_configured，不返回密钥值。"),
     ("post", "/admin/models"): ("ModelCreateBody", ref("AdminModel"), "新增可授权模型", "管理：模型", ""),
     ("patch", "/admin/models/{mid}"): ("ModelUpdateBody", ref("ModelChanged"), "修改模型并排队应用", "管理：模型", ""),
@@ -408,7 +414,15 @@ def build_openapi(app):
                 operation.update(summary=summary, tags=[tag], description=description)
                 anonymous = path == P + "/auth/login"
                 common = path in (P + "/me", P + "/me/password", P + "/auth/logout") or path.startswith(P + "/tokens")
-                operation["x-role"] = "anonymous" if anonymous else "admin" if path.startswith(P + "/admin/") else "authenticated" if common else "user"
+                management = path.startswith(P + "/admin/")
+                super_only = management and (path.startswith((P + "/admin/plugins", P + "/admin/templates", P + "/admin/jobs")) or "/runtime/" in path)
+                operation["x-role"] = "anonymous" if anonymous else "super_admin" if super_only else "super_admin|admin" if management else "authenticated" if common else "user"
+                if management:
+                    operation["x-roles"] = ["super_admin"] if super_only else ["super_admin", "admin"]
+                    capability = ("plugins.manage" if "/admin/plugins" in path else "templates.manage" if "/admin/templates" in path
+                                  else "jobs.read" if "/admin/jobs" in path else "runtimes.manage" if "/runtime/" in path
+                                  else "models.manage" if "/admin/models" in path else "audit.read" if "/admin/audit" in path else "users.manage")
+                    operation["x-capability"] = capability
                 operation["security"] = [] if anonymous else [{"BearerToken": []}, {"SessionCookie": [], **({"CsrfToken": []} if method not in ("get", "head", "options") else {})}]
                 annotate_body(operation, body)
                 annotate_response(operation, output)

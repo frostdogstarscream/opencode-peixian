@@ -18,7 +18,28 @@ from .plugin_schema import validate_form
 
 
 def register_admin(app):
-    from .app import PREFIX, admin, body_fields, fail, own_id, password_valid, SLUG
+    from .app import PREFIX, admin, require_capability, body_fields, fail, own_id, password_valid, SLUG
+
+    def target_user(uid, actor):
+        target = app.state.store.user(own_id(uid))
+        roles = ("user", "admin") if actor["role"] == "super_admin" else ("user",)
+        if not target or target["role"] not in roles:
+            fail("可管理的账号不存在", 404)
+        return target
+
+    def user_fields(data, actor, target_role="user"):
+        if actor["role"] != "super_admin" and ("plugin_ids" in data or "role" in data or target_role != "user"):
+            fail("无权修改此角色或插件授权", 403)
+        if target_role == "admin" and ("model_ids" in data or "plugin_ids" in data):
+            fail("管理员账号不接受业务授权", 400)
+
+    def public_job(job, actor):
+        return {"status": job["status"]} if job is not None and actor["role"] == "admin" else job
+
+    def public_user(target, actor):
+        if actor["role"] == "admin" and target.get("runtime") is not None:
+            return {**target, "runtime": {"status": target["runtime"]["status"]}}
+        return target
 
     def queue(uid, action="apply"):
         try:
@@ -26,23 +47,30 @@ def register_admin(app):
         except ValueError as exc:
             fail(str(exc), 409)
 
-    def users_list():
+    def users_list(actor):
         s = app.state.store
         result = []
         for row in s.rows("SELECT id FROM users ORDER BY created"):
             user = s.user(row["id"])
+            if actor["role"] != "super_admin" and user["role"] != "user":
+                continue
             user["model_ids"] = [v["resource"] for v in s.rows("SELECT resource FROM grants WHERE uid=? AND kind='model'", (row["id"],))]
-            user["plugin_ids"] = [v["resource"] for v in s.rows("SELECT resource FROM grants WHERE uid=? AND kind='plugin'", (row["id"],))]
-            result.append(user)
+            if actor["role"] == "super_admin":
+                user["plugin_ids"] = [v["resource"] for v in s.rows("SELECT resource FROM grants WHERE uid=? AND kind='plugin'", (row["id"],))]
+            result.append(public_user(user, actor))
         return result
 
     @app.get(PREFIX + "/admin/users")
     async def users(request: Request, user=Depends(admin)):
-        return {"items": users_list(), "capacity": {"maximum": int(os.getenv("MAX_RUNTIMES", "4")), "reserved": app.state.store.one("SELECT count(*) AS n FROM runtimes WHERE reserved=1")["n"]}}
+        return {"items": users_list(user), "capacity": {"maximum": int(os.getenv("MAX_RUNTIMES", "4")), "reserved": app.state.store.one("SELECT count(*) AS n FROM runtimes WHERE reserved=1")["n"]}}
 
     @app.post(PREFIX + "/admin/users", status_code=202)
     async def user_create(request: Request, user=Depends(admin)):
-        data = body_fields(await request.json(), ("username", "password", "model_ids", "plugin_ids"))
+        data = body_fields(await request.json(), ("username", "password", "role", "model_ids", "plugin_ids"))
+        role = data.get("role", "user")
+        if role not in ("user", "admin"):
+            fail("仅可创建普通用户或管理员", 403)
+        user_fields(data, user, role)
         username = data.get("username", "")
         if not isinstance(username, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{2,39}", username):
             fail("账号需为 3 至 40 位字母、数字、点、横线或下划线")
@@ -51,43 +79,43 @@ def register_admin(app):
         if s.one("SELECT 1 FROM users WHERE username=?", (username,)):
             fail("账号已存在", 409)
         try:
-            created, job = s.create_user(username, password, model_ids=data.get("model_ids", []),
-                                         plugin_ids=data.get("plugin_ids", []))
+            created, job = s.create_user(username, password, role=role, model_ids=data.get("model_ids"),
+                                         plugin_ids=data.get("plugin_ids"))
         except ValueError as exc:
             fail(str(exc), 409)
-        s.audit(user["uid"], "user.create", created["id"])
-        return {"user": created, "job": job, "password": password}
+        request.state.management_target = created["id"]
+        return {"user": public_user(created, user), "job": public_job(job, user), "password": password}
 
     @app.patch(PREFIX + "/admin/users/{uid}")
     async def user_edit(uid: str, request: Request, user=Depends(admin)):
-        data = body_fields(await request.json(), ("active", "model_ids", "plugin_ids"))
+        raw = await request.json()
+        if isinstance(raw, dict) and "role" in raw:
+            fail("账号角色不可通过此接口修改", 403)
+        data = body_fields(raw, ("active", "model_ids", "plugin_ids"))
         s = app.state.store
-        target = s.user(own_id(uid))
-        if not target or target["role"] != "user":
-            fail("普通用户账号不存在", 404)
+        target = target_user(uid, user)
+        user_fields(data, user, target["role"])
+        if not data:
+            fail("请提供需要修改的字段")
         try:
-            updated, job = s.update_user(uid, data)
+            updated, job = s.update_user(uid, data, allow_admin=user["role"] == "super_admin")
         except ValueError as exc:
             fail(str(exc), 409)
-        s.audit(user["uid"], "user.update", uid)
-        return {"user": updated, "job": job}
+        return {"user": public_user(updated, user), "job": public_job(job, user)}
 
     @app.post(PREFIX + "/admin/users/{uid}/reset-password")
     async def user_reset(uid: str, request: Request, user=Depends(admin)):
         data = body_fields(await request.json(), ("password",))
         s = app.state.store
-        target = s.user(own_id(uid))
-        if not target or target["role"] != "user":
-            fail("普通用户账号不存在", 404)
+        target_user(uid, user)
         password = password_valid(data.get("password") or secrets.token_urlsafe(20))
         with s.tx() as db:
             db.execute("UPDATE users SET password=?,must_change=1,auth_version=auth_version+1 WHERE id=?", (s.passwords.hash(password), uid))
             db.execute("DELETE FROM auth WHERE uid=?", (uid,))
-        s.audit(user["uid"], "user.password_reset", uid)
         return {"password": password}
 
     @app.post(PREFIX + "/admin/users/{uid}/runtime/{action}")
-    async def runtime_action(uid: str, action: str, request: Request, user=Depends(admin)):
+    async def runtime_action(uid: str, action: str, request: Request, user=Depends(require_capability("runtimes.manage"))):
         if action not in ("pause", "resume", "retry", "apply"):
             fail("操作不支持", 404)
         target = app.state.store.user(own_id(uid))
@@ -95,22 +123,44 @@ def register_admin(app):
             fail("账号不存在", 404)
         if not target["active"] and action != "pause":
             fail("请先启用账号", 409)
-        app.state.store.audit(user["uid"], "runtime." + action, uid)
         return {"job": queue(uid, "provision" if action == "retry" else action)}
 
     @app.get(PREFIX + "/admin/jobs")
-    async def jobs(request: Request, user=Depends(admin)):
+    async def jobs(request: Request, user=Depends(require_capability("jobs.read"))):
         return {"items": app.state.store.rows("SELECT id,uid,action,status,revision,error,created,updated FROM jobs ORDER BY created DESC LIMIT 200")}
 
     @app.get(PREFIX + "/admin/audit")
-    async def audit(request: Request, user=Depends(admin)):
-        return {"items": app.state.store.rows("SELECT a.*,u.username FROM audit a LEFT JOIN users u ON u.id=a.actor ORDER BY a.created DESC LIMIT 500")}
+    async def audit(request: Request, actor: str | None = None, action: str | None = None,
+                    result: str | None = None, user=Depends(require_capability("audit.read"))):
+        from .roles import MANAGEMENT_ACTIONS
+        allowed = sorted(set(MANAGEMENT_ACTIONS.values()) | {"management.request", "runtime.pause", "runtime.resume", "runtime.retry", "runtime.apply"})
+        clauses, values = ["a.action IN (" + ",".join("?" for _ in allowed) + ")"], list(allowed)
+        if actor is not None:
+            own_id(actor)
+            clauses.append("a.actor=?")
+            values.append(actor)
+        if action is not None:
+            if action not in allowed:
+                fail("审计动作筛选无效")
+            clauses.append("a.action=?")
+            values.append(action)
+        if result is not None:
+            if result not in ("success", "denied", "failed"):
+                fail("审计结果筛选无效")
+            clauses.append("a.result=?")
+            values.append(result)
+        rows = app.state.store.rows("SELECT a.id,a.actor,a.actor_role,a.action,a.target,a.result,a.created,u.username FROM audit a LEFT JOIN users u ON u.id=a.actor WHERE " + " AND ".join(clauses) + " ORDER BY a.created DESC,a.rowid DESC LIMIT 500", values)
+        # Old records were not uniformly structured; never expose legacy free-text targets.
+        for row in rows:
+            if not re.fullmatch(r"[A-Za-z0-9_.@-]{1,128}", row["target"]):
+                row["target"] = "legacy-target"
+        return {"items": rows}
 
     def model_public(row):
         return {**{k: row[k] for k in ("id", "name", "description", "base_url", "model_id", "enabled", "is_default")}, "api_key_configured": bool(app.state.store.decrypt(row["secret"]))}
 
     @app.get(PREFIX + "/admin/models")
-    async def models(request: Request, user=Depends(admin)):
+    async def models(request: Request, user=Depends(require_capability("models.manage"))):
         return {"items": [model_public(row) for row in app.state.store.rows("SELECT * FROM models ORDER BY name")]}
 
     def model_data(data, old=None):
@@ -130,7 +180,7 @@ def register_admin(app):
         return result
 
     @app.post(PREFIX + "/admin/models")
-    async def model_create(request: Request, user=Depends(admin)):
+    async def model_create(request: Request, user=Depends(require_capability("models.manage"))):
         s = app.state.store
         data = model_data(await request.json())
         mid = ident()
@@ -138,11 +188,11 @@ def register_admin(app):
             if data["is_default"]:
                 db.execute("UPDATE models SET is_default=0")
             db.execute("INSERT INTO models VALUES(?,?,?,?,?,?,?,?)", (mid, data["name"], data["description"], data["base_url"], data["model_id"], data["secret"], data["enabled"], data["is_default"]))
-        s.audit(user["uid"], "model.create", mid)
+        request.state.management_target = mid
         return model_public(s.one("SELECT * FROM models WHERE id=?", (mid,)))
 
     @app.patch(PREFIX + "/admin/models/{mid}")
-    async def model_edit(mid: str, request: Request, user=Depends(admin)):
+    async def model_edit(mid: str, request: Request, user=Depends(require_capability("models.manage"))):
         s = app.state.store
         old = s.one("SELECT * FROM models WHERE id=?", (own_id(mid),))
         if not old:
@@ -158,11 +208,10 @@ def register_admin(app):
                 queued.append(s.queue(row["uid"]))
             except ValueError:
                 pass
-        s.audit(user["uid"], "model.update", mid)
-        return {"model": model_public(s.one("SELECT * FROM models WHERE id=?", (mid,))), "jobs": queued}
+        return {"model": model_public(s.one("SELECT * FROM models WHERE id=?", (mid,))), "jobs": [public_job(job, user) for job in queued]}
 
     @app.post(PREFIX + "/admin/models/{mid}/test")
-    async def model_test(mid: str, request: Request, user=Depends(admin)):
+    async def model_test(mid: str, request: Request, user=Depends(require_capability("models.manage"))):
         s = app.state.store
         m = s.one("SELECT * FROM models WHERE id=?", (own_id(mid),))
         if not m:
@@ -175,14 +224,14 @@ def register_admin(app):
         return {"ok": found, "message": "连接成功，模型 ID 已确认" if found else "未能确认模型，请检查地址、凭据和模型 ID"}
 
     @app.get(PREFIX + "/admin/plugins")
-    async def plugins(request: Request, user=Depends(admin)):
+    async def plugins(request: Request, user=Depends(require_capability("plugins.manage"))):
         result = []
         for row in app.state.store.rows("SELECT * FROM plugins ORDER BY rowid DESC"):
             result.append({k: row[k] for k in ("id", "version", "name", "description", "digest", "enabled")})
         return {"items": result}
 
     @app.post(PREFIX + "/admin/plugins")
-    async def publish(request: Request, file: UploadFile = File(...), user=Depends(admin)):
+    async def publish(request: Request, file: UploadFile = File(...), user=Depends(require_capability("plugins.manage"))):
         data = await file.read(20 * 1024 * 1024 + 1)
         if len(data) > 20 * 1024 * 1024:
             fail("插件包不能超过 20 MiB", 413)
@@ -224,11 +273,11 @@ def register_admin(app):
         path.write_bytes(data)
         with s.tx() as db:
             db.execute("INSERT INTO plugins VALUES(?,?,?,?,?,?,?,1)", (manifest["id"], manifest["version"], str(manifest.get("name", manifest["id"]))[:100], str(manifest.get("description", ""))[:1000], encode(manifest), str(path), sha))
-        s.audit(user["uid"], "plugin.publish", manifest["id"] + "@" + manifest["version"])
+        request.state.management_target = manifest["id"] + "@" + manifest["version"]
         return {"id": manifest["id"], "version": manifest["version"], "digest": sha}
 
     @app.patch(PREFIX + "/admin/plugins/{pid}/{version}")
-    async def plugin_state(pid: str, version: str, request: Request, user=Depends(admin)):
+    async def plugin_state(pid: str, version: str, request: Request, user=Depends(require_capability("plugins.manage"))):
         data = body_fields(await request.json(), ("enabled",))
         s = app.state.store
         with s.tx() as db:
@@ -240,26 +289,26 @@ def register_admin(app):
                 jobs.append(s.queue(row["uid"]))
             except ValueError:
                 pass
-        s.audit(user["uid"], "plugin.publication_update", pid + "@" + version)
+        request.state.management_target = pid + "@" + version
         return {"ok": True, "jobs": jobs}
 
     @app.get(PREFIX + "/admin/templates")
-    async def templates(request: Request, user=Depends(admin)):
+    async def templates(request: Request, user=Depends(require_capability("templates.manage"))):
         return {"items": app.state.store.rows("SELECT * FROM templates ORDER BY name")}
 
     @app.post(PREFIX + "/admin/templates")
-    async def template_create(request: Request, user=Depends(admin)):
+    async def template_create(request: Request, user=Depends(require_capability("templates.manage"))):
         data = body_fields(await request.json(), ("name", "description", "content"))
         if not str(data.get("name", "")).strip() or not 1 <= len(str(data.get("content", ""))) <= 32000:
             fail("请填写模板名称和指令内容")
         tid = ident()
         with app.state.store.tx() as db:
             db.execute("INSERT INTO templates VALUES(?,?,?,?)", (tid, str(data["name"])[:60], str(data.get("description", ""))[:500], data["content"]))
-        app.state.store.audit(user["uid"], "template.create", tid)
+        request.state.management_target = tid
         return {"id": tid, **data}
 
     @app.patch(PREFIX + "/admin/templates/{tid}")
-    async def template_edit(tid: str, request: Request, user=Depends(admin)):
+    async def template_edit(tid: str, request: Request, user=Depends(require_capability("templates.manage"))):
         data = body_fields(await request.json(), ("name", "description", "content"))
         old = app.state.store.one("SELECT * FROM templates WHERE id=?", (own_id(tid),))
         if not old:
@@ -269,12 +318,10 @@ def register_admin(app):
             fail("模板内容无效")
         with app.state.store.tx() as db:
             db.execute("UPDATE templates SET name=?,description=?,content=? WHERE id=?", (str(result["name"])[:60], str(result["description"])[:500], result["content"], tid))
-        app.state.store.audit(user["uid"], "template.update", tid)
         return result
 
     @app.delete(PREFIX + "/admin/templates/{tid}")
-    async def template_delete(tid: str, request: Request, user=Depends(admin)):
+    async def template_delete(tid: str, request: Request, user=Depends(require_capability("templates.manage"))):
         with app.state.store.tx() as db:
             db.execute("DELETE FROM templates WHERE id=?", (own_id(tid),))
-        app.state.store.audit(user["uid"], "template.delete", tid)
         return {"ok": True}

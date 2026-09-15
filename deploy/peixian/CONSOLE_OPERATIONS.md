@@ -1,6 +1,10 @@
 # 托管控制台运维与 A/B 迁移
 
-本文对应 `compose.console.yaml`、`console-worker.py`、`console-runtime.py` 和 `console-migrate.py`。所有命令在仓库的 `deploy/peixian` 目录执行。控制台默认地址为 `http://127.0.0.1:14090`；每个账号的 Agent、Gateway、模型 Relay 均没有宿主公开端口。
+本文对应 `compose.console.yaml`、`console-worker.py`、`console-runtime.py`、`console-migrate.py` 和三角色升级检查 `console-guard.py`。所有命令在仓库的 `deploy/peixian` 目录执行。控制台默认地址为 `http://127.0.0.1:14090`；每个账号的 Agent、Gateway、模型 Relay 均没有宿主公开端口。
+
+三角色版本使用 `peixian-control:console-r2-roles`；保留旧控制镜像 r1，不表示旧镜像可打开 schema 2。Agent 的 `peixian-opencode:1.18.30-managed-r1` 和 Gateway 的 `peixian-gateway:console-r1` 在这次角色变更中不升级。升级合同和权限见 [ROLES.md](ROLES.md)。本轮文档没有执行 Linux 部署测试。
+
+只有普通用户分配业务运行环境；两个管理角色均无 runtime。普通用户从停用变为启用（active: false → true）时，服务端在同一事务内检查并预留容量、排入 resume，随后由执行器恢复原环境；管理员可通过“启用账号”完成这一业务动作，无需独立 runtime 权限。若停用引发的 pause 尚未完成，或没有可用名额，返回 409 并回滚本次启用，账号继续保持停用；待暂停完成或释放名额后再试。已经 active、只是被超级管理员手动暂停空间的用户，不会因修改其他设置或重复启用而自动恢复，仍须超级管理员“恢复空间”。
 
 ## 运行边界
 
@@ -8,7 +12,7 @@
 - 每账号保存独立 HOME、workspace、files 卷。Agent 只有内部网络；Gateway 使用该账号独立管理网；Relay 使用该账号独立出口网。
 - 每账号配额为 Agent 2 CPU/2 GiB、Gateway 0.5 CPU/512 MiB、Relay 0.5 CPU/128 MiB，合计 3 CPU/2.625 GiB。4 账号加控制台 512 MiB、系统预留 1 GiB，要求 Docker 引擎至少 12 GiB 内存；CPU 预算为 4×3+1=13。预算不足时，worker 在创建资源前拒绝开通。
 - worker 读取 `.secrets/console-worker.key`，发布文件位于 `.runtime/console/runtimes/{runtime_id}/releases/{revision}`。发布目录只读挂入容器，模型密钥目录仅挂入 Relay。
-- 运行时只使用本地 `linux/amd64` 镜像，不自动拉取镜像、安装插件依赖或下载模型。插件须先由管理员发布，自带所需代码。
+- 运行时只使用本地 `linux/amd64` 镜像，不自动拉取镜像、安装插件依赖或下载模型。插件须先由超级管理员发布，自带所需代码。
 - 网络与卷由宿主管理并按所有权标签校验，实际运行的 Compose 将它们声明为 external，避免发布修订变化导致网络重建。不要直接对 `releases/{revision}/compose.json` 执行 `up`；使用 worker 或迁移工具生成的 `operations/{revision}-compose.json`。
 - worker 等待正在执行的会话最多 300 秒；仍忙则延后任务。暂停、迁移和回退不能与另一个宿主 worker 并行执行，脚本使用同一宿主锁。
 
@@ -33,7 +37,7 @@ command -v getfacl
 sha256sum -c peixian-console-images.tar.sha256
 docker load -i peixian-console-images.tar
 docker image inspect --format '{{.Os}}/{{.Architecture}} {{.Id}}' \
-  peixian-control:console-r1 peixian-gateway:console-r1 peixian-opencode:1.18.30-managed-r1
+  peixian-control:console-r2-roles peixian-gateway:console-r1 peixian-opencode:1.18.30-managed-r1
 ```
 
 初始化凭据不会覆盖已有文件。不要把密钥写入命令行参数、服务单元、Git 或普通交付压缩包。Linux 上应确保宿主操作者拥有目录和文件，仅给容器 UID 10001 增加读取权：
@@ -48,12 +52,24 @@ getfacl .secrets/console-control.key .secrets/console-worker.key .secrets/consol
 
 ACL 的 `mask::r--` 使 `ls -l` 的组权限位显示为可读；实际 `group::---` 和 `other::---` 保持禁止，具名 UID 10001 具有读取权。以 `getfacl` 的结果为准。平台用户初始密码文件不需要授予容器 UID 读取权。
 
-启动控制台和宿主 worker：
+全新安装检查后启动；旧库首次升级需先安全停止实际宿主 Worker 服务及控制台，并创建停写备份。以下仍在 deploy/peixian 目录，备份只涵盖 control-data，不包含用户卷与独立密钥：
 
 ```sh
-docker compose -f compose.console.yaml up -d --no-build --pull never --wait
+# 旧库升级前，先停止并确认实际宿主 Worker 已退出，再执行：
+docker compose -f compose.console.yaml stop
+../../services/peixian-control/.venv/bin/python console-guard.py backup
+```
+
+备份失败则停止升级。后续全新安装或已满足备份要求的升级都使用以下校验并固定镜像的启动方式：
+
+```sh
+peixian_guard_json="$(../../services/peixian-control/.venv/bin/python console-guard.py check)" || exit 1
+peixian_checked_image="$(printf '%s' "$peixian_guard_json" | ../../services/peixian-control/.venv/bin/python -c 'import json,re,sys; value=json.load(sys.stdin); image=value.get("image_id",""); assert value.get("status")=="passed" and re.fullmatch(r"sha256:[0-9a-f]{64}", image), "Invalid guard result"; print(image)')" || exit 1
+PEIXIAN_CONTROL_IMAGE="$peixian_checked_image" docker compose -f compose.console.yaml up -d --no-build --pull never --wait || exit 1
 ../../services/peixian-control/.venv/bin/python console-worker.py
 ```
+
+guard 返回的 image_id 是本次实际校验的不可变镜像；设置 PEIXIAN_CONTROL_IMAGE 后再启动，防止检查通过后标签被另一构建替换。校验失败、不合法结果或缺失镜像时不要改回直接标签启动。Windows 的 console.ps1 up/start 已内置相同流程；Linux 示例仅作操作说明，未在本轮实际部署验证。
 
 worker 默认使用 `http://127.0.0.1:14090`、`.secrets/console-worker.key`、`.runtime/console` 和最多 4 个运行实例。可通过 `--control-url`、`--key-file`、`--state-root`、`--max-runtimes` 覆盖。控制台 Compose 的 `MAX_RUNTIMES` 与 worker 上限应保持一致。
 

@@ -5,6 +5,7 @@ export const managementTabs = [
   { id: "users", label: "用户管理", capability: "users.manage" },
   { id: "models", label: "模型管理", capability: "models.manage" },
   { id: "plugins", label: "插件发布", capability: "plugins.manage" },
+  { id: "connections", label: "服务连接", capability: "connections.manage" },
   { id: "templates", label: "技能模板", capability: "templates.manage" },
   { id: "audit", label: "操作记录", capability: "audit.read" },
 ] as const

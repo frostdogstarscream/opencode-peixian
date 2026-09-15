@@ -12,7 +12,7 @@ import pytest
 
 from control.app import create_app
 from control.roles import capabilities
-from control.store import Store, digest, now
+from control.store import Store, digest, now, SCHEMA_VERSION
 from test_control import context, create_user, login_user, plugin_zip, P, PASSWORD
 
 
@@ -42,7 +42,7 @@ def legacy_database(tmp_path):
 def test_legacy_migration_revokes_only_old_admin_and_is_once(tmp_path):
     args = legacy_database(tmp_path)
     s = Store(*args)
-    assert s.schema_version() == 2
+    assert s.schema_version() == SCHEMA_VERSION
     old = s.one("SELECT * FROM users WHERE id='old-administrator'")
     assert (old["role"], old["auth_version"], old["password"]) == ("super_admin", 8, "unchanged-password-hash")
     assert s.rows("SELECT * FROM auth WHERE uid='old-administrator'") == []
@@ -63,7 +63,7 @@ def test_legacy_migration_revokes_only_old_admin_and_is_once(tmp_path):
     assert reopened.user(manager["id"])["role"] == "admin"
     assert reopened.one("SELECT hash FROM auth WHERE uid=?", (manager["id"],))
     assert reopened.one("SELECT auth_version FROM users WHERE id='old-administrator'")["auth_version"] == 8
-    assert len(reopened.rows("SELECT * FROM audit WHERE action='schema.migrate'")) == 1
+    assert len(reopened.rows("SELECT * FROM audit WHERE action='schema.migrate' AND target='control.roles.v2'")) == 1
 
 
 def test_migration_ddl_roles_auth_and_version_rollback_together(tmp_path):
@@ -82,17 +82,17 @@ def test_migration_ddl_roles_auth_and_version_rollback_together(tmp_path):
         assert db.execute("SELECT count(*) FROM auth").fetchone()[0] == 4
         assert [r[1] for r in db.execute("PRAGMA table_info(audit)")] == ["id", "actor", "action", "target", "created"]
         assert not db.execute("SELECT 1 FROM sqlite_master WHERE name='runtimes'").fetchone()
-    assert Store(*args).schema_version() == 2
+    assert Store(*args).schema_version() == SCHEMA_VERSION
 
 
 def test_unknown_newer_schema_is_rejected_without_downgrade(tmp_path):
     args = legacy_database(tmp_path)
     with sqlite3.connect(args[0] / "control.sqlite3") as db:
-        db.execute("PRAGMA user_version=3")
+        db.execute("PRAGMA user_version=4")
     with pytest.raises(ValueError, match="newer"):
         Store(*args)
     with sqlite3.connect(args[0] / "control.sqlite3") as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
         assert db.execute("SELECT role FROM users WHERE id='old-administrator'").fetchone()[0] == "admin"
 
 
@@ -112,7 +112,7 @@ def manager(context):
 def test_bootstrap_capabilities_role_matrix_and_admin_has_no_runtime(context, manager):
     s, app, superuser = context
     managed, administrator = manager
-    assert superuser.get("/health").json() == {"status": "ok", "version": "1.1.0", "schema_version": 2}
+    assert superuser.get("/health").json() == {"status": "ok", "version": "1.2.0", "schema_version": SCHEMA_VERSION}
     assert superuser.get(P + "/me").json()["user"]["role"] == "super_admin"
     assert s.rows("SELECT * FROM runtimes") == [] and s.rows("SELECT * FROM jobs") == []
     assert s.rows("SELECT * FROM grants WHERE uid=?", (managed["id"],)) == []
@@ -287,7 +287,7 @@ def test_schema_contract_describes_three_roles_and_scoped_management(context):
     schemas = document["components"]["schemas"]
     assert schemas["User"]["properties"]["role"]["enum"] == ["user", "admin", "super_admin"]
     assert "capabilities" in schemas["Identity"]["required"]
-    assert schemas["Health"]["properties"]["schema_version"]["const"] == 2
+    assert schemas["Health"]["properties"]["schema_version"]["const"] == SCHEMA_VERSION
     for path in ("/admin/plugins", "/admin/templates", "/admin/jobs"):
         assert document["paths"][P + path]["get"]["x-roles"] == ["super_admin"]
     assert document["paths"][P + "/admin/models"]["post"]["x-roles"] == ["super_admin", "admin"]

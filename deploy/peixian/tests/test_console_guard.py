@@ -112,5 +112,16 @@ class GuardTests(unittest.TestCase):
             with self.assertRaises(guard.GuardError):
                 guard.check(Path("synthetic-compose"), self.root)
 
+    def test_every_schema_upgrade_requires_backup_including_roles_to_connections(self):
+        self.database(2)
+        state = guard.inspect_data(self.root)
+        image = {"Id": "sha256:synthetic", "Config": {"Labels": {guard.MIN_LABEL: "0", guard.MAX_LABEL: "3"}}}
+        with patch.object(guard, "deployment", return_value=("synthetic-volume", "new-image", image)), \
+                patch.object(guard, "inspect_volume", return_value=state), \
+                patch.object(guard, "stopped", return_value=True), \
+                patch.object(guard, "backup_matches", return_value=False):
+            with self.assertRaisesRegex(guard.GuardError, "verified_backup"):
+                guard.check(Path("synthetic-compose"), self.root)
+
 if __name__ == "__main__":
     unittest.main()

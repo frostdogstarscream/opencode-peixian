@@ -6,6 +6,7 @@ arrays and every durable path is beneath the explicitly configured state root.
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import io
 import json
 import os
@@ -25,6 +26,21 @@ VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
 DIGEST = re.compile(r"[a-f0-9]{64}")
 MAX_PACKAGE = 20 * 1024 * 1024
 MAX_EXPANDED = 100 * 1024 * 1024
+DEFAULT_LIMITS = {"agent": {"cpus": 2.0, "memory_mib": 2048},
+                  "gateway": {"cpus": 0.5, "memory_mib": 512},
+                  "relay": {"cpus": 0.5, "memory_mib": 128}}
+
+
+def normalize_limits(value=None):
+    value = DEFAULT_LIMITS if value is None else value
+    if not isinstance(value, dict) or set(value) != set(DEFAULT_LIMITS):
+        raise RuntimeFailure("invalid_resource_limits")
+    for name, item in value.items():
+        if (not isinstance(item, dict) or set(item) != {"cpus", "memory_mib"} or
+                type(item["cpus"]) not in (int, float) or not 0.1 <= item["cpus"] <= 64 or
+                type(item["memory_mib"]) is not int or not 64 <= item["memory_mib"] <= 65536):
+            raise RuntimeFailure("invalid_resource_limits")
+    return json.loads(json.dumps(value))
 
 
 class RuntimeFailure(Exception):
@@ -195,7 +211,7 @@ except Exception:
 """
 
 
-def compose_spec(spec, release, *, agent_image, gateway_image):
+def compose_spec(spec, release, *, agent_image, gateway_image, limits=None, deployment_id=None):
     runtime_id, uid = check_id(spec["runtime_id"]), check_id(spec["uid"])
     project = "px-" + runtime_id
     release = Path(release).resolve()
@@ -203,6 +219,8 @@ def compose_spec(spec, release, *, agent_image, gateway_image):
     if type(revision) is not int or revision < 1:
         raise RuntimeFailure("invalid_revision")
     labels = {MANAGED: "true", "peixian.runtime_id": runtime_id, "peixian.uid": uid, "peixian.revision": str(revision)}
+    if deployment_id:
+        labels["peixian.deployment"] = deployment_id
     common = {
         "user": "10001:10001", "init": True, "restart": "unless-stopped", "read_only": True,
         "pull_policy": "never",
@@ -268,6 +286,9 @@ def compose_spec(spec, release, *, agent_image, gateway_image):
             "sysctls": {"net.ipv4.ip_forward": "0"},
         },
     }
+    limits = normalize_limits(limits)
+    for name, key in (("agent", "agent"), ("gateway", "gateway"), ("model-relay", "relay")):
+        services[name].update(cpus=limits[key]["cpus"], mem_limit=str(limits[key]["memory_mib"]) + "m")
     return {
         "name": project, "services": services, "volumes": volumes,
         "networks": {
@@ -281,7 +302,8 @@ def compose_spec(spec, release, *, agent_image, gateway_image):
 class RuntimeManager:
     def __init__(self, root, *, control_container="peixian-console",
                  agent_image="peixian-opencode:1.18.30-managed-r1",
-                 gateway_image="peixian-gateway:console-r1", maximum=4):
+                 gateway_image="peixian-gateway:console-r1", maximum=4,
+                 resource_limits=None, network_pool=None, deployment_id=None):
         self.root = Path(root).absolute()
         protect_root(self.root)
         self.root = self.root.resolve()
@@ -291,6 +313,16 @@ class RuntimeManager:
             raise RuntimeFailure("invalid_runtime_capacity")
         self.control_container, self.agent_image, self.gateway_image = control_container, agent_image, gateway_image
         self.maximum = maximum
+        self.limits = normalize_limits(resource_limits)
+        if deployment_id is not None and not re.fullmatch(r"[a-z][a-z0-9-]{0,39}", deployment_id):
+            raise RuntimeFailure("invalid_deployment_identity")
+        self.deployment_id = deployment_id
+        try:
+            self.network_pool = ipaddress.ip_network(network_pool) if network_pool else None
+            if self.network_pool and (self.network_pool.version != 4 or not self.network_pool.is_private or self.network_pool.prefixlen > 24):
+                raise ValueError()
+        except ValueError:
+            raise RuntimeFailure("invalid_network_pool") from None
         self.docker = shutil.which("docker")
         if not self.docker:
             raise RuntimeFailure("docker_required")
@@ -316,9 +348,9 @@ class RuntimeManager:
         inside(directory, file)
         for group in ("networks", "volumes"):
             source[group] = {key: {"name": item["name"], "external": True} for key, item in source[group].items()}
-        source["services"]["agent"].update(cpus=2.0, mem_limit="2g")
-        source["services"]["gateway"].update(cpus=0.5, mem_limit="512m")
-        source["services"]["model-relay"].update(cpus=0.5, mem_limit="128m")
+        limits = getattr(self, "limits", DEFAULT_LIMITS)
+        for name, key in (("agent", "agent"), ("gateway", "gateway"), ("model-relay", "relay")):
+            source["services"][name].update(cpus=limits[key]["cpus"], mem_limit=str(limits[key]["memory_mib"]) + "m")
         target = directory / "operations" / (Path(file).parent.name + "-compose.json")
         write_json(target, source)
         return self.docker_run("compose", "-f", str(target), *args, timeout=timeout)
@@ -332,6 +364,10 @@ class RuntimeManager:
             if name not in existing:
                 args = ["network", "create", "--driver", "bridge", "--label", MANAGED + "=true",
                         "--label", "peixian.runtime_id=" + identity, "--label", "peixian.uid=" + uid]
+                if getattr(self, "deployment_id", None):
+                    args.extend(["--label", "peixian.deployment=" + self.deployment_id])
+                if getattr(self, "network_pool", None):
+                    args.extend(["--subnet", self.available_subnet()])
                 if internal:
                     args.append("--internal")
                 self.docker_run(*args, name)
@@ -341,6 +377,18 @@ class RuntimeManager:
                     labels.get(MANAGED) != "true" or labels.get("peixian.runtime_id") != identity or
                     labels.get("peixian.uid") != uid):
                 raise RuntimeFailure("runtime_network_owner_mismatch")
+            if getattr(self, "deployment_id", None) and labels.get("peixian.deployment") != self.deployment_id:
+                raise RuntimeFailure("runtime_network_deployment_mismatch")
+
+    def available_subnet(self):
+        identifiers = self.docker_run("network", "ls", "--format", "{{.ID}}").split()
+        records = json.loads(self.docker_run("network", "inspect", *identifiers)) if identifiers else []
+        used = [ipaddress.ip_network(item["Subnet"], strict=False) for record in records
+                for item in (record.get("IPAM", {}).get("Config") or []) if item.get("Subnet")]
+        for subnet in self.network_pool.subnets(new_prefix=28):
+            if not any(other.version == 4 and subnet.overlaps(other) for other in used):
+                return str(subnet)
+        raise RuntimeFailure("configured_network_pool_exhausted")
 
     def state(self, runtime_id):
         file = self.directory(runtime_id) / "state.json"
@@ -421,7 +469,8 @@ class RuntimeManager:
         return failures
 
     def capacity(self, runtime_id):
-        ids = self.docker_run("ps", "--filter", "label=" + MANAGED + "=true",
+        filtering = ["--filter", "label=peixian.deployment=" + self.deployment_id] if getattr(self, "deployment_id", None) else []
+        ids = self.docker_run("ps", *filtering, "--filter", "label=" + MANAGED + "=true",
                               "--filter", "label=com.docker.compose.service=agent", "--format", "{{.ID}}").split()
         records = json.loads(self.docker_run("inspect", *ids)) if ids else []
         others = {item["Config"]["Labels"].get("peixian.runtime_id") for item in records}
@@ -431,10 +480,11 @@ class RuntimeManager:
         info = json.loads(self.docker_run("info", "--format", "{{json .}}"))
         # Reserve the configured maximum: agent 2 GiB + gateway 512 MiB + relay 128 MiB.
         # Control gets 512 MiB and the host/engine keeps at least 1 GiB.
-        required_memory = self.maximum * (2688 * 1024 * 1024) + 1536 * 1024 * 1024
+        limits = getattr(self, "limits", DEFAULT_LIMITS)
+        required_memory = (self.maximum * sum(item["memory_mib"] for item in limits.values()) + 1536) * 1024 * 1024
         if type(info.get("MemTotal")) is not int or info["MemTotal"] < required_memory:
             raise RuntimeFailure("docker_memory_budget_exceeded")
-        if type(info.get("NCPU")) is not int or info["NCPU"] < self.maximum * 3 + 1:
+        if type(info.get("NCPU")) is not int or info["NCPU"] < self.maximum * sum(item["cpus"] for item in limits.values()) + 1:
             raise RuntimeFailure("docker_cpu_budget_exceeded")
 
     def prepare(self, spec, download):
@@ -454,6 +504,8 @@ class RuntimeManager:
         stage.mkdir(parents=True, exist_ok=False)
         for folder in ("agent/skills", "agent/loaders", "gateway/plugins", "relay", "private"):
             (stage / folder).mkdir(parents=True, exist_ok=True)
+        for folder in ("agent", "gateway"):
+            shutil.copyfile(Path(__file__).with_name("plugin-client.mjs"), stage / folder / "platform-client.mjs")
         config = json.loads(json.dumps(spec["config"]))
         config["plugin"] = []
         config["skills"] = {"paths": ["/managed/skills"]}
@@ -469,12 +521,20 @@ class RuntimeManager:
             unpack_plugin(download(plugin["digest"]), plugin, stage / "agent" / relative)
             shutil.copytree(stage / "agent" / relative, stage / "gateway" / relative)
             entry = "/managed/" + relative.as_posix() + "/entry.mjs"
-            tests[plugin["id"]] = {"entry": entry, "options": plugin["options"]}
+            bindings = plugin.get("platform_connections", {})
+            if not isinstance(bindings, dict) or any(not isinstance(alias, str) or not re.fullmatch(r"[a-z][a-z0-9_-]{0,39}", alias) or not isinstance(value, dict) or
+                    set(value) != {"id", "token"} or not isinstance(value["id"], str) or
+                    not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", value["id"]) or not isinstance(value["token"], str) or
+                    len(value["token"]) < 16 for alias, value in bindings.items()):
+                raise RuntimeFailure("invalid_platform_connection_bindings")
+            tests[plugin["id"]] = {"entry": entry, "options": plugin["options"], "platform_connections": bindings}
             loader = stage / "agent/loaders" / (plugin["id"] + ".mjs")
             loader.write_text(
                 "import plugin from " + json.dumps("../" + relative.as_posix() + "/entry.mjs") + ";\n"
+                "import { createPlatform } from '../platform-client.mjs';\n"
                 "const options = " + json.dumps(plugin["options"], ensure_ascii=False) + ";\n"
-                "export default async (context) => plugin(context, options);\n", encoding="utf-8")
+                "const platform = createPlatform(" + json.dumps(bindings) + ");\n"
+                "export default async (context) => plugin(context, options, platform);\n", encoding="utf-8")
             config["plugin"].append("file:///managed/loaders/" + plugin["id"] + ".mjs")
         for skill in spec["skills"]:
             check_id(skill["id"])
@@ -491,12 +551,15 @@ class RuntimeManager:
         write_json(stage / "gateway/revision.json", version)
         write_json(stage / "gateway/plugin-tests.json", tests)
         write_json(stage / "relay/model-relay.json", {"models": spec["models"]})
+        write_json(stage / "relay/connections.json", {"account_id": uid, "connections": spec.get("connections", [])})
         write_json(stage / "relay/revision.json", version)
         write_secret(stage / "private/gateway-token", spec["private"]["gateway_key"])
         write_secret(stage / "private/opencode-password", spec["private"]["agent_password"])
         write_json(stage / "publication.json", {"digest": digest, "uid": uid, "revision": revision})
         # Compose paths point at the final immutable location, never the staging name.
-        write_json(stage / "compose.json", compose_spec(spec, release, agent_image=self.agent_image, gateway_image=self.gateway_image))
+        write_json(stage / "compose.json", compose_spec(spec, release, agent_image=self.agent_image,
+                   gateway_image=self.gateway_image, limits=getattr(self, "limits", None),
+                   deployment_id=getattr(self, "deployment_id", None)))
         grant_container_read(stage)
         os.rename(stage, release)
         return release

@@ -4,6 +4,7 @@ import { Button, Empty, ErrorLine, Field, Icon, JobNote, Modal, PageHead, Spinne
 import { useConsole } from "../context"
 import type { Json, Plugin, Schema } from "../types"
 import { SchemaFields, supportsSchema } from "../SchemaFields"
+import { pluginConnectionReady } from "../connections"
 function defaults(schema: Schema, value: Record<string, Json> = {}): Record<string, Json> {
   const result = Object.fromEntries(Object.entries(value).filter(([key]) => key in (schema.properties ?? {})))
   for (const [key, field] of Object.entries(schema.properties ?? {})) {
@@ -76,6 +77,10 @@ export default function Plugins() {
       setError("配置正在更新，完成后可提交修改。")
       return
     }
+    if (enabled() && !pluginConnectionReady(selected()!, version())) {
+      setError("平台服务连接尚未就绪，请联系超级管理员完成配置。你可以先保存个人配置并保持停用。")
+      return
+    }
     setSaving(true)
     try {
       const cleaned = cleanConfig(schemaFor(selected()!, version()), config())
@@ -122,7 +127,7 @@ export default function Plugins() {
   }
   return (
     <div class="content-page">
-      <PageHead eyebrow="已发布的业务能力" title="业务插件" text="选择管理员授权的插件，按需配置并接入你的分析流程。" />
+      <PageHead eyebrow="按需扩展助手能力" title="我的插件" text="选择已授权的插件，配置后即可在对话中使用。" />
       <ErrorLine message={error()} />
       <Show when={locked()}>
         <div class="notice">配置正在更新，当前可以查看或编辑草稿，完成后再提交修改。</div>
@@ -143,7 +148,7 @@ export default function Plugins() {
           <For
             each={items()}
             fallback={
-              <Empty icon="plugin" title="暂无授权插件" text="管理员发布并授权业务插件后，你可以在这里安装和配置。" />
+              <Empty icon="plugin" title="暂无授权插件" text="超级管理员发布并授权插件后，你可以在这里安装和配置。" />
             }
           >
             {(item) => (
@@ -155,14 +160,19 @@ export default function Plugins() {
                   <Show when={item.installed} fallback={<span class="pill">可安装</span>}>
                     <Toggle
                       checked={item.installed?.enabled}
-                      disabled={locked() || working() === item.id}
+                      disabled={
+                        locked() ||
+                        working() === item.id ||
+                        (!item.installed?.enabled &&
+                          !pluginConnectionReady(item, item.installed?.version ?? item.version))
+                      }
                       onChange={() => void action(item, "toggle")}
                       label={item.installed?.enabled ? "已启用" : "已停用"}
                     />
                   </Show>
                 </div>
                 <h3>{item.name}</h3>
-                <p>{item.description || "为分析工作提供可复用的业务能力。"}</p>
+                <p>{item.description || "让助手使用更多工具与服务。"}</p>
                 <div class="resource-meta">
                   <span>版本 {item.installed?.version ?? item.version}</span>
                   <Show when={item.installed?.state}>
@@ -172,6 +182,9 @@ export default function Plugins() {
                 <Show when={item.installed?.state === "unavailable"}>
                   <div class="notice">此版本已停用，请在配置中选择可用版本。</div>
                 </Show>
+                <Show when={!pluginConnectionReady(item, item.installed?.version ?? item.version)}>
+                  <div class="notice">平台服务连接待配置，请联系超级管理员。个人参数仍可填写，连接就绪后再启用。</div>
+                </Show>
                 <div class="resource-actions">
                   <Button icon={item.installed ? "settings" : "plus"} onClick={() => configure(item)}>
                     {item.installed ? "配置" : "安装插件"}
@@ -179,7 +192,7 @@ export default function Plugins() {
                   <Show when={item.installed}>
                     <Button
                       variant="ghost"
-                      disabled={locked()}
+                      disabled={locked() || !pluginConnectionReady(item, item.installed?.version ?? item.version)}
                       busy={working() === item.id}
                       onClick={() => void action(item, "test")}
                     >
@@ -239,9 +252,14 @@ export default function Plugins() {
                   </For>
                 </select>
               </Field>
+              <Show when={!pluginConnectionReady(item(), version())}>
+                <div class="notice">
+                  此版本的平台服务连接尚未就绪。请先关闭“应用后启用”保存个人配置，并联系超级管理员完成服务绑定。
+                </div>
+              </Show>
               <Show
                 when={Object.keys(schemaFor(item(), version()).properties ?? {}).length}
-                fallback={<div class="notice">这个插件无需额外配置，安装后即可启用。</div>}
+                fallback={<div class="notice">这个插件无需个人参数。平台服务连接就绪后即可启用。</div>}
               >
                 <SchemaFields
                   schema={schemaFor(item(), version())}
@@ -260,7 +278,11 @@ export default function Plugins() {
                     type="submit"
                     variant="primary"
                     busy={saving()}
-                    disabled={locked() || !supportsSchema(schemaFor(item(), version()))}
+                    disabled={
+                      locked() ||
+                      !supportsSchema(schemaFor(item(), version())) ||
+                      (enabled() && !pluginConnectionReady(item(), version()))
+                    }
                   >
                     保存并应用
                   </Button>

@@ -34,8 +34,7 @@ def report(state, job=None, code=None):
 def host_lock(root):
     path = Path(root) / "worker.lock"
     with path.open("a+b") as handle:
-        handle.seek(0)
-        if not handle.read(1):
+        if os.fstat(handle.fileno()).st_size == 0:
             handle.write(b"0")
             handle.flush()
         handle.seek(0)
@@ -153,6 +152,7 @@ class Worker:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, help="Use the same platform configuration as the server")
     parser.add_argument("--control-url", default="http://127.0.0.1:14090")
     parser.add_argument("--key-file", type=Path, default=Path(__file__).parent / ".secrets/console-worker.key")
     parser.add_argument("--state-root", type=Path, default=Path(__file__).parent / ".runtime/console")
@@ -162,6 +162,22 @@ def main():
     parser.add_argument("--max-runtimes", type=int, default=4)
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
+    manager_options = {}
+    if args.config:
+        spec = importlib.util.spec_from_file_location("peixian_platform_config", Path(__file__).with_name("platform-config.py"))
+        shared = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = shared
+        spec.loader.exec_module(shared)
+        try:
+            cfg = shared.load_config(args.config)
+        except shared.ConfigError as error:
+            raise runtime.RuntimeFailure(str(error)) from None
+        args.control_url, args.key_file = cfg.control_url, cfg.secrets / "console-worker.key"
+        args.state_root, args.control_container = cfg.worker_root, cfg.control_container
+        args.agent_image, args.gateway_image = cfg.images["agent"], cfg.images["gateway"]
+        args.max_runtimes = cfg.max_runtimes
+        manager_options = {"resource_limits": cfg.resource_limits, "network_pool": cfg.network_pool,
+                           "deployment_id": cfg.deployment_id}
     url = urlsplit(args.control_url)
     if (url.scheme not in ("http", "https") or url.hostname not in ("127.0.0.1", "localhost", "::1") or
             url.username or url.password or url.query or url.fragment or url.path not in ("", "/")):
@@ -174,7 +190,7 @@ def main():
         raise runtime.RuntimeFailure("worker_key_invalid")
     manager = runtime.RuntimeManager(args.state_root, control_container=args.control_container,
                                      agent_image=args.agent_image, gateway_image=args.gateway_image,
-                                     maximum=args.max_runtimes)
+                                     maximum=args.max_runtimes, **manager_options)
     with host_lock(manager.root), httpx.Client(
         base_url=args.control_url.rstrip("/"), headers={"X-Worker-Key": key},
         timeout=httpx.Timeout(connect=10, read=60, write=30, pool=10), trust_env=False, follow_redirects=False,

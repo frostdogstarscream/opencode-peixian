@@ -171,12 +171,12 @@ class RuntimeTests(unittest.TestCase):
         config = json.loads((release / "agent/opencode.json").read_text())
         self.assertEqual(config["plugin"], ["file:///managed/loaders/synthetic.mjs"])
         wrapper = (release / "agent/loaders/synthetic.mjs").read_text()
-        self.assertIn("export default async (context) => plugin(context, options)", wrapper)
+        self.assertIn("export default async (context) => plugin(context, options, platform)", wrapper)
         self.assertNotIn("export *", wrapper)
         self.assertIn("export *", (release / "gateway/plugins/synthetic/1.0.0/entry.mjs").read_text())
         for file in (release / "agent").rglob("*"):
             if file.is_file():
-                self.assertNotIn("synthetic-model-key", file.read_text())
+                self.assertNotIn("synthetic-model-key", file.read_text(encoding="utf-8"))
         self.assertIn("synthetic-model-key", (release / "relay/model-relay.json").read_text())
         self.assertEqual(manager.prepare(value, lambda _: self.fail("Redownloaded immutable package")), release)
         value["config"]["enabled_providers"] = ["changed"]

@@ -7,6 +7,7 @@ export type Capability =
   | "models.manage"
   | "audit.read"
   | "plugins.manage"
+  | "connections.manage"
   | "templates.manage"
   | "runtimes.manage"
   | "jobs.read"
@@ -93,7 +94,9 @@ export type Plugin = {
   name: string
   description?: string
   version: string
-  versions?: (string | { version: string; enabled?: boolean })[]
+  versions?: (string | { version: string; enabled?: boolean; connections?: ConnectionAliases })[]
+  connections?: ConnectionAliases
+  connection_status?: Record<string, { ready: boolean; missing: string[] }>
   enabled?: boolean
   config_schema?: Schema
   schemas?: Record<string, Schema>
@@ -103,7 +106,23 @@ export type Plugin = {
     config?: Record<string, Json>
     credentials_configured?: CredentialState
     state?: string
+    missing_connections?: string[]
   }
+}
+export type ConnectionAliases = Record<string, { description: string }>
+export type ServiceConnection = {
+  id: string
+  name: string
+  base_url: string
+  auth_type: "none" | "bearer" | "api_key"
+  header_name: string
+  allowed_methods: string[]
+  allowed_paths: string[]
+  timeout_seconds: number
+  max_response_bytes: number
+  enabled: boolean
+  secret_configured: boolean
+  revision: number
 }
 export type Job = {
   id: string

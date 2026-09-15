@@ -119,9 +119,9 @@ export default function Skills() {
   return (
     <div class="content-page">
       <PageHead
-        eyebrow="可复用的分析方法"
-        title="分析技能"
-        text="把常用的分析步骤和输出要求，整理成随时可用的个人技能。"
+        eyebrow="可复用的工作方法"
+        title="我的技能"
+        text="把常用的工作步骤和输出要求，整理成随时可用的个人技能。"
       >
         <Button icon="upload" onClick={() => importInput.click()}>
           导入文本
@@ -167,7 +167,7 @@ export default function Skills() {
             fallback={
               <Empty
                 icon="skill"
-                title={tab() === "mine" ? "把你的分析方法保存下来" : "暂无推荐模板"}
+                title={tab() === "mine" ? "把你的工作方法保存下来" : "暂无推荐模板"}
                 text={tab() === "mine" ? "创建个人技能，或从推荐模板开始。" : "管理员发布的技能模板会出现在这里。"}
               >
                 <Show when={tab() === "mine"}>
@@ -197,7 +197,7 @@ export default function Skills() {
                   </Show>
                 </div>
                 <h3>{item.name}</h3>
-                <p>{item.description || "按设定的步骤和要求辅助完成分析。"}</p>
+                <p>{item.description || "按设定的步骤和要求辅助完成工作。"}</p>
                 <div class="resource-meta">{item.version ? "版本 " + item.version : "文本技能"}</div>
                 <div class="resource-actions">
                   <Show
@@ -249,12 +249,12 @@ export default function Skills() {
       </Show>
       <div class="info-strip">
         <Icon name="skill" size={16} />
-        <span>技能用于描述分析步骤，不会改变你的数据权限，也不包含可执行插件代码。</span>
+        <span>技能用于描述工作步骤，不会改变你的数据权限，也不包含可执行插件代码。</span>
       </div>
       <Show when={editor()}>
         <Modal
           title={editor()?.id ? "编辑个人技能" : "创建个人技能"}
-          text="写清适用场景、分析步骤和期望的输出格式。"
+          text="写清适用场景、工作步骤和期望的输出格式。"
           wide
           onClose={() => {
             if (!saving()) setEditor(undefined)
@@ -306,7 +306,7 @@ export default function Skills() {
                   value={content()}
                   onInput={(event) => setContent(event.currentTarget.value)}
                   placeholder={
-                    "## 适用场景\n说明何时使用这项技能。\n\n## 分析步骤\n1. 阅读用户选择的资料。\n2. 区分已知事实与待核实事项。\n\n## 输出要求\n列出关键结论，并注明资料来源。"
+                    "## 适用场景\n说明何时使用这项技能。\n\n## 工作步骤\n1. 阅读用户选择的资料。\n2. 区分已知事实与待核实事项。\n\n## 输出要求\n列出关键结论，并注明资料来源。"
                   }
                 />
               }
@@ -330,7 +330,7 @@ export default function Skills() {
         </Modal>
       </Show>
       <Show when={test() !== undefined}>
-        <Modal title="技能生效检查" text="确认技能能否使用，不进行分析生成。" onClose={() => setTest(undefined)}>
+        <Modal title="技能生效检查" text="确认技能能否使用，不生成回答。" onClose={() => setTest(undefined)}>
           <JobNote value={test()} />
           <div class="modal-actions">
             <Button onClick={() => setTest(undefined)}>关闭</Button>

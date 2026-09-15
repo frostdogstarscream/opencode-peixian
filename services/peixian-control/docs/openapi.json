@@ -78,6 +78,18 @@
       "AdminPlugin": {
         "additionalProperties": true,
         "properties": {
+          "connections": {
+            "additionalProperties": {
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "object"
+          },
           "description": {
             "type": "string"
           },
@@ -417,7 +429,7 @@
         "additionalProperties": false,
         "properties": {
           "schema_version": {
-            "const": 2,
+            "const": 3,
             "type": "integer"
           },
           "status": {
@@ -1178,12 +1190,54 @@
         ],
         "type": "object"
       },
+      "Platform": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "short_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "short_name",
+          "description"
+        ],
+        "type": "object"
+      },
       "Plugin": {
         "additionalProperties": false,
         "properties": {
           "config_schema": {
             "additionalProperties": true,
             "description": "最新可用发布版本的表单 schema。",
+            "type": "object"
+          },
+          "connection_status": {
+            "additionalProperties": {
+              "additionalProperties": false,
+              "properties": {
+                "missing": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "ready": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "ready",
+                "missing"
+              ],
+              "type": "object"
+            },
             "type": "object"
           },
           "description": {
@@ -1209,11 +1263,18 @@
                   "enabled": {
                     "type": "boolean"
                   },
+                  "missing_connections": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
                   "state": {
                     "enum": [
                       "active",
                       "pending",
-                      "unavailable"
+                      "unavailable",
+                      "unconfigured"
                     ],
                     "type": "string"
                   },
@@ -1265,6 +1326,61 @@
           "config_schema",
           "schemas",
           "installed"
+        ],
+        "type": "object"
+      },
+      "PluginBindingBody": {
+        "additionalProperties": false,
+        "properties": {
+          "bindings": {
+            "additionalProperties": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "bindings"
+        ],
+        "type": "object"
+      },
+      "PluginBindings": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "additionalProperties": {
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "object"
+          },
+          "bindings": {
+            "additionalProperties": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/Job"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "bindings",
+          "aliases"
         ],
         "type": "object"
       },
@@ -1499,6 +1615,315 @@
         "propertyNames": {
           "pattern": "^[A-Za-z][A-Za-z0-9_]{0,59}$"
         },
+        "type": "object"
+      },
+      "ServiceConnection": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_methods": {
+            "items": {
+              "enum": [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE"
+              ],
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          },
+          "allowed_paths": {
+            "items": {
+              "description": "精确路径或末尾 /* 前缀匹配；不接受转义、查询、片段和目录跳转。",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          },
+          "auth_type": {
+            "default": "none",
+            "enum": [
+              "none",
+              "bearer",
+              "api_key"
+            ],
+            "type": "string"
+          },
+          "base_url": {
+            "format": "uri",
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "header_name": {
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "max_response_bytes": {
+            "default": 1048576,
+            "maximum": 10485760,
+            "minimum": 1024,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "secret_configured": {
+            "type": "boolean"
+          },
+          "timeout_seconds": {
+            "default": 15,
+            "maximum": 60,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "base_url",
+          "secret_configured",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "ServiceConnectionChanged": {
+        "additionalProperties": false,
+        "properties": {
+          "connection": {
+            "$ref": "#/components/schemas/ServiceConnection"
+          },
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/Job"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "connection",
+          "jobs"
+        ],
+        "type": "object"
+      },
+      "ServiceConnectionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_methods": {
+            "items": {
+              "enum": [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE"
+              ],
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          },
+          "allowed_paths": {
+            "items": {
+              "description": "精确路径或末尾 /* 前缀匹配；不接受转义、查询、片段和目录跳转。",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          },
+          "auth_type": {
+            "default": "none",
+            "enum": [
+              "none",
+              "bearer",
+              "api_key"
+            ],
+            "type": "string"
+          },
+          "base_url": {
+            "format": "uri",
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "header_name": {
+            "type": "string"
+          },
+          "max_response_bytes": {
+            "default": 1048576,
+            "maximum": 10485760,
+            "minimum": 1024,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "secret": {
+            "description": "不回显；鉴权方式及头名未变时，省略或空串保留旧值。修改鉴权方式须重新填写，none 清除旧值。",
+            "format": "password",
+            "maxLength": 4096,
+            "type": "string",
+            "writeOnly": true
+          },
+          "timeout_seconds": {
+            "default": 15,
+            "maximum": 60,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "base_url"
+        ],
+        "type": "object"
+      },
+      "ServiceConnectionUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_methods": {
+            "items": {
+              "enum": [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE"
+              ],
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          },
+          "allowed_paths": {
+            "items": {
+              "description": "精确路径或末尾 /* 前缀匹配；不接受转义、查询、片段和目录跳转。",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          },
+          "auth_type": {
+            "default": "none",
+            "enum": [
+              "none",
+              "bearer",
+              "api_key"
+            ],
+            "type": "string"
+          },
+          "base_url": {
+            "format": "uri",
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "header_name": {
+            "type": "string"
+          },
+          "max_response_bytes": {
+            "default": 1048576,
+            "maximum": 10485760,
+            "minimum": 1024,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "secret": {
+            "description": "不回显；鉴权方式及头名未变时，省略或空串保留旧值。修改鉴权方式须重新填写，none 清除旧值。",
+            "format": "password",
+            "maxLength": 4096,
+            "type": "string",
+            "writeOnly": true
+          },
+          "timeout_seconds": {
+            "default": 15,
+            "maximum": 60,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ServiceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "json": {},
+          "method": {
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "query": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "ServiceTest": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "message"
+        ],
         "type": "object"
       },
       "Session": {
@@ -2091,8 +2516,8 @@
   },
   "info": {
     "description": "账号绑定的分析控制台 API。普通用户只访问自己的独立环境、会话和文件；管理员管理账号与已发布资源，不获得用户业务数据访问权限。浏览器登录使用 HttpOnly Cookie；Cookie 写请求同时携带 X-CSRF-Token，并通过 Origin 校验。Python 可使用用户自己创建的 Bearer Token。请仅使用同一种认证方式；不要把 Cookie 值复制到 Bearer。内部 Worker API 使用独立宿主密钥，禁止业务客户端调用。",
-    "title": "沛县分析控制台",
-    "version": "1.1.0"
+    "title": "Agent 工作台",
+    "version": "1.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -2313,6 +2738,874 @@
           "admin"
         ],
         "x-runtime-route": "/api/console/v1/admin/audit"
+      }
+    },
+    "/api/console/v1/admin/connections": {
+      "get": {
+        "description": "仅超级管理员；凭据只返回 secret_configured。",
+        "operationId": "connections_list_api_console_v1_admin_connections_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/ServiceConnection"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境暂时不可达"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ],
+        "summary": "列出服务连接",
+        "tags": [
+          "管理：连接"
+        ],
+        "x-capability": "connections.manage",
+        "x-role": "super_admin",
+        "x-roles": [
+          "super_admin"
+        ],
+        "x-runtime-route": "/api/console/v1/admin/connections"
+      },
+      "post": {
+        "description": "配置鉴权、固定地址、方法及路径范围。",
+        "operationId": "connection_create_api_console_v1_admin_connections_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceConnectionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceConnection"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境暂时不可达"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "创建固定服务连接",
+        "tags": [
+          "管理：连接"
+        ],
+        "x-capability": "connections.manage",
+        "x-csrf": "Cookie sessions require X-CSRF-Token; personal Bearer tokens do not.",
+        "x-role": "super_admin",
+        "x-roles": [
+          "super_admin"
+        ],
+        "x-runtime-route": "/api/console/v1/admin/connections"
+      }
+    },
+    "/api/console/v1/admin/connections/{cid}": {
+      "delete": {
+        "description": "仍被插件版本引用时返回409；可先停用或解除绑定。",
+        "operationId": "connection_delete_api_console_v1_admin_connections__cid__delete",
+        "parameters": [
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "cid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境暂时不可达"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "删除未绑定的服务连接",
+        "tags": [
+          "管理：连接"
+        ],
+        "x-capability": "connections.manage",
+        "x-csrf": "Cookie sessions require X-CSRF-Token; personal Bearer tokens do not.",
+        "x-role": "super_admin",
+        "x-roles": [
+          "super_admin"
+        ],
+        "x-runtime-route": "/api/console/v1/admin/connections/{cid}"
+      },
+      "patch": {
+        "description": "新版本配置与受影响安装账号的应用任务在同一事务保存；不影响其他账号。",
+        "operationId": "connection_edit_api_console_v1_admin_connections__cid__patch",
+        "parameters": [
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "cid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceConnectionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceConnectionChanged"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境暂时不可达"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "更新服务连接",
+        "tags": [
+          "管理：连接"
+        ],
+        "x-capability": "connections.manage",
+        "x-csrf": "Cookie sessions require X-CSRF-Token; personal Bearer tokens do not.",
+        "x-role": "super_admin",
+        "x-roles": [
+          "super_admin"
+        ],
+        "x-runtime-route": "/api/console/v1/admin/connections/{cid}"
+      }
+    },
+    "/api/console/v1/admin/connections/{cid}/test": {
+      "post": {
+        "description": "沿用出口相同的范围、超时与大小校验。只返回状态，不返回业务正文；默认使用已允许的GET路径，写方法测试由超级管理员明确提交。",
+        "operationId": "connection_test_api_console_v1_admin_connections__cid__test_post",
+        "parameters": [
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "cid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceTest"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境暂时不可达"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "测试固定服务连接",
+        "tags": [
+          "管理：连接"
+        ],
+        "x-capability": "connections.manage",
+        "x-csrf": "Cookie sessions require X-CSRF-Token; personal Bearer tokens do not.",
+        "x-role": "super_admin",
+        "x-roles": [
+          "super_admin"
+        ],
+        "x-runtime-route": "/api/console/v1/admin/connections/{cid}/test"
       }
     },
     "/api/console/v1/admin/jobs": {
@@ -3698,6 +4991,374 @@
           "super_admin"
         ],
         "x-runtime-route": "/api/console/v1/admin/plugins/{pid}/{version}"
+      }
+    },
+    "/api/console/v1/admin/plugins/{pid}/{version}/connections": {
+      "get": {
+        "description": "别名由不可变发布清单声明，不能由普通用户配置。",
+        "operationId": "plugin_connections_get_api_console_v1_admin_plugins__pid___version__connections_get",
+        "parameters": [
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "pid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "title": "Version",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginBindings"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境暂时不可达"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ],
+        "summary": "查看插件版本连接绑定",
+        "tags": [
+          "管理：连接"
+        ],
+        "x-capability": "connections.manage",
+        "x-role": "super_admin",
+        "x-roles": [
+          "super_admin"
+        ],
+        "x-runtime-route": "/api/console/v1/admin/plugins/{pid}/{version}/connections"
+      },
+      "put": {
+        "description": "完整替换此版本绑定并原子排队应用。未绑定或停用的必需连接使插件处于 unconfigured，停止在新配置中加载。",
+        "operationId": "plugin_connections_put_api_console_v1_admin_plugins__pid___version__connections_put",
+        "parameters": [
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "pid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "title": "Version",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PluginBindingBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginBindings"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境暂时不可达"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "保存插件版本连接绑定",
+        "tags": [
+          "管理：连接"
+        ],
+        "x-capability": "connections.manage",
+        "x-csrf": "Cookie sessions require X-CSRF-Token; personal Bearer tokens do not.",
+        "x-role": "super_admin",
+        "x-roles": [
+          "super_admin"
+        ],
+        "x-runtime-route": "/api/console/v1/admin/plugins/{pid}/{version}/connections"
       }
     },
     "/api/console/v1/admin/templates": {
@@ -7578,6 +9239,151 @@
         "x-csrf": "Cookie sessions require X-CSRF-Token; personal Bearer tokens do not.",
         "x-role": "user",
         "x-runtime-route": "/api/console/v1/{kind}/{rid}/{action}"
+      }
+    },
+    "/api/console/v1/platform": {
+      "get": {
+        "description": "仅产品名称、简称与介绍，不包含部署标识、内部地址或任何凭据。",
+        "operationId": "platform_api_console_v1_platform_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Platform"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境暂时不可达"
+          }
+        },
+        "security": [],
+        "summary": "获取公开产品信息",
+        "tags": [
+          "平台"
+        ],
+        "x-role": "anonymous",
+        "x-runtime-route": "/api/console/v1/platform"
       }
     },
     "/api/console/v1/plugins": {
@@ -13649,6 +15455,9 @@
       "name": "内部：Worker"
     },
     {
+      "name": "平台"
+    },
+    {
       "name": "技能"
     },
     {
@@ -13680,6 +15489,9 @@
     },
     {
       "name": "管理：账号"
+    },
+    {
+      "name": "管理：连接"
     },
     {
       "name": "访问令牌"

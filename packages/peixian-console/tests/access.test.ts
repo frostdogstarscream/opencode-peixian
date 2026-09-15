@@ -14,6 +14,7 @@ const superAdmin: Capability[] = [
   ...admin,
   "admins.manage",
   "plugins.manage",
+  "connections.manage",
   "templates.manage",
   "runtimes.manage",
   "jobs.read",
@@ -36,7 +37,7 @@ const create = {
 describe("server capabilities determine management navigation and reads", () => {
   test("ordinary users have no management tabs or administrative reads", () => {
     expect(visibleManagementTabs(ordinary)).toEqual([])
-    for (const tab of ["users", "models", "plugins", "templates", "audit"] as const)
+    for (const tab of ["users", "models", "plugins", "connections", "templates", "audit"] as const)
       expect(adminResources(tab, ordinary)).toEqual([])
   })
   test("administrators load only users, models and audit resources", () => {
@@ -45,13 +46,15 @@ describe("server capabilities determine management navigation and reads", () => 
     expect(adminResources("models", admin)).toEqual(["models"])
     expect(adminResources("audit", admin)).toEqual(["audit", "users"])
     expect(adminResources("plugins", admin)).toEqual([])
+    expect(adminResources("connections", admin)).toEqual([])
     expect(adminResources("templates", admin)).toEqual([])
   })
   test("super administrators load only the active tab and required dependencies", () => {
-    expect(visibleManagementTabs(superAdmin)).toHaveLength(5)
+    expect(visibleManagementTabs(superAdmin)).toHaveLength(6)
     expect(adminResources("users", superAdmin)).toEqual(["users", "models", "plugins", "jobs"])
     expect(adminResources("templates", superAdmin)).toEqual(["templates"])
     expect(adminResources("plugins", superAdmin)).toEqual(["plugins"])
+    expect(adminResources("connections", superAdmin)).toEqual(["connections"])
   })
   test("an empty capability set fails closed", () => {
     expect(visibleManagementTabs([])).toEqual([])

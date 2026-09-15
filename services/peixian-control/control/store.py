@@ -11,7 +11,7 @@ import uuid
 from argon2 import PasswordHasher
 from cryptography.fernet import Fernet
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def ident():
@@ -64,8 +64,10 @@ class Store:
             for statement in schema.split(";"):
                 if statement.strip():
                     db.execute(statement)
-            if version < SCHEMA_VERSION:
+            if version < 2:
                 self.migrate_roles(db, admin_password_file)
+            if version < 3:
+                self.migrate_connections(db)
             if not db.execute("SELECT 1 FROM users WHERE role='super_admin'").fetchone():
                 raise ValueError("Control database has no super administrator")
             if db.execute("SELECT 1 FROM users WHERE role NOT IN ('super_admin','admin','user')").fetchone():
@@ -91,6 +93,13 @@ class Store:
         db.execute("INSERT INTO audit(id,actor,actor_role,action,target,result,created) VALUES(?,?,?,?,?,?,?)",
                    (ident(), "system", "system", "schema.migrate", "control.roles.v2", "success", now()))
         db.execute("PRAGMA user_version=2")
+
+    def migrate_connections(self, db):
+        db.execute("CREATE TABLE IF NOT EXISTS connections(id TEXT PRIMARY KEY,config TEXT NOT NULL,secret TEXT NOT NULL,revision INTEGER NOT NULL)")
+        db.execute("CREATE TABLE IF NOT EXISTS plugin_connections(plugin TEXT NOT NULL,version TEXT NOT NULL,alias TEXT NOT NULL,connection_id TEXT NOT NULL REFERENCES connections(id),PRIMARY KEY(plugin,version,alias),FOREIGN KEY(plugin,version) REFERENCES plugins(id,version))")
+        db.execute("INSERT INTO audit(id,actor,actor_role,action,target,result,created) VALUES(?,?,?,?,?,?,?)",
+                   (ident(), "system", "system", "schema.migrate", "control.connections.v3", "success", now()))
+        db.execute("PRAGMA user_version=3")
 
     def schema_version(self):
         with self.tx() as db:

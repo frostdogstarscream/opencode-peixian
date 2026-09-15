@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException, Request
 import httpx
 
 from .http_utils import fixed_base, json_body, reject_file_urls, upstream_response
+from .service_connections import load_connections, invoke
 
 
 @dataclass(frozen=True)
@@ -45,11 +46,14 @@ def load_models(path, account_id):
         raise ValueError("Invalid account model relay configuration") from None
 
 
-def create_app(*, models=None, transport=None):
+def create_app(*, models=None, connections=None, transport=None):
     @asynccontextmanager
     async def lifespan(app):
         app.state.models = models if models is not None else load_models(
             Path(os.environ.get("MANAGED_ROOT", "/managed")) / "model-relay.json", os.environ.get("ACCOUNT_ID", "")
+        )
+        app.state.connections = connections if connections is not None else load_connections(
+            Path(os.environ.get("MANAGED_ROOT", "/managed")) / "connections.json", os.environ.get("ACCOUNT_ID", "")
         )
         async with httpx.AsyncClient(
             transport=transport, trust_env=False, verify=True,
@@ -63,6 +67,10 @@ def create_app(*, models=None, transport=None):
     @app.get("/health")
     async def health():
         return {"ok": True}
+
+    @app.post("/platform/connections/{cid}/request")
+    async def connection_request(cid: str, request: Request):
+        return await invoke(request, cid)
 
     @app.get("/v1/models")
     async def list_models():

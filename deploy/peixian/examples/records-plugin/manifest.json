@@ -1,0 +1,20 @@
+{
+  "id": "sample-records",
+  "version": "1.0.0",
+  "name": "示例资料查询",
+  "description": "查询已绑定服务中的合成资料，展示插件与 Skill 的配合方式。",
+  "opencode_version": "1.18.30",
+  "entry": "entry.mjs",
+  "tools": ["platform_sample_records"],
+  "connections": { "records": { "description": "只读资料查询服务" } },
+  "display": { "input_fields": [], "output_fields": ["count", "version", "source"] },
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string", "title": "查询关键词", "maxLength": 100, "default": "" },
+      "limit": { "type": "integer", "title": "最多返回条数", "minimum": 1, "maximum": 20, "default": 5 }
+    },
+    "required": ["limit"],
+    "additionalProperties": false
+  }
+}

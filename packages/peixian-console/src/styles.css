@@ -272,6 +272,24 @@ svg {
   display: block;
   letter-spacing: 0.3px;
 }
+.brand > span:last-child {
+  min-width: 0;
+}
+.brand strong,
+.brand small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.brand > .brand-mark,
+.login-story > .brand-mark {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
+  padding: 3px;
+  text-align: center;
+}
 .brand small {
   display: block;
   font-size: 10px;
@@ -1539,6 +1557,40 @@ tr:hover td {
   border-top: 1px solid var(--line);
   padding: 12px 0;
   font-size: 12px;
+  flex-wrap: wrap;
+}
+.connection-methods {
+  border: 0;
+  padding: 0;
+  margin: 0 0 22px;
+}
+.connection-methods legend {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.connection-methods > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+.connection-methods label {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+}
+.connection-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.connection-card .connection-address {
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .settings-card {
   background: var(--panel);

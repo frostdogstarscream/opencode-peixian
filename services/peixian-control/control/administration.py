@@ -15,6 +15,7 @@ from fastapi import Depends, Request, UploadFile, File
 
 from .store import ident, now, encode
 from .plugin_schema import validate_form
+from .connections import aliases
 
 
 def register_admin(app):
@@ -227,7 +228,7 @@ def register_admin(app):
     async def plugins(request: Request, user=Depends(require_capability("plugins.manage"))):
         result = []
         for row in app.state.store.rows("SELECT * FROM plugins ORDER BY rowid DESC"):
-            result.append({k: row[k] for k in ("id", "version", "name", "description", "digest", "enabled")})
+            result.append({**{k: row[k] for k in ("id", "version", "name", "description", "digest", "enabled")}, "connections": aliases(json.loads(row["manifest"]))})
         return {"items": result}
 
     @app.post(PREFIX + "/admin/plugins")
@@ -261,6 +262,7 @@ def register_admin(app):
                 if manifest.get("opencode_version", "1.18.30") != "1.18.30":
                     fail("插件需要声明兼容 OpenCode 1.18.30")
                 manifest.update(entry=entry, config_schema=schema)
+                aliases(manifest)
         except (zipfile.BadZipFile, KeyError, ValueError, jsonschema.SchemaError):
             fail("插件包无效，需要 manifest.json 和打包好的入口文件")
         s = app.state.store

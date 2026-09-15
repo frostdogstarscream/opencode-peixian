@@ -17,7 +17,8 @@ def specification(managed_root, identity):
     try:
         config = json.loads((root / "plugin-tests.json").read_text(encoding="utf-8"))
         spec = config[identity]
-        if not isinstance(spec, dict) or set(spec) != {"entry", "options"} or not isinstance(spec["options"], dict):
+        if (not isinstance(spec, dict) or set(spec) - {"entry", "options", "platform_connections"} or
+                not {"entry", "options"} <= set(spec) or not isinstance(spec["options"], dict)):
             raise ValueError()
         plugins = (root / "plugins").resolve(strict=True)
         entry = Path(spec["entry"])
@@ -37,7 +38,22 @@ def specification(managed_root, identity):
         relative = resolved.relative_to(plugins)
         if len(relative.parts) != 3 or relative.parts[0] != identity:
             raise ValueError()
-        return {"entry": str(resolved), "options": spec["options"]}
+        result = {"entry": str(resolved), "options": spec["options"]}
+        if "platform_connections" in spec:
+            bindings = spec["platform_connections"]
+            if not isinstance(bindings, dict):
+                raise ValueError()
+            for alias, binding in bindings.items():
+                if (not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", alias) or not isinstance(binding, dict) or
+                        set(binding) != {"id", "token"} or not isinstance(binding["id"], str) or
+                        not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", binding["id"]) or
+                        not isinstance(binding["token"], str) or len(binding["token"]) < 16):
+                    raise ValueError()
+            client = root / "platform-client.mjs"
+            if client.is_symlink() or not client.is_file() or client.resolve().parent != root.resolve():
+                raise ValueError()
+            result.update(platform_connections=bindings, platform_client=str(client.resolve()))
+        return result
     except KeyError:
         raise HTTPException(404, "Plugin test not found") from None
     except (OSError, ValueError, TypeError):

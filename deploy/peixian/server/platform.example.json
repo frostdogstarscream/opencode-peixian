@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "deployment_id": "agent-platform",
+  "product": {"name": "Agent 工作台", "short_name": "Agent", "description": "对话、文件、技能与插件，在一个工作台完成。"},
+  "public_url": "https://agent.example.internal",
+  "bind_host": "0.0.0.0",
+  "https_port": 443,
+  "control_port": 14090,
+  "data_root": "/srv/agent-platform",
+  "tls": {"certificate": "/etc/agent-platform/tls/certificate.pem", "private_key": "/etc/agent-platform/tls/private-key.pem"},
+  "network_pool": "10.240.0.0/16",
+  "max_runtimes": 4,
+  "resource_limits": {"agent": {"cpus": 2, "memory_mib": 2048}, "gateway": {"cpus": 0.5, "memory_mib": 512}, "relay": {"cpus": 0.5, "memory_mib": 128}},
+  "images": {"control": "agent-platform-control:1.0.0", "gateway": "agent-platform-gateway:1.0.0", "agent": "peixian-opencode:1.18.30-managed-r1", "proxy": "agent-platform-proxy:nginx-1.28.0"}
+}

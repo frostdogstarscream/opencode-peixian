@@ -1,4 +1,5 @@
 import hmac
+import hashlib
 import json
 from pathlib import Path
 import secrets
@@ -7,6 +8,7 @@ from fastapi import Request, Depends
 from fastapi.responses import FileResponse
 
 from .store import now, ident, encode
+from .connections import resolved_bindings, connection_headers
 
 
 def runtime_spec(s, uid, revision, *, db=None):
@@ -37,14 +39,27 @@ def runtime_spec(s, uid, revision, *, db=None):
         config.update(model=selected, small_model=selected, provider={"peixian": {"name": "授权模型", "npm": "@ai-sdk/openai-compatible", "options": {"baseURL": "http://model-relay:8081/v1", "apiKey": "relay-injected"}, "models": model_config}})
         config["agent"] = {name: {"model": selected} for name in ("title", "summary", "compaction")}
     plugins = []
+    connections = []
     for installed in rows("SELECT i.*,p.manifest,p.digest FROM installs i JOIN plugins p ON p.id=i.plugin AND p.version=i.version JOIN grants g ON g.uid=i.uid AND g.kind='plugin' AND g.resource=i.plugin WHERE i.uid=? AND i.enabled=1 AND p.enabled=1", (uid,)):
         manifest = json.loads(installed["manifest"])
-        plugins.append({"id": installed["plugin"], "version": installed["version"], "manifest": manifest, "digest": installed["digest"], "options": s.decrypt(installed["config"])})
+        bindings, missing = resolved_bindings(db, installed["plugin"], installed["version"], manifest)
+        if missing:
+            continue
+        platform_connections = {}
+        for alias, row in bindings.items():
+            binding_id = hashlib.sha256(encode([installed["plugin"], alias, row["id"]]).encode()).hexdigest()[:32]
+            token = hmac.new(private["gateway_key"].encode(), encode([uid, installed["plugin"], alias, revision]).encode(), hashlib.sha256).hexdigest()
+            value = json.loads(row["config"])
+            connections.append({"id": binding_id, "plugin_id": installed["plugin"], "alias": alias,
+                                "allowed_user": uid, "token": token, "headers": connection_headers(s, row),
+                                **{k: value[k] for k in ("base_url", "allowed_methods", "allowed_paths", "timeout_seconds", "max_response_bytes")}})
+            platform_connections[alias] = {"id": binding_id, "token": token}
+        plugins.append({"id": installed["plugin"], "version": installed["version"], "manifest": manifest, "digest": installed["digest"], "options": s.decrypt(installed["config"]), "platform_connections": platform_connections})
         config["plugin"].append("file:///managed/loaders/" + installed["plugin"] + ".mjs")
         for tool in manifest.get("tools", []):
             if isinstance(tool, str) and tool.replace("_", "").replace("-", "").isalnum() and tool not in ("bash", "pty", "webfetch", "websearch"):
                 config["permission"][tool] = "allow"
-    return {"uid": uid, "runtime_id": runtime["id"], "revision": revision, "private": private, "config": config, "models": relay, "plugins": plugins, "skills": rows("SELECT id,name,description,content FROM skills WHERE uid=? AND enabled=1", (uid,))}
+    return {"uid": uid, "runtime_id": runtime["id"], "revision": revision, "private": private, "config": config, "models": relay, "connections": connections, "plugins": plugins, "skills": rows("SELECT id,name,description,content FROM skills WHERE uid=? AND enabled=1", (uid,))}
 
 
 def register_worker(app):

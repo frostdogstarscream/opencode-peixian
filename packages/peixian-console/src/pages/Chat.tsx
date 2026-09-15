@@ -328,10 +328,10 @@ export default function Chat() {
                 <div class="welcome-symbol">
                   <Icon name="skill" size={31} />
                 </div>
-                <div class="eyebrow">你的专属研判助手</div>
+                <div class="eyebrow">你的专属智能助手</div>
                 <h1>今天，从什么问题开始？</h1>
                 <p>
-                  提出问题，关联资料，或选择一个分析技能。
+                  提出问题，关联文件，或选择一项个人技能。
                   <br />
                   每一步思考，都在你的独立空间中完成。
                 </p>
@@ -352,8 +352,8 @@ export default function Chat() {
                     }}
                   >
                     <Icon name="skill" />
-                    <strong>使用分析技能</strong>
-                    <span>按既定方法展开分析</span>
+                    <strong>使用我的技能</strong>
+                    <span>按你的习惯完成工作</span>
                   </button>
                   <button onClick={() => setPicker("files")}>
                     <Icon name="plugin" />
@@ -374,7 +374,7 @@ export default function Chat() {
                       </Show>
                     </div>
                     <div class="message-content">
-                      <div class="message-author">{message.info.role === "user" ? "你" : "研判助手"}</div>
+                      <div class="message-author">{message.info.role === "user" ? "你" : "智能助手"}</div>
                       <For each={message.parts}>
                         {(part) => (
                           <>
@@ -487,7 +487,7 @@ export default function Chat() {
               ref={textarea}
               aria-label="输入消息"
               maxlength={32000}
-              placeholder="描述你的问题，或告诉我希望如何分析资料…"
+              placeholder="描述你的问题，或告诉我希望完成什么…"
               value={draft()}
               rows={3}
               onInput={(event) => setDraft(event.currentTarget.value)}
@@ -530,14 +530,14 @@ export default function Chat() {
             </div>
           </div>
           <div class="composer-hint">
-            Enter 发送 · Shift + Enter 换行 <span>分析结果请结合原始资料核验</span>
+            Enter 发送 · Shift + Enter 换行 <span>重要信息请结合原始资料核验</span>
           </div>
         </div>
       </section>
       <Show when={picker()}>
         {(type) => (
           <Modal
-            title={type() === "files" ? "关联文件" : "使用分析技能"}
+            title={type() === "files" ? "关联文件" : "使用我的技能"}
             text={type() === "files" ? "仅可选择已完成解析的个人文件。" : "选择的技能将用于本次提问。"}
             onClose={() => setPicker(undefined)}
           >

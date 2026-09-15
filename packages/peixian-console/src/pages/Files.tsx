@@ -147,7 +147,7 @@ export default function Files() {
   }
   return (
     <div class="content-page">
-      <PageHead eyebrow="资料中心" title="我的文件" text="上传资料、查看解析进度，让每次分析有据可依。">
+      <PageHead eyebrow="个人文件空间" title="我的文件" text="上传文件、查看解析内容，随时将文件用于对话。">
         <Button variant="primary" icon="upload" busy={uploading()} onClick={() => input.click()}>
           上传文件
         </Button>

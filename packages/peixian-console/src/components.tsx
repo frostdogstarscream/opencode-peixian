@@ -3,6 +3,7 @@ import type { JSX } from "solid-js"
 import { marked } from "marked"
 import DOMPurify from "dompurify"
 import { safeMessage } from "./api"
+import { operationNote } from "./operation-note"
 const icons: Record<string, string> = {
   chat: "M4 4h16v12H9l-5 4V4",
   file: "M6 3h8l4 4v14H6V3m8 0v5h4",
@@ -132,6 +133,7 @@ const statuses: Record<string, [string, string]> = {
   no_text: ["未识别到文字", "warn"],
   unsupported: ["暂不支持", "warn"],
   unavailable: ["版本已停用", "warn"],
+  unconfigured: ["平台待配置", "warn"],
   draft: ["草稿", "muted"],
 }
 export function Status(props: { value?: string }) {
@@ -255,30 +257,5 @@ export function formatDate(value?: string | number) {
     : date.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
 }
 export function JobNote(props: { value: unknown }) {
-  const text = () => {
-    const result = props.value as {
-      message?: string
-      job?: { status?: string }
-      success?: boolean
-      ok?: boolean
-      passed?: boolean
-      supported?: boolean
-      status?: string
-    }
-    if (result?.supported === false) return "这个插件尚未提供连接测试功能。请通过实际业务调用核验。"
-    if (
-      result?.success === false ||
-      result?.ok === false ||
-      result?.passed === false ||
-      ["failed", "error"].includes(result?.status ?? "")
-    )
-      return result.message && /[\u4e00-\u9fff]/.test(result.message)
-        ? safeMessage(result.message)
-        : "测试未通过，请检查配置后重试。"
-    if (result?.job) return "设置已保存，正在更新个人工作空间。"
-    if (result?.ok === true || result?.success === true || result?.passed === true)
-      return result.message && /[\u4e00-\u9fff]/.test(result.message) ? safeMessage(result.message) : "测试通过。"
-    return result?.message ? safeMessage(result.message) : "操作已完成。"
-  }
-  return <p class="notice">{text()}</p>
+  return <p class="notice">{operationNote(props.value)}</p>
 }

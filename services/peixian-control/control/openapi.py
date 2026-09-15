@@ -65,7 +65,7 @@ def schemas():
     result = {
         "Error": obj({"message": STRING, "code": STRING, "request_id": STRING}, ("message", "code")),
         "Ok": obj({"ok": BOOL}, ("ok",), extra=True),
-        "Health": obj({"status": STRING, "version": STRING, "schema_version": {"type": "integer", "const": 2}}, ("status", "version", "schema_version")),
+        "Health": obj({"status": STRING, "version": STRING, "schema_version": {"type": "integer", "const": 3}}, ("status", "version", "schema_version")),
         "LoginBody": obj({"username": STRING, "password": {"type": "string", "format": "password", "writeOnly": True}}, ("username", "password")),
         "PasswordBody": obj({"current_password": {"type": "string", "format": "password", "writeOnly": True}, "password": PASSWORD}, ("current_password", "password")),
         "TokenBody": obj({"name": {"type": "string", "maxLength": 80}}),
@@ -224,12 +224,49 @@ def schemas():
     }
     result["UserList"] = obj({"items": array(ref("User")), "capacity": obj({"maximum": INTEGER, "reserved": INTEGER}, ("maximum", "reserved"))}, ("items", "capacity"))
     result["ResultList"] = obj({"items": array(ref("Result")), "truncated": BOOL}, ("items", "truncated"))
+    connection_fields = {
+        "name": {"type": "string", "minLength": 1, "maxLength": 100},
+        "base_url": {"type": "string", "format": "uri", "maxLength": 1000},
+        "auth_type": {"type": "string", "enum": ["none", "bearer", "api_key"], "default": "none"},
+        "secret": {"type": "string", "format": "password", "writeOnly": True, "maxLength": 4096,
+                   "description": "不回显；鉴权方式及头名未变时，省略或空串保留旧值。修改鉴权方式须重新填写，none 清除旧值。"},
+        "header_name": STRING, "enabled": BOOL,
+        "allowed_methods": array({"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, minItems=1, maxItems=5),
+        "allowed_paths": array({"type": "string", "description": "精确路径或末尾 /* 前缀匹配；不接受转义、查询、片段和目录跳转。"}, minItems=1, maxItems=100),
+        "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 60, "default": 15},
+        "max_response_bytes": {"type": "integer", "minimum": 1024, "maximum": 10485760, "default": 1048576},
+    }
+    result["Platform"] = obj({"name": STRING, "short_name": STRING, "description": STRING}, ("name", "short_name", "description"))
+    result["ServiceConnectionCreate"] = obj(connection_fields, ("name", "base_url"))
+    result["ServiceConnectionUpdate"] = obj(connection_fields)
+    result["ServiceConnection"] = obj({**{k: v for k, v in connection_fields.items() if k != "secret"}, "id": ID, "secret_configured": BOOL, "revision": INTEGER}, ("id", "name", "base_url", "secret_configured", "revision"))
+    result["ServiceConnectionChanged"] = obj({"connection": ref("ServiceConnection"), "jobs": array(ref("Job"))}, ("connection", "jobs"))
+    result["ServiceRequest"] = obj({"method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]},
+                                    "path": STRING, "query": {"type": "object", "additionalProperties": {"type": ["string", "number", "boolean"]}}, "json": {}}, ("path",))
+    result["ServiceTest"] = obj({"ok": BOOL, "message": STRING, "status": INTEGER}, ("ok", "message"))
+    binding_map = {"type": "object", "additionalProperties": ID}
+    alias_map = {"type": "object", "additionalProperties": obj({"description": STRING})}
+    result["PluginBindingBody"] = obj({"bindings": binding_map}, ("bindings",))
+    result["PluginBindings"] = obj({"bindings": binding_map, "aliases": alias_map, "jobs": array(ref("Job"))}, ("bindings", "aliases"))
+    result["AdminPlugin"]["properties"]["connections"] = alias_map
+    result["Plugin"]["properties"]["connection_status"] = {"type": "object", "additionalProperties": obj({"ready": BOOL, "missing": array(STRING)}, ("ready", "missing"))}
+    installed = result["Plugin"]["properties"]["installed"]["anyOf"][0]["properties"]
+    installed["missing_connections"] = array(STRING)
+    installed["state"]["enum"].append("unconfigured")
     return result
 
 
 # Keys are actual route suffixes (or the explicit expansion of an actual route).
 # Response status comes from FastAPI's registered route, not a duplicate table.
 CONTRACTS = {
+    ("get", "/platform"): (None, ref("Platform"), "获取公开产品信息", "平台", "仅产品名称、简称与介绍，不包含部署标识、内部地址或任何凭据。"),
+    ("get", "/admin/connections"): (None, items(ref("ServiceConnection")), "列出服务连接", "管理：连接", "仅超级管理员；凭据只返回 secret_configured。"),
+    ("post", "/admin/connections"): ("ServiceConnectionCreate", ref("ServiceConnection"), "创建固定服务连接", "管理：连接", "配置鉴权、固定地址、方法及路径范围。"),
+    ("patch", "/admin/connections/{cid}"): ("ServiceConnectionUpdate", ref("ServiceConnectionChanged"), "更新服务连接", "管理：连接", "新版本配置与受影响安装账号的应用任务在同一事务保存；不影响其他账号。"),
+    ("delete", "/admin/connections/{cid}"): (None, ref("Ok"), "删除未绑定的服务连接", "管理：连接", "仍被插件版本引用时返回409；可先停用或解除绑定。"),
+    ("post", "/admin/connections/{cid}/test"): ("ServiceRequest", ref("ServiceTest"), "测试固定服务连接", "管理：连接", "沿用出口相同的范围、超时与大小校验。只返回状态，不返回业务正文；默认使用已允许的GET路径，写方法测试由超级管理员明确提交。"),
+    ("get", "/admin/plugins/{pid}/{version}/connections"): (None, ref("PluginBindings"), "查看插件版本连接绑定", "管理：连接", "别名由不可变发布清单声明，不能由普通用户配置。"),
+    ("put", "/admin/plugins/{pid}/{version}/connections"): ("PluginBindingBody", ref("PluginBindings"), "保存插件版本连接绑定", "管理：连接", "完整替换此版本绑定并原子排队应用。未绑定或停用的必需连接使插件处于 unconfigured，停止在新配置中加载。"),
     ("post", "/auth/login"): ("LoginBody", ref("Identity"), "登录并获取 Cookie 与 CSRF", "登录", "校验允许的 Origin，成功设置 HttpOnly 的 px_session Cookie。初始密码用户只能查询自己、改密或退出。"),
     ("get", "/me"): (None, ref("Identity"), "获取当前身份及环境状态", "登录", "账号由有效认证绑定；Bearer 身份的 csrf_token 为 null。"),
     ("post", "/auth/logout"): (None, ref("Ok"), "撤销当前认证", "登录", "删除当前 Cookie 或 Bearer 认证记录；已建立的本身份事件连接也会关闭。"),
@@ -412,14 +449,14 @@ def build_openapi(app):
                     raise ValueError("Undocumented public API route: " + method + " " + path)
                 body, output, summary, tag, description = contract
                 operation.update(summary=summary, tags=[tag], description=description)
-                anonymous = path == P + "/auth/login"
+                anonymous = path in (P + "/auth/login", P + "/platform")
                 common = path in (P + "/me", P + "/me/password", P + "/auth/logout") or path.startswith(P + "/tokens")
                 management = path.startswith(P + "/admin/")
-                super_only = management and (path.startswith((P + "/admin/plugins", P + "/admin/templates", P + "/admin/jobs")) or "/runtime/" in path)
+                super_only = management and (path.startswith((P + "/admin/plugins", P + "/admin/templates", P + "/admin/jobs", P + "/admin/connections")) or "/runtime/" in path)
                 operation["x-role"] = "anonymous" if anonymous else "super_admin" if super_only else "super_admin|admin" if management else "authenticated" if common else "user"
                 if management:
                     operation["x-roles"] = ["super_admin"] if super_only else ["super_admin", "admin"]
-                    capability = ("plugins.manage" if "/admin/plugins" in path else "templates.manage" if "/admin/templates" in path
+                    capability = ("connections.manage" if "/admin/connections" in path or path.endswith("/connections") else "plugins.manage" if "/admin/plugins" in path else "templates.manage" if "/admin/templates" in path
                                   else "jobs.read" if "/admin/jobs" in path else "runtimes.manage" if "/runtime/" in path
                                   else "models.manage" if "/admin/models" in path else "audit.read" if "/admin/audit" in path else "users.manage")
                     operation["x-capability"] = capability

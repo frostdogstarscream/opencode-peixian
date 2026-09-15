@@ -168,7 +168,7 @@ def check(compose, backups, image=None):
     volume, image, item = deployment(compose, image)
     state = inspect_volume(volume)
     maximum = compatible(state["schema_version"], item.get("Config", {}).get("Labels"))
-    if state["counts"].get("users", 0) and state["schema_version"] < 2 <= maximum:
+    if state["counts"].get("users", 0) and state["schema_version"] < maximum:
         if not stopped(volume) or not backup_matches(backups, volume, state):
             raise GuardError("legacy_database_requires_stopped_verified_backup")
     return {"status": "passed", "image": image, "image_id": item["Id"],

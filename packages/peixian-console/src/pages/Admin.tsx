@@ -24,7 +24,8 @@ import {
   visibleManagementTabs,
 } from "../access"
 import type { ManagementTab } from "../access"
-import type { Audit, Capability, Job, Model, Plugin, Skill, User } from "../types"
+import type { Audit, Capability, Job, Model, Plugin, ServiceConnection, Skill, User } from "../types"
+import Connections, { PluginConnections } from "./Connections"
 const auditActions: Record<string, string> = {
   "user.list": "查看用户列表",
   "user.create": "创建账号",
@@ -40,6 +41,13 @@ const auditActions: Record<string, string> = {
   "plugin.list": "查看插件目录",
   "plugin.publish": "发布插件版本",
   "plugin.publication_update": "修改插件版本状态",
+  "plugin.connections_read": "查看插件服务绑定",
+  "plugin.connections_update": "更新插件服务绑定",
+  "connection.list": "查看服务连接",
+  "connection.create": "添加服务连接",
+  "connection.update": "更新服务连接",
+  "connection.delete": "删除服务连接",
+  "connection.test": "测试服务连接",
   "model.list": "查看模型列表",
   "model.create": "添加模型",
   "model.update": "更新模型配置",
@@ -57,6 +65,8 @@ export default function Admin() {
   const [users, setUsers] = createSignal<User[]>([])
   const [models, setModels] = createSignal<Model[]>([])
   const [plugins, setPlugins] = createSignal<Plugin[]>([])
+  const [connections, setConnections] = createSignal<ServiceConnection[]>([])
+  const [binding, setBinding] = createSignal<{ plugin: Plugin; version: string }>()
   const [templates, setTemplates] = createSignal<Skill[]>([])
   const [jobs, setJobs] = createSignal<Job[]>([])
   const [audit, setAudit] = createSignal<Audit[]>([])
@@ -99,7 +109,7 @@ export default function Admin() {
     previousTab = tab()
     const results = await Promise.allSettled(
       resources.map((resource) =>
-        list<User | Model | Plugin | Skill | Job | Audit>(
+        list<User | Model | Plugin | ServiceConnection | Skill | Job | Audit>(
           "/admin/" + resource + (resource === "audit" ? auditQuery() : ""),
         ),
       ),
@@ -128,7 +138,7 @@ export default function Admin() {
           const catalog = new Map<string, Plugin>()
           for (const item of result.value as Plugin[]) {
             const existing = catalog.get(item.id)
-            const version = { version: item.version, enabled: !!item.enabled }
+            const version = { version: item.version, enabled: !!item.enabled, connections: item.connections }
             if (existing) existing.versions?.push(version)
             else catalog.set(item.id, { ...item, enabled: !!item.enabled, versions: [version] })
           }
@@ -137,6 +147,9 @@ export default function Admin() {
         }
         case "templates":
           setTemplates(result.value as Skill[])
+          break
+        case "connections":
+          setConnections(result.value as ServiceConnection[])
           break
         case "jobs":
           setJobs(result.value as Job[])
@@ -707,7 +720,7 @@ export default function Admin() {
                       <span class="pill">已发布目录</span>
                     </div>
                     <h3>{item.name}</h3>
-                    <p>{item.description || "已发布的业务插件。"}</p>
+                    <p>{item.description || "为助手扩展工具与服务的插件。"}</p>
                     <div class="plugin-versions">
                       <For
                         each={
@@ -720,6 +733,11 @@ export default function Admin() {
                           return (
                             <div>
                               <span>版本 {number}</span>
+                              <Show when={app.can("connections.manage")}>
+                                <Button variant="ghost" onClick={() => setBinding({ plugin: item, version: number })}>
+                                  服务绑定
+                                </Button>
+                              </Show>
                               <Toggle
                                 checked={enabled}
                                 label={enabled ? "可用" : "停用"}
@@ -734,6 +752,9 @@ export default function Admin() {
                 )}
               </For>
             </div>
+          </Match>
+          <Match when={tab() === "connections" && app.can("connections.manage")}>
+            <Connections items={connections()} onRefresh={refresh} />
           </Match>
           <Match when={tab() === "templates"}>
             <div class="card-grid">
@@ -1075,6 +1096,16 @@ export default function Admin() {
             </Button>
           </div>
         </Modal>
+      </Show>
+      <Show when={binding()}>
+        {(value) => (
+          <PluginConnections
+            plugin={value().plugin}
+            version={value().version}
+            onClose={() => setBinding(undefined)}
+            onSaved={refresh}
+          />
+        )}
       </Show>
       <Show when={test() !== undefined}>
         <Modal title="连接测试结果" onClose={() => setTest(undefined)}>

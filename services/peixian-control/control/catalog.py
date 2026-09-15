@@ -6,6 +6,7 @@ from fastapi import Depends, Request
 
 from .store import ident, encode
 from .plugin_schema import redact, merge_secrets
+from .connections import resolved_bindings
 
 
 def register_catalog(app):
@@ -134,6 +135,11 @@ def register_catalog(app):
             manifest = json.loads(p["manifest"])
             item = {k: p[k] for k in ("id", "version", "name", "description")}
             item.update(schemas={v["version"]: json.loads(v["manifest"]).get("config_schema", {}) for v in versions}, versions=[v["version"] for v in versions], config_schema=manifest.get("config_schema", {"type": "object", "properties": {}}), installed=None)
+            with s.tx() as db:
+                item["connection_status"] = {}
+                for version in versions:
+                    _, missing = resolved_bindings(db, p["id"], version["version"], json.loads(version["manifest"]))
+                    item["connection_status"][version["version"]] = {"ready": not missing, "missing": missing}
             install = s.one("SELECT * FROM installs WHERE uid=? AND plugin=?", (user["uid"], p["id"]))
             if install:
                 config = s.decrypt(install["config"])
@@ -143,6 +149,10 @@ def register_catalog(app):
                 confidential = confidential or {}
                 state = s.one("SELECT status,revision,desired FROM runtimes WHERE uid=?", (user["uid"],))
                 item["installed"] = {"version": install["version"], "enabled": bool(install["enabled"]), "config": safe, "credentials_configured": confidential, "state": "unavailable" if not definition["enabled"] else ("active" if state and state["revision"] == state["desired"] and state["status"] == "ready" else "pending")}
+                missing = item["connection_status"].get(install["version"], {}).get("missing", [])
+                item["installed"]["missing_connections"] = missing
+                if missing and definition["enabled"]:
+                    item["installed"]["state"] = "unconfigured"
             items.append(item)
         return {"items": items}
 
@@ -187,6 +197,11 @@ def register_catalog(app):
         if not item:
             fail("请先安装并保存插件配置", 409)
         published(user["uid"], pid, item["version"])
+        with s.tx() as db:
+            manifest = db.execute("SELECT manifest FROM plugins WHERE id=? AND version=?", (pid, item["version"])).fetchone()
+            _, missing = resolved_bindings(db, pid, item["version"], json.loads(manifest["manifest"]))
+        if missing:
+            return {"ok": False, "message": "平台服务连接尚未配置或已停用，请联系超级管理员", "connection_tested": False}
         r = s.one("SELECT status,revision,desired FROM runtimes WHERE uid=?", (user["uid"],))
         applied = r["revision"] == r["desired"] and r["status"] == "ready"
         if not applied:

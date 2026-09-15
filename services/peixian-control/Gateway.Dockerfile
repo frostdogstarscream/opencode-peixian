@@ -6,6 +6,7 @@ COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 COPY services/peixian-control/requirements.lock /app/requirements.lock
 RUN pip install --no-cache-dir -r /app/requirements.lock && useradd -u 10001 -m peixian
 COPY services/peixian-control/gateway /app/gateway
+COPY services/peixian-control/shared /app/shared
 USER 10001:10001
 EXPOSE 8080
 CMD ["uvicorn","gateway.app:app","--host","0.0.0.0","--port","8080","--no-access-log"]

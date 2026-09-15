@@ -320,7 +320,7 @@ def create_app(store=None):
         yield
         await app.state.http.aclose()
 
-    app = FastAPI(title="沛县分析控制台", version="1.1.0", lifespan=lifespan, docs_url=None, redoc_url=None)
+    app = FastAPI(title="Agent 工作台", version="1.2.0", lifespan=lifespan, docs_url=None, redoc_url=None)
 
     app.add_middleware(RequestLimits)
 
@@ -343,7 +343,7 @@ def create_app(store=None):
                 actor = getattr(request.state, "management_actor", {"uid": "anonymous", "role": "anonymous"})
                 target = getattr(request.state, "management_target", None)
                 if target is None:
-                    target = next((request.path_params[key] for key in ("uid", "mid", "pid", "tid") if key in request.path_params), "platform")
+                    target = next((request.path_params[key] for key in ("uid", "mid", "pid", "tid", "cid") if key in request.path_params), "platform")
                 # Never persist request bodies, query strings, URLs, headers or arbitrary paths.
                 if not isinstance(target, str) or not re.fullmatch(r"[A-Za-z0-9_.@-]{1,128}", target):
                     target = "invalid-target"
@@ -365,7 +365,13 @@ def create_app(store=None):
 
     @app.get("/health")
     async def health():
-        return {"status": "ok", "version": "1.1.0", "schema_version": app.state.store.schema_version()}
+        return {"status": "ok", "version": "1.2.0", "schema_version": app.state.store.schema_version()}
+
+    @app.get(PREFIX + "/platform")
+    async def platform():
+        return {"name": os.getenv("PLATFORM_NAME", "Agent 工作台")[:100],
+                "short_name": os.getenv("PLATFORM_SHORT_NAME", "AI")[:12],
+                "description": os.getenv("PLATFORM_DESCRIPTION", "你的智能助手与工具空间")[:500]}
 
     @app.post(PREFIX + "/auth/login")
     async def login(request: Request):
@@ -572,6 +578,8 @@ def create_app(store=None):
 
     register_catalog(app)
     register_admin(app)
+    from .connections import register_connections
+    register_connections(app)
     register_worker(app)
     register_files(app)
     static = Path(os.getenv("CONSOLE_STATIC", "/app/static"))

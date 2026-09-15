@@ -11,12 +11,13 @@ let result = { supported: true, ok: false, message: "Connection test failed" };
 try {
   const chunks = [];
   for await (const chunk of process.stdin) chunks.push(chunk);
-  const { entry, options } = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  const { entry, options, platform_connections, platform_client } = JSON.parse(Buffer.concat(chunks).toString("utf8"));
   const plugin = await import(pathToFileURL(entry).href);
   if (typeof plugin.test !== "function") {
     result = { supported: false, ok: false, message: "Plugin does not export a connection test" };
   } else {
-    const value = await plugin.test(options);
+    const platform = platform_client ? (await import(pathToFileURL(platform_client).href)).createPlatform(platform_connections) : undefined;
+    const value = await plugin.test(options, platform);
     if (!value || typeof value.ok !== "boolean" || typeof value.message !== "string")
       throw new Error("Invalid test result");
     // Free-form plugin output may include addresses or credentials. Return a

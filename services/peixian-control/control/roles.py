@@ -2,7 +2,7 @@
 
 CAPABILITIES = {
     "super_admin": ("users.manage", "admins.manage", "models.manage", "audit.read",
-                    "plugins.manage", "templates.manage", "runtimes.manage", "jobs.read"),
+                    "plugins.manage", "templates.manage", "runtimes.manage", "jobs.read", "connections.manage"),
     "admin": ("users.manage", "models.manage", "audit.read"),
     "user": ("business.use",),
 }
@@ -22,4 +22,8 @@ MANAGEMENT_ACTIONS = {
     "plugins": "plugin.list", "publish": "plugin.publish", "plugin_state": "plugin.publication_update",
     "templates": "template.list", "template_create": "template.create",
     "template_edit": "template.update", "template_delete": "template.delete",
+    "connections_list": "connection.list", "connection_create": "connection.create",
+    "connection_edit": "connection.update", "connection_delete": "connection.delete",
+    "connection_test": "connection.test", "plugin_connections_get": "plugin.connections_read",
+    "plugin_connections_put": "plugin.connections_update",
 }

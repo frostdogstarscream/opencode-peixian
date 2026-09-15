@@ -10,14 +10,17 @@ import Skills from "./pages/Skills"
 import Plugins from "./pages/Plugins"
 import Settings from "./pages/Settings"
 import Admin from "./pages/Admin"
+import { defaultPlatform, platformMetadata } from "./platform"
+import type { Platform } from "./platform"
 const pages = [
-  { id: "chat", name: "智能对话", icon: "chat" },
+  { id: "chat", name: "对话", icon: "chat" },
   { id: "files", name: "我的文件", icon: "file" },
-  { id: "skills", name: "分析技能", icon: "skill" },
-  { id: "plugins", name: "业务插件", icon: "plugin" },
+  { id: "skills", name: "我的技能", icon: "skill" },
+  { id: "plugins", name: "我的插件", icon: "plugin" },
   { id: "settings", name: "个人设置", icon: "settings" },
 ]
 export default function App() {
+  const [platform, setPlatform] = createSignal(defaultPlatform)
   const [auth, setSession] = createSignal<Auth>()
   const [loading, setLoading] = createSignal(true)
   const [initialError, setInitialError] = createSignal("")
@@ -62,6 +65,9 @@ export default function App() {
     }
   }
   onMount(() => {
+    void api<Platform>("/platform")
+      .then((value) => setPlatform(platformMetadata(value)))
+      .catch(() => {})
     onUnauthorized(() => {
       setAuth()
       setSession(undefined)
@@ -69,6 +75,9 @@ export default function App() {
     void initialize()
   })
   onCleanup(() => clearTimeout(timer))
+  createEffect(() => {
+    document.title = platform().name
+  })
   createEffect(() => {
     if (!auth()) return
     if (page() === "admin" ? !management() : !visiblePages().some((item) => item.id === page())) setPage(defaultPage())
@@ -140,7 +149,10 @@ export default function App() {
         </div>
       }
     >
-      <Show when={auth()} fallback={<Login onSuccess={accept} initialError={initialError()} onRetry={initialize} />}>
+      <Show
+        when={auth()}
+        fallback={<Login platform={platform()} onSuccess={accept} initialError={initialError()} onRetry={initialize} />}
+      >
         {(session) => (
           <Show
             when={!session().user.must_change_password}
@@ -161,10 +173,10 @@ export default function App() {
                       setMenu(false)
                     }}
                   >
-                    <span class="brand-mark">沛</span>
+                    <span class="brand-mark">{platform().short_name}</span>
                     <span>
-                      <strong>沛县 · 研判工作台</strong>
-                      <small>让资料成为清晰的判断</small>
+                      <strong>{platform().name}</strong>
+                      <small>{platform().description}</small>
                     </span>
                   </a>
                   <div class="space-label">
@@ -297,7 +309,12 @@ export default function App() {
     </Show>
   )
 }
-function Login(props: { onSuccess: (value: Auth) => void; initialError: string; onRetry: () => Promise<void> }) {
+function Login(props: {
+  platform: Platform
+  onSuccess: (value: Auth) => void
+  initialError: string
+  onRetry: () => Promise<void>
+}) {
   const [username, setUsername] = createSignal("")
   const [password, setPassword] = createSignal("")
   const [busy, setBusy] = createSignal(false)
@@ -319,17 +336,17 @@ function Login(props: { onSuccess: (value: Auth) => void; initialError: string; 
   return (
     <div class="login-shell">
       <div class="login-story">
-        <span class="brand-mark">沛</span>
-        <div class="eyebrow">沛县 · 智能研判平台</div>
+        <span class="brand-mark">{props.platform.short_name}</span>
+        <div class="eyebrow">{props.platform.name}</div>
         <h1>
-          从纷繁资料中，
+          从一个问题开始，
           <br />
-          看见清晰线索。
+          让想法更进一步。
         </h1>
         <p>
-          围绕资料展开对话，使用专业技能完成分析。
+          {props.platform.description}。
           <br />
-          你的文件、思考与成果，在独立空间中有序留存。
+          对话、文件、技能与插件，在你的独立空间中有序留存。
         </p>
         <div class="story-art">
           <span />
@@ -339,7 +356,7 @@ function Login(props: { onSuccess: (value: Auth) => void; initialError: string; 
             <Icon name="skill" size={42} />
           </div>
         </div>
-        <small>专属空间 · 按需分析 · 结果可追溯</small>
+        <small>专属空间 · 随时对话 · 按需扩展</small>
       </div>
       <div class="login-side">
         <form class="login-card" onSubmit={submit}>
@@ -376,7 +393,7 @@ function Login(props: { onSuccess: (value: Auth) => void; initialError: string; 
           </Show>
           <small>账号或密码有问题，请联系管理员。</small>
         </form>
-        <div class="login-foot">沛县研判工作台 · 专属工作空间</div>
+        <div class="login-foot">{props.platform.name} · 专属工作空间</div>
       </div>
     </div>
   )

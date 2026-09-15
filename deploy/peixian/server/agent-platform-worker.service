@@ -1,0 +1,21 @@
+[Unit]
+Description=Agent platform local runtime executor
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/agent-platform/deploy/peixian
+ExecStart=/opt/agent-platform/worker-venv/bin/python -u /opt/agent-platform/deploy/peixian/platform-manage.py worker --config /etc/agent-platform/platform.json
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=90
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

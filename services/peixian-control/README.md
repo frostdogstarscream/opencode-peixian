@@ -1,8 +1,8 @@
-# 沛县分析控制层开发说明
+# AI 应用框架控制层开发说明
 
 本目录实现按账号绑定的分析控制台后端、每账号 Gateway、文件解析及模型出口。普通用户可以在不同电脑登录同一账号，访问同一套独立环境；环境身份由服务端认证记录决定，不接受客户端自行指定账号、工作区、容器或模型接口地址。
 
-前端位于 [packages/peixian-console](../../packages/peixian-console)，宿主执行器及部署脚本位于 [deploy/peixian](../../deploy/peixian)。部署、迁移、备份和回退步骤见 [控制台操作手册](../../deploy/peixian/CONSOLE_OPERATIONS.md)。本文件面向开发和契约维护，不包含密钥值、真实账号记录或用户正文。
+前端位于 [packages/peixian-console](../../packages/peixian-console)，宿主执行器及部署脚本位于 [deploy/peixian](../../deploy/peixian)。新框架的生成与部署入口见 [框架快速开始](../../framework/README.md)。本文件面向开发和契约维护，不包含密钥值、真实账号记录或用户正文。
 
 ## 组件职责与数据边界
 
@@ -58,7 +58,7 @@
 
 完整的方法、请求体、状态码和具体路径以 [OpenAPI](docs/openapi.json) 为准。Gateway 私有文件接口有 metadata、rename、parse 等能力，不代表控制台公开了同名接口。原生 config/auth/MCP/PTY/shell/任意命令接口没有被公开。
 
-浏览器登录设置 HttpOnly、SameSite=Strict 的 `px_session` Cookie，最长 8 小时。Cookie 写请求必须携带 login/me 返回的 `X-CSRF-Token`，并通过 Origin 校验。Python 可使用个人创建的 Bearer Token；个人令牌有效期 30 天，不需要 Cookie 的 CSRF 头。不要将 Cookie 值当作个人 Bearer Token。
+浏览器登录设置 HttpOnly、SameSite=Strict 的会话 Cookie，默认名为 `px_session`，最长 8 小时。服务端可通过 `CONSOLE_COOKIE_NAME` 为项目固定名称。Cookie 写请求必须携带 login/me 返回的 `X-CSRF-Token`，并通过 Origin 校验。Python 可使用个人创建的 Bearer Token；个人令牌有效期 30 天，不需要 Cookie 的 CSRF 头。不要将 Cookie 值当作个人 Bearer Token。
 
 初始密码必须先修改。改密、重置密码、停用账号、注销或撤销令牌会按各自规则撤销认证；SSE 连接持续核验当前认证。管理员与普通用户的业务路由分别校验角色，管理员不能通过普通业务 API 查看某个用户的数据。
 
@@ -116,8 +116,16 @@
 | ADMIN_PASSWORD_FILE | /run/secrets/admin-password | 无管理员记录时使用的初始管理员密码文件，初始化要求至少 16 字符 |
 | CONSOLE_STATIC | /app/static | 前端构建产物目录；目录存在时提供静态资源与 SPA |
 | CONSOLE_ORIGINS | http://127.0.0.1:14090,http://localhost:14090 | 逗号分隔的精确允许 Origin |
+| RUNTIME_NAMESPACE | 未设置 | 框架项目的固定运行环境前缀，必须匹配 `[a-z][a-z0-9-]{0,15}`；设置后 Gateway 地址为 `<namespace>-<runtime_id>-gateway`，同时禁用所有 legacy 迁移接口 |
+| CONSOLE_COOKIE_NAME | px_session | 服务启动时固定的会话 Cookie 名称；1–128 字符 ASCII HTTP token，禁止空值、分隔符、空白、非 ASCII 及 Cookie 保留属性名；无效配置拒绝启动 |
 | COOKIE_SECURE | 未设置 | 值严格为 true 时，为登录 Cookie 设置 Secure；HTTPS 部署应配套启用 |
 | MAX_RUNTIMES | 4 | 已保留环境名额的最大数量；暂停后释放名额但保留数据 |
+
+框架项目必须由部署配置同时提供各自唯一的 `RUNTIME_NAMESPACE` 与 `CONSOLE_COOKIE_NAME`，并让控制层和宿主执行器使用同一命名空间。命名空间在应用创建时校验并固定，空字符串或非法字符拒绝启动；未设置时兼容旧 `px-<runtime_id>-gateway` 地址。设置任何有效命名空间后，`/internal/worker/legacy-*` 全部返回 404，正确 WorkerKey 也不能导入或操作旧 A/B 环境；在线 OpenAPI 用 `x-legacy-disabled` 标注该状态。此开关只约束本应用路由，宿主执行器仍须使用项目独立的状态目录、资源名和卷。
+
+同一主机不同端口并行部署不同项目时，分别设置不同的 `CONSOLE_COOKIE_NAME`，例如 `framework_demo_session` 和 `framework_other_session`。Cookie 不按端口区分；使用相同名字和路径会覆盖登录。名称只由启动环境决定，客户端不能通过请求体、请求头或查询参数改选；登录、认证读取、退出清除及在线 OpenAPI 使用同一个已固定值。修改名称需要重启，并要求重新登录，不会继续读取旧名字。
+
+不同名字解决同一浏览器的覆盖问题，不构成不同端口应用之间的 Cookie 保密边界：浏览器仍可能把同主机多个项目的 Cookie 一并发送。互不信任的项目应采用不同主机名及独立 HTTPS Origin，结合各自服务端认证与 `CONSOLE_ORIGINS` 配置。每项目继续使用独立控制数据库和凭据。
 
 ### Gateway 与 model-relay
 
@@ -152,14 +160,14 @@ Linux 对应使用 python3.12 -m venv .venv 与 .venv/bin/python。无外网部�
 独立开发配置准备完成后，控制层进程入口为：
 
 ~~~powershell
-& '.\.venv\Scripts\python.exe' -m uvicorn control.app:app --host 127.0.0.1 --port 14090 --workers 1 --no-access-log
+& '.\.venv\Scripts\python.exe' -m uvicorn control.app:app --host 127.0.0.1 --port 14100 --workers 1 --no-access-log
 ~~~
 
 该命令不会开通账号容器；完整环境需要容器化控制层与宿主 Worker。宿主运行的临时控制进程不能直接解析各账号管理网络的 Docker DNS 名称。不要让开发实例指向现有生产 CONTROL_DATA 或复用现有凭据。
 
-前端项目脚本为 bun run dev、bun run typecheck、bun run build。Vite 固定监听本机 5178，并将 /api 代理到本机 14090。开发登录写请求的 Origin 是前端端口，需要将对应本机开发 Origin 加入独立开发控制层的 CONSOLE_ORIGINS；默认生产列表不包含 5178。构建产物由 control 的 Dockerfile 复制到 /app/static。
+前端项目脚本为 bun run dev、bun run typecheck、bun run build。Vite 固定监听本机 5179，并将 /api 代理到 framework/project.json 指定的 console_port（框架默认 14100）。开发登录写请求的 Origin 是前端端口，需要将对应本机开发 Origin 加入独立开发控制层的 CONSOLE_ORIGINS；默认生产列表不包含 5179。构建产物由 control 的 Dockerfile 复制到 /app/static。
 
-宿主执行器入口为 ../../deploy/peixian/console-worker.py。可配置控制层回环地址、凭据文件、状态目录、镜像标签和最大名额；它拒绝非回环控制地址，通过宿主锁防止多个执行器并发管理同一状态目录。生命周期及迁移操作使用部署脚本，不通过普通用户 API 传入命令。
+宿主执行器入口为 ../../deploy/peixian/console-worker.py。可配置控制层回环地址、凭据文件、状态目录、镜像标签和最大名额；它拒绝非回环控制地址，通过宿主锁防止多个执行器并发管理同一状态目录。框架生命周期使用 framework/manage.py，框架模式不开放旧客户机迁移，不通过普通用户 API 传入命令。
 
 ## OpenAPI 与 Python 客户端
 
@@ -169,7 +177,7 @@ Linux 对应使用 python3.12 -m venv .venv 与 .venv/bin/python。无外网部�
 & '.\.venv\Scripts\python.exe' export_openapi.py
 ~~~
 
-导出仅读取实际路由，不进入 lifespan，不初始化 Store，不读取部署凭据，也不连接模型或账号环境。自定义输出使用 --output。control/openapi.py 的 install_openapi(app) 已在路由注册结束后挂接；build_openapi(app) 可生成不使用缓存的新文档。
+导出仅读取实际路由，不进入 lifespan，不初始化 Store，不读取部署凭据，也不连接模型或账号环境。 未设置 `CONSOLE_COOKIE_NAME` 时离线契约保持默认 `px_session`；设置后导出与该应用一致的配置名，在线 `SessionCookie` 安全方案和 Set-Cookie 说明也使用相同名称。自定义输出使用 --output。control/openapi.py 的 install_openapi(app) 已在路由注册结束后挂接；build_openapi(app) 可生成不使用缓存的新文档。
 
 添加或修改公开 API 时，同步其显式请求体、响应体、角色与安全方案，再重新导出。未补契约的新业务或内部路由会使生成失败。测试还核对 endpoint 的 body_fields 白名单，避免服务实际接受的字段与文档脱节。内部 Worker 标记 x-internal，不能在客户端生成时误认为个人 Bearer 可调用。
 

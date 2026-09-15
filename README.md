@@ -1,3 +1,5 @@
+> **AI 应用框架开发分支**：基于 SolidJS + FastAPI + OpenCode 的可复用底座。使用入口、项目生成和后续计划见 [framework/README.md](framework/README.md)。原沛县版本保留在检查点标签 peixian-console-checkpoint-20260915。以下保留 OpenCode 上游项目说明与许可证归属。
+
 <p align="center">
   <a href="https://opencode.ai">
     <picture>

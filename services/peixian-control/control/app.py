@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from .settings import configured_store
+from .settings import configured_store, configured_cookie_name, configured_runtime_namespace
 from .store import Store, ident, now, encode, digest
 
 PREFIX = "/api/console/v1"
@@ -61,7 +61,7 @@ def origin_ok(request):
 def principal(request: Request):
     s = request.app.state.store
     bearer = request.headers.get("authorization", "")
-    token = bearer[7:] if bearer.startswith("Bearer ") else request.cookies.get("px_session", "")
+    token = bearer[7:] if bearer.startswith("Bearer ") else request.cookies.get(request.app.state.cookie_name, "")
     record = s.one("SELECT a.*,u.role,u.username,u.active,u.must_change,u.auth_version FROM auth a JOIN users u ON u.id=a.uid WHERE a.hash=?", (digest(token),)) if token else None
     if not record or not record["active"] or record["expires"] < now() or record["version"] != record["auth_version"]:
         fail("登录已失效，请重新登录", 401)
@@ -94,7 +94,7 @@ def runtime(request, user, write=False):
     if not r or r["status"] not in (("ready",) if write else ("ready", "updating")):
         fail("你的环境尚未就绪，请稍后重试或联系管理员", 409)
     spec = s.decrypt(r["spec"])
-    return f"http://px-{r['id']}-gateway:8080", {"X-Peixian-Key": spec["gateway_key"]}
+    return f"http://{request.app.state.runtime_namespace or 'px'}-{r['id']}-gateway:8080", {"X-Peixian-Key": spec["gateway_key"]}
 
 
 async def upstream(request, user, method, path, **kwargs):
@@ -300,6 +300,8 @@ async def download_stream(request, user, path):
 
 
 def create_app(store=None):
+    cookie_name = configured_cookie_name()
+    runtime_namespace = configured_runtime_namespace()
     @asynccontextmanager
     async def lifespan(app):
         app.state.store = store or configured_store()
@@ -311,6 +313,8 @@ def create_app(store=None):
         await app.state.http.aclose()
 
     app = FastAPI(title="沛县分析控制台", version="1.0.0", lifespan=lifespan, docs_url=None, redoc_url=None)
+    app.state.cookie_name = cookie_name
+    app.state.runtime_namespace = runtime_namespace
 
     app.add_middleware(RequestLimits)
 
@@ -354,7 +358,7 @@ def create_app(store=None):
         with s.tx() as db:
             db.execute("INSERT INTO auth VALUES(?,?,?,?,?,?,?,?)", (digest(token), user["id"], "session", "browser", csrf, now() + 28800, user["auth_version"], now()))
         response = JSONResponse({"user": s.user(user["id"]), "csrf_token": csrf})
-        response.set_cookie("px_session", token, httponly=True, samesite="strict", secure=os.getenv("COOKIE_SECURE") == "true", max_age=28800, path="/")
+        response.set_cookie(app.state.cookie_name, token, httponly=True, samesite="strict", secure=os.getenv("COOKIE_SECURE") == "true", max_age=28800, path="/")
         return response
 
     @app.get(PREFIX + "/me")
@@ -366,7 +370,7 @@ def create_app(store=None):
         with app.state.store.tx() as db:
             db.execute("DELETE FROM auth WHERE hash=?", (user["hash"],))
         response = JSONResponse({"ok": True})
-        response.delete_cookie("px_session")
+        response.delete_cookie(app.state.cookie_name, path="/")
         return response
 
     @app.post(PREFIX + "/me/password")

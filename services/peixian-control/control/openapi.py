@@ -224,7 +224,7 @@ def schemas():
 # Keys are actual route suffixes (or the explicit expansion of an actual route).
 # Response status comes from FastAPI's registered route, not a duplicate table.
 CONTRACTS = {
-    ("post", "/auth/login"): ("LoginBody", ref("Identity"), "登录并获取 Cookie 与 CSRF", "登录", "校验允许的 Origin，成功设置 HttpOnly 的 px_session Cookie。初始密码用户只能查询自己、改密或退出。"),
+    ("post", "/auth/login"): ("LoginBody", ref("Identity"), "登录并获取 Cookie 与 CSRF", "登录", "校验允许的 Origin，成功设置 HttpOnly 会话 Cookie，名称见 SessionCookie 安全方案。初始密码用户只能查询自己、改密或退出。"),
     ("get", "/me"): (None, ref("Identity"), "获取当前身份及环境状态", "登录", "账号由有效认证绑定；Bearer 身份的 csrf_token 为 null。"),
     ("post", "/auth/logout"): (None, ref("Ok"), "撤销当前认证", "登录", "删除当前 Cookie 或 Bearer 认证记录；已建立的本身份事件连接也会关闭。"),
     ("post", "/me/password"): ("PasswordBody", ref("Ok"), "修改自己的密码", "登录", "撤销其他登录与令牌，保留本次认证。"),
@@ -360,8 +360,8 @@ def build_openapi(app):
     document.pop("security", None)
     document.setdefault("components", {})["schemas"] = schemas()
     document["components"]["securitySchemes"] = {
-        "SessionCookie": {"type": "apiKey", "in": "cookie", "name": "px_session",
-                          "description": "auth/login 设置的 HttpOnly Cookie；不是可放入请求体的账号选择参数。"},
+        "SessionCookie": {"type": "apiKey", "in": "cookie", "name": app.state.cookie_name,
+                          "description": "auth/login 设置的 HttpOnly Cookie；名称由服务端 CONSOLE_COOKIE_NAME 固定，默认 px_session。不是可放入请求体的账号选择参数。"},
         "BearerToken": {"type": "http", "scheme": "bearer", "bearerFormat": "opaque",
                         "description": "tokens 创建的个人令牌。已撤销、过期、被停用账号的令牌不可用。"},
         "CsrfToken": {"type": "apiKey", "in": "header", "name": "X-CSRF-Token",
@@ -396,6 +396,9 @@ def build_openapi(app):
                         "同一快照重试仅在账号仍启用、认证版本未变、原任务仍为最新任务且处于 queued/running/succeeded、环境为 ready/provisioning，"
                         "并且该账号环境最新的重试/回退审计仍为本次重试时返回同一 job_id。"
                         "再次停用后不得以旧请求重新激活。执行器负责验证旧环境确实停止；此接口不直接停止容器或修改旧卷。")
+                if path.startswith("/internal/worker/legacy-"):
+                    operation["description"] += " 配置 RUNTIME_NAMESPACE 的框架项目禁用所有旧环境迁移接口，独立 WorkerKey 也不能调用。"
+                    operation["x-legacy-disabled"] = app.state.runtime_namespace is not None
                 annotate_body(operation, contract[0])
                 annotate_response(operation, contract[1])
                 if path.endswith("/packages/{sha}"):
@@ -416,7 +419,7 @@ def build_openapi(app):
                     operation["responses"] = {"200": response(STRING, "持续的 SSE 变更通知流", "text/event-stream")}
                     operation["x-sse-event"] = {"event": "change", "data": obj({"type": {"type": "string", "enum": ["connected", "updated"]}}, ("type",))}
                 if path == P + "/auth/login":
-                    operation["responses"]["200"]["headers"] = {"Set-Cookie": {"schema": STRING, "description": "px_session 的 HttpOnly/SameSite=Strict Cookie，最长 8 小时；部署启用 TLS 时配置 Secure。"}}
+                    operation["responses"]["200"]["headers"] = {"Set-Cookie": {"schema": STRING, "description": app.state.cookie_name + " 的 HttpOnly/SameSite=Strict Cookie，最长 8 小时；部署启用 TLS 时配置 Secure。"}}
                 if not anonymous and method not in ("get", "head", "options"):
                     operation["x-csrf"] = "Cookie sessions require X-CSRF-Token; personal Bearer tokens do not."
             for parameter in operation.get("parameters", []):

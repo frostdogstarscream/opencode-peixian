@@ -3,6 +3,7 @@ import { api, ApiError, BASE, onUnauthorized, post, safeMessage, setAuth } from 
 import type { Auth, User } from "./types"
 import { Button, ErrorLine, Field, Icon, Spinner, Status } from "./components"
 import { Context } from "./context"
+import { brand } from "./brand"
 import Chat from "./pages/Chat"
 import Files from "./pages/Files"
 import Skills from "./pages/Skills"
@@ -25,7 +26,7 @@ export default function App() {
   const [changed, setChanged] = createSignal(0)
   const [disconnected, setDisconnected] = createSignal(false)
   const [toast, setToast] = createSignal<{ message: string; kind: string }>()
-  const [dark, setDark] = createSignal(localStorage.getItem("peixian-theme") === "dark")
+  const [dark, setDark] = createSignal(localStorage.getItem(brand.themeKey) === "dark")
   let timer: ReturnType<typeof setTimeout> | undefined
   function notify(message: string, kind = "success") {
     clearTimeout(timer)
@@ -65,7 +66,7 @@ export default function App() {
   onCleanup(() => clearTimeout(timer))
   createEffect(() => {
     document.documentElement.dataset.theme = dark() ? "dark" : "light"
-    localStorage.setItem("peixian-theme", dark() ? "dark" : "light")
+    localStorage.setItem(brand.themeKey, dark() ? "dark" : "light")
   })
   const eventIdentity = createMemo(() => {
     const user = auth()?.user
@@ -150,10 +151,10 @@ export default function App() {
                       setMenu(false)
                     }}
                   >
-                    <span class="brand-mark">沛</span>
+                    <span class="brand-mark">{brand.mark}</span>
                     <span>
-                      <strong>沛县 · 研判工作台</strong>
-                      <small>让资料成为清晰的判断</small>
+                      <strong>{brand.name}</strong>
+                      <small>{brand.tagline}</small>
                     </span>
                   </a>
                   <div class="space-label">
@@ -297,13 +298,9 @@ function Login(props: { onSuccess: (value: Auth) => void; initialError: string; 
   return (
     <div class="login-shell">
       <div class="login-story">
-        <span class="brand-mark">沛</span>
-        <div class="eyebrow">沛县 · 智能研判平台</div>
-        <h1>
-          从纷繁资料中，
-          <br />
-          看见清晰线索。
-        </h1>
+        <span class="brand-mark">{brand.mark}</span>
+        <div class="eyebrow">{brand.name}</div>
+        <h1>{brand.tagline}</h1>
         <p>
           围绕资料展开对话，使用专业技能完成分析。
           <br />
@@ -354,7 +351,7 @@ function Login(props: { onSuccess: (value: Auth) => void; initialError: string; 
           </Show>
           <small>账号或密码有问题，请联系管理员。</small>
         </form>
-        <div class="login-foot">沛县研判工作台 · 专属工作空间</div>
+        <div class="login-foot">{brand.name} · 专属工作空间</div>
       </div>
     </div>
   )

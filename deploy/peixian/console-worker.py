@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import importlib.util
 import json
 import os
 from pathlib import Path
 import re
 import sys
+import tempfile
 import threading
 import time
 from urllib.parse import urlsplit
@@ -34,8 +36,8 @@ def report(state, job=None, code=None):
 def host_lock(root):
     path = Path(root) / "worker.lock"
     with path.open("a+b") as handle:
-        handle.seek(0)
-        if not handle.read(1):
+        # Reading the byte itself fails on Windows while another worker owns it.
+        if os.fstat(handle.fileno()).st_size == 0:
             handle.write(b"0")
             handle.flush()
         handle.seek(0)
@@ -56,6 +58,20 @@ def host_lock(root):
                 msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
             else:
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextlib.contextmanager
+def budget_lock(namespace):
+    if namespace is None:
+        yield
+        return
+    runtime.check_namespace(namespace)
+    # Fixed per OS user, independent of namespace/state root/checkout.
+    identity = hashlib.sha256(runtime.host_identity().encode("utf-8")).hexdigest()[:24]
+    root = Path(tempfile.gettempdir()) / ("peixian-framework-budget-" + identity)
+    runtime.protect_root(root)
+    with host_lock(root):
+        yield
 
 
 class Worker:
@@ -160,6 +176,7 @@ def main():
     parser.add_argument("--agent-image", default="peixian-opencode:1.18.30-managed-r1")
     parser.add_argument("--gateway-image", default="peixian-gateway:console-r1")
     parser.add_argument("--max-runtimes", type=int, default=4)
+    parser.add_argument("--namespace", help="Isolated deployment namespace; omitted keeps legacy px mode")
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
     url = urlsplit(args.control_url)
@@ -172,26 +189,27 @@ def main():
         raise runtime.RuntimeFailure("worker_key_unavailable") from None
     if len(key) < 32 or any(c in key for c in "\r\n\0"):
         raise runtime.RuntimeFailure("worker_key_invalid")
-    manager = runtime.RuntimeManager(args.state_root, control_container=args.control_container,
-                                     agent_image=args.agent_image, gateway_image=args.gateway_image,
-                                     maximum=args.max_runtimes)
-    with host_lock(manager.root), httpx.Client(
-        base_url=args.control_url.rstrip("/"), headers={"X-Worker-Key": key},
-        timeout=httpx.Timeout(connect=10, read=60, write=30, pool=10), trust_env=False, follow_redirects=False,
-    ) as client:
-        worker = Worker(client, manager)
-        while True:
-            try:
-                found = worker.once()
-                if args.once:
-                    return
-                if not found:
-                    time.sleep(5)
-            except (httpx.HTTPError, runtime.RuntimeFailure) as error:
-                report("retry", code=error.code if isinstance(error, runtime.RuntimeFailure) else "control_api_unavailable")
-                if args.once:
-                    raise SystemExit(1) from None
-                time.sleep(10)
+    with budget_lock(args.namespace):
+        manager = runtime.RuntimeManager(args.state_root, control_container=args.control_container,
+                                         agent_image=args.agent_image, gateway_image=args.gateway_image,
+                                         maximum=args.max_runtimes, namespace=args.namespace)
+        with host_lock(manager.root), httpx.Client(
+            base_url=args.control_url.rstrip("/"), headers={"X-Worker-Key": key},
+            timeout=httpx.Timeout(connect=10, read=60, write=30, pool=10), trust_env=False, follow_redirects=False,
+        ) as client:
+            worker = Worker(client, manager)
+            while True:
+                try:
+                    found = worker.once()
+                    if args.once:
+                        return
+                    if not found:
+                        time.sleep(5)
+                except (httpx.HTTPError, runtime.RuntimeFailure) as error:
+                    report("retry", code=error.code if isinstance(error, runtime.RuntimeFailure) else "control_api_unavailable")
+                    if args.once:
+                        raise SystemExit(1) from None
+                    time.sleep(10)
 
 
 if __name__ == "__main__":

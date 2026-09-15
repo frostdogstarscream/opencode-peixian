@@ -53,6 +53,8 @@ def register_worker(app):
     def worker(request: Request):
         if not hmac.compare_digest(request.headers.get("x-worker-key", ""), app.state.store.worker_key):
             fail("无权访问", 403)
+        if app.state.runtime_namespace is not None and request.url.path.startswith("/internal/worker/legacy-"):
+            fail("框架项目不提供旧环境迁移接口", 404)
         return True
 
     @app.get("/internal/worker/busy")

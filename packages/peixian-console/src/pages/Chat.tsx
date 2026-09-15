@@ -328,7 +328,7 @@ export default function Chat() {
                 <div class="welcome-symbol">
                   <Icon name="skill" size={31} />
                 </div>
-                <div class="eyebrow">你的专属研判助手</div>
+                <div class="eyebrow">你的专属 AI 助手</div>
                 <h1>今天，从什么问题开始？</h1>
                 <p>
                   提出问题，关联资料，或选择一个分析技能。
@@ -374,7 +374,7 @@ export default function Chat() {
                       </Show>
                     </div>
                     <div class="message-content">
-                      <div class="message-author">{message.info.role === "user" ? "你" : "研判助手"}</div>
+                      <div class="message-author">{message.info.role === "user" ? "你" : "AI 助手"}</div>
                       <For each={message.parts}>
                         {(part) => (
                           <>

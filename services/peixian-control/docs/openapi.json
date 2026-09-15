@@ -2024,7 +2024,7 @@
         "type": "apiKey"
       },
       "SessionCookie": {
-        "description": "auth/login 设置的 HttpOnly Cookie；不是可放入请求体的账号选择参数。",
+        "description": "auth/login 设置的 HttpOnly Cookie；名称由服务端 CONSOLE_COOKIE_NAME 固定，默认 px_session。不是可放入请求体的账号选择参数。",
         "in": "cookie",
         "name": "px_session",
         "type": "apiKey"
@@ -5081,7 +5081,7 @@
     },
     "/api/console/v1/auth/login": {
       "post": {
-        "description": "校验允许的 Origin，成功设置 HttpOnly 的 px_session Cookie。初始密码用户只能查询自己、改密或退出。",
+        "description": "校验允许的 Origin，成功设置 HttpOnly 会话 Cookie，名称见 SessionCookie 安全方案。初始密码用户只能查询自己、改密或退出。",
         "operationId": "login_api_console_v1_auth_login_post",
         "requestBody": {
           "content": {
@@ -12636,7 +12636,7 @@
     },
     "/internal/worker/legacy-import": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。 配置 RUNTIME_NAMESPACE 的框架项目禁用所有旧环境迁移接口，独立 WorkerKey 也不能调用。",
         "operationId": "legacy_import_internal_worker_legacy_import_post",
         "requestBody": {
           "content": {
@@ -12790,13 +12790,14 @@
           "内部：Worker"
         ],
         "x-internal": true,
+        "x-legacy-disabled": false,
         "x-role": "worker",
         "x-runtime-route": "/internal/worker/legacy-import"
       }
     },
     "/internal/worker/legacy-retry": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。仅支持预登记的两个旧账号及精确旧卷组合，必须匹配导入快照和同账号、同环境的回退审计。首次重试要求账号停用、环境 failed 且未占用名额、没有排队或运行任务。在一个事务内重新启用账号、撤销旧认证并预留容量、创建 resume 任务。202 仅表示任务已接受。同一快照重试仅在账号仍启用、认证版本未变、原任务仍为最新任务且处于 queued/running/succeeded、环境为 ready/provisioning，并且该账号环境最新的重试/回退审计仍为本次重试时返回同一 job_id。再次停用后不得以旧请求重新激活。执行器负责验证旧环境确实停止；此接口不直接停止容器或修改旧卷。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。仅支持预登记的两个旧账号及精确旧卷组合，必须匹配导入快照和同账号、同环境的回退审计。首次重试要求账号停用、环境 failed 且未占用名额、没有排队或运行任务。在一个事务内重新启用账号、撤销旧认证并预留容量、创建 resume 任务。202 仅表示任务已接受。同一快照重试仅在账号仍启用、认证版本未变、原任务仍为最新任务且处于 queued/running/succeeded、环境为 ready/provisioning，并且该账号环境最新的重试/回退审计仍为本次重试时返回同一 job_id。再次停用后不得以旧请求重新激活。执行器负责验证旧环境确实停止；此接口不直接停止容器或修改旧卷。 配置 RUNTIME_NAMESPACE 的框架项目禁用所有旧环境迁移接口，独立 WorkerKey 也不能调用。",
         "operationId": "legacy_retry_internal_worker_legacy_retry_post",
         "requestBody": {
           "content": {
@@ -12950,13 +12951,14 @@
           "内部：Worker"
         ],
         "x-internal": true,
+        "x-legacy-disabled": false,
         "x-role": "worker",
         "x-runtime-route": "/internal/worker/legacy-retry"
       }
     },
     "/internal/worker/legacy-rollback": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。 配置 RUNTIME_NAMESPACE 的框架项目禁用所有旧环境迁移接口，独立 WorkerKey 也不能调用。",
         "operationId": "legacy_rollback_internal_worker_legacy_rollback_post",
         "requestBody": {
           "content": {
@@ -13110,13 +13112,14 @@
           "内部：Worker"
         ],
         "x-internal": true,
+        "x-legacy-disabled": false,
         "x-role": "worker",
         "x-runtime-route": "/internal/worker/legacy-rollback"
       }
     },
     "/internal/worker/legacy-status/{uid}": {
       "get": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。 配置 RUNTIME_NAMESPACE 的框架项目禁用所有旧环境迁移接口，独立 WorkerKey 也不能调用。",
         "operationId": "legacy_status_internal_worker_legacy_status__uid__get",
         "parameters": [
           {
@@ -13274,6 +13277,7 @@
           "内部：Worker"
         ],
         "x-internal": true,
+        "x-legacy-disabled": false,
         "x-role": "worker",
         "x-runtime-route": "/internal/worker/legacy-status/{uid}"
       }

@@ -19,6 +19,8 @@ import uuid
 
 
 MANAGED = "peixian.console.managed"
+DEPLOYMENT = "peixian.deployment"
+NAMESPACE = re.compile(r"[a-z][a-z0-9-]{0,15}")
 ID = re.compile(r"[a-f0-9]{32}")
 SLUG = re.compile(r"[a-z][a-z0-9_-]{0,63}")
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
@@ -42,6 +44,42 @@ def check_id(value):
     if not isinstance(value, str) or not ID.fullmatch(value):
         raise RuntimeFailure("invalid_runtime_identity")
     return value
+
+
+def check_namespace(value):
+    if value is not None and (not isinstance(value, str) or not NAMESPACE.fullmatch(value)):
+        raise RuntimeFailure("invalid_deployment_namespace")
+    return value
+
+
+def project_name(runtime_id, namespace=None):
+    return (check_namespace(namespace) or "px") + "-" + check_id(runtime_id)
+
+
+def deployment_tag(namespace):
+    return {} if namespace is None else {DEPLOYMENT: check_namespace(namespace)}
+
+
+def root_identity(root, namespace, control_container):
+    marker = root / "deployment.json"
+    if root.is_symlink() or marker.is_symlink():
+        raise RuntimeFailure("deployment_root_identity_invalid")
+    if namespace is None:
+        if marker.exists():
+            raise RuntimeFailure("deployment_root_identity_mismatch")
+        return None
+    expected = {DEPLOYMENT: namespace, "control_container": control_container, "version": 1}
+    if marker.is_file():
+        try:
+            value = json.loads(marker.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            raise RuntimeFailure("deployment_root_identity_invalid") from None
+        if value != expected:
+            raise RuntimeFailure("deployment_root_identity_mismatch")
+        return None
+    if root.exists() and (not root.is_dir() or any(root.iterdir())):
+        raise RuntimeFailure("deployment_root_unmarked_nonempty")
+    return expected
 
 
 def inside(root, candidate):
@@ -90,6 +128,18 @@ def command(args, *, data=None, timeout=240, allowed=(0,)):
     return result.stdout.decode("utf-8", errors="replace")
 
 
+
+def host_identity():
+    if os.name == "posix":
+        return str(os.getuid())
+    import csv
+    rows = list(csv.reader(io.StringIO(command(["whoami", "/user", "/fo", "csv", "/nh"]))))
+    sid = rows[0][-1] if rows else ""
+    if not re.fullmatch(r"S-1-[0-9-]+", sid):
+        raise RuntimeFailure("host_acl_identity_unavailable")
+    return sid
+
+
 def protect_root(root):
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
@@ -100,11 +150,7 @@ def protect_root(root):
         if shutil.which("setfacl") is None:
             raise RuntimeFailure("linux_acl_required_install_acl_package")
         return
-    import csv
-    rows = list(csv.reader(io.StringIO(command(["whoami", "/user", "/fo", "csv", "/nh"]))))
-    sid = rows[0][-1] if rows else ""
-    if not re.fullmatch(r"S-1-[0-9-]+", sid):
-        raise RuntimeFailure("host_acl_identity_unavailable")
+    sid = host_identity()
     command(["icacls", str(root), "/inheritance:r", "/grant:r",
              f"*{sid}:(OI)(CI)F", "*S-1-5-18:(OI)(CI)F"], timeout=30)
 
@@ -195,14 +241,16 @@ except Exception:
 """
 
 
-def compose_spec(spec, release, *, agent_image, gateway_image):
+def compose_spec(spec, release, *, agent_image, gateway_image, namespace=None):
     runtime_id, uid = check_id(spec["runtime_id"]), check_id(spec["uid"])
-    project = "px-" + runtime_id
+    project = project_name(runtime_id, namespace)
+    if namespace is not None and spec["private"].get("legacy") is not None:
+        raise RuntimeFailure("namespaced_legacy_volumes_forbidden")
     release = Path(release).resolve()
     revision = spec["revision"]
     if type(revision) is not int or revision < 1:
         raise RuntimeFailure("invalid_revision")
-    labels = {MANAGED: "true", "peixian.runtime_id": runtime_id, "peixian.uid": uid, "peixian.revision": str(revision)}
+    labels = {MANAGED: "true", "peixian.runtime_id": runtime_id, "peixian.uid": uid, "peixian.revision": str(revision), **deployment_tag(namespace)}
     common = {
         "user": "10001:10001", "init": True, "restart": "unless-stopped", "read_only": True,
         "pull_policy": "never",
@@ -279,18 +327,24 @@ def compose_spec(spec, release, *, agent_image, gateway_image):
 
 
 class RuntimeManager:
+    namespace = None
+
     def __init__(self, root, *, control_container="peixian-console",
                  agent_image="peixian-opencode:1.18.30-managed-r1",
-                 gateway_image="peixian-gateway:console-r1", maximum=4):
+                 gateway_image="peixian-gateway:console-r1", maximum=4, namespace=None):
+        self.namespace = check_namespace(namespace)
         self.root = Path(root).absolute()
-        protect_root(self.root)
-        self.root = self.root.resolve()
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", control_container):
             raise RuntimeFailure("invalid_control_container")
         if not 1 <= maximum <= 32:
             raise RuntimeFailure("invalid_runtime_capacity")
         self.control_container, self.agent_image, self.gateway_image = control_container, agent_image, gateway_image
         self.maximum = maximum
+        identity = root_identity(self.root, self.namespace, self.control_container)
+        protect_root(self.root)
+        self.root = self.root.resolve()
+        if identity is not None:
+            write_json(self.root / "deployment.json", identity)
         self.docker = shutil.which("docker")
         if not self.docker:
             raise RuntimeFailure("docker_required")
@@ -304,14 +358,57 @@ class RuntimeManager:
     def docker_run(self, *args, data=None, timeout=240, allowed=(0,)):
         return command([self.docker, *args], data=data, timeout=timeout, allowed=allowed)
 
+    def project_name(self, runtime_id):
+        return project_name(runtime_id, self.namespace)
+
+    def check_owner(self, labels, runtime_id, uid=None):
+        if self.namespace is None:
+            return
+        if (not isinstance(labels, dict) or labels.get(DEPLOYMENT) != self.namespace
+                or labels.get(MANAGED) != "true" or labels.get("peixian.runtime_id") != runtime_id
+                or not ID.fullmatch(str(labels.get("peixian.uid", "")))
+                or (uid is not None and labels.get("peixian.uid") != uid)):
+            raise RuntimeFailure("deployment_resource_owner_mismatch")
+
+    def check_control(self):
+        if self.namespace is None:
+            return
+        labels = json.loads(self.docker_run("inspect", "--format", "{{json .Config.Labels}}", self.control_container))
+        if not isinstance(labels, dict) or labels.get(DEPLOYMENT) != self.namespace:
+            raise RuntimeFailure("deployment_control_owner_mismatch")
+
+    def check_compose(self, source, runtime_id):
+        if self.namespace is None:
+            return
+        project = self.project_name(runtime_id)
+        if (source.get("name") != project or set(source.get("services", {})) != {"agent", "gateway", "model-relay"}
+                or set(source.get("volumes", {})) != {"home", "workspace", "files"}
+                or set(source.get("networks", {})) != {"internal", "management", "egress"}):
+            raise RuntimeFailure("deployment_compose_mismatch")
+        uid = check_id(source["services"]["agent"].get("labels", {}).get("peixian.uid"))
+        for service in source["services"].values():
+            self.check_owner(service.get("labels"), runtime_id, uid)
+        for group in ("networks", "volumes"):
+            for name, item in source[group].items():
+                if item.get("name") != project + "-" + name or item.get("external"):
+                    raise RuntimeFailure("deployment_compose_resource_mismatch")
+                self.check_owner(item.get("labels"), runtime_id, uid)
+        self.running(runtime_id, uid=uid)
+
     def directory(self, runtime_id):
         return inside(self.root, self.root / "runtimes" / check_id(runtime_id))
 
     def compose(self, file, *args, timeout=240):
         # Infrastructure outlives every release. Compose must not recreate a network
         # to update revision labels while the control container is attached to it.
+        if self.namespace is not None:
+            inside(self.root, file)
         source = json.loads(Path(file).read_text(encoding="utf-8"))
-        identity = check_id(source["name"].removeprefix("px-"))
+        prefix = (self.namespace or "px") + "-"
+        if not source["name"].startswith(prefix):
+            raise RuntimeFailure("deployment_compose_mismatch")
+        identity = check_id(source["name"][len(prefix):])
+        self.check_compose(source, identity)
         directory = self.directory(identity)
         inside(directory, file)
         for group in ("networks", "volumes"):
@@ -327,16 +424,19 @@ class RuntimeManager:
         identity, uid = check_id(spec["runtime_id"]), check_id(spec["uid"])
         existing = set(self.docker_run("network", "ls", "--format", "{{.Name}}").split())
         for suffix in ("internal", "management", "egress"):
-            name = "px-" + identity + "-" + suffix
+            name = self.project_name(identity) + "-" + suffix
             internal = suffix != "egress"
             if name not in existing:
                 args = ["network", "create", "--driver", "bridge", "--label", MANAGED + "=true",
                         "--label", "peixian.runtime_id=" + identity, "--label", "peixian.uid=" + uid]
+                if self.namespace is not None:
+                    args.extend(("--label", DEPLOYMENT + "=" + self.namespace))
                 if internal:
                     args.append("--internal")
                 self.docker_run(*args, name)
             record = json.loads(self.docker_run("network", "inspect", name))[0]
             labels = record.get("Labels") or {}
+            self.check_owner(labels, identity, uid)
             if (record.get("Name") != name or record.get("Internal") is not internal or
                     labels.get(MANAGED) != "true" or labels.get("peixian.runtime_id") != identity or
                     labels.get("peixian.uid") != uid):
@@ -347,6 +447,10 @@ class RuntimeManager:
         if not file.exists():
             return None
         data = json.loads(file.read_text(encoding="utf-8"))
+        if self.namespace is not None:
+            if data.get(DEPLOYMENT) != self.namespace:
+                raise RuntimeFailure("deployment_state_owner_mismatch")
+            check_id(data.get("uid"))
         if data["runtime_id"] != runtime_id or data["uid"] is None:
             raise RuntimeFailure("invalid_local_runtime_state")
         return data
@@ -354,7 +458,8 @@ class RuntimeManager:
     def private_get(self, spec, endpoint):
         if endpoint not in ("/health", "/session/status", "/global/health", "/skill"):
             raise RuntimeFailure("invalid_private_probe")
-        url = "http://px-" + check_id(spec["runtime_id"]) + "-gateway:8080" + endpoint
+        self.check_control()
+        url = "http://" + self.project_name(spec["runtime_id"]) + "-gateway:8080" + endpoint
         text = self.docker_run("exec", "-i", self.control_container, "python3", "-c", CONTROL_GET,
                                data=json_bytes({"url": url, "key": spec["private"]["gateway_key"]}), timeout=15)
         result = json.loads(text)
@@ -363,9 +468,12 @@ class RuntimeManager:
         return result
 
     def attach_control(self, runtime_id):
-        network = "px-" + check_id(runtime_id) + "-management"
+        self.check_control()
+        network = self.project_name(runtime_id) + "-management"
         record = json.loads(self.docker_run("network", "inspect", network))[0]
         labels = record.get("Labels") or {}
+        local = self.state(runtime_id) if self.namespace is not None else None
+        self.check_owner(labels, runtime_id, local["uid"] if local else None)
         if (record.get("Name") != network or record.get("Internal") is not True or
                 labels.get(MANAGED) != "true" or labels.get("peixian.runtime_id") != runtime_id):
             raise RuntimeFailure("management_network_owner_mismatch")
@@ -411,7 +519,10 @@ class RuntimeManager:
                 continue
             try:
                 value = self.state(account.name)
-                if value is None or value.get("paused") or not self.running(account.name):
+                if value is None or value.get("paused"):
+                    continue
+                active = self.running(account.name, uid=value["uid"]) if self.namespace is not None else self.running(account.name)
+                if not active:
                     continue
                 check_id(value["uid"])
                 inside(account, Path(value["compose"]))
@@ -424,6 +535,10 @@ class RuntimeManager:
         ids = self.docker_run("ps", "--filter", "label=" + MANAGED + "=true",
                               "--filter", "label=com.docker.compose.service=agent", "--format", "{{.ID}}").split()
         records = json.loads(self.docker_run("inspect", *ids)) if ids else []
+        if self.namespace is not None:
+            if any((item["Config"].get("Labels") or {}).get(DEPLOYMENT) != self.namespace for item in records):
+                raise RuntimeFailure("another_deployment_has_running_agents")
+            records = [item for item in records if item["Config"]["Labels"].get(DEPLOYMENT) == self.namespace]
         others = {item["Config"]["Labels"].get("peixian.runtime_id") for item in records}
         others.discard(runtime_id)
         if len(others) >= self.maximum:
@@ -438,6 +553,8 @@ class RuntimeManager:
             raise RuntimeFailure("docker_cpu_budget_exceeded")
 
     def prepare(self, spec, download):
+        if self.namespace is not None and spec["private"].get("legacy") is not None:
+            raise RuntimeFailure("namespaced_legacy_volumes_forbidden")
         runtime_id, uid = check_id(spec["runtime_id"]), check_id(spec["uid"])
         revision = spec["revision"]
         if type(revision) is not int or revision < 1:
@@ -446,8 +563,9 @@ class RuntimeManager:
         directory.mkdir(parents=True, exist_ok=True)
         release = inside(directory, directory / "releases" / str(revision))
         digest = hashlib.sha256(json_bytes(spec)).hexdigest()
+        publication = {"digest": digest, "uid": uid, "revision": revision, **deployment_tag(self.namespace)}
         if release.exists():
-            if json.loads((release / "publication.json").read_text()) != {"digest": digest, "uid": uid, "revision": revision}:
+            if json.loads((release / "publication.json").read_text(encoding="utf-8")) != publication:
                 raise RuntimeFailure("immutable_release_conflict")
             return release
         stage = directory / "releases" / (".staging-" + uuid.uuid4().hex)
@@ -485,7 +603,7 @@ class RuntimeManager:
             target.write_text("---\nname: " + json.dumps(skill["name"], ensure_ascii=False) +
                               "\ndescription: " + json.dumps(skill["description"], ensure_ascii=False) +
                               "\n---\n" + skill["content"], encoding="utf-8")
-        version = {"uid": uid, "runtime_id": runtime_id, "revision": revision}
+        version = {"uid": uid, "runtime_id": runtime_id, "revision": revision, **deployment_tag(self.namespace)}
         write_json(stage / "agent/opencode.json", config)
         write_json(stage / "agent/revision.json", version)
         write_json(stage / "gateway/revision.json", version)
@@ -494,15 +612,19 @@ class RuntimeManager:
         write_json(stage / "relay/revision.json", version)
         write_secret(stage / "private/gateway-token", spec["private"]["gateway_key"])
         write_secret(stage / "private/opencode-password", spec["private"]["agent_password"])
-        write_json(stage / "publication.json", {"digest": digest, "uid": uid, "revision": revision})
+        write_json(stage / "publication.json", publication)
         # Compose paths point at the final immutable location, never the staging name.
-        write_json(stage / "compose.json", compose_spec(spec, release, agent_image=self.agent_image, gateway_image=self.gateway_image))
+        write_json(stage / "compose.json", compose_spec(spec, release, agent_image=self.agent_image, gateway_image=self.gateway_image, namespace=self.namespace))
         grant_container_read(stage)
         os.rename(stage, release)
         return release
 
     def ensure_volumes(self, spec, compose):
-        project = "px-" + spec["runtime_id"]
+        project = self.project_name(spec["runtime_id"])
+        if self.namespace is not None:
+            if spec["private"].get("legacy") is not None:
+                raise RuntimeFailure("namespaced_legacy_volumes_forbidden")
+            self.check_compose(compose, spec["runtime_id"])
         for definition in compose["volumes"].values():
             name = definition["name"]
             if definition.get("external"):
@@ -516,11 +638,18 @@ class RuntimeManager:
             found = self.docker_run("volume", "ls", "--filter", "name=^" + re.escape(name) + "$", "--format", "{{.Name}}").split()
             if found:
                 record = json.loads(self.docker_run("volume", "inspect", name))[0]
+                self.check_owner(record.get("Labels"), spec["runtime_id"], spec["uid"])
                 if (record.get("Labels") or {}).get("peixian.runtime_id") != spec["runtime_id"]:
                     raise RuntimeFailure("volume_owner_mismatch")
             else:
-                self.docker_run("volume", "create", "--label", MANAGED + "=true",
-                                "--label", "peixian.runtime_id=" + spec["runtime_id"], name)
+                labels = ["--label", MANAGED + "=true", "--label", "peixian.runtime_id=" + spec["runtime_id"]]
+                if self.namespace is not None:
+                    labels.extend(("--label", DEPLOYMENT + "=" + self.namespace, "--label", "peixian.uid=" + spec["uid"]))
+                self.docker_run("volume", "create", *labels, name)
+            if self.namespace is not None:
+                # Docker volume create can return a concurrently existing volume.
+                record = json.loads(self.docker_run("volume", "inspect", name))[0]
+                self.check_owner(record.get("Labels"), spec["runtime_id"], spec["uid"])
             # Recover an interrupted initialization only when the owned volume is still empty.
             # Imported volumes took the branch above and can never reach this operation.
             self.docker_run("run", "--rm", "--pull", "never", "--network", "none", "--read-only",
@@ -533,9 +662,27 @@ class RuntimeManager:
                             "assert s.st_uid==0 and not os.listdir('/volume');"
                             "os.chmod('/volume',0o700);os.chown('/volume',10001,10001)", timeout=30)
 
-    def running(self, runtime_id):
-        return self.docker_run("ps", "--filter", "label=com.docker.compose.project=px-" + check_id(runtime_id),
-                               "--format", "{{.ID}}").split()
+    def running(self, runtime_id, *, uid=None):
+        project = self.project_name(runtime_id)
+        args = ["ps", *(["-a"] if self.namespace is not None else []),
+                "--filter", "label=com.docker.compose.project=" + project, "--format", "{{.ID}}"]
+        ids = self.docker_run(*args).split()
+        if self.namespace is not None and ids:
+            records = json.loads(self.docker_run("inspect", *ids))
+            services, owners = set(), set()
+            for item in records:
+                labels = item["Config"].get("Labels") or {}
+                self.check_owner(labels, runtime_id, uid)
+                service = labels.get("com.docker.compose.service")
+                if (labels.get("com.docker.compose.project") != project
+                        or service not in {"agent", "gateway", "model-relay"} or service in services):
+                    raise RuntimeFailure("deployment_container_owner_mismatch")
+                services.add(service)
+                owners.add(labels["peixian.uid"])
+            if len(owners) != 1:
+                raise RuntimeFailure("deployment_container_owner_mismatch")
+            return [item["Id"] for item in records if item["State"]["Running"]]
+        return ids
 
     def stop_checked(self, runtime_id, file):
         self.compose(file, "stop", timeout=90)
@@ -550,18 +697,22 @@ class RuntimeManager:
                 raise RuntimeFailure("runtime_image_platform_mismatch")
 
     def apply(self, job, spec, download, heartbeat):
+        if self.namespace is not None and spec["private"].get("legacy") is not None:
+            raise RuntimeFailure("namespaced_legacy_volumes_forbidden")
         runtime_id, uid = check_id(spec["runtime_id"]), check_id(spec["uid"])
         if job["uid"] != uid or job["revision"] != spec["revision"] or job["action"] not in {"provision", "apply", "pause", "resume"}:
             raise RuntimeFailure("job_spec_mismatch")
         previous = self.state(runtime_id)
         if previous and previous["uid"] != uid:
             raise RuntimeFailure("runtime_owner_mismatch")
-        running = self.running(runtime_id)
+        running = self.running(runtime_id, uid=uid) if self.namespace is not None else self.running(runtime_id)
         old_file = inside(self.directory(runtime_id), Path(previous["compose"])) if previous else None
         pending_file = self.directory(runtime_id) / "pending.json"
         if running and not previous:
             # Resume only a deployment this worker journaled before Compose started.
             pending = json.loads(pending_file.read_text(encoding="utf-8")) if pending_file.is_file() else {}
+            if self.namespace is not None and pending.get(DEPLOYMENT) != self.namespace:
+                raise RuntimeFailure("deployment_state_owner_mismatch")
             if pending.get("uid") != uid or pending.get("runtime_id") != runtime_id:
                 raise RuntimeFailure("runtime_state_missing")
             old_file = inside(self.directory(runtime_id), Path(pending["compose"]))
@@ -587,12 +738,14 @@ class RuntimeManager:
             heartbeat()
             write_json(pending_file, {
                 "uid": uid, "runtime_id": runtime_id, "revision": spec["revision"], "compose": str(file),
+                **deployment_tag(self.namespace),
             })
             attempted = True
             self.compose(file, "up", "-d", "--no-build", "--wait", "--wait-timeout", "180", timeout=240)
             self.verify(spec, spec["revision"])
             write_json(self.directory(runtime_id) / "state.json", {
                 "uid": uid, "runtime_id": runtime_id, "revision": spec["revision"], "compose": str(file), "paused": False,
+                **deployment_tag(self.namespace),
             })
             return {"ok": True}
         except Exception as error:

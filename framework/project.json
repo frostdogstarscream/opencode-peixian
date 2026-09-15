@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "project_id": "agent-framework",
+  "display_name": "AI 应用工作台",
+  "tagline": "面向企业的 AI 应用开发框架",
+  "console_port": 14100,
+  "max_runtimes": 4
+}

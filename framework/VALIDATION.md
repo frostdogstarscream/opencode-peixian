@@ -16,6 +16,20 @@
 
 控制层测试依赖提示 FastAPI/Starlette 上游弃用告警；未据此跳过失败。Vite 构建有根工作区未安装 @tsconfig/bun 的非阻塞提示，本包类型检查与构建均为退出码 0。
 
+## 真实模板生成与首次初始化
+
+从框架提交 a2878d48c63cf7bce9542e01d53b0c66e9da35bc 实际生成独立示例项目，导出 6,526 个文件，包含安全物化后的模板链接。随后在 Windows 完成 init 与重复 init：
+
+- 示例使用新 Git 仓库，没有继承提交历史或远程。
+- LICENSE 与模板原字节相同；记录模板来源提交。
+- 旧 A/B 迁移脚本和旧部署私密目录未被导出。
+- 生成三份全新凭据，均与原沛县同类凭据不同；重复初始化后文件摘要不变。
+- 新项目控制入口为 14200，namespace 为 starter-demo，Cookie 名为 starter_demo_session。
+- 私密目录和状态文件被 Git 忽略；没有启动 Docker 容器或调用模型。
+- 脱敏机器记录位于 framework/.runtime/generation-verification.json，未纳入提交。
+
+原沛县 worktree 仍保持检查点源码且工作区干净，14090 的健康接口返回 ok。新框架构建和模拟测试没有替换该服务。
+
 ## 验证边界
 
 - 沛县检查点曾通过真实 Docker 和 DeepSeek 验收；这些证据不能自动作为框架修改后端到端验收。

@@ -4,6 +4,7 @@ Examples:
     python console_client.py --username client-a --file evidence.xlsx --message "Summarize the uploaded data."
     python console_client.py --session-id SESSION_ID --message "Continue the analysis."
     python console_client.py --abort-only SESSION_ID
+    python console_client.py --base-url https://test.example --ca-file private-ca.pem --username loadtest-001
 
 An existing personal token can be supplied in PEIXIAN_CONSOLE_TOKEN. Otherwise
 the program asks for the account password using getpass and keeps the session
@@ -24,6 +25,7 @@ import os
 from pathlib import Path
 import re
 import random
+import ssl
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from urllib.parse import urlsplit
@@ -76,22 +78,30 @@ async def sse_events(lines):
 
 
 class ConsoleClient:
-    def __init__(self, base_url="http://127.0.0.1:14090", *, token=None, transport=None):
+    def __init__(self, base_url="http://127.0.0.1:14090", *, token=None, transport=None, ca_file=None):
         parsed = urlsplit(base_url)
         if (parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username
                 or parsed.password or parsed.query or parsed.fragment or parsed.path not in ("", "/")):
             raise ValueError("base_url must be the HTTP/HTTPS console origin")
         self.origin = base_url.rstrip("/")
+        # Explicit private-CA trust keeps both certificate and hostname checks.
+        # Never offer an insecure TLS switch, including for event subscriptions.
+        verify = True
+        if ca_file is not None:
+            ca_file = Path(ca_file)
+            if parsed.scheme != "https" or not ca_file.is_file() or not 1 <= ca_file.stat().st_size <= 1024 * 1024:
+                raise ValueError("ca_file must be a PEM trust bundle for an HTTPS console")
+            verify = ssl.create_default_context(cafile=str(ca_file))
         headers = {"Origin": self.origin}
         if token:
             headers["Authorization"] = "Bearer " + token
         self.http = httpx.AsyncClient(
             base_url=self.origin, headers=headers, trust_env=False, follow_redirects=False,
-            timeout=httpx.Timeout(60, connect=10), transport=transport,
+            timeout=httpx.Timeout(60, connect=10), transport=transport, verify=verify,
             limits=httpx.Limits(max_connections=8, max_keepalive_connections=4),
         )
         self.stream_http = httpx.AsyncClient(base_url=self.origin, trust_env=False, follow_redirects=False,
-            timeout=httpx.Timeout(None, connect=10, pool=2), transport=transport,
+            timeout=httpx.Timeout(None, connect=10, pool=2), transport=transport, verify=verify,
             limits=httpx.Limits(max_connections=1, max_keepalive_connections=0))
 
     async def __aenter__(self):
@@ -303,7 +313,7 @@ class ConsoleClient:
 
 async def main(args):
     token = os.environ.get("PEIXIAN_CONSOLE_TOKEN")
-    async with ConsoleClient(args.base_url, token=token) as client:
+    async with ConsoleClient(args.base_url, token=token, ca_file=args.ca_file) as client:
         if token:
             user = await client.me()
         else:
@@ -347,6 +357,7 @@ async def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--base-url", default="http://127.0.0.1:14090")
+    parser.add_argument("--ca-file", type=Path, help="Explicit PEM CA bundle for an HTTPS console; certificate verification remains enabled")
     parser.add_argument("--username")
     parser.add_argument("--model-id")
     parser.add_argument("--session-id")

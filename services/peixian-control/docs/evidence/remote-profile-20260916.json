@@ -1,0 +1,1664 @@
+{
+  "format": 1,
+  "date": "2026-09-16",
+  "result": "two_account_workflows_passed_capacity_gate_for_50_failed",
+  "source_commit": "64bcd2dbb6f3739678d91fdaa5f963b0edeab49d",
+  "runtime_source_revision": "e93b7af95c0dae9752cbfb3d63449306fb78056e",
+  "tool_state": "local_uncommitted_test_support_patch; deployed runtime images unchanged",
+  "tool_sha256": {
+    "deploy/peixian/constrained-test.py": "7626acf83d8b04da069a95ae47e6cf1c3e6cb27d1b3b35578304b13a24fd84b9",
+    "deploy/peixian/platform-sample.py": "677277097f3f2193fc935009a667f660f279af2b5e7fabac48e9adcad053f1e9",
+    "services/peixian-control/examples/console_client.py": "c8f66963f0223eeb67be6bd36f6775dcbe7836a8ef609a579f8c386f4b48bee1",
+    "services/peixian-control/benchmarks/small_profile.py": "c8b6253da6fbc1174b4e1cb9d28548fd4b27a3062d7abcabc61ea7191c4fea5f"
+  },
+  "host": {
+    "distribution": "BigCloud Enterprise Linux V25.0.1 LTS",
+    "kernel": "6.6",
+    "arch": "x86_64",
+    "docker": "25.0.3",
+    "compose": "2.24.0",
+    "cgroup": "v1/cgroupfs",
+    "host_logical_cpu_count": 32,
+    "host_memory_mib": 257418,
+    "swap_bytes": 0
+  },
+  "images": {
+    "control": "sha256:3b6fc5fe464e560e2a4e48ef5c13f6ea6ed1e37df087c00da5588d4296bc654b",
+    "gateway": "sha256:6bf01f7d7e5ec0a7f45f59ac0d8ea4d56e983fa42463bd74a8d0f50cb3bd9966",
+    "agent": "sha256:b48f9eceb7391ac893e71b39013a5551d30aed23305732031b0646c0144bff7f",
+    "https": "sha256:c318e336065b17ff460aeac6d14bce5d0b13e35f25d5cb1843b635359fc00c9a"
+  },
+  "image_archive_sha256": "2a6f5734c4ec8515f284c2061b4db11aecdeeb5a513b73e27a8871105f2c3ca6",
+  "workflow_reports": {
+    "workflow-answers": {
+      "format": 1,
+      "profile": "one_or_two_real_platform_synthetic_accounts",
+      "started_at": "2026-09-16T11:50:19.299223+00:00",
+      "deployment_fingerprint": "f2e8598256cda2f6",
+      "accounts": 2,
+      "stages": [
+        {
+          "scenario": "answers",
+          "started_at": "2026-09-16T11:50:19.377674+00:00",
+          "accounts": [
+            {
+              "account_number": 1,
+              "started_at": "2026-09-16T11:50:19.377733+00:00",
+              "status": "passed",
+              "new_assistant_messages": 1,
+              "new_completed_messages": 1,
+              "new_answer_characters": 3024,
+              "new_completed_plugin_tools": 0,
+              "matching_sample_records_outputs": 0,
+              "ended_at": "2026-09-16T11:50:32.751478+00:00",
+              "elapsed_seconds": 13.374
+            },
+            {
+              "account_number": 2,
+              "started_at": "2026-09-16T11:50:19.378250+00:00",
+              "status": "passed",
+              "new_assistant_messages": 1,
+              "new_completed_messages": 1,
+              "new_answer_characters": 3108,
+              "new_completed_plugin_tools": 0,
+              "matching_sample_records_outputs": 0,
+              "ended_at": "2026-09-16T11:50:33.684749+00:00",
+              "elapsed_seconds": 14.307
+            }
+          ],
+          "ended_at": "2026-09-16T11:50:33.684807+00:00",
+          "status": "passed"
+        }
+      ],
+      "status": "passed",
+      "tls_verification": "enabled",
+      "explicit_ca": true,
+      "limits": {
+        "task_timeout": 300,
+        "observe_seconds": 30,
+        "write_retries": 0,
+        "iterations_per_account_per_scenario": 1
+      },
+      "evidence_boundary": "Client workflow timestamps only. Combine external cgroup peaks, container restarts and upstream evidence. Public tool output fingerprint is not a raw tool identity proof. No 50-account capacity claim.",
+      "ended_at": "2026-09-16T11:50:33.685433+00:00"
+    },
+    "workflow-events": {
+      "format": 1,
+      "profile": "one_or_two_real_platform_synthetic_accounts",
+      "started_at": "2026-09-16T11:53:59.321421+00:00",
+      "deployment_fingerprint": "f2e8598256cda2f6",
+      "accounts": 2,
+      "stages": [
+        {
+          "scenario": "events",
+          "started_at": "2026-09-16T11:53:59.382273+00:00",
+          "accounts": [
+            {
+              "account_number": 1,
+              "started_at": "2026-09-16T11:53:59.382326+00:00",
+              "status": "passed",
+              "subscriptions": 1,
+              "change_events": 1,
+              "seconds_observed": 30,
+              "reconnections": 0,
+              "ended_at": "2026-09-16T11:54:29.406519+00:00",
+              "elapsed_seconds": 30.024
+            },
+            {
+              "account_number": 2,
+              "started_at": "2026-09-16T11:53:59.382836+00:00",
+              "status": "passed",
+              "subscriptions": 1,
+              "change_events": 1,
+              "seconds_observed": 30,
+              "reconnections": 0,
+              "ended_at": "2026-09-16T11:54:29.406173+00:00",
+              "elapsed_seconds": 30.023
+            }
+          ],
+          "ended_at": "2026-09-16T11:54:29.406570+00:00",
+          "status": "passed"
+        }
+      ],
+      "status": "passed",
+      "tls_verification": "enabled",
+      "explicit_ca": true,
+      "limits": {
+        "task_timeout": 300,
+        "observe_seconds": 30,
+        "write_retries": 0,
+        "iterations_per_account_per_scenario": 1
+      },
+      "evidence_boundary": "Client workflow timestamps only. Combine external cgroup peaks, container restarts and upstream evidence. Public tool output fingerprint is not a raw tool identity proof. No 50-account capacity claim.",
+      "ended_at": "2026-09-16T11:54:29.407085+00:00"
+    },
+    "workflow-files-docx-r2": {
+      "format": 1,
+      "profile": "one_or_two_real_platform_synthetic_accounts",
+      "started_at": "2026-09-16T11:53:54.486080+00:00",
+      "deployment_fingerprint": "f2e8598256cda2f6",
+      "accounts": 2,
+      "stages": [
+        {
+          "scenario": "files",
+          "started_at": "2026-09-16T11:53:54.546126+00:00",
+          "accounts": [
+            {
+              "account_number": 1,
+              "started_at": "2026-09-16T11:53:54.546185+00:00",
+              "status": "passed",
+              "file_type": "docx",
+              "upload_bytes": 1636,
+              "parsed_status": "ready",
+              "marker_verified": true,
+              "ended_at": "2026-09-16T11:53:55.619958+00:00",
+              "elapsed_seconds": 1.074
+            },
+            {
+              "account_number": 2,
+              "started_at": "2026-09-16T11:53:54.547599+00:00",
+              "status": "passed",
+              "file_type": "docx",
+              "upload_bytes": 1637,
+              "parsed_status": "ready",
+              "marker_verified": true,
+              "ended_at": "2026-09-16T11:53:55.609767+00:00",
+              "elapsed_seconds": 1.062
+            }
+          ],
+          "ended_at": "2026-09-16T11:53:55.620013+00:00",
+          "status": "passed"
+        }
+      ],
+      "status": "passed",
+      "tls_verification": "enabled",
+      "explicit_ca": true,
+      "limits": {
+        "task_timeout": 300,
+        "observe_seconds": 30,
+        "write_retries": 0,
+        "iterations_per_account_per_scenario": 1
+      },
+      "evidence_boundary": "Client workflow timestamps only. Combine external cgroup peaks, container restarts and upstream evidence. Public tool output fingerprint is not a raw tool identity proof. No 50-account capacity claim.",
+      "ended_at": "2026-09-16T11:53:55.620554+00:00"
+    },
+    "workflow-files-docx": {
+      "format": 1,
+      "profile": "one_or_two_real_platform_synthetic_accounts",
+      "started_at": "2026-09-16T11:50:49.826118+00:00",
+      "deployment_fingerprint": "f2e8598256cda2f6",
+      "accounts": 2,
+      "stages": [
+        {
+          "scenario": "files",
+          "started_at": "2026-09-16T11:50:49.890460+00:00",
+          "accounts": [
+            {
+              "account_number": 1,
+              "started_at": "2026-09-16T11:50:49.890516+00:00",
+              "status": "failed",
+              "error": {
+                "type": "ModuleNotFoundError",
+                "http_status": null,
+                "result_unknown": false
+              },
+              "ended_at": "2026-09-16T11:50:49.890962+00:00",
+              "elapsed_seconds": 0.0
+            },
+            {
+              "account_number": 2,
+              "started_at": "2026-09-16T11:50:49.890982+00:00",
+              "status": "failed",
+              "error": {
+                "type": "ModuleNotFoundError",
+                "http_status": null,
+                "result_unknown": false
+              },
+              "ended_at": "2026-09-16T11:50:49.891248+00:00",
+              "elapsed_seconds": 0.0
+            }
+          ],
+          "ended_at": "2026-09-16T11:50:49.891285+00:00",
+          "status": "failed"
+        }
+      ],
+      "status": "failed",
+      "tls_verification": "enabled",
+      "explicit_ca": true,
+      "limits": {
+        "task_timeout": 300,
+        "observe_seconds": 30,
+        "write_retries": 0,
+        "iterations_per_account_per_scenario": 1
+      },
+      "evidence_boundary": "Client workflow timestamps only. Combine external cgroup peaks, container restarts and upstream evidence. Public tool output fingerprint is not a raw tool identity proof. No 50-account capacity claim.",
+      "ended_at": "2026-09-16T11:50:49.891857+00:00"
+    },
+    "workflow-files": {
+      "format": 1,
+      "profile": "one_or_two_real_platform_synthetic_accounts",
+      "started_at": "2026-09-16T11:50:45.917779+00:00",
+      "deployment_fingerprint": "f2e8598256cda2f6",
+      "accounts": 2,
+      "stages": [
+        {
+          "scenario": "files",
+          "started_at": "2026-09-16T11:50:45.976373+00:00",
+          "accounts": [
+            {
+              "account_number": 1,
+              "started_at": "2026-09-16T11:50:45.976422+00:00",
+              "status": "passed",
+              "file_type": "txt",
+              "upload_bytes": 6299,
+              "parsed_status": "ready",
+              "marker_verified": true,
+              "ended_at": "2026-09-16T11:50:46.552392+00:00",
+              "elapsed_seconds": 0.576
+            },
+            {
+              "account_number": 2,
+              "started_at": "2026-09-16T11:50:45.977283+00:00",
+              "status": "passed",
+              "file_type": "txt",
+              "upload_bytes": 6299,
+              "parsed_status": "ready",
+              "marker_verified": true,
+              "ended_at": "2026-09-16T11:50:46.550998+00:00",
+              "elapsed_seconds": 0.574
+            }
+          ],
+          "ended_at": "2026-09-16T11:50:46.552436+00:00",
+          "status": "passed"
+        }
+      ],
+      "status": "passed",
+      "tls_verification": "enabled",
+      "explicit_ca": true,
+      "limits": {
+        "task_timeout": 300,
+        "observe_seconds": 30,
+        "write_retries": 0,
+        "iterations_per_account_per_scenario": 1
+      },
+      "evidence_boundary": "Client workflow timestamps only. Combine external cgroup peaks, container restarts and upstream evidence. Public tool output fingerprint is not a raw tool identity proof. No 50-account capacity claim.",
+      "ended_at": "2026-09-16T11:50:46.552945+00:00"
+    },
+    "workflow-idle": {
+      "format": 1,
+      "profile": "one_or_two_real_platform_synthetic_accounts",
+      "started_at": "2026-09-16T11:49:45.918231+00:00",
+      "deployment_fingerprint": "f2e8598256cda2f6",
+      "accounts": 2,
+      "stages": [
+        {
+          "scenario": "idle",
+          "started_at": "2026-09-16T11:49:45.980456+00:00",
+          "accounts": [
+            {
+              "account_number": 1,
+              "started_at": "2026-09-16T11:49:45.980508+00:00",
+              "status": "passed",
+              "seconds_observed": 30,
+              "ended_at": "2026-09-16T11:50:16.023894+00:00",
+              "elapsed_seconds": 30.043
+            },
+            {
+              "account_number": 2,
+              "started_at": "2026-09-16T11:49:45.980542+00:00",
+              "status": "passed",
+              "seconds_observed": 30,
+              "ended_at": "2026-09-16T11:50:16.024763+00:00",
+              "elapsed_seconds": 30.044
+            }
+          ],
+          "ended_at": "2026-09-16T11:50:16.024797+00:00",
+          "status": "passed"
+        }
+      ],
+      "status": "passed",
+      "tls_verification": "enabled",
+      "explicit_ca": true,
+      "limits": {
+        "task_timeout": 300,
+        "observe_seconds": 30,
+        "write_retries": 0,
+        "iterations_per_account_per_scenario": 1
+      },
+      "evidence_boundary": "Client workflow timestamps only. Combine external cgroup peaks, container restarts and upstream evidence. Public tool output fingerprint is not a raw tool identity proof. No 50-account capacity claim.",
+      "ended_at": "2026-09-16T11:50:16.025331+00:00"
+    },
+    "workflow-plugin-test": {
+      "format": 1,
+      "profile": "one_or_two_real_platform_synthetic_accounts",
+      "started_at": "2026-09-16T11:50:36.968238+00:00",
+      "deployment_fingerprint": "f2e8598256cda2f6",
+      "accounts": 2,
+      "stages": [
+        {
+          "scenario": "plugin-test",
+          "started_at": "2026-09-16T11:50:37.062638+00:00",
+          "accounts": [
+            {
+              "account_number": 1,
+              "started_at": "2026-09-16T11:50:37.062700+00:00",
+              "status": "passed",
+              "connection_test_completed": true,
+              "model_tool_execution": false,
+              "ended_at": "2026-09-16T11:50:37.348034+00:00",
+              "elapsed_seconds": 0.285
+            },
+            {
+              "account_number": 2,
+              "started_at": "2026-09-16T11:50:37.063231+00:00",
+              "status": "passed",
+              "connection_test_completed": true,
+              "model_tool_execution": false,
+              "ended_at": "2026-09-16T11:50:37.350392+00:00",
+              "elapsed_seconds": 0.287
+            }
+          ],
+          "ended_at": "2026-09-16T11:50:37.350431+00:00",
+          "status": "passed"
+        }
+      ],
+      "status": "passed",
+      "tls_verification": "enabled",
+      "explicit_ca": true,
+      "limits": {
+        "task_timeout": 300,
+        "observe_seconds": 30,
+        "write_retries": 0,
+        "iterations_per_account_per_scenario": 1
+      },
+      "evidence_boundary": "Client workflow timestamps only. Combine external cgroup peaks, container restarts and upstream evidence. Public tool output fingerprint is not a raw tool identity proof. No 50-account capacity claim.",
+      "ended_at": "2026-09-16T11:50:37.350978+00:00"
+    },
+    "workflow-tool": {
+      "format": 1,
+      "profile": "one_or_two_real_platform_synthetic_accounts",
+      "started_at": "2026-09-16T11:50:40.632804+00:00",
+      "deployment_fingerprint": "f2e8598256cda2f6",
+      "accounts": 2,
+      "stages": [
+        {
+          "scenario": "tool",
+          "started_at": "2026-09-16T11:50:40.749087+00:00",
+          "accounts": [
+            {
+              "account_number": 1,
+              "started_at": "2026-09-16T11:50:40.749178+00:00",
+              "status": "passed",
+              "new_assistant_messages": 2,
+              "new_completed_messages": 2,
+              "new_answer_characters": 70,
+              "new_completed_plugin_tools": 1,
+              "matching_sample_records_outputs": 1,
+              "ended_at": "2026-09-16T11:50:42.629635+00:00",
+              "elapsed_seconds": 1.88
+            },
+            {
+              "account_number": 2,
+              "started_at": "2026-09-16T11:50:40.749681+00:00",
+              "status": "passed",
+              "new_assistant_messages": 2,
+              "new_completed_messages": 2,
+              "new_answer_characters": 62,
+              "new_completed_plugin_tools": 1,
+              "matching_sample_records_outputs": 1,
+              "ended_at": "2026-09-16T11:50:42.657286+00:00",
+              "elapsed_seconds": 1.908
+            }
+          ],
+          "ended_at": "2026-09-16T11:50:42.657346+00:00",
+          "status": "passed"
+        }
+      ],
+      "status": "passed",
+      "tls_verification": "enabled",
+      "explicit_ca": true,
+      "limits": {
+        "task_timeout": 300,
+        "observe_seconds": 30,
+        "write_retries": 0,
+        "iterations_per_account_per_scenario": 1
+      },
+      "evidence_boundary": "Client workflow timestamps only. Combine external cgroup peaks, container restarts and upstream evidence. Public tool output fingerprint is not a raw tool identity proof. No 50-account capacity claim.",
+      "ended_at": "2026-09-16T11:50:42.657948+00:00"
+    }
+  },
+  "resource_snapshots": {
+    "bounded-after-answers": {
+      "time": "2026-09-16T11:50:33.713605+00:00",
+      "boundary": {
+        "deployment_id": "loadtest-r1-20260916",
+        "cpu_quota": 16,
+        "application_memory_limit_bytes": 30064771072,
+        "accounting_total_memory_bytes": 34359738368,
+        "cgroup_version": 1,
+        "counters": {
+          "memory.usage_in_bytes": "1015582720",
+          "memory.max_usage_in_bytes": "1124909056",
+          "memory.failcnt": "0",
+          "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+          "cpu.stat": "nr_periods 1682\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+          "cpuacct.usage": "71785328764",
+          "pids.current": "72",
+          "cpuset.cpus": "16-31"
+        },
+        "running_containers": 8,
+        "all_controller_paths_verified": true
+      },
+      "container_peaks": [
+        {
+          "service": "gateway",
+          "container": "14a37ca97b649fae",
+          "lifetime_peak_bytes": 52436992,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "d011a9f26fd0bd07",
+          "lifetime_peak_bytes": 476012544,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "82dc96cd54321571",
+          "lifetime_peak_bytes": 52330496,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "gateway",
+          "container": "ff6e6de6db3d2469",
+          "lifetime_peak_bytes": 52641792,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "7eec3b6e0379ac75",
+          "lifetime_peak_bytes": 52424704,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "9e3fa147de96633d",
+          "lifetime_peak_bytes": 437645312,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "https",
+          "container": "ecb64a2adc4bf1d4",
+          "lifetime_peak_bytes": null,
+          "cgroup_status": "unavailable",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "console",
+          "container": "b90604c91cd29302",
+          "lifetime_peak_bytes": 61067264,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        }
+      ]
+    },
+    "bounded-after-events": {
+      "time": "2026-09-16T11:54:29.436875+00:00",
+      "boundary": {
+        "deployment_id": "loadtest-r1-20260916",
+        "cpu_quota": 16,
+        "application_memory_limit_bytes": 30064771072,
+        "accounting_total_memory_bytes": 34359738368,
+        "cgroup_version": 1,
+        "counters": {
+          "memory.usage_in_bytes": "940318720",
+          "memory.max_usage_in_bytes": "1124909056",
+          "memory.failcnt": "0",
+          "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+          "cpu.stat": "nr_periods 3784\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+          "cpuacct.usage": "163551781338",
+          "pids.current": "71",
+          "cpuset.cpus": "16-31"
+        },
+        "running_containers": 8,
+        "all_controller_paths_verified": true
+      },
+      "container_peaks": [
+        {
+          "service": "gateway",
+          "container": "14a37ca97b649fae",
+          "lifetime_peak_bytes": 62771200,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "d011a9f26fd0bd07",
+          "lifetime_peak_bytes": 476012544,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "82dc96cd54321571",
+          "lifetime_peak_bytes": 60690432,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "gateway",
+          "container": "ff6e6de6db3d2469",
+          "lifetime_peak_bytes": 62140416,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "7eec3b6e0379ac75",
+          "lifetime_peak_bytes": 58761216,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "9e3fa147de96633d",
+          "lifetime_peak_bytes": 437645312,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "https",
+          "container": "ecb64a2adc4bf1d4",
+          "lifetime_peak_bytes": null,
+          "cgroup_status": "unavailable",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "console",
+          "container": "b90604c91cd29302",
+          "lifetime_peak_bytes": 79286272,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        }
+      ]
+    },
+    "bounded-after-files-docx-r2": {
+      "time": "2026-09-16T11:53:55.647899+00:00",
+      "boundary": {
+        "deployment_id": "loadtest-r1-20260916",
+        "cpu_quota": 16,
+        "application_memory_limit_bytes": 30064771072,
+        "accounting_total_memory_bytes": 34359738368,
+        "cgroup_version": 1,
+        "counters": {
+          "memory.usage_in_bytes": "940396544",
+          "memory.max_usage_in_bytes": "1124909056",
+          "memory.failcnt": "0",
+          "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+          "cpu.stat": "nr_periods 3463\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+          "cpuacct.usage": "148740955253",
+          "pids.current": "69",
+          "cpuset.cpus": "16-31"
+        },
+        "running_containers": 8,
+        "all_controller_paths_verified": true
+      },
+      "container_peaks": [
+        {
+          "service": "gateway",
+          "container": "14a37ca97b649fae",
+          "lifetime_peak_bytes": 60977152,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "d011a9f26fd0bd07",
+          "lifetime_peak_bytes": 476012544,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "82dc96cd54321571",
+          "lifetime_peak_bytes": 60477440,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "gateway",
+          "container": "ff6e6de6db3d2469",
+          "lifetime_peak_bytes": 62140416,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "7eec3b6e0379ac75",
+          "lifetime_peak_bytes": 58761216,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "9e3fa147de96633d",
+          "lifetime_peak_bytes": 437645312,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "https",
+          "container": "ecb64a2adc4bf1d4",
+          "lifetime_peak_bytes": null,
+          "cgroup_status": "unavailable",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "console",
+          "container": "b90604c91cd29302",
+          "lifetime_peak_bytes": 79286272,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        }
+      ]
+    },
+    "bounded-after-files-docx": {
+      "time": "2026-09-16T11:50:49.917671+00:00",
+      "boundary": {
+        "deployment_id": "loadtest-r1-20260916",
+        "cpu_quota": 16,
+        "application_memory_limit_bytes": 30064771072,
+        "accounting_total_memory_bytes": 34359738368,
+        "cgroup_version": 1,
+        "counters": {
+          "memory.usage_in_bytes": "959221760",
+          "memory.max_usage_in_bytes": "1124909056",
+          "memory.failcnt": "0",
+          "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+          "cpu.stat": "nr_periods 1824\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+          "cpuacct.usage": "81819220279",
+          "pids.current": "72",
+          "cpuset.cpus": "16-31"
+        },
+        "running_containers": 8,
+        "all_controller_paths_verified": true
+      },
+      "container_peaks": [
+        {
+          "service": "gateway",
+          "container": "14a37ca97b649fae",
+          "lifetime_peak_bytes": 56467456,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "d011a9f26fd0bd07",
+          "lifetime_peak_bytes": 476012544,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "82dc96cd54321571",
+          "lifetime_peak_bytes": 59424768,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "gateway",
+          "container": "ff6e6de6db3d2469",
+          "lifetime_peak_bytes": 52641792,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "7eec3b6e0379ac75",
+          "lifetime_peak_bytes": 52424704,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "9e3fa147de96633d",
+          "lifetime_peak_bytes": 437645312,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "https",
+          "container": "ecb64a2adc4bf1d4",
+          "lifetime_peak_bytes": null,
+          "cgroup_status": "unavailable",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "console",
+          "container": "b90604c91cd29302",
+          "lifetime_peak_bytes": 62136320,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        }
+      ]
+    },
+    "bounded-after-files": {
+      "time": "2026-09-16T11:50:46.578985+00:00",
+      "boundary": {
+        "deployment_id": "loadtest-r1-20260916",
+        "cpu_quota": 16,
+        "application_memory_limit_bytes": 30064771072,
+        "accounting_total_memory_bytes": 34359738368,
+        "cgroup_version": 1,
+        "counters": {
+          "memory.usage_in_bytes": "989888512",
+          "memory.max_usage_in_bytes": "1124909056",
+          "memory.failcnt": "0",
+          "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+          "cpu.stat": "nr_periods 1796\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+          "cpuacct.usage": "80229747057",
+          "pids.current": "72",
+          "cpuset.cpus": "16-31"
+        },
+        "running_containers": 8,
+        "all_controller_paths_verified": true
+      },
+      "container_peaks": [
+        {
+          "service": "gateway",
+          "container": "14a37ca97b649fae",
+          "lifetime_peak_bytes": 52518912,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "d011a9f26fd0bd07",
+          "lifetime_peak_bytes": 476012544,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "82dc96cd54321571",
+          "lifetime_peak_bytes": 52330496,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "gateway",
+          "container": "ff6e6de6db3d2469",
+          "lifetime_peak_bytes": 52641792,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "7eec3b6e0379ac75",
+          "lifetime_peak_bytes": 52424704,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "9e3fa147de96633d",
+          "lifetime_peak_bytes": 437645312,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "https",
+          "container": "ecb64a2adc4bf1d4",
+          "lifetime_peak_bytes": null,
+          "cgroup_status": "unavailable",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "console",
+          "container": "b90604c91cd29302",
+          "lifetime_peak_bytes": 62136320,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        }
+      ]
+    },
+    "bounded-after-idle": {
+      "time": "2026-09-16T11:50:16.053901+00:00",
+      "boundary": {
+        "deployment_id": "loadtest-r1-20260916",
+        "cpu_quota": 16,
+        "application_memory_limit_bytes": 30064771072,
+        "accounting_total_memory_bytes": 34359738368,
+        "cgroup_version": 1,
+        "counters": {
+          "memory.usage_in_bytes": "671981568",
+          "memory.max_usage_in_bytes": "712015872",
+          "memory.failcnt": "0",
+          "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+          "cpu.stat": "nr_periods 1508\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+          "cpuacct.usage": "38914576478",
+          "pids.current": "64",
+          "cpuset.cpus": "16-31"
+        },
+        "running_containers": 8,
+        "all_controller_paths_verified": true
+      },
+      "container_peaks": [
+        {
+          "service": "gateway",
+          "container": "14a37ca97b649fae",
+          "lifetime_peak_bytes": 51834880,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "d011a9f26fd0bd07",
+          "lifetime_peak_bytes": 292016128,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "82dc96cd54321571",
+          "lifetime_peak_bytes": 51740672,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "gateway",
+          "container": "ff6e6de6db3d2469",
+          "lifetime_peak_bytes": 51601408,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "7eec3b6e0379ac75",
+          "lifetime_peak_bytes": 51519488,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "9e3fa147de96633d",
+          "lifetime_peak_bytes": 294662144,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "https",
+          "container": "ecb64a2adc4bf1d4",
+          "lifetime_peak_bytes": null,
+          "cgroup_status": "unavailable",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "console",
+          "container": "b90604c91cd29302",
+          "lifetime_peak_bytes": 59195392,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        }
+      ]
+    },
+    "bounded-after-plugin-test": {
+      "time": "2026-09-16T11:50:37.382384+00:00",
+      "boundary": {
+        "deployment_id": "loadtest-r1-20260916",
+        "cpu_quota": 16,
+        "application_memory_limit_bytes": 30064771072,
+        "accounting_total_memory_bytes": 34359738368,
+        "cgroup_version": 1,
+        "counters": {
+          "memory.usage_in_bytes": "973275136",
+          "memory.max_usage_in_bytes": "1124909056",
+          "memory.failcnt": "0",
+          "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+          "cpu.stat": "nr_periods 1716\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+          "cpuacct.usage": "73523649638",
+          "pids.current": "72",
+          "cpuset.cpus": "16-31"
+        },
+        "running_containers": 8,
+        "all_controller_paths_verified": true
+      },
+      "container_peaks": [
+        {
+          "service": "gateway",
+          "container": "14a37ca97b649fae",
+          "lifetime_peak_bytes": 52436992,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "d011a9f26fd0bd07",
+          "lifetime_peak_bytes": 476012544,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "82dc96cd54321571",
+          "lifetime_peak_bytes": 52330496,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "gateway",
+          "container": "ff6e6de6db3d2469",
+          "lifetime_peak_bytes": 52641792,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "7eec3b6e0379ac75",
+          "lifetime_peak_bytes": 52424704,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "9e3fa147de96633d",
+          "lifetime_peak_bytes": 437645312,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "https",
+          "container": "ecb64a2adc4bf1d4",
+          "lifetime_peak_bytes": null,
+          "cgroup_status": "unavailable",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "console",
+          "container": "b90604c91cd29302",
+          "lifetime_peak_bytes": 61067264,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        }
+      ]
+    },
+    "bounded-after-tool": {
+      "time": "2026-09-16T11:50:42.687024+00:00",
+      "boundary": {
+        "deployment_id": "loadtest-r1-20260916",
+        "cpu_quota": 16,
+        "application_memory_limit_bytes": 30064771072,
+        "accounting_total_memory_bytes": 34359738368,
+        "cgroup_version": 1,
+        "counters": {
+          "memory.usage_in_bytes": "995422208",
+          "memory.max_usage_in_bytes": "1124909056",
+          "memory.failcnt": "0",
+          "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+          "cpu.stat": "nr_periods 1762\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+          "cpuacct.usage": "78380377710",
+          "pids.current": "72",
+          "cpuset.cpus": "16-31"
+        },
+        "running_containers": 8,
+        "all_controller_paths_verified": true
+      },
+      "container_peaks": [
+        {
+          "service": "gateway",
+          "container": "14a37ca97b649fae",
+          "lifetime_peak_bytes": 52518912,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "d011a9f26fd0bd07",
+          "lifetime_peak_bytes": 476012544,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "82dc96cd54321571",
+          "lifetime_peak_bytes": 52330496,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "gateway",
+          "container": "ff6e6de6db3d2469",
+          "lifetime_peak_bytes": 52641792,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "7eec3b6e0379ac75",
+          "lifetime_peak_bytes": 52424704,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "9e3fa147de96633d",
+          "lifetime_peak_bytes": 437645312,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "https",
+          "container": "ecb64a2adc4bf1d4",
+          "lifetime_peak_bytes": null,
+          "cgroup_status": "unavailable",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "console",
+          "container": "b90604c91cd29302",
+          "lifetime_peak_bytes": 62136320,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        }
+      ]
+    },
+    "bounded-before-remaining": {
+      "time": "2026-09-16T11:53:51.160023+00:00",
+      "boundary": {
+        "deployment_id": "loadtest-r1-20260916",
+        "cpu_quota": 16,
+        "application_memory_limit_bytes": 30064771072,
+        "accounting_total_memory_bytes": 34359738368,
+        "cgroup_version": 1,
+        "counters": {
+          "memory.usage_in_bytes": "949174272",
+          "memory.max_usage_in_bytes": "1124909056",
+          "memory.failcnt": "0",
+          "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+          "cpu.stat": "nr_periods 3420\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+          "cpuacct.usage": "145351108659",
+          "pids.current": "70",
+          "cpuset.cpus": "16-31"
+        },
+        "running_containers": 8,
+        "all_controller_paths_verified": true
+      },
+      "container_peaks": [
+        {
+          "service": "gateway",
+          "container": "14a37ca97b649fae",
+          "lifetime_peak_bytes": 60977152,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "d011a9f26fd0bd07",
+          "lifetime_peak_bytes": 476012544,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "82dc96cd54321571",
+          "lifetime_peak_bytes": 60477440,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "gateway",
+          "container": "ff6e6de6db3d2469",
+          "lifetime_peak_bytes": 62140416,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "7eec3b6e0379ac75",
+          "lifetime_peak_bytes": 58540032,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "9e3fa147de96633d",
+          "lifetime_peak_bytes": 437645312,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "https",
+          "container": "ecb64a2adc4bf1d4",
+          "lifetime_peak_bytes": null,
+          "cgroup_status": "unavailable",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "console",
+          "container": "b90604c91cd29302",
+          "lifetime_peak_bytes": 66707456,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        }
+      ]
+    },
+    "bounded-idle-before": {
+      "time": "2026-09-16T11:49:42.662708+00:00",
+      "boundary": {
+        "deployment_id": "loadtest-r1-20260916",
+        "cpu_quota": 16,
+        "application_memory_limit_bytes": 30064771072,
+        "accounting_total_memory_bytes": 34359738368,
+        "cgroup_version": 1,
+        "counters": {
+          "memory.usage_in_bytes": "668565504",
+          "memory.max_usage_in_bytes": "705409024",
+          "memory.failcnt": "0",
+          "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+          "cpu.stat": "nr_periods 1217\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+          "cpuacct.usage": "31225575788",
+          "pids.current": "61",
+          "cpuset.cpus": "16-31"
+        },
+        "running_containers": 8,
+        "all_controller_paths_verified": true
+      },
+      "container_peaks": [
+        {
+          "service": "gateway",
+          "container": "14a37ca97b649fae",
+          "lifetime_peak_bytes": 51834880,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "d011a9f26fd0bd07",
+          "lifetime_peak_bytes": 292016128,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "82dc96cd54321571",
+          "lifetime_peak_bytes": 51740672,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "gateway",
+          "container": "ff6e6de6db3d2469",
+          "lifetime_peak_bytes": 51576832,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "model-relay",
+          "container": "7eec3b6e0379ac75",
+          "lifetime_peak_bytes": 51519488,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "agent",
+          "container": "9e3fa147de96633d",
+          "lifetime_peak_bytes": 294662144,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "https",
+          "container": "ecb64a2adc4bf1d4",
+          "lifetime_peak_bytes": null,
+          "cgroup_status": "unavailable",
+          "restart_count": 0,
+          "oom_killed": false
+        },
+        {
+          "service": "console",
+          "container": "b90604c91cd29302",
+          "lifetime_peak_bytes": 59195392,
+          "cgroup_status": "available",
+          "restart_count": 0,
+          "oom_killed": false
+        }
+      ]
+    }
+  },
+  "capacity": {
+    "recorded_at": "2026-09-16T11:55:48.546389+00:00",
+    "evidence": "capacity_gate_no_expansion",
+    "target_accounts": 50,
+    "current_high_quota_target_budget": {
+      "status": "insufficient",
+      "failures": [
+        "docker_memory_below_configured_runtime_budget",
+        "docker_cpus_below_configured_runtime_budget"
+      ],
+      "docker_memory_bytes": 34359738368,
+      "docker_cpus": 16,
+      "cpu_required": 41.5,
+      "memory_required_mib": 140544,
+      "runtime_cpu_caps": 150.0,
+      "cpu_mode": "shared",
+      "cpu_overcommit_factor": 4,
+      "cpu_reserve": 4,
+      "memory_includes_swap": false,
+      "capacity_source": "verified_test_parent",
+      "application_memory_ceiling_bytes": 30064771072,
+      "host_accounting_reserve_bytes": 4294967296
+    },
+    "network_pool_preflight": {
+      "status": "passed",
+      "required_subnets": 151,
+      "existing_owned_subnets": 7,
+      "free_subnets": 4089,
+      "missing_subnets": 144,
+      "retained_runtime_count": 2,
+      "prefix": 28
+    },
+    "boundary": {
+      "deployment_id": "loadtest-r1-20260916",
+      "cpu_quota": 16,
+      "application_memory_limit_bytes": 30064771072,
+      "accounting_total_memory_bytes": 34359738368,
+      "cgroup_version": 1,
+      "counters": {
+        "memory.usage_in_bytes": "956420096",
+        "memory.max_usage_in_bytes": "1124909056",
+        "memory.failcnt": "0",
+        "memory.oom_control": "oom_kill_disable 0\nunder_oom 0\noom_kill 0",
+        "cpu.stat": "nr_periods 4511\nnr_throttled 0\nthrottled_time 0\nnr_bursts 0\nburst_time 0",
+        "cpuacct.usage": "187772922728",
+        "pids.current": "69",
+        "cpuset.cpus": "16-31"
+      },
+      "running_containers": 8,
+      "all_controller_paths_verified": true
+    },
+    "observed_agent_peak_bytes": 476012544,
+    "observed_peak_rounded_mib": 454,
+    "fixed_budget_mib": 6144,
+    "uniform_agent_upper_bound_mib_at_50": 276,
+    "arithmetic_lower_budget_mib_without_agent_headroom": 41644,
+    "arithmetic_only_not_validated_candidate": true,
+    "target_50_actual_workload": "not_executed_capacity_gate_failed"
+  },
+  "final_component_peaks": [
+    {
+      "service": "gateway",
+      "container": "14a37ca97b649fae",
+      "lifetime_peak_bytes": 62771200,
+      "cgroup_status": "available",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "service": "agent",
+      "container": "d011a9f26fd0bd07",
+      "lifetime_peak_bytes": 476012544,
+      "cgroup_status": "available",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "service": "model-relay",
+      "container": "82dc96cd54321571",
+      "lifetime_peak_bytes": 60690432,
+      "cgroup_status": "available",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "service": "gateway",
+      "container": "ff6e6de6db3d2469",
+      "lifetime_peak_bytes": 62140416,
+      "cgroup_status": "available",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "service": "model-relay",
+      "container": "7eec3b6e0379ac75",
+      "lifetime_peak_bytes": 61841408,
+      "cgroup_status": "available",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "service": "agent",
+      "container": "9e3fa147de96633d",
+      "lifetime_peak_bytes": 437645312,
+      "cgroup_status": "available",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "service": "https",
+      "container": "ecb64a2adc4bf1d4",
+      "lifetime_peak_bytes": null,
+      "cgroup_status": "unavailable",
+      "restart_count": 0,
+      "oom_killed": false
+    },
+    {
+      "service": "console",
+      "container": "b90604c91cd29302",
+      "lifetime_peak_bytes": 79286272,
+      "cgroup_status": "available",
+      "restart_count": 0,
+      "oom_killed": false
+    }
+  ],
+  "timeline": {
+    "started_at": "2026-09-16T11:51:50.796331+00:00",
+    "sample_count": 36,
+    "initial_audit": {
+      "running_containers": 8,
+      "all_controller_paths_verified": true
+    },
+    "final_audit": {
+      "running_containers": 8,
+      "all_controller_paths_verified": true
+    },
+    "production_baseline": [
+      {
+        "container": "eb0a05427b29c3e3",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "ef1429ccd1776c47",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "a55b218b37a60155",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "830173a306b35c5f",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "5dee8660938a08eb",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "7d7c4adca3f2862b",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "3a7c9b261cd70982",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "61a3ebe578c06a68",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "61852ad1c0407417",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "cf7786f24963e699",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "c6718321ee57d95f",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      },
+      {
+        "container": "64ba3bc75f24bdd6",
+        "healthy": "healthy",
+        "running": true,
+        "restart_count": 0
+      }
+    ],
+    "last_sample_time": "2026-09-16T11:54:45.967507+00:00"
+  },
+  "isolation": {
+    "started_at": "2026-09-16T11:53:26.049125+00:00",
+    "checks": [
+      {
+        "kind": "cross_account_session",
+        "direction": 1,
+        "http_status": 404,
+        "passed": true
+      },
+      {
+        "kind": "cross_account_file",
+        "direction": 1,
+        "http_status": 404,
+        "passed": true
+      },
+      {
+        "kind": "normal_user_platform_governance",
+        "direction": 1,
+        "http_status": 403,
+        "passed": true
+      },
+      {
+        "kind": "normal_user_platform_governance",
+        "direction": 1,
+        "http_status": 403,
+        "passed": true
+      },
+      {
+        "kind": "normal_user_platform_governance",
+        "direction": 1,
+        "http_status": 403,
+        "passed": true
+      },
+      {
+        "kind": "cross_account_session",
+        "direction": 2,
+        "http_status": 404,
+        "passed": true
+      },
+      {
+        "kind": "cross_account_file",
+        "direction": 2,
+        "http_status": 404,
+        "passed": true
+      },
+      {
+        "kind": "normal_user_platform_governance",
+        "direction": 2,
+        "http_status": 403,
+        "passed": true
+      },
+      {
+        "kind": "normal_user_platform_governance",
+        "direction": 2,
+        "http_status": 403,
+        "passed": true
+      },
+      {
+        "kind": "normal_user_platform_governance",
+        "direction": 2,
+        "http_status": 403,
+        "passed": true
+      },
+      {
+        "kind": "token_revocation_and_sse_close",
+        "elapsed_seconds": 2.451,
+        "http_status": 401,
+        "passed": true
+      }
+    ],
+    "ended_at": "2026-09-16T11:53:28.877372+00:00",
+    "status": "passed"
+  },
+  "stop_state": {
+    "time": "2026-09-16T11:57:13.584352+00:00",
+    "worker": "stopped",
+    "fixture": "stopped",
+    "test_containers_stopped": 8,
+    "test_containers_running": 0,
+    "test_volumes_and_credentials": "retained_private",
+    "existing_production_containers": 13,
+    "production_all_running_healthy": false,
+    "data_deleted": false
+  },
+  "production_verification": {
+    "time": "2026-09-16T11:58:13.322531+00:00",
+    "baseline_running_containers": 12,
+    "baseline_running_health_and_restarts_unchanged": true,
+    "all_matching_inventory_including_stopped": 13,
+    "historical_stopped_containers": 1,
+    "stopped_before_test": true,
+    "explanation": "Final inventory included an already-stopped historical container; comparison uses the original running cohort."
+  },
+  "automated_tests": {
+    "backend": {
+      "passed": 268,
+      "skipped": 8
+    },
+    "deployment": {
+      "passed": 158,
+      "skipped": 2,
+      "subtests_passed": 163
+    },
+    "sdk_profile_tls_backpressure_subset_passed": 30
+  },
+  "not_executed": [
+    "50_real_runtime_groups",
+    "10_20_35_50_progressive_active_load",
+    "100_sse_connections",
+    "4_hour_soak",
+    "50_account_api_p95_p99_acceptance",
+    "real_intranet_vllm",
+    "real_business_interface",
+    "isolated_physical_16_cpu_32_gib_host"
+  ],
+  "raw_report_sha256": {
+    "bounded-after-answers.json": "2e51bd7fa79ee49b81d60a5a814d3c6244af6549f2f8806b1f665ceddf2568d7",
+    "bounded-after-events.json": "28304c966c1bb4775eb13d585392c905ea523656e2ab3d28d025d33375ebd952",
+    "bounded-after-files-docx-r2.json": "e9a8459d720d5e9495f5ede5d9b7a03ec0b55d550466acd9c0bf30469b742955",
+    "bounded-after-files-docx.json": "0fc9b6f739488c97ecd4b7aacb0724ee87cf115ce200c4b33c6cb8e14d173e85",
+    "bounded-after-files.json": "807b30aadc43b3ddc38f51a58f9d5b719612db3afd90d6932dfaf5ff0757abbc",
+    "bounded-after-idle.json": "b6cc607a5f02c40cfd621434f424f5a7af446272b0dab29936ea7e7ec75aa13f",
+    "bounded-after-plugin-test.json": "43cea6de60506b67847e67ee70586299d671bf31be1ef492259980896ac76ca2",
+    "bounded-after-tool.json": "616ad0d0c1133c2e6b516e3e3fb328d4b684813d676919c53c1e183af88b3b45",
+    "bounded-before-remaining.json": "adb615cfc14ea054ded94249db472bf18c93639e759650cf3f9897224062b9ce",
+    "bounded-idle-before.json": "7e647bf8a958017b1fd40a6b1706406ab759018b7119fb7e051c85b02ca582cf",
+    "bounded-timeline.json": "1b044fa2e0564a7995381e34529f9a54f73b2aef016e58003aa7e6232cd42bb8",
+    "final-capacity-evidence.json": "06cdc4154f23d72108478b6c813a33d9314c31264e37118a3e25df55f0ca4b16",
+    "final-production-verification.json": "44a2e977f211922ea78665b5dcb025f7b92bd581e5c760fea6dda9cf17dcb3d8",
+    "final-stopped-state.json": "126ad8e2295efe70882b2d25f7559f4863b7d8cb39326668e9c1a35cb37d4ed9",
+    "remote-isolation.json": "56b32b4aa9127514af7f0c2137c3ca6b4921cec99af386c55b8e44650b4ca606",
+    "workflow-answers.json": "966c289c8a945d82ad9f63f545a8768d54118dfb7ca3a80a305ec8035dca764b",
+    "workflow-events.json": "4de5658d6407d1f8939f116e9639bb2490d96a4f55b38cc87a05beac2acc3a18",
+    "workflow-files-docx-r2.json": "160b0b8746d121d7c3c65f346f1e60b4141177e948b7e1e8a1be8d50a679c440",
+    "workflow-files-docx.json": "bc01d8780a41038772a100a75eedf936937cee89948644705edcc8b4af70134d",
+    "workflow-files.json": "a2157820448b2e5f1f6da4ca880c6706c3fada390d7401f0a03e1bdc0b2f91d8",
+    "workflow-idle.json": "e111dd9d39d1d0ca99001b0c1f18c4a55bf27874d634eda73c5e3cd887eccb35",
+    "workflow-plugin-test.json": "c09736e5d507710c979b39d2a089d2d2e4087f825a883d6912bc92b1663f7fa0",
+    "workflow-tool.json": "813aeb4da0ad21c12fe09d17ccfb4edcf4aacb2466da8aaafbe7d723f34e5684"
+  }
+}

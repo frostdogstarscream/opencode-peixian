@@ -404,7 +404,7 @@ async def shutdown_app(app):
                         "pending": shutdown.report["worker_futures"], "errors": []})
                 return shutdown.finish()
             finally:
-                logging.getLogger(__name__).info("shutdown_summary %s", json.dumps(shutdown.report))
+                logging.getLogger("uvicorn.error").info("shutdown_summary %s", json.dumps(shutdown.report))
 
         app.state.shutdown_task = asyncio.create_task(finish())
     return await join_owned(app.state.shutdown_task)

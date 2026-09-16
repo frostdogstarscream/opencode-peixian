@@ -94,6 +94,7 @@ def compose_config(cfg, pinned=None):
               "labels": {"peixian.deployment": cfg.deployment_id},
               "logging": {"driver": "json-file", "options": {"max-size": "10m", "max-file": "3"}}}
     console = {**common, "container_name": cfg.control_container, "image": images["control"],
+               "stop_grace_period": str(10 + 4 * cfg.concurrency["hub_shutdown_seconds"]) + "s",
                "cpus": cfg.control_resources["cpus"], "mem_limit": str(cfg.control_resources["memory_mib"]) + "m", "pids_limit": 128,
                "tmpfs": ["/tmp:rw,nosuid,nodev,size=128m,mode=1777"],
                "ports": [{"target": 8080, "published": str(cfg.control_port), "host_ip": "127.0.0.1", "protocol": "tcp"}],

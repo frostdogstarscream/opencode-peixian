@@ -12,4 +12,4 @@ COPY packages/peixian-console/dist /app/static
 RUN mkdir /data && chown 10001:10001 /data
 USER 10001:10001
 EXPOSE 8080
-CMD ["uvicorn","control.app:app","--host","0.0.0.0","--port","8080","--no-access-log"]
+CMD ["uvicorn","control.app:app","--host","0.0.0.0","--port","8080","--no-access-log","--timeout-graceful-shutdown","5"]

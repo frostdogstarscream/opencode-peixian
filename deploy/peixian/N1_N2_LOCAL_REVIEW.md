@@ -11,6 +11,7 @@
 - 应用收到退出异常或取消时，必要有界收尾后保留原异常；正常退出遇到组件失败则报告 `shutdown_incomplete`。
 - 容量压力遇到慢 closing Hub，等待上限为 `min(1秒, hub_shutdown_seconds)`，之后返回 503。没有清理完成前不移除账号占位、不创建第二个 reader。
 - 应用日志的 `shutdown_summary` 是退出时快照，不是进程外持久监控。线程与不合作清理在预算后可能仍未结束，需要进程监督策略处理，不保证强制清理成功。
+- 容器 Uvicorn 设置 5 秒连接退出等待上限；Compose 停止宽限期为 `10 + 4 * hub_shutdown_seconds` 秒，覆盖进入 lifespan 前的等待和应用清理预算。退出摘要使用 Uvicorn 已配置的日志通道。
 
 新增 `tests/test_app_shutdown.py`；扩展 Registry、EventHub 测试覆盖前置失败、独立账号、调用方取消、原异常保留及容量压力。已有 HF1 正向回归保留。
 

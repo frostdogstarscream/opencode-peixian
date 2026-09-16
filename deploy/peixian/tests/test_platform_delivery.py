@@ -78,6 +78,7 @@ class ConfigurationTests(unittest.TestCase):
         cfg = self.config(max_runtimes=2, deployment_id="synthetic-server")
         data = platform.compose_config(cfg)
         console = data["services"]["console"]
+        self.assertGreaterEqual(int(console["stop_grace_period"][:-1]), 5 + 4 * cfg.concurrency["hub_shutdown_seconds"])
         proxy = data["services"]["https"]
         self.assertEqual(console["ports"][0]["host_ip"], "127.0.0.1")
         self.assertEqual(console["environment"]["CONSOLE_ORIGINS"], cfg.public_url)

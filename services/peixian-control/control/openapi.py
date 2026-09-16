@@ -286,7 +286,7 @@ CONTRACTS = {
     ("get", "/sessions/{sid}/messages"): (None, items(ref("Message")), "读取会话的已保存消息", "会话", "工具展示经过过滤，不返回原始内部配置或工具秘密。"),
     ("post", "/sessions/{sid}/messages"): ("MessageBody", ref("MessageAccepted"), "提交异步模型消息", "会话", "202 只表示已接受，run_id 不是结果查询资源。先订阅 events，收到变更后重新读取会话消息及状态。每次最多五个技能和五个文件；文件引用总计另限 24000 字符，合并文字/技能/文件另限 18000 UTF-8 字节。同一会话请串行提交。"),
     ("post", "/sessions/{sid}/abort"): (None, ref("Ok"), "终止自己的会话生成", "会话", ""),
-    ("get", "/events"): (None, None, "订阅本账号变更事件", "会话", "SSE 保留 event: change、type=connected/updated，可附 resources 资源类别数组与 session_id。只发送失效通知，正文通过 messages 补齐；旧 updated 无类别时刷新消息/会话。认证与名额在响应头之前检查，超额返回429/503及Retry-After。默认15秒心跳、2秒身份复核，撤销后5秒内关闭。客户端仅重连读取，不自动重放生成请求。"),
+    ("get", "/events"): (None, None, "订阅本账号变更事件", "会话", "SSE 保留 event: change、type=connected/updated，可附 resources 资源类别数组与 session_id。单 Control 进程内同账号共享一个上游，每个订阅独立认证；慢消费者或上游不连续时发送 type=resync_required，客户端合并刷新持久历史和资源列表，不拼接跨断线正文。只发送失效通知，正文通过 messages 补齐；旧 updated 无类别时刷新消息/会话。认证与名额在响应头之前检查，超额返回429/503及Retry-After。默认15秒心跳、2秒身份复核，撤销后5秒内关闭。客户端仅重连读取，不自动重放生成请求。"),
     ("get", "/files"): (None, items(ref("File")), "列出自己的上传文件", "文件", ""),
     ("post", "/files"): ("FileUploadBody", ref("File"), "上传文件并自动排队解析", "文件", "multipart/form-data 中唯一文件字段 file；单文件最大 20 MiB，每账号原始上传累计 1 GiB，实际字节计量。解析 TXT/MD/CSV/XLSX/文本 PDF/DOCX，无 OCR。202 后轮询 files 或 text；queued/parsing 尚未完成。"),
     ("get", "/files/{fid}/text"): (None, ref("FileText"), "读取文件解析文本及来源", "文件", "仅 ready 且未截断可用于模型引用；partial 或 truncated=true 的模型引用会返回 413，可在我的文件查看已提取范围并拆分后重新上传。no_text 表示无可提取文本，扫描件不会执行 OCR。"),

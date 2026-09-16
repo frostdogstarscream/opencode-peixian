@@ -9497,7 +9497,7 @@
     },
     "/api/console/v1/events": {
       "get": {
-        "description": "SSE 保留 event: change、type=connected/updated，可附 resources 资源类别数组与 session_id。只发送失效通知，正文通过 messages 补齐；旧 updated 无类别时刷新消息/会话。认证与名额在响应头之前检查，超额返回429/503及Retry-After。默认15秒心跳、2秒身份复核，撤销后5秒内关闭。客户端仅重连读取，不自动重放生成请求。",
+        "description": "SSE 保留 event: change、type=connected/updated，可附 resources 资源类别数组与 session_id。单 Control 进程内同账号共享一个上游，每个订阅独立认证；慢消费者或上游不连续时发送 type=resync_required，客户端合并刷新持久历史和资源列表，不拼接跨断线正文。只发送失效通知，正文通过 messages 补齐；旧 updated 无类别时刷新消息/会话。认证与名额在响应头之前检查，超额返回429/503及Retry-After。默认15秒心跳、2秒身份复核，撤销后5秒内关闭。客户端仅重连读取，不自动重放生成请求。",
         "operationId": "events_api_console_v1_events_get",
         "responses": {
           "200": {

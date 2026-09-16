@@ -1,0 +1,10 @@
+{
+  "scope": "windows_local_preliminary",
+  "accounts": 2,
+  "capacity_tested": false,
+  "paid_model_used": false,
+  "checks": [],
+  "status": "failed",
+  "failure_code": "AssertionError",
+  "elapsed_seconds": 0.172
+}

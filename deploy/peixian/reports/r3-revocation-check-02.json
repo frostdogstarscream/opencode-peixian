@@ -1,0 +1,16 @@
+{
+  "scope": "windows_local_preliminary",
+  "capacity_tested": false,
+  "checks": [
+    {
+      "name": "disabled_account_closes_old_stream_and_auth",
+      "passed": true,
+      "elapsed_seconds": 1.329
+    },
+    {
+      "name": "explicit_reenable_restores_environment",
+      "passed": true
+    }
+  ],
+  "status": "passed"
+}

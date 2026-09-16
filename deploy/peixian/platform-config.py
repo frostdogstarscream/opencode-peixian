@@ -2,11 +2,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import importlib.util
 import ipaddress
 import json
+import math
 from pathlib import Path
 import re
 from urllib.parse import urlsplit
+
+_spec = importlib.util.spec_from_file_location("peixian_capacity", Path(__file__).with_name("platform-capacity.py"))
+capacity = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(capacity)
 
 PROXY_IMAGE = "agent-platform-proxy:nginx-1.28.0"
 PROXY_UPSTREAM = "nginx:1.28.0-alpine@sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284"
@@ -16,9 +22,45 @@ LIMITS = {"agent": {"cpus": 2.0, "memory_mib": 2048}, "gateway": {"cpus": 0.5, "
           "relay": {"cpus": 0.5, "memory_mib": 128}}
 PRODUCT = {"name": "Agent 工作台", "short_name": "Agent", "description": "对话、文件、技能与插件，在一个工作台完成。"}
 
+CONCURRENCY = {
+    "http_connections": (64, 1, 512), "http_keepalive": (16, 1, 256),
+    "sse_viewers": (128, 1, 1024), "sse_per_account": (4, 1, 32), "sse_owners": (64, 1, 256),
+    "sse_heartbeat_seconds": (15, 1, 60), "sse_renew_seconds": (5, 1, 30),
+    "sse_owner_ttl_seconds": (20, 5, 120), "auth_recheck_seconds": (2, 1, 2),
+    "downloads": (8, 1, 64), "db_workers": (8, 1, 32), "db_queue": (32, 1, 256),
+    "db_queue_seconds": (1, 1, 10), "db_busy_ms": (1000, 1, 1000),
+    "crypto_workers": (2, 1, 8), "crypto_queue": (16, 1, 128), "crypto_queue_seconds": (2, 1, 10),
+    "login_capacity": (4096, 64, 65536), "login_ttl_seconds": (300, 10, 3600),
+    "login_rate": (10, 1, 1000), "login_burst": (50, 1, 1000),
+    "login_source_rate": (5, 1, 100), "login_source_burst": (50, 1, 1000),
+}
+
+
+def concurrency_config(value):
+    if not isinstance(value, dict) or set(value) - set(CONCURRENCY):
+        raise ConfigError("invalid_concurrency_configuration")
+    result = {key: value.get(key, bounds[0]) for key, bounds in CONCURRENCY.items()}
+    for key, item in result.items():
+        _, low, high = CONCURRENCY[key]
+        if type(item) is not int or not math.isfinite(item) or not low <= item <= high:
+            raise ConfigError("invalid_concurrency_configuration")
+    if (result["http_keepalive"] > result["http_connections"] or
+            result["sse_per_account"] > result["sse_viewers"] or result["sse_owners"] > result["sse_viewers"] or
+            result["sse_renew_seconds"] * 2 >= result["sse_owner_ttl_seconds"]):
+        raise ConfigError("inconsistent_concurrency_configuration")
+    return result
+
 
 class ConfigError(ValueError):
     pass
+
+
+def image_supports_config(labels, version):
+    # Historical images have no configuration capability label and support v1.
+    labels = labels or {}
+    raw = labels.get("org.peixian.control.config.max", "1")
+    if not isinstance(raw, str) or not re.fullmatch(r"[1-9][0-9]{0,2}", raw) or version > int(raw):
+        raise ConfigError("control_image_configuration_incompatible")
 
 
 def safe_path(value, parent):
@@ -47,6 +89,14 @@ class PlatformConfig:
     max_runtimes: int
     resource_limits: dict
     images: dict
+    version: int
+    profile: str | None
+    control_resources: dict
+    capacity_policy: dict
+    concurrency: dict
+
+    def verify_control_image(self, labels):
+        image_supports_config(labels, self.version)
 
     @property
     def worker_root(self):
@@ -74,11 +124,20 @@ class PlatformConfig:
 
     @property
     def memory_budget_mib(self):
-        return 1536 + self.max_runtimes * sum(v["memory_mib"] for v in self.resource_limits.values())
+        return self.resource_budget["memory_required_mib"]
 
     @property
     def cpu_budget(self):
-        return 1 + self.max_runtimes * sum(v["cpus"] for v in self.resource_limits.values())
+        return self.resource_budget["cpu_required"]
+
+    @property
+    def resource_budget(self):
+        return capacity.budget(self.version, self.max_runtimes, self.resource_limits,
+                               self.control_resources, self.capacity_policy)
+
+    @property
+    def concurrency_environment(self):
+        return {"PX_" + key.upper(): str(value) for key, value in self.concurrency.items()}
 
 
 def load_config(path):
@@ -89,7 +148,12 @@ def load_config(path):
         raise ConfigError("platform_configuration_unavailable") from None
     fields = {"version", "deployment_id", "product", "public_url", "bind_host", "https_port", "control_port",
               "data_root", "tls", "network_pool", "max_runtimes", "resource_limits", "images"}
-    if not isinstance(raw, dict) or set(raw) - fields or type(raw.get("version")) is not int or raw["version"] != 1:
+    if not isinstance(raw, dict) or type(raw.get("version")) is not int or raw["version"] not in (1, 2):
+        raise ConfigError("invalid_platform_configuration_version_or_fields")
+    version = raw["version"]
+    if version == 2:
+        fields |= {"profile", "control_resources", "capacity_policy", "concurrency"}
+    if set(raw) - fields or (version == 2 and raw.get("profile") != "single-host-50-io"):
         raise ConfigError("invalid_platform_configuration_version_or_fields")
     identity = raw.get("deployment_id", "agent-platform")
     if not isinstance(identity, str) or not re.fullmatch(r"[a-z][a-z0-9-]{2,39}", identity):
@@ -115,8 +179,10 @@ def load_config(path):
     except (TypeError, ValueError):
         raise ConfigError("invalid_bind_host_or_network_pool") from None
     maximum = raw.get("max_runtimes", 4)
-    if type(maximum) is not int or not 1 <= maximum <= 32:
-        raise ConfigError("invalid_runtime_capacity")
+    try:
+        capacity.runtime_limit(version, maximum)
+    except ValueError as error:
+        raise ConfigError(str(error)) from None
     limits = json.loads(json.dumps(LIMITS))
     given = raw.get("resource_limits", {})
     if not isinstance(given, dict) or set(given) - set(limits):
@@ -129,6 +195,19 @@ def load_config(path):
         if (type(values["cpus"]) not in (float, int) or not 0.1 <= values["cpus"] <= 32
                 or type(values["memory_mib"]) is not int or not 128 <= values["memory_mib"] <= 65536):
             raise ConfigError("invalid_resource_limits")
+    control = {"cpus": 1.0, "memory_mib": 512} if version == 1 else {"cpus": 2.0, "memory_mib": 2048}
+    override = raw.get("control_resources", {})
+    if not isinstance(override, dict) or set(override) - set(control):
+        raise ConfigError("invalid_control_resources")
+    control.update(override)
+    if (type(control["cpus"]) not in (int, float) or not 0.5 <= control["cpus"] <= 32 or
+            type(control["memory_mib"]) is not int or not 512 <= control["memory_mib"] <= 65536):
+        raise ConfigError("invalid_control_resources")
+    try:
+        policy = capacity.policy(raw.get("capacity_policy", {}), control) if version == 2 else {}
+    except ValueError as error:
+        raise ConfigError(str(error)) from None
+    concurrency = concurrency_config(raw.get("concurrency", {})) if version == 2 else {}
     product = raw.get("product", PRODUCT)
     if (not isinstance(product, dict) or set(product) != set(PRODUCT)
             or any(not isinstance(v, str) or not v.strip() or len(v) > 200 or any(c in v for c in "\0\r\n") for v in product.values())):
@@ -149,4 +228,4 @@ def load_config(path):
     return PlatformConfig(source, identity, product, raw["public_url"].rstrip("/"), host, *ports,
                           data_root,
                           safe_path(tls["certificate"], source.parent), safe_path(tls["private_key"], source.parent),
-                          str(pool), maximum, limits, images)
+                          str(pool), maximum, limits, images, version, raw.get("profile"), control, policy, concurrency)

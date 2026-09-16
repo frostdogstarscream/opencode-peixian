@@ -3,6 +3,8 @@ import hashlib
 import importlib.util
 import io
 import json
+import shutil
+from unittest.mock import patch
 from pathlib import Path
 import tarfile
 import tempfile
@@ -54,6 +56,61 @@ class PackageTests(unittest.TestCase):
         (self.root / ".secrets").mkdir()
         with self.assertRaisesRegex(package.PackageError, "private_or_link"):
             package.validate_output(self.root, set())
+
+    def package_tree(self, tags):
+        source=self.root/"source"
+        deploy=source/"deploy/peixian"
+        deploy.mkdir(parents=True)
+        for name in ("platform-config.py","platform-capacity.py"):
+            shutil.copyfile(ROOT/name,deploy/name)
+        (source/"LICENSE").write_text("synthetic")
+        wheels=self.root/"wheels"
+        wheels.mkdir()
+        (wheels/"synthetic-1-py3-none-any.whl").write_bytes(b"synthetic")
+        destination=deploy/"dist/test"
+        destination.mkdir(parents=True)
+        config=b'{"os":"linux","architecture":"amd64","config":{"Labels":{"org.peixian.control.config.max":"2"}}}'
+        archive=self.image_archive([{"Config":"config.json","RepoTags":tags}],config)
+        shutil.copyfile(archive,destination/"images.tar")
+        profile=json.loads((ROOT/"server/platform.50-io.example.json").read_text(encoding="utf-8"))
+        cfg=self.root/"profile.json"
+        cfg.write_text(json.dumps(profile),encoding="utf-8")
+        return source,deploy,wheels,destination,cfg
+
+    def test_configured_image_tags_are_required_not_default_old_release(self):
+        new=json.loads((ROOT/"server/platform.50-io.example.json").read_text(encoding="utf-8"))["images"]
+        old=dict(new,control="agent-platform-control:1.0.0",gateway="agent-platform-gateway:1.0.0")
+        source,deploy,wheels,destination,cfg=self.package_tree(list(old.values()))
+        with patch.object(package,"ROOT",source),patch.object(package,"DEPLOY",deploy), \
+                patch.object(package,"ALLOWED_FILES",("LICENSE",)),patch.object(package,"OPTIONAL_FILES",()), \
+                patch.object(package,"command",return_value="a"*40):
+            with self.assertRaisesRegex(package.PackageError,"tags_do_not_match"):
+                package.assemble(destination,wheels,"HEAD",config_path=cfg)
+        self.assertTrue((destination/"images.tar").is_file())
+
+    def test_matching_tags_manifest_is_sanitized_and_source_only_rejects_old_archive(self):
+        profile=json.loads((ROOT/"server/platform.50-io.example.json").read_text(encoding="utf-8"))
+        source,deploy,wheels,destination,cfg=self.package_tree(list(profile["images"].values()))
+        def command(*args):
+            if args[:2]==("git","rev-parse"):
+                return "a"*40
+            if args[:2]==("git","status"):
+                return ""
+            if args[:3]==("docker","image","inspect"):
+                return json.dumps([{"Id":"synthetic"}])
+            self.fail("unexpected side effect")
+        with patch.object(package,"ROOT",source),patch.object(package,"DEPLOY",deploy), \
+                patch.object(package,"ALLOWED_FILES",("LICENSE",)),patch.object(package,"OPTIONAL_FILES",()), \
+                patch.object(package,"command",side_effect=command):
+            result=package.assemble(destination,wheels,"HEAD",config_path=cfg)
+            self.assertEqual(result["images"],4)
+            report=json.loads((destination/"release-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(report["platform_config_version"],2)
+            self.assertEqual(report["requested_images"],profile["images"])
+            self.assertEqual(report["effective_config"]["concurrency"]["sse_viewers"],128)
+            self.assertNotIn("private_key",json.dumps(report["effective_config"]))
+            with self.assertRaisesRegex(package.PackageError,"must_not_include_old_images"):
+                package.assemble(destination,wheels,"HEAD",config_path=cfg,source_only=True)
 
     def test_allowlist_has_no_runtime_or_credential_sources(self):
         for name in package.ALLOWED_FILES:

@@ -177,7 +177,8 @@ def main():
         args.agent_image, args.gateway_image = cfg.images["agent"], cfg.images["gateway"]
         args.max_runtimes = cfg.max_runtimes
         manager_options = {"resource_limits": cfg.resource_limits, "network_pool": cfg.network_pool,
-                           "deployment_id": cfg.deployment_id}
+                           "deployment_id": cfg.deployment_id, "config_version": cfg.version,
+                           "control_resources": cfg.control_resources, "capacity_policy": cfg.capacity_policy}
     url = urlsplit(args.control_url)
     if (url.scheme not in ("http", "https") or url.hostname not in ("127.0.0.1", "localhost", "::1") or
             url.username or url.password or url.query or url.fragment or url.path not in ("", "/")):

@@ -145,3 +145,10 @@ python deploy/peixian/platform-package.py --assemble --source-commit HEAD
 ## 验证边界
 
 当前交付要求在 Windows Docker Desktop 的 Linux 容器中完成 HTTPS、配置、权限、插件、备份与恢复验证。Ubuntu 实机、单位证书链、真实内网模型及业务接口尚须在目标服务器复验；本手册不把配置模板或容器测试作为 Linux 实机验收。
+# 第一轮并发加固配置说明
+
+新增 `platform.50-io.example.json` 是配置 v2 的独立测试入口；旧 `platform.example.json` 仍按 v1 解释。部署、升级、恢复前应查阅 [第一轮实施指南](../../../services/peixian-control/docs/HARDENING_R1.md) 和 [验收报告](../../../services/peixian-control/docs/HARDENING_R1_REPORT.md)。
+
+50 人示例保留原账号内存上限，严格预算为 137.25 GiB，16 核/32 GiB 上会明确拒绝启动。候选账号配额必须先画像验证。v2 的 Control 镜像须声明 `org.peixian.control.config.max=2`；schema v3 不变不意味着旧镜像兼容新配置。
+
+Windows `platform.ps1` 和 Linux 的 `platform-manage.py --config` 均读取同一份版本化配置。`backup` 为全量备份，`upgrade-backup` 只有控制卷。`platform-package.py --config ...` 按该配置精确选镜像，`--source-only` 包不包含镜像，不能代替完整离线部署包。

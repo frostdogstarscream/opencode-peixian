@@ -5,6 +5,7 @@ import argparse
 import base64
 import hashlib
 import importlib.util
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -93,7 +94,7 @@ def compose_config(cfg, pinned=None):
               "labels": {"peixian.deployment": cfg.deployment_id},
               "logging": {"driver": "json-file", "options": {"max-size": "10m", "max-file": "3"}}}
     console = {**common, "container_name": cfg.control_container, "image": images["control"],
-               "cpus": 1.0, "mem_limit": "512m", "pids_limit": 128,
+               "cpus": cfg.control_resources["cpus"], "mem_limit": str(cfg.control_resources["memory_mib"]) + "m", "pids_limit": 128,
                "tmpfs": ["/tmp:rw,nosuid,nodev,size=128m,mode=1777"],
                "ports": [{"target": 8080, "published": str(cfg.control_port), "host_ip": "127.0.0.1", "protocol": "tcp"}],
                "environment": {"CONTROL_DATA": "/data", "CONTROL_KEY_FILE": "/run/secrets/control-key",
@@ -108,6 +109,12 @@ def compose_config(cfg, pinned=None):
                "healthcheck": {"test": ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3)"],
                                "interval": "10s", "timeout": "5s", "start_period": "20s", "retries": 6},
                "networks": ["front"]}
+    if cfg.version == 2:
+        console["memswap_limit"] = console["mem_limit"]
+        console["environment"].update(cfg.concurrency_environment)
+    # This applies to v1 upgrades too: browser users must not share the proxy IP
+    # in source-based login limits. No account management network is trusted.
+    console["environment"]["FORWARDED_ALLOW_IPS"] = str(next(ipaddress.ip_network(cfg.network_pool).subnets(new_prefix=28)))
     proxy = {**common, "container_name": cfg.deployment_id + "-https", "image": images["proxy"],
              "cpus": 0.5, "mem_limit": "128m", "pids_limit": 64,
              "entrypoint": ["nginx", "-g", "daemon off;"],
@@ -118,12 +125,13 @@ def compose_config(cfg, pinned=None):
              "depends_on": {"console": {"condition": "service_healthy"}}, "networks": ["front"],
              "healthcheck": {"test": ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://127.0.0.1:8443/health"],
                              "interval": "10s", "timeout": "5s", "retries": 6}}
+    if cfg.version == 2:
+        proxy["memswap_limit"] = proxy["mem_limit"]
     proxy_fingerprint = hashlib.sha256((ROOT / "server/nginx.conf").read_bytes())
     if cfg.certificate.is_file():
         proxy_fingerprint.update(cfg.certificate.read_bytes())
     proxy["labels"] = {**common["labels"], "peixian.proxy_config": proxy_fingerprint.hexdigest()}
     # Explicit IPAM keeps this entry network out of Docker's exhaustible default pools.
-    import ipaddress
     subnet = next(ipaddress.ip_network(cfg.network_pool).subnets(new_prefix=28))
     return {"name": cfg.deployment_id, "services": {"console": console, "https": proxy},
             "volumes": {"control-data": {"name": cfg.control_volume, "labels": {"peixian.deployment": cfg.deployment_id}}},
@@ -148,6 +156,11 @@ def inspect_images(cfg):
         info = json.loads(command("docker", "image", "inspect", image))[0]
         if info.get("Os") != "linux" or info.get("Architecture") != "amd64":
             raise PlatformError("linux_amd64_image_required")
+        if name == "control":
+            try:
+                config.image_supports_config(info.get("Config", {}).get("Labels"), cfg.version)
+            except config.ConfigError as error:
+                raise PlatformError(str(error)) from None
         result[name] = info["Id"]
     return result
 
@@ -156,10 +169,9 @@ def check(cfg):
     info = json.loads(command("docker", "info", "--format", "{{json .}}"))
     if info.get("OSType") != "linux":
         raise PlatformError("docker_linux_engine_required")
-    if info.get("MemTotal", 0) < cfg.memory_budget_mib * 1024 * 1024:
-        raise PlatformError("docker_memory_below_configured_runtime_budget")
-    if info.get("NCPU", 0) < cfg.cpu_budget:
-        raise PlatformError("docker_cpus_below_configured_runtime_budget")
+    capacity = config.capacity.evaluate(info, cfg.resource_budget)
+    if capacity["failures"]:
+        raise PlatformError(capacity["failures"][0])
     command("docker", "compose", "version")
     endpoint = json.loads(command("docker", "context", "inspect"))[0]["Endpoints"]["docker"]["Host"]
     if not endpoint.startswith(("unix://", "npipe://")):
@@ -180,7 +192,6 @@ def check(cfg):
                 if container not in names:
                     raise PlatformError("server_port_occupied")
     images = inspect_images(cfg)
-    import ipaddress
     subnet = next(ipaddress.ip_network(cfg.network_pool).subnets(new_prefix=28))
     identifiers = command("docker", "network", "ls", "--format", "{{.ID}}").splitlines()
     networks = json.loads(command("docker", "network", "inspect", *identifiers)) if identifiers else []
@@ -194,8 +205,18 @@ def check(cfg):
                 other = ipaddress.ip_network(ipam["Subnet"], strict=False)
                 if other.version == 4 and subnet.overlaps(other):
                     raise PlatformError("entry_subnet_conflicts_choose_unused_network_pool")
+    network = None
+    if cfg.version == 2:
+        try:
+            network = config.capacity.network_capacity(cfg.network_pool, networks, cfg.deployment_id,
+                                                       cfg.max_runtimes, config.capacity.retained_ids(cfg.worker_root))
+        except ValueError as error:
+            raise PlatformError(str(error)) from None
+        if network["status"] != "passed":
+            raise PlatformError("configured_network_pool_capacity_insufficient")
     return {"status": "passed", "deployment_id": cfg.deployment_id, "images": images,
-            "memory_budget_mib": cfg.memory_budget_mib, "cpu_budget": cfg.cpu_budget}
+            "memory_budget_mib": cfg.memory_budget_mib, "cpu_budget": cfg.cpu_budget,
+            "capacity_policy": capacity, "network_capacity": network}
 
 
 def up(cfg):

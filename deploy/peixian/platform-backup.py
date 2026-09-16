@@ -343,6 +343,11 @@ def restore(cfg, folder):
         raise BackupError("restore_requires_new_deployment_namespace")
     image = json.loads(command("docker", "image", "inspect", cfg.images["control"]))[0]
     labels = image.get("Config", {}).get("Labels", {})
+    if getattr(cfg, "version", 1) >= 2:
+        try:
+            cfg.verify_control_image(labels)
+        except ValueError as error:
+            raise BackupError(str(error)) from None
     try:
         low, high = (int(labels["org.peixian.control.schema." + key]) for key in ("min", "max"))
     except (KeyError, ValueError):

@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "deployment_id": "agent-hardening-50",
+  "product": {
+    "name": "Agent 工作台",
+    "short_name": "Agent",
+    "description": "对话、文件、技能与插件，在一个工作台完成。"
+  },
+  "public_url": "https://agent.example.internal:19443",
+  "bind_host": "0.0.0.0",
+  "https_port": 19443,
+  "control_port": 14094,
+  "data_root": "/srv/agent-hardening-50",
+  "tls": {
+    "certificate": "/etc/agent-platform/tls/certificate.pem",
+    "private_key": "/etc/agent-platform/tls/private-key.pem"
+  },
+  "network_pool": "10.240.0.0/16",
+  "max_runtimes": 50,
+  "resource_limits": {
+    "agent": {
+      "cpus": 2,
+      "memory_mib": 2048
+    },
+    "gateway": {
+      "cpus": 0.5,
+      "memory_mib": 512
+    },
+    "relay": {
+      "cpus": 0.5,
+      "memory_mib": 128
+    }
+  },
+  "images": {
+    "control": "agent-platform-control:hardening-r1",
+    "gateway": "agent-platform-gateway:hardening-r1",
+    "agent": "peixian-opencode:1.18.30-managed-r1",
+    "proxy": "agent-platform-proxy:nginx-1.28.0"
+  },
+  "profile": "single-host-50-io",
+  "control_resources": {
+    "cpus": 2,
+    "memory_mib": 2048
+  },
+  "capacity_policy": {
+    "cpu_mode": "shared",
+    "cpu_reserve": 4,
+    "cpu_overcommit_factor": 4,
+    "host_memory_reserve_mib": 4096
+  },
+  "concurrency": {}
+}

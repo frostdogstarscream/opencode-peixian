@@ -1,5 +1,6 @@
 FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea
 LABEL org.peixian.control.schema.min="0" org.peixian.control.schema.max="3"
+LABEL org.peixian.control.config.max="2"
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY services/peixian-control/requirements.lock /app/requirements.lock

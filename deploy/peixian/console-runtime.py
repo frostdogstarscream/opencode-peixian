@@ -6,6 +6,7 @@ arrays and every durable path is beneath the explicitly configured state root.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import ipaddress
 import io
 import json
@@ -18,6 +19,10 @@ import subprocess
 import time
 import uuid
 
+
+_capacity_spec = importlib.util.spec_from_file_location("runtime_capacity_contract", Path(__file__).with_name("platform-capacity.py"))
+capacity_contract = importlib.util.module_from_spec(_capacity_spec)
+_capacity_spec.loader.exec_module(capacity_contract)
 
 MANAGED = "peixian.console.managed"
 ID = re.compile(r"[a-f0-9]{32}")
@@ -303,14 +308,20 @@ class RuntimeManager:
     def __init__(self, root, *, control_container="peixian-console",
                  agent_image="peixian-opencode:1.18.30-managed-r1",
                  gateway_image="peixian-gateway:console-r1", maximum=4,
-                 resource_limits=None, network_pool=None, deployment_id=None):
+                 resource_limits=None, network_pool=None, deployment_id=None, config_version=1,
+                 control_resources=None, capacity_policy=None):
         self.root = Path(root).absolute()
         protect_root(self.root)
         self.root = self.root.resolve()
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", control_container):
             raise RuntimeFailure("invalid_control_container")
-        if not 1 <= maximum <= 32:
-            raise RuntimeFailure("invalid_runtime_capacity")
+        try:
+            capacity_contract.runtime_limit(config_version, maximum)
+        except ValueError as error:
+            raise RuntimeFailure(str(error)) from None
+        self.config_version = config_version
+        self.control_resources = control_resources or ({"cpus": 2.0, "memory_mib": 2048} if config_version == 2 else {"cpus": 1.0, "memory_mib": 512})
+        self.capacity_policy = capacity_policy or {}
         self.control_container, self.agent_image, self.gateway_image = control_container, agent_image, gateway_image
         self.maximum = maximum
         self.limits = normalize_limits(resource_limits)
@@ -351,12 +362,24 @@ class RuntimeManager:
         limits = getattr(self, "limits", DEFAULT_LIMITS)
         for name, key in (("agent", "agent"), ("gateway", "gateway"), ("model-relay", "relay")):
             source["services"][name].update(cpus=limits[key]["cpus"], mem_limit=str(limits[key]["memory_mib"]) + "m")
+            if getattr(self, "config_version", 1) == 2:
+                source["services"][name]["memswap_limit"] = source["services"][name]["mem_limit"]
         target = directory / "operations" / (Path(file).parent.name + "-compose.json")
         write_json(target, source)
         return self.docker_run("compose", "-f", str(target), *args, timeout=timeout)
 
     def ensure_networks(self, spec):
         identity, uid = check_id(spec["runtime_id"]), check_id(spec["uid"])
+        if getattr(self, "config_version", 1) == 2:
+            identifiers = self.docker_run("network", "ls", "--format", "{{.ID}}").split()
+            records = json.loads(self.docker_run("network", "inspect", *identifiers)) if identifiers else []
+            try:
+                retained = capacity_contract.retained_ids(self.root) | {identity}
+                network = capacity_contract.network_capacity(self.network_pool, records, self.deployment_id, self.maximum, retained)
+            except ValueError as error:
+                raise RuntimeFailure(str(error)) from None
+            if network["status"] != "passed":
+                raise RuntimeFailure("configured_network_pool_capacity_insufficient")
         existing = set(self.docker_run("network", "ls", "--format", "{{.Name}}").split())
         for suffix in ("internal", "management", "egress"):
             name = "px-" + identity + "-" + suffix
@@ -478,13 +501,19 @@ class RuntimeManager:
         if len(others) >= self.maximum:
             raise RuntimeFailure("runtime_capacity_reached")
         info = json.loads(self.docker_run("info", "--format", "{{json .}}"))
-        # Reserve the configured maximum: agent 2 GiB + gateway 512 MiB + relay 128 MiB.
-        # Control gets 512 MiB and the host/engine keeps at least 1 GiB.
+        # Use the same versioned admission policy as platform preflight.
+        # Sharing is CPU planning only; RAM ceilings and headroom remain strict.
         limits = getattr(self, "limits", DEFAULT_LIMITS)
-        required_memory = (self.maximum * sum(item["memory_mib"] for item in limits.values()) + 1536) * 1024 * 1024
-        if type(info.get("MemTotal")) is not int or info["MemTotal"] < required_memory:
+        try:
+            required = capacity_contract.budget(getattr(self, "config_version", 1), self.maximum, limits,
+                                                getattr(self, "control_resources", {"cpus": 1.0, "memory_mib": 512}),
+                                                getattr(self, "capacity_policy", {}))
+        except ValueError as error:
+            raise RuntimeFailure(str(error)) from None
+        result = capacity_contract.evaluate(info, required)
+        if "docker_memory_below_configured_runtime_budget" in result["failures"]:
             raise RuntimeFailure("docker_memory_budget_exceeded")
-        if type(info.get("NCPU")) is not int or info["NCPU"] < self.maximum * sum(item["cpus"] for item in limits.values()) + 1:
+        if result["failures"]:
             raise RuntimeFailure("docker_cpu_budget_exceeded")
 
     def prepare(self, spec, download):

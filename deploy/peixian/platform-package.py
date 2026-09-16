@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 DEPLOY = ROOT / "deploy/peixian"
 ALLOWED_FILES = (
     "LICENSE",
+    "deploy/peixian/platform-capacity.py", "deploy/peixian/platform-sample.py",
+    "deploy/peixian/server/platform.50-io.example.json",
     "deploy/peixian/platform-config.py", "deploy/peixian/platform-manage.py", "deploy/peixian/platform-backup.py",
     "deploy/peixian/platform-package.py", "deploy/peixian/platform.ps1", "deploy/peixian/console-worker.py",
     "deploy/peixian/console-runtime.py", "deploy/peixian/console-guard.py", "deploy/peixian/plugin-client.mjs",
@@ -26,6 +28,12 @@ ALLOWED_FILES = (
     "deploy/peixian/examples/records-plugin/entry.mjs", "deploy/peixian/examples/records-plugin/manifest.json",
     "deploy/peixian/examples/records-plugin/SKILL.md", "services/peixian-control/docs/openapi.json",
     "services/peixian-control/requirements.lock",
+    "services/peixian-control/examples/console_client.py",
+    "services/peixian-control/benchmarks/platform_load.py",
+    "services/peixian-control/benchmarks/control_layer_load.py",
+    "services/peixian-control/benchmarks/CONTROL_LAYER_LOAD.md",
+    "services/peixian-control/docs/HARDENING_R1.md",
+    "services/peixian-control/docs/HARDENING_R1_REPORT.md",
 )
 OPTIONAL_FILES = ("deploy/peixian/GENERIC_ACCEPTANCE_REPORT.md", "deploy/peixian/examples/openai-fixture.py")
 ARTIFACTS = {"images.tar", "source.tar.gz", "source.tar", "release-manifest.json", "SHA256SUMS", "README.md"}
@@ -114,7 +122,7 @@ def validate_output(folder, expected):
             raise PackageError("unexpected_output_file_preserved")
 
 
-def assemble(destination, wheels, commit, *, export_images=False):
+def assemble(destination, wheels, commit, *, export_images=False, config_path=None, source_only=False):
     if not re.fullmatch(r"(?:HEAD|[0-9a-fA-F]{7,40})", commit):
         raise PackageError("source_commit_requires_head_or_sha")
     full_commit = command("git", "rev-parse", "--verify", commit + "^{commit}")
@@ -138,25 +146,46 @@ def assemble(destination, wheels, commit, *, export_images=False):
     settings = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = settings
     spec.loader.exec_module(settings)
+    cfg = settings.load_config(config_path) if config_path is not None else None
+    expected_images = cfg.images if cfg else settings.IMAGES
+    config_version = cfg.version if cfg else 1
+    effective_config = ({"version": cfg.version, "profile": cfg.profile, "max_runtimes": cfg.max_runtimes,
+                         "control_resources": cfg.control_resources, "resource_limits": cfg.resource_limits,
+                         "capacity_policy": cfg.capacity_policy, "concurrency": cfg.concurrency,
+                         "resource_budget": cfg.resource_budget} if cfg else {"version": 1})
     archive = destination / "images.tar"
-    if export_images:
+    if source_only and archive.exists():
+        raise PackageError("source_only_package_must_not_include_old_images")
+    if export_images and not source_only:
         if archive.exists():
             raise PackageError("existing_images_archive_preserved_use_assemble")
         partial = destination / "images.tar.partial"
         if partial.exists():
             raise PackageError("previous_partial_archive_preserved")
         with partial.open("xb") as output:
-            result = subprocess.run(["docker", "save", *settings.IMAGES.values()], stdout=output, stderr=subprocess.PIPE)
+            result = subprocess.run(["docker", "save", *expected_images.values()], stdout=output, stderr=subprocess.PIPE)
         if result.returncode:
             raise PackageError("image_export_failed_partial_preserved")
         partial.rename(archive)
-    if not archive.is_file():
-        raise PackageError("export_images_before_assemble")
-    images = archive_images(archive)
-    if set(images) != set(settings.IMAGES.values()):
-        raise PackageError("exported_image_tags_do_not_match_platform_version")
-    if any(item["os"] != "linux" or item["architecture"] != "amd64" for item in images.values()):
-        raise PackageError("exported_images_require_linux_amd64")
+    images = {}
+    if not source_only:
+        if not archive.is_file():
+            raise PackageError("export_images_before_assemble")
+        images = archive_images(archive)
+        if set(images) != set(expected_images.values()):
+            raise PackageError("exported_image_tags_do_not_match_platform_version")
+        if any(item["os"] != "linux" or item["architecture"] != "amd64" for item in images.values()):
+            raise PackageError("exported_images_require_linux_amd64")
+        try:
+            settings.image_supports_config(images[expected_images["control"]]["labels"], config_version)
+        except settings.ConfigError as error:
+            raise PackageError(str(error)) from None
+    else:
+        source_archive = destination / "source.tar.gz"
+        if source_archive.exists():
+            raise PackageError("source_archive_already_exists_use_new_destination")
+        # Archive only the chosen Git commit; never sweep workspace credentials.
+        command("git", "archive", "--format=tar.gz", "--output=" + str(source_archive), full_commit)
     for tag, item in images.items():
         try:
             local = json.loads(command("docker", "image", "inspect", tag))[0]
@@ -185,6 +214,15 @@ Docker/Compose、Python/venv、ACL 和操作系统 CA 包需预先安装；本�
 不包含账号、密码、密钥、数据库、运行目录或备份。首次部署会生成新的超级管理员临时密码。
 `release-manifest.json` 记录源码状态、镜像归档内部 ID 和校验信息。只有 source_matches_commit=true 才表示部署源码对应所记录提交。
 """
+    if source_only:
+        readme = """# Agent 工作台并发加固：源码与工具包（不含镜像）
+
+本包不是可直接离线安装的完整部署包。Docker 引擎或镜像验收未完成时，不以旧镜像代替本次版本。
+source.tar.gz 为清单 source_commit 对应的已提交源码；部署脚本、配置模板和 Linux Python wheels 另行提供。
+images.tar 不存在。镜像构建、Linux 容器运行、真实 50 环境容量与目标服务器验收仍需执行。
+先校验 SHA256SUMS，再解压源码并按匹配版本构建镜像。真实凭据、账号与运行卷不包含在包中。
+清单 source_matches_commit=false 时，随包部署脚本还包含未提交修改，不能声称它们属于归档提交。
+"""
     (destination / "README.md").write_text(readme, encoding="utf-8")
     matches = True
     for name in selected:
@@ -197,6 +235,10 @@ Docker/Compose、Python/venv、ACL 和操作系统 CA 包需预先安装；本�
                 "source_matches_commit": matches, "working_tree_clean": not bool(command("git", "status", "--porcelain")),
                 "target": {"os": "Ubuntu 24.04", "architecture": "amd64", "python": "3.12", "docker": "Engine + Compose v2"},
                 "control_schema_version": 3, "opencode_version": "1.18.30",
+                "package_kind": "source_and_tools_without_images" if source_only else "offline_deployment",
+                "platform_config_version": config_version, "effective_config": effective_config,
+                "requested_images": expected_images, "images_included": not source_only,
+                "capacity_50_validation": "not_performed",
                 "images": sorted(images.values(), key=lambda item: item["tag"]),
                 "proxy_upstream": settings.PROXY_UPSTREAM,
                 "excluded": ["accounts", "credentials", "databases", "runtime_data", "private_backups", "Ubuntu_deb_packages"],
@@ -218,9 +260,12 @@ def main():
     parser.add_argument("--wheels", type=Path, default=DEPLOY / "dist/platform/linux-wheels")
     parser.add_argument("--source-commit", default="HEAD")
     parser.add_argument("--assemble", action="store_true", help="Use the existing images.tar; never re-export or overwrite it")
+    parser.add_argument("--config", type=Path, help="Select the exact image/config version; config file itself is not copied")
+    parser.add_argument("--source-only", action="store_true", help="Export committed source/tools/wheels, explicitly without images")
     args = parser.parse_args()
     try:
-        print(json.dumps(assemble(args.destination, args.wheels, args.source_commit, export_images=not args.assemble), ensure_ascii=False))
+        print(json.dumps(assemble(args.destination, args.wheels, args.source_commit, export_images=not args.assemble,
+                                  config_path=args.config, source_only=args.source_only), ensure_ascii=False))
     except (PackageError, OSError, ValueError, tarfile.TarError) as error:
         print(json.dumps({"status": "failed", "error": str(error) if isinstance(error, PackageError) else "offline_package_failed"}))
         raise SystemExit(1) from None

@@ -8,6 +8,7 @@ import os
 import time
 
 from fastapi import HTTPException
+from shared.eventhub_config import BOUNDS, validate as validate_hubs
 
 
 DEFAULTS = {
@@ -20,6 +21,7 @@ DEFAULTS = {
     "login_capacity": 4096, "login_ttl_seconds": 300,
     "login_rate": 10, "login_burst": 50, "login_source_rate": 5, "login_source_burst": 50,
 }
+DEFAULTS.update({name: bounds[0] for name, bounds in BOUNDS.items()})
 
 
 def settings():
@@ -39,6 +41,7 @@ def settings():
             or result["sse_renew_seconds"] * 2 >= result["sse_owner_ttl_seconds"]
             or result["auth_recheck_seconds"] > 2):
         raise ValueError("Inconsistent concurrency configuration")
+    validate_hubs(result)
     return result
 
 

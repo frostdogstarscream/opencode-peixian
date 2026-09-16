@@ -257,6 +257,7 @@ def test_old_sse_connection_closes_after_auth_revocation(context, monkeypatch, r
 
     mock_http = httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200, stream=QuietStream())))
     monkeypatch.setattr(app.state, "stream_http", mock_http)
+    monkeypatch.setattr(app.state.event_hubs, "client", mock_http)
     with s.tx() as db:
         db.execute("UPDATE runtimes SET status='ready',revision=desired WHERE uid=?", (account["id"],))
     token = client.post(P + "/tokens", json={"name": "synthetic-stream"}).json()

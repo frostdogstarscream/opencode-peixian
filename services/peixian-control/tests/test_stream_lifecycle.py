@@ -50,8 +50,6 @@ async def fixture(monkeypatch, *, chunks=(), quiet=True, status=200, prepare_ttl
     user = {"uid": "synthetic-account"}
     state.live_text = LiveTextCache(max_owners=max_owners, owner_ttl_seconds=.2)
     state.db_work = WorkPool(2, 2, .1, "stream-test")
-    state.stream_registry = StreamRegistry(state.live_text, prepare_ttl=prepare_ttl)
-    state.stream_registry.start()
     created = []
 
     async def principal(request):
@@ -70,6 +68,23 @@ async def fixture(monkeypatch, *, chunks=(), quiet=True, status=200, prepare_ttl
 
     state.stream_http = httpx.AsyncClient(transport=httpx.MockTransport(transport))
     state.download_http = httpx.AsyncClient(transport=httpx.MockTransport(transport))
+    from control.event_hub import AccountEventHubs
+    state.limits.update(hub_idle_seconds=0, hub_retention_seconds=0)
+    async def binding(uid):
+        if not state.valid:
+            raise HTTPException(401, "synthetic revoked")
+        return {"base": "http://synthetic-upstream", "headers": {}, "identity": uid}
+    async def active(value):
+        return False
+    # The dynamic client allows cancellation/timeout tests to replace it.
+    class Client:
+        def build_request(self, *args, **kwargs):
+            return state.stream_http.build_request(*args, **kwargs)
+        async def send(self, *args, **kwargs):
+            return await state.stream_http.send(*args, **kwargs)
+    state.event_hubs = AccountEventHubs(Client(), state.live_text, state.limits, binding, active, maximum=max_owners)
+    state.stream_registry = StreamRegistry(state.live_text, prepare_ttl=prepare_ttl, hubs=state.event_hubs)
+    state.stream_registry.start()
     try:
         yield app, request, user, created
     finally:
@@ -120,6 +135,36 @@ def test_downloads_have_separate_admission_budget():
         assert registry.stats()["downloads"] == 8
         await registry.close()
         assert registry.stats()["viewers"] == registry.stats()["downloads"] == 0
+    asyncio.run(run())
+
+
+def test_shared_reader_does_not_keep_revoked_viewer_alive(monkeypatch):
+    async def run():
+        import control.app as app_module
+        async with fixture(monkeypatch) as (app, first, user, created):
+            second = Request(scope(app))
+            revoked = False
+            async def principal(request):
+                if request is first and revoked:
+                    raise HTTPException(401, "synthetic revoked")
+                return user
+            monkeypatch.setattr(app_module, "principal", principal)
+            responses = [await event_response(first, user), await event_response(second, user)]
+            async def send(message):
+                pass
+            tasks = [asyncio.create_task(response(request.scope, receive, send))
+                     for response, request in zip(responses, (first, second))]
+            try:
+                await asyncio.sleep(.05)
+                assert len(created) == 1
+                revoked = True
+                await asyncio.wait_for(tasks[0], .5)
+                assert not tasks[1].done() and not created[0].closed
+                assert app.state.event_hubs.stats()["subscribers"] == 1
+            finally:
+                for task in tasks:
+                    task.cancel()
+                await asyncio.gather(*tasks, return_exceptions=True)
     asyncio.run(run())
 
 

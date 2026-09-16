@@ -164,6 +164,11 @@ def register_admin(app):
                 "security_pending": s.one("SELECT COUNT(*) AS n FROM runtimes WHERE security_blocked=1 AND cancellation_confirmed=0")["n"],
                 "safety_sync_failures": app.state.safety.failures}
 
+    @app.get(PREFIX + "/admin/diagnostics/events")
+    async def event_diagnostics(request: Request, user=Depends(require_capability("runtimes.manage"))):
+        # Loop-owned counters must not be read by a database worker thread.
+        return {"hub": app.state.event_hubs.stats(), "streams": app.state.stream_registry.stats()}
+
     @app.post(PREFIX + "/admin/maintenance")
     @blocking_endpoint(app, json_body=True)
     def maintenance_set(request: Request, user=Depends(require_capability("runtimes.manage"))):

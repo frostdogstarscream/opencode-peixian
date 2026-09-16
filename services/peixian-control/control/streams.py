@@ -2,6 +2,7 @@
 import asyncio
 from contextlib import suppress
 import json
+import os
 import time
 
 import httpx
@@ -23,6 +24,8 @@ class Reservation:
         self.response = None
         self.runner = None
         self.owner_task = None
+        self.subscription = None
+        self.retain = False
 
     def activate(self):
         if self.closed or self.registry.closed:
@@ -35,7 +38,9 @@ class Reservation:
             return
         self.closed = True
         self.registry.items.pop(self.id, None)
-        if self.kind == "events":
+        if self.subscription is not None:
+            await self.subscription.close(retain=self.retain and self.started)
+        elif self.kind == "events":
             self.registry.cache.release(self.uid, self.id)
         self.registry.released += 1
         if self.response is not None:
@@ -47,10 +52,11 @@ class Reservation:
 class StreamRegistry:
     """Single-loop counters. Prepared responses expire even if ASGI never calls them."""
     def __init__(self, cache, *, max_viewers=128, max_per_account=4, max_downloads=8,
-                 prepare_ttl=5, clock=time.monotonic):
+                 prepare_ttl=5, clock=time.monotonic, hubs=None):
         if min(max_viewers, max_per_account, max_downloads, prepare_ttl) <= 0:
             raise ValueError("Stream budgets must be positive")
         self.cache = cache
+        self.hubs = hubs
         self.max_viewers, self.max_per_account = max_viewers, max_per_account
         self.max_downloads, self.prepare_ttl = max_downloads, prepare_ttl
         self.clock = clock
@@ -75,7 +81,7 @@ class StreamRegistry:
             self.rejected += 1
             raise HTTPException(503, "服务繁忙，请稍后重试", headers={"Retry-After": "2"})
         item = Reservation(self, uid, kind)
-        if kind == "events":
+        if kind == "events" and self.hubs is None:
             result = self.cache.acquire_result(uid, item.id)
             if result not in ("acquired", "renewed", "already_owned"):
                 self.rejected += 1
@@ -97,6 +103,8 @@ class StreamRegistry:
 
     async def close(self):
         self.closed = True
+        if self.hubs is not None:
+            await self.hubs.close()
         if self.reaper is not None:
             self.reaper.cancel()
             await asyncio.gather(self.reaper, return_exceptions=True)
@@ -112,7 +120,7 @@ class StreamRegistry:
 
     def stats(self):
         return {"viewers": sum(item.kind == "events" for item in self.items.values()),
-                "upstreams": sum(item.kind == "events" and item.response is not None for item in self.items.values()),
+                "upstreams": self.hubs.stats()["upstreams"] if self.hubs else sum(item.kind == "events" and item.response is not None for item in self.items.values()),
                 "owners": self.cache.stats()["owners"],
                 "downloads": sum(item.kind == "download" for item in self.items.values()),
                 "prepared": sum(not item.started for item in self.items.values()),
@@ -121,9 +129,11 @@ class StreamRegistry:
 
 async def initialize_streams(app):
     config = app.state.limits
+    from .event_hub import create_hubs
+    app.state.event_hubs = create_hubs(app, int(os.getenv("MAX_RUNTIMES", "4")))
     app.state.stream_registry = StreamRegistry(app.state.live_text, max_viewers=config["sse_viewers"],
                                                max_per_account=config["sse_per_account"],
-                                               max_downloads=config["downloads"])
+                                               max_downloads=config["downloads"], hubs=app.state.event_hubs)
     app.state.stream_registry.start()
 
 
@@ -143,7 +153,7 @@ async def _guard(request, reservation):
             await asyncio.wait_for(principal(request), timeout=2)
             current = time.monotonic()
             reservation.auth_checked = current
-            if reservation.kind == "events" and current - renewed >= config["sse_renew_seconds"]:
+            if reservation.kind == "events" and reservation.subscription is None and current - renewed >= config["sse_renew_seconds"]:
                 result = reservation.registry.cache.acquire_result(reservation.uid, reservation.id)
                 if result not in ("acquired", "renewed", "already_owned"):
                     return
@@ -151,6 +161,7 @@ async def _guard(request, reservation):
             await asyncio.sleep(config["auth_recheck_seconds"])
     except Exception:
         # Expired auth and an unavailable auth store both fail closed.
+        reservation.retain = False
         return
 
 
@@ -185,6 +196,7 @@ class OwnedStreamResponse(StreamingResponse):
             await response(scope, receive, send)
             return
         item.owner_task = asyncio.current_task()
+        item.retain = True
         started = False
         finished = False
 
@@ -340,13 +352,10 @@ async def event_response(request, user):
     item = request.app.state.stream_registry.reserve(user["uid"], "events")
     item.auth_checked = authenticated
     try:
-        client = request.app.state.stream_http
-        upstream_request = client.build_request("GET", base + "/global/event", headers=headers,
-                                                timeout=httpx.Timeout(None, connect=4, write=4, pool=1))
-        response = await asyncio.wait_for(_open_response(client, upstream_request, item), timeout=4)
-        if response.status_code != 200:
-            raise HTTPException(503, "实时连接暂时不可用，请稍后重试", headers={"Retry-After": "2"})
-        return OwnedStreamResponse(_event_body(request, response, item), request=request, reservation=item,
+        async def authorize():
+            return await principal(request)
+        subscriber = await request.app.state.event_hubs.subscribe(item, authorize)
+        return OwnedStreamResponse(subscriber.body(), request=request, reservation=item,
                                    media_type="text/event-stream", headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
     except BaseException as exc:
         await item.close()

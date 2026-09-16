@@ -4402,6 +4402,189 @@
         "x-runtime-route": "/api/console/v1/admin/connections/{cid}/test"
       }
     },
+    "/api/console/v1/admin/diagnostics/events": {
+      "get": {
+        "description": "仅超级管理员。返回 Hub、订阅和关闭原因的聚合计数，不包含账号或正文。",
+        "operationId": "event_diagnostics_api_console_v1_admin_diagnostics_events_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ],
+        "summary": "事件连接诊断",
+        "tags": [
+          "管理：环境"
+        ],
+        "x-capability": "runtimes.manage",
+        "x-role": "super_admin",
+        "x-roles": [
+          "super_admin"
+        ],
+        "x-runtime-route": "/api/console/v1/admin/diagnostics/events"
+      }
+    },
     "/api/console/v1/admin/jobs": {
       "get": {
         "description": "最多最近 200 项。",

@@ -318,6 +318,7 @@ CONTRACTS = {
     ("post", "/admin/users/{uid}/reset-password"): ("PasswordResetBody", ref("PasswordReset"), "重设账号初始密码", "管理：账号", ""),
     ("post", "/admin/users/{uid}/runtime/{action}"): (None, ref("Queued"), "排队执行环境操作", "管理：账号", "pause 保留数据并停止环境；resume 恢复；retry 重试开通；apply 应用当前授权配置。"),
     ("get", "/admin/jobs"): (None, items(ref("Job")), "查看最近环境任务", "管理：审计", "最多最近 200 项。"),
+    ("get", "/admin/diagnostics/events"): (None, {"type": "object", "additionalProperties": True}, "事件连接诊断", "管理：环境", "仅超级管理员。返回 Hub、订阅和关闭原因的聚合计数，不包含账号或正文。"),
     ("get", "/admin/audit"): (None, items(ref("Audit")), "查看最近管理审计", "管理：审计", "最多最近 500 项。actor 为账号 ID 精确筛选，action 为管理动作精确筛选，result 为 success/denied/failed。仅管理操作元数据；不包含业务调用、迁移负载、密钥、正文或文件路径。"),
     ("get", "/admin/models"): (None, items(ref("AdminModel")), "列出模型配置", "管理：模型", "返回 api_key_configured，不返回密钥值。"),
     ("post", "/admin/models"): ("ModelCreateBody", ref("AdminModel"), "新增可授权模型", "管理：模型", ""),
@@ -466,12 +467,12 @@ def build_openapi(app):
                 anonymous = path in (P + "/auth/login", P + "/platform")
                 common = path in (P + "/me", P + "/me/password", P + "/auth/logout") or path.startswith(P + "/tokens")
                 management = path.startswith(P + "/admin/")
-                super_only = management and (path.startswith((P + "/admin/plugins", P + "/admin/templates", P + "/admin/jobs", P + "/admin/connections", P + "/admin/maintenance", P + "/admin/recovery/")) or "/runtime/" in path)
+                super_only = management and (path.startswith((P + "/admin/plugins", P + "/admin/templates", P + "/admin/jobs", P + "/admin/connections", P + "/admin/maintenance", P + "/admin/recovery/", P + "/admin/diagnostics/")) or "/runtime/" in path)
                 operation["x-role"] = "anonymous" if anonymous else "super_admin" if super_only else "super_admin|admin" if management else "authenticated" if common else "user"
                 if management:
                     operation["x-roles"] = ["super_admin"] if super_only else ["super_admin", "admin"]
                     capability = ("connections.manage" if "/admin/connections" in path or path.endswith("/connections") else "plugins.manage" if "/admin/plugins" in path else "templates.manage" if "/admin/templates" in path
-                                  else "jobs.read" if "/admin/jobs" in path else "runtimes.manage" if "/runtime/" in path or "/admin/maintenance" in path or "/admin/recovery/" in path
+                                  else "jobs.read" if "/admin/jobs" in path else "runtimes.manage" if "/runtime/" in path or "/admin/maintenance" in path or "/admin/recovery/" in path or "/admin/diagnostics/" in path
                                   else "models.manage" if "/admin/models" in path else "audit.read" if "/admin/audit" in path else "users.manage")
                     operation["x-capability"] = capability
                 operation["security"] = [] if anonymous else [{"BearerToken": []}, {"SessionCookie": [], **({"CsrfToken": []} if method not in ("get", "head", "options") else {})}]

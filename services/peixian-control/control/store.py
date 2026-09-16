@@ -272,6 +272,10 @@ class Store:
                 return dict(existing[-1])
         if existing and action != "pause":
             raise ValueError("该环境正在处理其他操作，请稍后重试")
+        if action == "resume" and reason == "normal":
+            # Explicit administrator resume retires its own prior pause intent.
+            # Neither apply completion nor a security-blocked start may do this.
+            db.execute("UPDATE runtimes SET stop_reason='none' WHERE uid=? AND stop_reason='admin' AND security_blocked=0", (uid,))
         if action in ("resume", "provision") and not runtime["reserved"]:
             count = db.execute("SELECT count(*) FROM runtimes WHERE reserved=1").fetchone()[0]
             if count >= int(os.getenv("MAX_RUNTIMES", "4")):

@@ -323,6 +323,25 @@ def test_pause_releases_once_and_preserves_paused_data(state):
     assert store.one("SELECT count(*) n FROM capacity_release_receipts")["n"] == 1
 
 
+@pytest.mark.parametrize("action,blocked,expected", [("resume", 0, "none"), ("apply", 0, "admin"), ("resume", 1, "admin")])
+def test_only_explicit_resume_retires_admin_pause_intent(state, action, blocked, expected):
+    store, engine, clock, args = state
+    uid = account(state)
+    with store.tx() as db:
+        db.execute("UPDATE jobs SET status='cancelled',phase='finished' WHERE uid=?", (uid,))
+        db.execute("UPDATE runtimes SET status='paused',reserved=0,stop_reason='admin',security_blocked=? WHERE uid=?", (blocked, uid))
+    store.queue(uid, action, bump_desired=False)
+    assert store.one("SELECT stop_reason FROM runtimes WHERE uid=?", (uid,))["stop_reason"] == expected
+    if action == "resume" and not blocked:
+        job = engine.claim(runtime_spec)["job"]
+        applying(engine, job)
+        engine.boot(job["id"], {"lease": job["lease"], "attempt": job["attempt"], "operation_id": ident(),
+            "runtime_id": job["runtime_id"], "gateway_boot_id": "synthetic-gateway", "relay_boot_id": "synthetic-relay"})
+        obs = observation(engine, job, running=True, boot="synthetic-gateway")
+        complete(engine, job, ok=True, observation_id=obs)
+        assert store.one("SELECT status,gate_policy FROM runtimes WHERE uid=?", (uid,)) == {"status": "ready", "gate_policy": "reopen_check"}
+
+
 def test_maintenance_persists_and_rejects_ordinary_claim_or_create(state):
     store, engine, clock, args = state
     account(state)

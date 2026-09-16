@@ -180,7 +180,8 @@ def helper(image, volume, operation):
     write = operation == "_unpack"
     result = ["docker", "run", "--rm", "--pull", "never", "--network", "none", "--read-only", "--cap-drop", "ALL",
               "--security-opt", "no-new-privileges:true", "--cpus", "0.5", "--memory", "512m", "--pids-limit", "32",
-              "--tmpfs", "/tmp:rw,nosuid,nodev,size=256m,mode=1777", "--user", "0:0" if write else "10001:10001"]
+              "--tmpfs", "/tmp:rw,nosuid,nodev,size=256m,mode=1777", "--env", "PYTHONPATH=/app",
+              "--user", "0:0" if write else "10001:10001"]
     if write:
         result.extend(["--cap-add", "CHOWN", "--cap-add", "DAC_OVERRIDE", "-i"])
     result.extend(["--mount", "type=volume,source=" + volume + ",target=/data,volume-nocopy" + ("" if write else ",readonly"),

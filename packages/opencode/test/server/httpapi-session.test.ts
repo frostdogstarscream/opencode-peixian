@@ -24,6 +24,7 @@ import * as HttpSessionError from "../../src/server/routes/instance/httpapi/hand
 import { ExperimentalPaths } from "../../src/server/routes/instance/httpapi/groups/experimental"
 import { SessionPaths } from "../../src/server/routes/instance/httpapi/groups/session"
 import { Session } from "@/session/session"
+import { BackgroundJob } from "@/background/job"
 import { MessageID, PartID, SessionID, type SessionID as SessionIDType } from "../../src/session/schema"
 import { Database } from "@opencode-ai/core/database/database"
 import { SessionInputTable, SessionMessageTable, SessionTable } from "@opencode-ai/core/session/sql"
@@ -39,12 +40,21 @@ import { testProviderConfig } from "../lib/test-provider"
 import { pollWithTimeout, testEffect } from "../lib/effect"
 
 const originalWorkspaces = Flag.OPENCODE_EXPERIMENTAL_WORKSPACES
+const originalManagedRoot = process.env.PEIXIAN_MANAGED_ROOT
 const noopBootstrapLayer = Layer.succeed(
   InstanceBootstrapService.Service,
   InstanceBootstrapService.Service.of({ run: Effect.void }),
 )
 const appLayer = AppNodeBuilder.build(
-  LayerNode.group([InstanceStore.node, Project.node, Session.node, Workspace.node, Database.node, Ripgrep.node]),
+  LayerNode.group([
+    InstanceStore.node,
+    Project.node,
+    Session.node,
+    Workspace.node,
+    Database.node,
+    Ripgrep.node,
+    BackgroundJob.node,
+  ]),
   [[InstanceStore.bootstrapNode, noopBootstrapLayer]],
 )
 const servedRoutes: Layer.Layer<never, Config.ConfigError, HttpServer.HttpServer> = HttpRouter.serve(
@@ -230,11 +240,61 @@ function requestJson<T>(path: string, init?: RequestInit) {
 
 afterEach(async () => {
   Flag.OPENCODE_EXPERIMENTAL_WORKSPACES = originalWorkspaces
+  if (originalManagedRoot === undefined) delete process.env.PEIXIAN_MANAGED_ROOT
+  else process.env.PEIXIAN_MANAGED_ROOT = originalManagedRoot
   await disposeAllInstances()
   await resetDatabase()
 })
 
 describe("session HttpApi", () => {
+  it.instance("exposes managed activity only in explicitly managed mode", () =>
+    Effect.gen(function* () {
+      const instance = yield* TestInstance
+      const headers = { "x-opencode-directory": instance.directory }
+      delete process.env.PEIXIAN_MANAGED_ROOT
+      expect((yield* request(SessionPaths.managedActivity, { headers })).status).toBe(403)
+      process.env.PEIXIAN_MANAGED_ROOT = instance.directory
+      const response = yield* requestJson<{
+        protocol_version: number
+        boot_id: string
+        complete: boolean
+        counts: Record<string, number>
+      }>(SessionPaths.managedActivity, { headers })
+      expect(response.protocol_version).toBe(2)
+      expect(response.boot_id.length).toBeGreaterThan(0)
+      expect(response.complete).toBe(true)
+      expect(response.counts.native_running).toBe(0)
+    }),
+  )
+
+  it.instance("managed activity exposes cancellable background sessions after the parent becomes idle", () =>
+    Effect.gen(function* () {
+      const instance = yield* TestInstance
+      process.env.PEIXIAN_MANAGED_ROOT = instance.directory
+      const headers = { "x-opencode-directory": instance.directory }
+      const parent = yield* createSession()
+      const child = yield* createSession({ parentID: parent.id })
+      const jobs = yield* BackgroundJob.Service
+      const job = yield* jobs.start({
+        id: child.id,
+        type: "task",
+        metadata: { sessionId: child.id, parentSessionId: parent.id },
+        run: Effect.never,
+      })
+      const response = yield* requestJson<{ sessions: string[]; counts: Record<string, number> }>(
+        SessionPaths.managedActivity,
+        { headers },
+      )
+      expect(response.counts.native_background).toBe(1)
+      expect(response.sessions).toContain(parent.id)
+      expect(response.sessions).toContain(child.id)
+      expect(
+        (yield* request(pathFor(SessionPaths.abort, { sessionID: parent.id }), { method: "POST", headers })).status,
+      ).toBe(200)
+      expect((yield* jobs.get(job.id))?.status).toBe("cancelled")
+    }),
+  )
+
   it.effect("maps busy sessions to public session busy errors", () =>
     Effect.gen(function* () {
       const sessionID = SessionID.descending()

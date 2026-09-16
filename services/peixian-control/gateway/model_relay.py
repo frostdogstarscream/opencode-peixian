@@ -11,6 +11,9 @@ import httpx
 
 from .http_utils import fixed_base, json_body, reject_file_urls, upstream_response
 from .service_connections import load_connections, invoke
+from .admission import ActivityMiddleware
+from .runtime_management import RuntimeManagement, register_management
+from .settings import RelaySettings, runtime_protocol_enabled
 
 
 @dataclass(frozen=True)
@@ -46,7 +49,7 @@ def load_models(path, account_id):
         raise ValueError("Invalid account model relay configuration") from None
 
 
-def create_app(*, models=None, connections=None, transport=None):
+def create_app(*, models=None, connections=None, transport=None, runtime_settings=None, management_transport=None):
     @asynccontextmanager
     async def lifespan(app):
         app.state.models = models if models is not None else load_models(
@@ -60,9 +63,20 @@ def create_app(*, models=None, connections=None, transport=None):
             timeout=httpx.Timeout(connect=10, read=300, write=60, pool=10),
         ) as client:
             app.state.client = client
-            yield
+            config = runtime_settings or (RelaySettings.from_env() if runtime_protocol_enabled() else None)
+            manager = RuntimeManagement(app, config, relay=True, transport=management_transport) if config else None
+            if manager:
+                app.state.runtime_management = manager
+                await manager.start()
+            try:
+                yield
+            finally:
+                if manager:
+                    await manager.stop()
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(ActivityMiddleware, owner=app, relay=True)
+    register_management(app, relay=True)
 
     @app.get("/health")
     async def health():
@@ -88,6 +102,9 @@ def create_app(*, models=None, connections=None, transport=None):
         reject_file_urls(body)
         if any(key in body for key in ("base_url", "api_key", "url", "allowed_user", "tenant_id", "account_id")):
             raise HTTPException(400, "Upstream selection is fixed")
+        gate = getattr(app.state, "admission", None)
+        if gate:
+            gate.require_egress()
         body["model"] = model.upstream_model
         headers = {"Content-Type": "application/json",
                    "Accept": "text/event-stream" if body.get("stream") else "application/json",

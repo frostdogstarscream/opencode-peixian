@@ -12,12 +12,14 @@ from fastapi import FastAPI, HTTPException, Request
 import httpx
 from starlette.responses import JSONResponse, StreamingResponse
 
-from .http_utils import fixed_base, json_body, reject_file_urls, upstream_response
+from .http_utils import ClosingStreamingResponse, fixed_base, json_body, reject_file_urls, upstream_response
 from .parse_queue import ParseQueue
 from .safe_fs import UnsafePath
 from .settings import MAX_UPLOAD, Settings
 from .storage import FileStore, QuotaExceeded, SUPPORTED, display_name
 from .plugin_test import run_plugin_test
+from .admission import ActivityMiddleware
+from .runtime_management import RuntimeManagement, register_management
 
 
 # Explicit method/path pairs. Config, shell, command, PTY, auth, MCP and native
@@ -48,7 +50,11 @@ class RequestGuard:
             return await self.app(scope, receive, send)
         settings = getattr(self.owner.state, "settings", None)
         key = dict(scope.get("headers", [])).get(b"x-peixian-key", b"")
-        if settings is None or not hmac.compare_digest(key, settings.token.encode()):
+        relay_permit = scope.get("path") == "/internal/runtime/relay-permit"
+        if relay_permit and settings is not None:
+            key = dict(scope.get("headers", [])).get(b"x-relay-management-key", b"")
+        expected = settings.relay_management_key if relay_permit and settings else settings.token if settings else ""
+        if settings is None or not expected or not hmac.compare_digest(key, expected.encode()):
             return await JSONResponse({"detail": "Unauthorized"}, 401)(scope, receive, send)
         # Count actual bytes, including chunked requests. Upload gets 1 MiB for
         # multipart framing, while the stored file itself is limited to 20 MiB.
@@ -82,13 +88,16 @@ def download(handle, name):
         finally:
             handle.close()
 
-    return StreamingResponse(body(), media_type="application/octet-stream", headers={
+    async def close():
+        handle.close()
+
+    return ClosingStreamingResponse(body(), close=close, media_type="application/octet-stream", headers={
         "Content-Disposition": "attachment; filename*=UTF-8''" + quote(name, safe=""),
         "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store",
     })
 
 
-def create_app(settings=None, *, transport=None):
+def create_app(settings=None, *, transport=None, management_transport=None):
     @asynccontextmanager
     async def lifespan(app):
         config = settings or Settings.from_env()
@@ -110,15 +119,29 @@ def create_app(settings=None, *, transport=None):
         async with httpx.AsyncClient(transport=transport, trust_env=False,
                                     timeout=httpx.Timeout(connect=10, read=None, write=30, pool=10)) as client:
             app.state.client = client
+            manager = None
+            if config.runtime_protocol:
+                if (app.state.revision.get("runtime_id") != config.runtime_id or not config.runtime_key or not config.relay_management_key):
+                    raise RuntimeError("Runtime protocol identity is invalid")
+                config.revision = app.state.revision["revision"]
+                config.activity_root = config.activity_root or config.files_root / ".runtime-state"
+                manager = RuntimeManagement(app, config, transport=management_transport)
+                app.state.runtime_management = manager
+                queue.admission = manager.gate
+                await manager.start()
             await queue.start()
             try:
                 yield
             finally:
+                if manager:
+                    await manager.stop()
                 await queue.stop()
                 store.close()
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(ActivityMiddleware, owner=app)
     app.add_middleware(RequestGuard, owner=app)
+    register_management(app)
 
     @app.exception_handler(QuotaExceeded)
     async def quota_exceeded(request, exception):
@@ -283,7 +306,17 @@ def create_app(settings=None, *, transport=None):
                      "x-opencode-directory": "/workspace"},
         )
         upstream.headers["Authorization"] = "Basic " + base64.b64encode(("opencode:" + config.opencode_password).encode()).decode("ascii")
-        return await upstream_response(app.state.client, upstream)
+        gate = getattr(app.state, "admission", None)
+        identity = None
+        if gate and request.method == "POST" and path.endswith(("/message", "/prompt_async")):
+            identity = gate.register("pending_start", resource=path.split("/")[2])
+            upstream.headers["X-Peixian-Activity-ID"] = identity
+        try:
+            return await upstream_response(app.state.client, upstream)
+        except BaseException:
+            if identity:
+                gate.unknown(identity)
+            raise
 
     return app
 

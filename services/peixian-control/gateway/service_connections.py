@@ -42,6 +42,10 @@ async def invoke(request, cid):
     if connection is None or not hmac.compare_digest(credential, "Bearer " + connection["token"]):
         raise HTTPException(403, "Service connection is not authorized")
     try:
-        return await exchange(request.app.state.client, connection, await json_body(request, 1024 * 1024))
+        payload = await json_body(request, 1024 * 1024)
+        gate = getattr(request.app.state, "admission", None)
+        if gate:
+            gate.require_egress()
+        return await exchange(request.app.state.client, connection, payload)
     except ConnectionFailure as exc:
         raise HTTPException(exc.status, str(exc)) from None

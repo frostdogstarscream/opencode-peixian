@@ -84,6 +84,66 @@ ACCOUNT_ID must match every allowed_user. Duplicate IDs, malformed URLs, credent
 
 GET /v1/models returns platform IDs only. POST /v1/chat/completions accepts only a configured platform model ID, rewrites it to upstream_model, injects the real Bearer key (or omits Authorization for an explicitly keyless intranet model) and sends only to the administrator-configured base_url + /chat/completions. HTTP is allowed for explicit intranet configuration; HTTPS certificate verification is enabled. Caller Authorization and identity fields cannot select account or target. Redirects are rejected, environment proxies ignored, errors redacted and streaming preserved. Network isolation is required because this private relay deliberately does not take a user-supplied tenant identity.
 
+## Runtime protocol v2
+
+Managed runtime deployments set `PX_RUNTIME_PROTOCOL=2` and `PX_RUNTIME_ID` on both
+processes. Gateway additionally receives `PX_CONTROL_URL`, `PX_RELAY_URL`, and
+`PX_RUNTIME_KEY_FILE` (default `/run/secrets/runtime-key`). Both processes receive
+`PX_RELAY_MANAGEMENT_KEY_FILE` (default `/run/secrets/relay-management-key`); Relay
+receives `PX_GATEWAY_URL`. Neither management key is mounted into the Agent. The
+Agent enables its private `/internal/peixian/activity` route only when
+`PEIXIAN_MANAGED_ROOT` is set. Its existing native authentication still applies,
+and Gateway does not expose that private route through native passthrough.
+
+Every process starts closed with a new boot identity. Gateway pulls a nonce-bound
+permit from Control `/internal/runtime/permit` using `X-Runtime-Key`. Relay pulls
+`/internal/runtime/relay-permit` from Gateway using `X-Relay-Management-Key`. The
+shared `PX_R2_` configuration defaults to a 4-second permit, 1-second renewal,
+100-ms watchdog, 1-second management request timeout, four management connections,
+and a 10-second local cancellation observation window. Deadlines use monotonic
+request-start time; Relay receives only the first hop's remaining lifetime. A
+permit cannot open a lifecycle gate by itself.
+
+If an open gate loses its permit through expiry, it latches closed and reports
+`needs_reconcile` with the epoch where authority was lost. Renewals cannot clear
+that latch, including a renewal arriving before the watchdog observes expiry.
+Gateway forwards its own or Relay's recovery flag and epoch to Control. Only a
+verified open command under a new epoch clears the flag; delayed flags from an
+older epoch do not create another recovery cycle.
+
+Gateway management uses `X-Peixian-Key`; Relay management uses the dedicated
+`X-Relay-Management-Key`:
+
+| Endpoint | Contract |
+| --- | --- |
+| GET /internal/runtime/state | protocol/runtime/boot/revision identity, gate epoch, state version, owner, permit scopes, aggregate activity, cancellation outcome; Gateway also includes Relay state |
+| POST /internal/runtime/gate | Exact fields: protocol_version, runtime_id, boot_id, gate_epoch, state_version, owner, operation_id, action, reason, revision |
+| POST /internal/runtime/cancel | Current protocol/runtime/boot/epoch/owner plus operation_id; requires closed gate and begins cancellation without waiting for the observation window |
+
+Gate actions are `open`, `drain`, and `close`. Operation IDs are idempotent within
+the current boot; conflicting or stale epoch/owner commands are rejected. An
+explicit open requires a current permit with matching authority. Normal drain
+blocks new Gateway work while allowing existing work, read-only history/SSE,
+permission/question replies and aborts to continue under egress authority. The
+Relay stays open during this drain. Close shuts both gates; Gateway returns a
+successful close response only after Relay acknowledges it. Health/global-health
+and skill probes remain available while closed.
+
+The aggregate activity includes Gateway request bodies, downloads, uploads,
+queued/running parses, plugin probes, native preparation/generation/background
+work, permission/question waits and Relay HTTP streams. Passive read observers
+are tracked for cancellation but do not prevent drain. A pending-start metadata
+journal under `PX_ACTIVITY_ROOT` (default `/files/.runtime-state`) bridges native
+`prompt_async` acceptance; HTTP 204 alone never means that native work is idle.
+Missing or stale native/Relay observations and unresolved restored journal entries
+report unknown instead of idle. Control owns conservative cross-boot recovery.
+
+Security revocation closes admission and egress, cancels local HTTP/native work,
+and expires independently of the host Worker. `cancellation=local_completed`
+means observed local activity reached zero. It never claims that already accepted
+remote side effects were reversed; the response states
+`external_outcome=not_reversible_by_local_cancellation`.
+
 ## Local tests
 
 Install requirements.txt and pytest==8.3.5 into an isolated venv. Set BUN_EXECUTABLE to an already installed Bun to run synthetic plugin tests. Run pytest from this directory (not the repository root). If the Windows default pytest temporary directory is restricted, set TEMP/TMP to a local scratch directory and pass a unique --basetemp inside an existing .test-runs directory.

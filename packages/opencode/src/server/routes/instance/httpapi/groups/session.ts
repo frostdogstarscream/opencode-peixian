@@ -78,6 +78,7 @@ export const PermissionResponsePayload = Schema.Struct({
 export const SessionPaths = {
   list: root,
   status: `${root}/status`,
+  managedActivity: "/internal/peixian/activity",
   get: `${root}/:sessionID`,
   children: `${root}/:sessionID/children`,
   todo: `${root}/:sessionID/todo`,
@@ -129,6 +130,20 @@ export const SessionApi = HttpApi.make("session")
             description: "Retrieve the current status of all sessions, including active, idle, and completed states.",
           }),
         ),
+        HttpApiEndpoint.get("managedActivity", SessionPaths.managedActivity, {
+          query: WorkspaceRoutingQuery,
+          success: Schema.Struct({
+            protocol_version: Schema.Number,
+            boot_id: Schema.String,
+            complete: Schema.Boolean,
+            counts: Schema.Record(Schema.String, Schema.Number),
+            sessions: Schema.Array(Schema.String),
+            entries: Schema.Array(
+              Schema.Struct({ id: Schema.String, session_id: Schema.String, state: Schema.String }),
+            ),
+          }),
+          error: HttpApiError.Forbidden,
+        }),
         HttpApiEndpoint.get("get", SessionPaths.get, {
           params: { sessionID: SessionID },
           query: WorkspaceRoutingQuery,

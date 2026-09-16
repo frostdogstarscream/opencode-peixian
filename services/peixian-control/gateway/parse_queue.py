@@ -17,6 +17,8 @@ class ParseQueue:
         self.pending = set()
         self.task = None
         self.process = None
+        self.admission = None
+        self.activities = {}
 
     async def start(self):
         for item in self.store.list():
@@ -29,6 +31,22 @@ class ParseQueue:
         if identity not in self.pending:
             self.pending.add(identity)
             self.queue.put_nowait(identity)
+            if self.admission:
+                self.activities[identity] = self.admission.register("parse_queued", resource=identity)
+
+    async def cancel(self):
+        identities = list(self.pending)
+        await self.stop()
+        for identity in identities:
+            try:
+                self.store.update(identity, status="failed", error="runtime_cancelled")
+            except FileNotFoundError:
+                pass
+            if self.admission:
+                self.admission.finish(self.activities.pop(identity, None))
+        self.pending.clear()
+        self.queue = asyncio.Queue()
+        self.task = asyncio.create_task(self.run())
 
     async def stop(self):
         if self.task:
@@ -93,6 +111,10 @@ class ParseQueue:
     async def run(self):
         while True:
             identity = await self.queue.get()
+            activity = self.activities.get(identity)
+            if self.admission and activity in self.admission.activities:
+                self.admission.activities[activity].kind = "parse_running"
+                self.admission.activities[activity].task = asyncio.current_task()
             try:
                 await self.parse_one(identity)
             except asyncio.CancelledError:
@@ -112,4 +134,6 @@ class ParseQueue:
                     pass
             finally:
                 self.pending.discard(identity)
+                if self.admission:
+                    self.admission.finish(self.activities.pop(identity, None))
                 self.queue.task_done()

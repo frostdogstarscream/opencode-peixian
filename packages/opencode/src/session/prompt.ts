@@ -29,6 +29,7 @@ import { pathToFileURL, fileURLToPath } from "url"
 import { Config } from "@/config/config"
 import { ConfigMarkdown } from "@/config/markdown"
 import { SessionSummary } from "./summary"
+import { ManagedActivity } from "./managed-activity"
 import { NamedError } from "@opencode-ai/core/util/error"
 import { SessionProcessor } from "./processor"
 import { Tool } from "@/tool/tool"
@@ -1131,12 +1132,16 @@ const layer = Layer.effect(
 
           step++
           if (step === 1)
-            yield* title({
-              session,
-              modelID: lastUser.model.modelID,
-              providerID: lastUser.model.providerID,
-              history: msgs,
-            }).pipe(Effect.ignore, Effect.forkIn(scope))
+            yield* ManagedActivity.fork(
+              title({
+                session,
+                modelID: lastUser.model.modelID,
+                providerID: lastUser.model.providerID,
+                history: msgs,
+              }).pipe(Effect.ignore),
+              sessionID,
+              scope,
+            )
 
           const model = yield* getModel(lastUser.model.providerID, lastUser.model.modelID, sessionID)
           const task = tasks.pop()
@@ -1250,7 +1255,11 @@ const layer = Layer.effect(
             }
 
             if (step === 1)
-              yield* summary.summarize({ sessionID, messageID: lastUser.id }).pipe(Effect.ignore, Effect.forkIn(scope))
+              yield* ManagedActivity.fork(
+                summary.summarize({ sessionID, messageID: lastUser.id }).pipe(Effect.ignore),
+                sessionID,
+                scope,
+              )
 
             yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
@@ -1335,7 +1344,7 @@ const layer = Layer.effect(
           continue
         }
 
-        yield* compaction.prune({ sessionID }).pipe(Effect.ignore, Effect.forkIn(scope))
+        yield* ManagedActivity.fork(compaction.prune({ sessionID }).pipe(Effect.ignore), sessionID, scope)
         return yield* lastAssistant(sessionID)
       },
     )

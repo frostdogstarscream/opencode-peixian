@@ -52,6 +52,18 @@ def reject_file_urls(value):
             pending.extend(value)
 
 
+class ClosingStreamingResponse(StreamingResponse):
+    def __init__(self, *args, close, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.close_resource = close
+
+    async def __call__(self, scope, receive, send):
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            await self.close_resource()
+
+
 async def upstream_response(client, request):
     try:
         response = await client.send(request, stream=True, follow_redirects=False)
@@ -80,4 +92,4 @@ async def upstream_response(client, request):
         finally:
             await response.aclose()
 
-    return StreamingResponse(body(), status_code=response.status_code, headers=headers)
+    return ClosingStreamingResponse(body(), close=response.aclose, status_code=response.status_code, headers=headers)

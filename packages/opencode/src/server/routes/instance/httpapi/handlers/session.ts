@@ -12,6 +12,9 @@ import { SessionPrompt } from "@/session/prompt"
 import { SessionRevert } from "@/session/revert"
 import { SessionRunState } from "@/session/run-state"
 import { SessionStatus } from "@/session/status"
+import { ManagedActivity } from "@/session/managed-activity"
+import { Question } from "@/question"
+import { BackgroundJob } from "@/background/job"
 import { SessionSummary } from "@/session/summary"
 import { Todo } from "@/session/todo"
 import { MessageID, PartID, SessionID } from "@/session/schema"
@@ -55,6 +58,8 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
     const runState = yield* SessionRunState.Service
     const agentSvc = yield* Agent.Service
     const permissionSvc = yield* Permission.Service
+    const questionSvc = yield* Question.Service
+    const backgroundSvc = yield* BackgroundJob.Service
     const statusSvc = yield* SessionStatus.Service
     const todoSvc = yield* Todo.Service
     const summary = yield* SessionSummary.Service
@@ -76,6 +81,39 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
 
     const status = Effect.fn("SessionHttpApi.status")(function* () {
       return Object.fromEntries(yield* statusSvc.list())
+    })
+
+    const managedActivity = Effect.fn("SessionHttpApi.managedActivity")(function* () {
+      if (!ManagedActivity.enabled()) return yield* new HttpApiError.Forbidden({})
+      const native = yield* statusSvc.list()
+      const permissions = yield* permissionSvc.list()
+      const questions = yield* questionSvc.list()
+      const background = (yield* backgroundSvc.list()).filter((job) => job.status === "running")
+      const snapshot = ManagedActivity.snapshot()
+      const running = snapshot.entries.filter((entry) => entry.state === "running")
+      return {
+        protocol_version: 2,
+        boot_id: snapshot.boot_id,
+        complete: true,
+        counts: {
+          native_running: Math.max(native.size, running.length),
+          native_background: background.length,
+          waiting_permission: permissions.length,
+          waiting_question: questions.length,
+        },
+        sessions: Array.from(
+          new Set([
+            ...native.keys(),
+            ...running.map((entry) => entry.session_id),
+            ...permissions.map((entry) => entry.sessionID),
+            ...questions.map((entry) => entry.sessionID),
+            ...background
+              .flatMap((job) => [job.metadata?.sessionId, job.metadata?.parentSessionId])
+              .filter((value): value is string => typeof value === "string"),
+          ]),
+        ),
+        entries: snapshot.entries,
+      }
     })
 
     const requireSession = Effect.fn("SessionHttpApi.requireSession")(function* (sessionID: SessionID) {
@@ -297,12 +335,15 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       payload: typeof PromptPayload.Type
     }) {
       yield* requireSession(ctx.params.sessionID)
-      const message = yield* promptSvc
-        .prompt({
+      const request = yield* HttpServerRequest.HttpServerRequest
+      const message = yield* ManagedActivity.track(
+        promptSvc.prompt({
           ...ctx.payload,
           sessionID: ctx.params.sessionID,
-        })
-        .pipe(Effect.mapError(() => new HttpApiError.BadRequest({})))
+        }),
+        ctx.params.sessionID,
+        request.headers["x-peixian-activity-id"],
+      ).pipe(Effect.mapError(() => new HttpApiError.BadRequest({})))
       return HttpServerResponse.stream(Stream.make(JSON.stringify(message)).pipe(Stream.encodeText), {
         contentType: "application/json",
       })
@@ -313,17 +354,23 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       payload: typeof PromptPayload.Type
     }) {
       yield* requireSession(ctx.params.sessionID)
-      yield* promptSvc.prompt({ ...ctx.payload, sessionID: ctx.params.sessionID }).pipe(
-        Effect.catchCause((cause) =>
-          Effect.gen(function* () {
-            yield* Effect.logError("prompt_async failed", { sessionID: ctx.params.sessionID, cause })
-            yield* events.publish(Session.Event.Error, {
-              sessionID: ctx.params.sessionID,
-              error: new NamedError.Unknown({ message: Cause.pretty(cause) }).toObject(),
-            })
-          }),
+      const request = yield* HttpServerRequest.HttpServerRequest
+      yield* ManagedActivity.fork(
+        promptSvc.prompt({ ...ctx.payload, sessionID: ctx.params.sessionID }).pipe(
+          Effect.catchCause((cause) =>
+            Effect.gen(function* () {
+              yield* Effect.logError("prompt_async failed", { sessionID: ctx.params.sessionID, cause })
+              yield* events.publish(Session.Event.Error, {
+                sessionID: ctx.params.sessionID,
+                error: new NamedError.Unknown({ message: Cause.pretty(cause) }).toObject(),
+              })
+            }),
+          ),
         ),
-        Effect.forkIn(scope, { startImmediately: true }),
+        ctx.params.sessionID,
+        scope,
+        request.headers["x-peixian-activity-id"],
+        true,
       )
       return HttpApiSchema.NoContent.make()
     })
@@ -413,6 +460,7 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
     return handlers
       .handle("list", list)
       .handle("status", status)
+      .handle("managedActivity", managedActivity)
       .handle("get", get)
       .handle("children", children)
       .handle("todo", todo)

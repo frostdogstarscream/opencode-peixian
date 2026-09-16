@@ -1,4 +1,4 @@
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 import hashlib
 import json
@@ -8,7 +8,7 @@ import sqlite3
 import time
 import uuid
 
-from argon2 import PasswordHasher
+from argon2 import PasswordHasher, extract_parameters
 from cryptography.fernet import Fernet
 
 SCHEMA_VERSION = 3
@@ -35,11 +35,16 @@ class Store:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / "control.sqlite3"
+        raw_busy = os.getenv("PX_DB_BUSY_MS", "1000")
+        if not raw_busy.isascii() or not raw_busy.isdecimal() or not 1 <= int(raw_busy) <= 1000:
+            raise ValueError("PX_DB_BUSY_MS must be an integer between 1 and 1000")
+        self.busy_timeout_ms = int(raw_busy)
         self.cipher = Fernet(Path(key_file).read_bytes().strip())
         self.worker_key = Path(worker_key_file).read_text().strip()
         if len(self.worker_key) < 32:
             raise ValueError("Worker credential is invalid")
         self.passwords = PasswordHasher()
+        self._initialize_wal()
         with self.tx() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
             if version > SCHEMA_VERSION:
@@ -101,33 +106,88 @@ class Store:
                    (ident(), "system", "system", "schema.migrate", "control.connections.v3", "success", now()))
         db.execute("PRAGMA user_version=3")
 
+    def _connect(self, *, readonly=False):
+        target = self.path.resolve().as_uri() + "?mode=ro" if readonly else self.path
+        db = sqlite3.connect(target, timeout=self.busy_timeout_ms / 1000,
+                             isolation_level=None, uri=readonly,
+                             autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL)
+        try:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA foreign_keys=ON")
+            db.execute(f"PRAGMA busy_timeout={self.busy_timeout_ms}")
+            if readonly:
+                db.execute("PRAGMA query_only=ON")
+            return db
+        except BaseException:
+            self._abort_connection(db)
+            raise
+
+    @staticmethod
+    def _abort_connection(db):
+        # Cleanup must preserve the original setup/transaction error.
+        with suppress(sqlite3.Error):
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+        with suppress(sqlite3.Error):
+            db.close()
+
+    def _initialize_wal(self):
+        db = self._connect()
+        try:
+            if db.execute("PRAGMA user_version").fetchone()[0] > SCHEMA_VERSION:
+                raise ValueError("Control database schema is newer than this application")
+            mode = db.execute("PRAGMA journal_mode").fetchone()[0]
+            if mode.lower() != "wal":
+                mode = db.execute("PRAGMA journal_mode=WAL").fetchone()[0]
+            if mode.lower() != "wal":
+                raise ValueError("Control database requires WAL journal mode")
+        except BaseException:
+            self._abort_connection(db)
+            raise
+        else:
+            db.close()
+
     def schema_version(self):
-        with self.tx() as db:
+        with self.read() as db:
             return db.execute("PRAGMA user_version").fetchone()[0]
 
     @contextmanager
-    def tx(self):
-        db = sqlite3.connect(self.path, timeout=20)
-        db.row_factory = sqlite3.Row
-        db.execute("PRAGMA journal_mode=WAL")
-        db.execute("PRAGMA foreign_keys=ON")
-        db.execute("BEGIN IMMEDIATE")
+    def read(self, *, snapshot=False):
+        db = self._connect(readonly=True)
         try:
+            if snapshot:
+                db.execute("BEGIN")
             yield db
-            db.commit()
+            if snapshot:
+                db.execute("COMMIT")
         except BaseException:
-            db.rollback()
+            self._abort_connection(db)
             raise
-        finally:
+        else:
+            db.close()
+
+    @contextmanager
+    def tx(self):
+        db = self._connect()
+        try:
+            # Keep BEGIN inside the cleanup scope: busy can fail before yielding.
+            db.execute("BEGIN IMMEDIATE")
+            yield db
+            db.execute("COMMIT")
+        except BaseException:
+            self._abort_connection(db)
+            raise
+        else:
             db.close()
 
     def rows(self, query, args=()):
-        with self.tx() as db:
+        with self.read() as db:
             return [dict(row) for row in db.execute(query, args)]
 
     def one(self, query, args=()):
-        result = self.rows(query, args)
-        return result[0] if result else None
+        with self.read() as db:
+            row = db.execute(query, args).fetchone()
+            return dict(row) if row is not None else None
 
     def encrypt(self, value):
         return self.cipher.encrypt(encode(value).encode()).decode()
@@ -227,14 +287,53 @@ class Store:
         return self.user(uid), job
 
     def user(self, uid):
-        user = self.one("SELECT id,username,role,active,must_change AS must_change_password FROM users WHERE id=?", (uid,))
-        if user:
+        with self.read(snapshot=True) as db:
+            row = db.execute("SELECT id,username,role,active,must_change AS must_change_password FROM users WHERE id=?", (uid,)).fetchone()
+            if row is None:
+                return None
+            user = dict(row)
             user["active"] = bool(user["active"])
             user["must_change_password"] = bool(user["must_change_password"])
-            user["runtime"] = self.one("SELECT id,status,revision,desired,error FROM runtimes WHERE uid=?", (uid,))
-        return user
+            runtime = db.execute("SELECT id,status,revision,desired,error FROM runtimes WHERE uid=?", (uid,)).fetchone()
+            user["runtime"] = dict(runtime) if runtime is not None else None
+            return user
+
+    def create_browser_auth(self, uid, *, expected_password, expected_auth_version,
+                            token_hash, csrf, expires):
+        with self.tx() as db:
+            user = db.execute("SELECT active,password,auth_version FROM users WHERE id=?", (uid,)).fetchone()
+            if (user is None or not user["active"] or user["password"] != expected_password
+                    or user["auth_version"] != expected_auth_version):
+                return False
+            db.execute("INSERT INTO auth VALUES(?,?,?,?,?,?,?,?)",
+                       (token_hash, uid, "session", "browser", csrf, expires, expected_auth_version, now()))
+            return True
+
+    def change_password(self, uid, *, expected_password, expected_auth_version,
+                        session_hash, new_password_hash):
+        extract_parameters(new_password_hash)
+        with self.tx() as db:
+            user = db.execute("SELECT active,password,auth_version FROM users WHERE id=?", (uid,)).fetchone()
+            auth = db.execute("SELECT uid,version,expires FROM auth WHERE hash=?", (session_hash,)).fetchone()
+            if (user is None or not user["active"] or user["password"] != expected_password
+                    or user["auth_version"] != expected_auth_version or auth is None
+                    or auth["uid"] != uid or auth["version"] != expected_auth_version or auth["expires"] < now()):
+                return False
+            version = expected_auth_version + 1
+            db.execute("UPDATE users SET password=?,must_change=0,auth_version=? WHERE id=?",
+                       (new_password_hash, version, uid))
+            db.execute("DELETE FROM auth WHERE uid=? AND hash<>?", (uid, session_hash))
+            db.execute("UPDATE auth SET version=? WHERE hash=?", (version, session_hash))
+            return True
 
     def create_user(self, username, password, legacy=None, *, model_ids=None, plugin_ids=None, role="user"):
+        password_hash = self.passwords.hash(password)
+        return self.create_user_prehashed(username, password_hash, legacy,
+                                          model_ids=model_ids, plugin_ids=plugin_ids, role=role)
+
+    def create_user_prehashed(self, username, password_hash, legacy=None, *, model_ids=None, plugin_ids=None, role="user"):
+        """Internal entry after the bounded crypto executor; never accept a hash from HTTP."""
+        extract_parameters(password_hash)
         if role not in ("user", "admin"):
             raise ValueError("账号角色不支持")
         if role == "admin":
@@ -245,7 +344,7 @@ class Store:
                 if db.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone():
                     raise ValueError("账号已存在")
                 db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,?,?)",
-                           (uid, username, self.passwords.hash(password), role, now()))
+                           (uid, username, password_hash, role, now()))
             return self.user(uid), None
         uid, rid = ident(), ident()
         spec = {"gateway_key": secrets.token_urlsafe(48), "agent_password": secrets.token_urlsafe(48), "legacy": legacy}
@@ -255,7 +354,7 @@ class Store:
                 raise ValueError("运行环境名额已满，请先暂停其他环境")
             if db.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone():
                 raise ValueError("账号已存在")
-            db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,'user',?)", (uid, username, self.passwords.hash(password), now()))
+            db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,'user',?)", (uid, username, password_hash, now()))
             self.set_grants(db, uid, "model", [] if model_ids is None else model_ids)
             self.set_grants(db, uid, "plugin", [] if plugin_ids is None else plugin_ids)
             db.execute("INSERT INTO runtimes(uid,id,status,spec,updated) VALUES(?,?,'pending',?,?)", (uid, rid, self.encrypt(spec), now()))

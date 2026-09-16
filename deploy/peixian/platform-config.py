@@ -18,6 +18,9 @@ _orchestration_path = Path(__file__).resolve().parents[2] / "services/peixian-co
 _orchestration_spec = importlib.util.spec_from_file_location("platform_orchestration_config", _orchestration_path)
 orchestration_settings = importlib.util.module_from_spec(_orchestration_spec)
 _orchestration_spec.loader.exec_module(orchestration_settings)
+_hub_spec = importlib.util.spec_from_file_location("eventhub_config", _orchestration_path.with_name("eventhub_config.py"))
+hub_settings = importlib.util.module_from_spec(_hub_spec)
+_hub_spec.loader.exec_module(hub_settings)
 
 PROXY_IMAGE = "agent-platform-proxy:nginx-1.28.0"
 PROXY_UPSTREAM = "nginx:1.28.0-alpine@sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284"
@@ -39,6 +42,7 @@ CONCURRENCY = {
     "login_rate": (10, 1, 1000), "login_burst": (50, 1, 1000),
     "login_source_rate": (5, 1, 100), "login_source_burst": (50, 1, 1000),
 }
+CONCURRENCY.update(hub_settings.BOUNDS)
 
 
 def concurrency_config(value):
@@ -53,6 +57,10 @@ def concurrency_config(value):
             result["sse_per_account"] > result["sse_viewers"] or result["sse_owners"] > result["sse_viewers"] or
             result["sse_renew_seconds"] * 2 >= result["sse_owner_ttl_seconds"]):
         raise ConfigError("inconsistent_concurrency_configuration")
+    try:
+        hub_settings.validate(result)
+    except ValueError:
+        raise ConfigError("invalid_eventhub_configuration") from None
     return result
 
 

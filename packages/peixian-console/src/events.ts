@@ -17,6 +17,7 @@ export function parseChange(event: ServerEvent): Change | undefined {
   if (event.event !== "change") return
   try {
     const data = JSON.parse(event.data)
+    if (data?.type === "resync_required") return { resources: [...resources] }
     if (!data || data.type !== "updated") return
     const names = data.resources === undefined ? ["messages", "sessions"] : data.resources
     if (!Array.isArray(names)) return

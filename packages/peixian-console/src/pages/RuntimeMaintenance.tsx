@@ -10,15 +10,22 @@ export default function RuntimeMaintenance() {
   const [busy, setBusy] = createSignal(false)
   const [error, setError] = createSignal("")
   const [choice, setChoice] = createSignal<State["mode"]>()
+  const [events, setEvents] = createSignal<{ hubs: number; upstreams: number; subscribers: number; reconnects: number; overflows: number }>()
+  let refreshing = false
   let disposed = false
   const controller = new AbortController()
   async function refresh() {
+    if (refreshing || disposed) return
+    refreshing = true
     try {
-      const result = await api<State>("/admin/maintenance", { signal: controller.signal })
-      if (!disposed) setState(result)
+      const [result, diagnostics] = await Promise.all([
+        api<State>("/admin/maintenance", { signal: controller.signal }),
+        api<{ hub: NonNullable<ReturnType<typeof events>> }>("/admin/diagnostics/events", { signal: controller.signal }),
+      ])
+      if (!disposed) { setState(result); setEvents(diagnostics.hub) }
     } catch (failure) {
       if (!disposed) setError((failure as Error).message)
-    }
+    } finally { refreshing = false }
   }
   onMount(() => {
     void refresh()
@@ -42,6 +49,7 @@ export default function RuntimeMaintenance() {
     <div>
       <strong>平台状态：{state() ? labels[state()!.mode] : "正在读取"}</strong>
       <Show when={state()}><p>待恢复空间 {state()!.recovery_required} 个，停止待确认 {state()!.security_pending} 个。</p></Show>
+      <Show when={events()}><p>实时通知：{events()!.hubs} 个账号、{events()!.subscribers} 个页面，共 {events()!.upstreams} 条上游连接。累计重连 {events()!.reconnects} 次，慢页面重新同步 {events()!.overflows} 次。</p></Show>
       <ErrorLine message={error()} />
     </div>
     <Button variant="ghost" disabled={busy() || !state()} onClick={() => setChoice(state()?.mode === "normal" ? "frozen" : "normal")}>

@@ -232,7 +232,12 @@ class ConsoleClient:
         return await self.request("POST", "/sessions/" + resource_id(session_id) + "/abort")
 
     async def events(self):
-        """Reconnect reads only; credentials are copied at each new subscription."""
+        """Reconnect reads only; credentials are copied at each new subscription.
+
+        A change with type=resync_required means callers must query persisted
+        history (and relevant lists). It is not permission to resend a prompt.
+        Shared account readers do not share this token's authentication lifetime.
+        """
         attempt = 0
         while True:
             retry = None

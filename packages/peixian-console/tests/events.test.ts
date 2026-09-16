@@ -9,6 +9,14 @@ import {
   type ServerEvent,
 } from "../src/events"
 
+test("hub resync invalidates persisted resources without trusting a session or replaying writes", () => {
+  const change = parseChange({ event: "change", data: JSON.stringify({ type: "resync_required", session_id: "untrusted" }) })
+  expect(change?.resources).toContain("messages")
+  expect(change?.resources).toContain("sessions")
+  expect(change?.resources).toContain("files")
+  expect(change?.session_id).toBeUndefined()
+})
+
 function stream(text: string, width = 1) {
   const bytes = new TextEncoder().encode(text)
   let offset = 0

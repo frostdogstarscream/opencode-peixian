@@ -10,3 +10,4 @@ wheels/
 .playwright-cli/
 output/
 .pytest-r2-*/
+.pytest-r3-*/

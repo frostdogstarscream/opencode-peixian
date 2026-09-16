@@ -19,7 +19,8 @@ export type User = {
   active?: boolean
   model_ids?: string[]
   plugin_ids?: string[]
-  runtime?: { id?: string; status: string; revision?: number; error?: string }
+  runtime?: { id?: string; status: string; revision?: number; desired?: number; error?: string; phase?: string;
+    security_blocked?: boolean; cancellation_confirmed?: boolean; recovery_required?: boolean; gate_policy?: string }
 }
 export type Auth = { user: User; csrf_token: string; capabilities: Capability[] }
 export type Session = { id: string; title: string; status?: string; updated_at?: string; time?: { updated?: number } }

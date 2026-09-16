@@ -5,6 +5,7 @@ import { useConsole } from "../context"
 import BusinessConfirmations from "../BusinessConfirmations"
 import type { FileItem, Message, Model, Session, Skill } from "../types"
 import { createRefreshScheduler, createResponseGuard } from "../refresh"
+import { canSend, runtimeNotice } from "../runtime-view"
 export default function Chat() {
   const app = useConsole()
   const [sessions, setSessions] = createSignal<Session[]>([])
@@ -32,8 +33,9 @@ export default function Chat() {
   const selection = createResponseGuard(selected)
   let disposed = false
   const active = createMemo(() => sessions().find((s) => s.id === selected()))
-  const ready = createMemo(() => ["ready", "running", "healthy"].includes(app.user().runtime?.status ?? ""))
-  const available = createMemo(() => ready() || ["updating", "applying"].includes(app.user().runtime?.status ?? ""))
+  const ready = createMemo(() => canSend(app.user().runtime))
+  const available = createMemo(() => ["ready", "draining", "updating", "applying"].includes(app.user().runtime?.status ?? ""))
+  const notice = createMemo(() => runtimeNotice(app.user().runtime))
   const interval = () => (document.hidden ? 15000 : 500)
   const messageRefresh = createRefreshScheduler(
     async (signal) => {
@@ -335,18 +337,11 @@ export default function Chat() {
             </Show>
           </div>
         </div>
-        <Show when={!ready()}>
+        <Show when={notice()}>
           <div class="runtime-banner">
             <Icon name="clock" size={17} />
             <span>
-              个人工作空间
-              {["updating", "applying"].includes(app.user().runtime?.status ?? "")
-                ? "正在更新配置，当前对话可继续查看或停止，完成后即可发送新消息。"
-                : ["paused", "stopped"].includes(app.user().runtime?.status ?? "")
-                  ? "已暂停，请联系管理员恢复。"
-                  : ["failed", "error"].includes(app.user().runtime?.status ?? "")
-                    ? "暂时不可用，请联系管理员检查并重试。"
-                    : "正在准备，准备完成后即可发送消息。"}
+              {notice()}
             </span>
             <Status value={app.user().runtime?.status} />
           </div>

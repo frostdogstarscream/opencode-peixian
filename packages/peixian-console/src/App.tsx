@@ -109,7 +109,7 @@ export default function App() {
     return user &&
       can("business.use") &&
       !user.must_change_password &&
-      ["ready", "running", "healthy", "updating", "applying"].includes(user.runtime?.status ?? "")
+      ["ready", "running", "healthy", "updating", "applying", "draining"].includes(user.runtime?.status ?? "")
       ? user.id
       : undefined
   })

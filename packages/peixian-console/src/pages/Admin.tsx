@@ -26,6 +26,8 @@ import {
 import type { ManagementTab } from "../access"
 import type { Audit, Capability, Job, Model, Plugin, ServiceConnection, Skill, User } from "../types"
 import Connections, { PluginConnections } from "./Connections"
+import RuntimeMaintenance from "./RuntimeMaintenance"
+import { runtimeNotice } from "../runtime-view"
 const auditActions: Record<string, string> = {
   "user.list": "查看用户列表",
   "user.create": "创建账号",
@@ -94,6 +96,7 @@ export default function Admin() {
   const [templateDesc, setTemplateDesc] = createSignal("")
   const [templateContent, setTemplateContent] = createSignal("")
   const [reset, setReset] = createSignal<User>()
+  const [recovery, setRecovery] = createSignal<User>()
   const [resetPassword, setResetPassword] = createSignal("")
   const [auditActor, setAuditActor] = createSignal("")
   const [auditAction, setAuditAction] = createSignal("")
@@ -102,6 +105,18 @@ export default function Admin() {
   let refreshGeneration = 0
   let previousTab: ManagementTab | undefined
   let zipInput!: HTMLInputElement
+  async function resolveRecovery(action: "continue" | "cancel") {
+    const selected = recovery()
+    if (!selected || busy()) return
+    setBusy(true)
+    setError("")
+    try {
+      await post("/admin/recovery/" + selected.id, { action })
+      setRecovery(undefined)
+      await refresh()
+    } catch (failure) { setError(safeMessage((failure as Error).message)) }
+    finally { setBusy(false) }
+  }
   async function refresh() {
     const generation = ++refreshGeneration
     const resources = adminResources(tab(), app.capabilities())
@@ -402,6 +417,7 @@ export default function Admin() {
           刷新状态
         </Button>
       </PageHead>
+      <Show when={app.can("runtimes.manage")}><RuntimeMaintenance /></Show>
       <Show when={tab() === "users"}>
         <div class="stats-grid">
           <div>
@@ -548,6 +564,9 @@ export default function Admin() {
                                 重置密码
                               </Button>
                               <Show when={app.can("runtimes.manage") && user.role === "user" && user.runtime}>
+                                <Show when={user.runtime?.phase === "awaiting_action"}>
+                                  <Button variant="ghost" disabled={busy()} onClick={() => setRecovery(user)}>处理等待中的更新</Button>
+                                </Show>
                                 <Button
                                   variant="ghost"
                                   disabled={
@@ -1112,6 +1131,16 @@ export default function Admin() {
           <JobNote value={test()} />
           <div class="modal-actions">
             <Button onClick={() => setTest(undefined)}>关闭</Button>
+          </div>
+        </Modal>
+      </Show>
+      <Show when={recovery()}>
+        <Modal title={"处理更新 · " + recovery()?.username} onClose={() => !busy() && setRecovery(undefined)}>
+          <p>{runtimeNotice(recovery()?.runtime)}</p>
+          <p>继续等待会保持新任务入口关闭。取消活动后更新会请求停止当前生成和插件调用；外部系统已经执行的操作可能无法撤销。</p>
+          <div class="modal-actions">
+            <Button disabled={busy()} onClick={() => void resolveRecovery("continue")}>继续等待</Button>
+            <Button variant="danger" disabled={busy()} onClick={() => void resolveRecovery("cancel")}>取消当前活动后更新</Button>
           </div>
         </Modal>
       </Show>

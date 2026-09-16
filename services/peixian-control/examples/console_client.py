@@ -26,6 +26,7 @@ from pathlib import Path
 import re
 import random
 import ssl
+import uuid
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from urllib.parse import urlsplit
@@ -121,6 +122,13 @@ class ConsoleClient:
                 result_unknown=response.status_code == 504)
 
     async def request(self, method, path, **kwargs):
+        # Keep this key when explicitly reconciling the same platform mutation.
+        # This method never automatically replays model/tool submissions.
+        operation_key = kwargs.pop("idempotency_key", None)
+        if method not in ("GET", "HEAD", "OPTIONS"):
+            headers = dict(kwargs.pop("headers", {}))
+            headers.setdefault("Idempotency-Key", operation_key or uuid.uuid4().hex)
+            kwargs["headers"] = headers
         try:
             response = await self.http.request(method, PREFIX + path, **kwargs)
         except httpx.HTTPError:

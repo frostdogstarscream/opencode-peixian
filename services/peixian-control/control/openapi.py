@@ -282,7 +282,7 @@ CONTRACTS = {
     ("get", "/sessions/{sid}/messages"): (None, items(ref("Message")), "读取会话的已保存消息", "会话", "工具展示经过过滤，不返回原始内部配置或工具秘密。"),
     ("post", "/sessions/{sid}/messages"): ("MessageBody", ref("MessageAccepted"), "提交异步模型消息", "会话", "202 只表示已接受，run_id 不是结果查询资源。先订阅 events，收到变更后重新读取会话消息及状态。每次最多五个技能和五个文件；文件引用总计另限 24000 字符，合并文字/技能/文件另限 18000 UTF-8 字节。同一会话请串行提交。"),
     ("post", "/sessions/{sid}/abort"): (None, ref("Ok"), "终止自己的会话生成", "会话", ""),
-    ("get", "/events"): (None, None, "订阅本账号变更事件", "会话", "SSE 仅发送 event: change 与 data 中 type=connected/updated，另有 heartbeat 注释。不是模型文字增量；收到事件后查询 messages。连接持续检查认证，注销/撤销后关闭。"),
+    ("get", "/events"): (None, None, "订阅本账号变更事件", "会话", "SSE 保留 event: change、type=connected/updated，可附 resources 资源类别数组与 session_id。只发送失效通知，正文通过 messages 补齐；旧 updated 无类别时刷新消息/会话。认证与名额在响应头之前检查，超额返回429/503及Retry-After。默认15秒心跳、2秒身份复核，撤销后5秒内关闭。客户端仅重连读取，不自动重放生成请求。"),
     ("get", "/files"): (None, items(ref("File")), "列出自己的上传文件", "文件", ""),
     ("post", "/files"): ("FileUploadBody", ref("File"), "上传文件并自动排队解析", "文件", "multipart/form-data 中唯一文件字段 file；单文件最大 20 MiB，每账号原始上传累计 1 GiB，实际字节计量。解析 TXT/MD/CSV/XLSX/文本 PDF/DOCX，无 OCR。202 后轮询 files 或 text；queued/parsing 尚未完成。"),
     ("get", "/files/{fid}/text"): (None, ref("FileText"), "读取文件解析文本及来源", "文件", "仅 ready 且未截断可用于模型引用；partial 或 truncated=true 的模型引用会返回 413，可在我的文件查看已提取范围并拆分后重新上传。no_text 表示无可提取文本，扫描件不会执行 OCR。"),
@@ -465,7 +465,9 @@ def build_openapi(app):
                 annotate_response(operation, output)
                 if path == P + "/events":
                     operation["responses"] = {"200": response(STRING, "持续的 SSE 变更通知流", "text/event-stream")}
-                    operation["x-sse-event"] = {"event": "change", "data": obj({"type": {"type": "string", "enum": ["connected", "updated"]}}, ("type",))}
+                    operation["x-sse-event"] = {"event": "change", "data": obj({"type": {"type": "string", "enum": ["connected", "updated"]},
+                        "resources": array({"type": "string", "enum": ["messages", "sessions", "files", "models", "skills", "plugins", "runtime", "permissions", "questions"]}),
+                        "session_id": ID}, ("type",))}
                 if path == P + "/auth/login":
                     operation["responses"]["200"]["headers"] = {"Set-Cookie": {"schema": STRING, "description": "px_session 的 HttpOnly/SameSite=Strict Cookie，最长 8 小时；部署启用 TLS 时配置 Secure。"}}
                 if not anonymous and method not in ("get", "head", "options"):
@@ -486,9 +488,12 @@ def build_openapi(app):
                 "404": "资源不存在或不属于当前账号", "409": "环境未就绪、配置待应用或状态冲突",
                 "413": "请求、上传配额或消息引用预算超限", "415": "不支持的文件类型",
                 "422": "请求格式不正确", "429": "请求频率或并发超过限制",
-                "500": "服务内部错误", "502": "账号环境返回异常", "503": "账号环境暂时不可达",
+                "500": "服务内部错误", "502": "账号环境返回异常", "503": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+                "504": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求",
             }.items():
                 operation["responses"][status] = response(ref("Error"), description)
+                if status in ("429", "503"):
+                    operation["responses"][status]["headers"] = {"Retry-After": {"schema": STRING, "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。"}}
             if path == "/internal/worker/legacy-retry":
                 operation["responses"]["403"] = response(ref("Error"), "独立 WorkerKey 无效；普通 Cookie/Bearer 无权调用")
                 operation["responses"]["404"] = response(ref("Error"), "允许的旧账号、旧卷绑定或导入快照不存在")

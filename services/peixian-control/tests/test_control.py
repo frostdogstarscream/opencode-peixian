@@ -4,7 +4,7 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor
 
 from cryptography.fernet import Fernet
-from fastapi.testclient import TestClient
+from client_helpers import TestClient
 import pytest
 
 from control.app import create_app

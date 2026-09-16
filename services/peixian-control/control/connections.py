@@ -1,3 +1,4 @@
+from .concurrency import blocking_endpoint
 """Super administrator service catalog and immutable plugin-alias declarations."""
 import json
 import re
@@ -94,14 +95,16 @@ def register_connections(app):
         return [app.state.store.queue_in_transaction(db, uid) for uid in users]
 
     @app.get(PREFIX + "/admin/connections")
-    async def connections_list(request: Request, user=Depends(permission)):
+    @blocking_endpoint(app)
+    def connections_list(request: Request, user=Depends(permission)):
         s = app.state.store
         return {"items": [connection_public(s, row) for row in s.rows("SELECT * FROM connections ORDER BY rowid DESC")]}
 
     @app.post(PREFIX + "/admin/connections")
-    async def connection_create(request: Request, user=Depends(permission)):
+    @blocking_endpoint(app, json_body=True)
+    def connection_create(request: Request, user=Depends(permission)):
         s = app.state.store
-        config, secret = data(await request.json())
+        config, secret = data(request.state.json_body)
         cid = ident()
         with s.tx() as db:
             db.execute("INSERT INTO connections VALUES(?,?,?,1)", (cid, encode(config), secret))
@@ -109,9 +112,10 @@ def register_connections(app):
         return connection_public(s, s.one("SELECT * FROM connections WHERE id=?", (cid,)))
 
     @app.patch(PREFIX + "/admin/connections/{cid}")
-    async def connection_edit(cid: str, request: Request, user=Depends(permission)):
+    @blocking_endpoint(app, json_body=True)
+    def connection_edit(cid: str, request: Request, user=Depends(permission)):
         s = app.state.store
-        raw = await request.json()
+        raw = request.state.json_body
         with s.tx() as db:
             old = db.execute("SELECT * FROM connections WHERE id=?", (own_id(cid),)).fetchone()
             if not old:
@@ -123,7 +127,8 @@ def register_connections(app):
         return {"connection": connection_public(s, s.one("SELECT * FROM connections WHERE id=?", (cid,))), "jobs": jobs}
 
     @app.delete(PREFIX + "/admin/connections/{cid}")
-    async def connection_delete(cid: str, request: Request, user=Depends(permission)):
+    @blocking_endpoint(app)
+    def connection_delete(cid: str, request: Request, user=Depends(permission)):
         with app.state.store.tx() as db:
             if db.execute("SELECT 1 FROM plugin_connections WHERE connection_id=?", (own_id(cid),)).fetchone():
                 fail("此连接仍被插件版本引用，请先解除绑定或停用连接", 409)
@@ -134,14 +139,15 @@ def register_connections(app):
     @app.post(PREFIX + "/admin/connections/{cid}/test")
     async def connection_test(cid: str, request: Request, user=Depends(permission)):
         s = app.state.store
-        row = s.one("SELECT * FROM connections WHERE id=?", (own_id(cid),))
+        row = await app.state.db_work.run(s.one, "SELECT * FROM connections WHERE id=?", (own_id(cid),))
         if not row:
             fail("服务连接不存在", 404)
         config = json.loads(row["config"])
         if not config["enabled"]:
             fail("此连接已停用", 409)
         try:
-            result = await exchange(app.state.http, {**config, "headers": connection_headers(s, row)}, await request.json())
+            headers = await app.state.db_work.run(connection_headers, s, row)
+            result = await exchange(app.state.http, {**config, "headers": headers}, await request.json())
         except ConnectionFailure as exc:
             return {"ok": False, "message": str(exc)}
         return {"ok": True, "message": "服务连接成功，已确认 JSON 响应", "status": result["status"]}
@@ -153,15 +159,17 @@ def register_connections(app):
         return aliases(json.loads(row["manifest"]))
 
     @app.get(PREFIX + "/admin/plugins/{pid}/{version}/connections")
-    async def plugin_connections_get(pid: str, version: str, request: Request, user=Depends(permission)):
-        with app.state.store.tx() as db:
+    @blocking_endpoint(app)
+    def plugin_connections_get(pid: str, version: str, request: Request, user=Depends(permission)):
+        with app.state.store.read(snapshot=True) as db:
             declared = plugin_version(db, pid, version)
             values = {row["alias"]: row["connection_id"] for row in db.execute("SELECT alias,connection_id FROM plugin_connections WHERE plugin=? AND version=?", (pid, version))}
         return {"aliases": declared, "bindings": values}
 
     @app.put(PREFIX + "/admin/plugins/{pid}/{version}/connections")
-    async def plugin_connections_put(pid: str, version: str, request: Request, user=Depends(permission)):
-        raw = body_fields(await request.json(), ("bindings",))
+    @blocking_endpoint(app, json_body=True)
+    def plugin_connections_put(pid: str, version: str, request: Request, user=Depends(permission)):
+        raw = body_fields(request.state.json_body, ("bindings",))
         values = raw.get("bindings")
         if not isinstance(values, dict) or any(not isinstance(v, str) for v in values.values()):
             fail("插件连接绑定格式不正确")

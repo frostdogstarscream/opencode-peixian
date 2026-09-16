@@ -6,7 +6,7 @@ import sqlite3
 import threading
 
 from cryptography.fernet import Fernet
-from fastapi.testclient import TestClient
+from client_helpers import TestClient
 import httpx
 import pytest
 
@@ -254,7 +254,7 @@ def test_old_sse_connection_closes_after_auth_revocation(context, monkeypatch, r
             await asyncio.Event().wait()
 
     mock_http = httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200, stream=QuietStream())))
-    monkeypatch.setattr(app.state, "http", mock_http)
+    monkeypatch.setattr(app.state, "stream_http", mock_http)
     with s.tx() as db:
         db.execute("UPDATE runtimes SET status='ready',revision=desired WHERE uid=?", (account["id"],))
     token = client.post(P + "/tokens", json={"name": "synthetic-stream"}).json()
@@ -278,6 +278,7 @@ def test_old_sse_connection_closes_after_auth_revocation(context, monkeypatch, r
             assert "synthetic" not in finished.text
         assert client.get(P + "/me").status_code == 401
     finally:
+        superuser.portal.call(mock_http.aclose)
         client.__exit__(None, None, None)
 
 

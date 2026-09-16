@@ -2686,7 +2686,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -2716,7 +2724,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -2855,7 +2881,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -2885,7 +2919,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -3019,7 +3071,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -3049,7 +3109,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -3191,7 +3269,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -3221,7 +3307,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -3371,7 +3475,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -3401,7 +3513,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -3553,7 +3683,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -3583,7 +3721,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -3723,7 +3879,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -3753,7 +3917,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -3891,7 +4073,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -3921,7 +4111,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -4056,7 +4264,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -4086,7 +4302,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -4239,7 +4473,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -4269,7 +4511,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -4412,7 +4672,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -4442,7 +4710,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -4583,7 +4869,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -4613,7 +4907,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -4747,7 +5059,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -4777,7 +5097,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -4938,7 +5276,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -4968,7 +5314,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -5119,7 +5483,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -5149,7 +5521,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -5306,7 +5696,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -5336,7 +5734,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -5476,7 +5892,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -5506,7 +5930,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -5640,7 +6082,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -5670,7 +6120,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -5812,7 +6280,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -5842,7 +6318,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -5992,7 +6486,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -6022,7 +6524,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -6150,7 +6670,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -6180,7 +6708,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -6315,7 +6861,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -6345,7 +6899,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -6498,7 +7070,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -6528,7 +7108,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -6681,7 +7279,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -6711,7 +7317,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -6868,7 +7492,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -6898,7 +7530,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -7044,7 +7694,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -7074,7 +7732,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [],
@@ -7189,7 +7865,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -7219,7 +7903,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -7242,7 +7944,7 @@
     },
     "/api/console/v1/events": {
       "get": {
-        "description": "SSE 仅发送 event: change 与 data 中 type=connected/updated，另有 heartbeat 注释。不是模型文字增量；收到事件后查询 messages。连接持续检查认证，注销/撤销后关闭。",
+        "description": "SSE 保留 event: change、type=connected/updated，可附 resources 资源类别数组与 session_id。只发送失效通知，正文通过 messages 补齐；旧 updated 无类别时刷新消息/会话。认证与名额在响应头之前检查，超额返回429/503及Retry-After。默认15秒心跳、2秒身份复核，撤销后5秒内关闭。客户端仅重连读取，不自动重放生成请求。",
         "operationId": "events_api_console_v1_events_get",
         "responses": {
           "200": {
@@ -7343,7 +8045,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -7373,7 +8083,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -7394,6 +8122,29 @@
           "data": {
             "additionalProperties": false,
             "properties": {
+              "resources": {
+                "items": {
+                  "enum": [
+                    "messages",
+                    "sessions",
+                    "files",
+                    "models",
+                    "skills",
+                    "plugins",
+                    "runtime",
+                    "permissions",
+                    "questions"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "session_id": {
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "type": "string"
+              },
               "type": {
                 "enum": [
                   "connected",
@@ -7526,7 +8277,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -7556,7 +8315,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -7686,7 +8463,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -7716,7 +8501,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -7854,7 +8657,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -7884,7 +8695,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -8037,7 +8866,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -8067,7 +8904,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -8203,7 +9058,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -8233,7 +9096,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -8369,7 +9250,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -8399,7 +9288,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -8521,7 +9428,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -8551,7 +9466,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -8683,7 +9616,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -8713,7 +9654,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -8849,7 +9808,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -8879,7 +9846,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -9014,7 +9999,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -9044,7 +10037,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -9190,7 +10201,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -9220,7 +10239,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -9344,7 +10381,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -9374,7 +10419,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [],
@@ -9501,7 +10564,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -9531,7 +10602,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -9677,7 +10766,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -9707,7 +10804,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -9845,7 +10960,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -9875,7 +10998,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -10013,7 +11154,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -10043,7 +11192,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -10180,7 +11347,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -10210,7 +11385,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -10356,7 +11549,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -10386,7 +11587,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -10534,7 +11753,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -10564,7 +11791,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -10688,7 +11933,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -10718,7 +11971,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -10869,7 +12140,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -10899,7 +12178,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -11033,7 +12330,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -11063,7 +12368,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -11193,7 +12516,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -11223,7 +12554,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -11361,7 +12710,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -11391,7 +12748,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -11537,7 +12912,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -11567,7 +12950,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -11705,7 +13106,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -11735,7 +13144,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -11885,7 +13312,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -11915,7 +13350,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -12059,7 +13512,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -12089,7 +13550,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -12225,7 +13704,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -12255,7 +13742,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -12385,7 +13890,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -12415,7 +13928,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -12553,7 +14084,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -12583,7 +14122,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -12729,7 +14286,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -12759,7 +14324,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -12897,7 +14480,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -12927,7 +14518,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -13065,7 +14674,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -13095,7 +14712,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -13231,7 +14866,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -13261,7 +14904,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -13397,7 +15058,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -13427,7 +15096,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -13563,7 +15250,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -13593,7 +15288,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -13723,7 +15436,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -13753,7 +15474,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -13891,7 +15630,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -13921,7 +15668,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -14078,7 +15843,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -14108,7 +15881,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -14228,7 +16019,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -14258,7 +16057,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -14402,7 +16219,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -14432,7 +16257,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -14576,7 +16419,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -14606,7 +16457,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -14736,7 +16605,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -14766,7 +16643,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -14896,7 +16791,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -14926,7 +16829,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -15056,7 +16977,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -15086,7 +17015,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -15220,7 +17167,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -15250,7 +17205,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [
@@ -15396,7 +17369,15 @@
                 }
               }
             },
-            "description": "请求频率或并发超过限制"
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -15426,7 +17407,25 @@
                 }
               }
             },
-            "description": "账号环境暂时不可达"
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
           }
         },
         "security": [

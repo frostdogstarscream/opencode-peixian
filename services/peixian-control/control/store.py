@@ -331,7 +331,7 @@ class Store:
         return self.create_user_prehashed(username, password_hash, legacy,
                                           model_ids=model_ids, plugin_ids=plugin_ids, role=role)
 
-    def create_user_prehashed(self, username, password_hash, legacy=None, *, model_ids=None, plugin_ids=None, role="user"):
+    def create_user_prehashed(self, username, password_hash, legacy=None, *, model_ids=None, plugin_ids=None, role="user", authorize=None):
         """Internal entry after the bounded crypto executor; never accept a hash from HTTP."""
         extract_parameters(password_hash)
         if role not in ("user", "admin"):
@@ -341,6 +341,8 @@ class Store:
                 raise ValueError("管理员账号不接受业务授权或运行环境")
             uid = ident()
             with self.tx() as db:
+                if authorize is not None:
+                    authorize(db)
                 if db.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone():
                     raise ValueError("账号已存在")
                 db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,?,?)",
@@ -349,6 +351,8 @@ class Store:
         uid, rid = ident(), ident()
         spec = {"gateway_key": secrets.token_urlsafe(48), "agent_password": secrets.token_urlsafe(48), "legacy": legacy}
         with self.tx() as db:
+            if authorize is not None:
+                authorize(db)
             count = db.execute("SELECT count(*) FROM runtimes WHERE reserved=1").fetchone()[0]
             if count >= int(os.getenv("MAX_RUNTIMES", "4")):
                 raise ValueError("运行环境名额已满，请先暂停其他环境")

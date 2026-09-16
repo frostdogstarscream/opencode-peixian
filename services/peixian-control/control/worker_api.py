@@ -1,3 +1,4 @@
+from .concurrency import blocking_endpoint
 import hmac
 import hashlib
 import json
@@ -15,7 +16,7 @@ def runtime_spec(s, uid, revision, *, db=None):
     # Claim passes its own transaction so desired, grants and all configuration
     # rows come from exactly the snapshot that is committed with the lease.
     if db is None:
-        with s.tx() as snapshot:
+        with s.read(snapshot=True) as snapshot:
             return runtime_spec(s, uid, revision, db=snapshot)
 
     def rows(query, args=()):
@@ -71,11 +72,13 @@ def register_worker(app):
         return True
 
     @app.get("/internal/worker/busy")
-    async def busy(request: Request, authorized=Depends(worker)):
+    @blocking_endpoint(app)
+    def busy(request: Request, authorized=Depends(worker)):
         return {"busy": bool(app.state.store.one("SELECT 1 FROM jobs WHERE status='running' LIMIT 1"))}
 
     @app.post("/internal/worker/claim")
-    async def claim(request: Request, authorized=Depends(worker)):
+    @blocking_endpoint(app)
+    def claim(request: Request, authorized=Depends(worker)):
         s = app.state.store
         with s.tx() as db:
             # A dead worker's lease can be taken over without creating a new job.
@@ -98,16 +101,18 @@ def register_worker(app):
         return job
 
     @app.post("/internal/worker/jobs/{jid}/heartbeat")
-    async def heartbeat(jid: str, request: Request, authorized=Depends(worker)):
-        data = body_fields(await request.json(), ("lease",))
+    @blocking_endpoint(app, json_body=True)
+    def heartbeat(jid: str, request: Request, authorized=Depends(worker)):
+        data = body_fields(request.state.json_body, ("lease",))
         with app.state.store.tx() as db:
             leased(db, jid, data.get("lease"))
             db.execute("UPDATE jobs SET heartbeat=?,updated=? WHERE id=?", (now(), now(), jid))
         return {"ok": True}
 
     @app.post("/internal/worker/jobs/{jid}/complete")
-    async def complete(jid: str, request: Request, authorized=Depends(worker)):
-        data = body_fields(await request.json(), ("lease", "ok", "deferred", "error", "rolled_back", "cleanup_confirmed"))
+    @blocking_endpoint(app, json_body=True)
+    def complete(jid: str, request: Request, authorized=Depends(worker)):
+        data = body_fields(request.state.json_body, ("lease", "ok", "deferred", "error", "rolled_back", "cleanup_confirmed"))
         s = app.state.store
         ok = data.get("ok") is True
         deferred = data.get("deferred") is True
@@ -156,10 +161,11 @@ def register_worker(app):
         fail("迁移快照记录不存在", 404)
 
     @app.post("/internal/worker/legacy-import", status_code=202)
-    async def legacy_import(request: Request, authorized=Depends(worker)):
+    @blocking_endpoint(app, json_body=True, hash_password=True)
+    def legacy_import(request: Request, authorized=Depends(worker)):
         import re
         from .app import password_valid
-        data = body_fields(await request.json(), ("username", "password", "model_ids", "legacy", "snapshot"))
+        data = body_fields(request.state.json_body, ("username", "password", "model_ids", "legacy", "snapshot"))
         username = data.get("username")
         if not isinstance(username, str) or username not in legacy_volumes or data.get("legacy") != legacy_volumes[username]:
             fail("仅支持已核实的 client-a/client-b 固定旧卷", 400)
@@ -177,7 +183,7 @@ def register_worker(app):
         created = False
         if existing is None:
             try:
-                user, _ = s.create_user(username, password, legacy=legacy_volumes[username], model_ids=models)
+                user, _ = s.create_user_prehashed(username, request.state.password_hash, legacy=legacy_volumes[username], model_ids=models)
                 uid = user["id"]
                 created = True
             except ValueError as exc:
@@ -201,16 +207,18 @@ def register_worker(app):
         return result
 
     @app.get("/internal/worker/legacy-status/{uid}")
-    async def legacy_status(uid: str, request: Request, authorized=Depends(worker)):
-        with app.state.store.tx() as db:
+    @blocking_endpoint(app)
+    def legacy_status(uid: str, request: Request, authorized=Depends(worker)):
+        with app.state.store.read(snapshot=True) as db:
             row = legacy_account(db, own_id(uid))
             import_record(db, uid)
             return {"uid": uid, "runtime_id": row["id"], "status": row["status"],
                     "revision": row["revision"], "desired": row["desired"], "reserved": bool(row["reserved"])}
 
     @app.post("/internal/worker/legacy-rollback")
-    async def legacy_rollback(request: Request, authorized=Depends(worker)):
-        data = body_fields(await request.json(), ("uid", "snapshot_id", "cleanup_confirmed"))
+    @blocking_endpoint(app, json_body=True)
+    def legacy_rollback(request: Request, authorized=Depends(worker)):
+        data = body_fields(request.state.json_body, ("uid", "snapshot_id", "cleanup_confirmed"))
         if data.get("cleanup_confirmed") is not True:
             fail("执行器必须确认新环境已全部停止", 409)
         uid, snapshot_id = data.get("uid"), data.get("snapshot_id")
@@ -232,8 +240,9 @@ def register_worker(app):
         return {"ok": True, "uid": uid, "runtime_id": row["id"], "status": "failed"}
 
     @app.post("/internal/worker/legacy-retry", status_code=202)
-    async def legacy_retry(request: Request, authorized=Depends(worker)):
-        data = body_fields(await request.json(), ("uid", "snapshot_id", "legacy_stopped"))
+    @blocking_endpoint(app, json_body=True)
+    def legacy_retry(request: Request, authorized=Depends(worker)):
+        data = body_fields(request.state.json_body, ("uid", "snapshot_id", "legacy_stopped"))
         if data.get("legacy_stopped") is not True:
             fail("执行器必须确认旧服务和所有数据卷写入者均已停止", 409)
         uid, snapshot_id = data.get("uid"), data.get("snapshot_id")
@@ -290,7 +299,8 @@ def register_worker(app):
                     "revision": current["revision"], "desired": current["desired"], "job_id": job["id"]}
 
     @app.get("/internal/worker/packages/{sha}")
-    async def package(sha: str, request: Request, authorized=Depends(worker)):
+    @blocking_endpoint(app)
+    def package(sha: str, request: Request, authorized=Depends(worker)):
         import re
         if not re.fullmatch("[a-f0-9]{64}", sha):
             fail("包不存在", 404)

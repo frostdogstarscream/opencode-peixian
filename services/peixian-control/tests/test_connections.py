@@ -4,7 +4,7 @@ import json
 import sqlite3
 import zipfile
 
-from fastapi.testclient import TestClient
+from client_helpers import TestClient
 import httpx
 import pytest
 
@@ -187,4 +187,5 @@ def test_admin_connection_test_returns_no_upstream_body(context):
         assert seen[0].headers["Authorization"] == "Bearer synthetic-private-service-key"
         assert "must not appear" not in result.text
     finally:
+        admin.portal.call(app.state.http.aclose)
         app.state.http = original

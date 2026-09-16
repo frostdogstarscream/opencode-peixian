@@ -1,3 +1,4 @@
+from .concurrency import blocking_endpoint, WorkPool, LoginLimiter, settings, overloaded
 import asyncio
 from contextlib import asynccontextmanager
 import hmac
@@ -58,11 +59,11 @@ def origin_ok(request):
         fail("此访问来源不被允许", 403)
 
 
-def principal(request: Request):
+def _principal(request: Request):
     s = request.app.state.store
     bearer = request.headers.get("authorization", "")
     token = bearer[7:] if bearer.startswith("Bearer ") else request.cookies.get("px_session", "")
-    record = s.one("SELECT a.*,u.role,u.username,u.active,u.must_change,u.auth_version FROM auth a JOIN users u ON u.id=a.uid WHERE a.hash=?", (digest(token),)) if token else None
+    record = s.one("SELECT a.*,u.role,u.username,u.active,u.must_change,u.auth_version,r.id AS runtime_id,r.status AS runtime_status,r.spec AS runtime_spec FROM auth a JOIN users u ON u.id=a.uid LEFT JOIN runtimes r ON r.uid=u.id WHERE a.hash=?", (digest(token),)) if token else None
     if not record or not record["active"] or record["expires"] < now() or record["version"] != record["auth_version"]:
         fail("登录已失效，请重新登录", 401)
     from .roles import CAPABILITIES
@@ -75,13 +76,30 @@ def principal(request: Request):
             fail("页面验证已过期，请刷新后重试", 403)
     if record["must_change"] and request.url.path not in (PREFIX + "/me", PREFIX + "/me/password", PREFIX + "/auth/logout"):
         fail("请先修改初始密码", 403)
+    rid, status, encrypted = (record.pop(name) for name in ("runtime_id", "runtime_status", "runtime_spec"))
+    # This is a request-local view from the authentication read, never an account
+    # cache. Every new HTTP request and every SSE identity check reads SQLite.
+    request.state.runtime_binding = {"uid": record["uid"], "id": rid, "status": status,
+                                     "key": s.decrypt(encrypted)["gateway_key"] if encrypted else None}
     return record
 
 
+async def principal(request: Request):
+    return await request.app.state.db_work.run(_principal, request)
+
+
+def current_authority(db, user):
+    """Recheck sensitive issuance in the same transaction as its effect."""
+    record = db.execute("SELECT 1 FROM auth a JOIN users u ON u.id=a.uid WHERE a.hash=? AND a.uid=? AND a.version=? AND a.expires>=? AND u.active=1 AND u.must_change=0 AND u.auth_version=a.version AND u.role=?",
+                        (user["hash"], user["uid"], user["version"], now(), user["role"])).fetchone()
+    if not record:
+        fail("登录状态已变化，请重新登录", 401)
+
+
 def require_capability(name):
-    def check(request: Request):
+    async def check(request: Request):
         from .roles import capabilities
-        user = principal(request)
+        user = await principal(request)
         if name not in capabilities(user["role"]):
             fail("无权使用此管理功能", 403)
         return user
@@ -91,14 +109,19 @@ def require_capability(name):
 admin = require_capability("users.manage")
 
 
-def normal(request: Request):
-    user = principal(request)
+async def normal(request: Request):
+    user = await principal(request)
     if user["role"] != "user":
         fail("管理员请使用管理功能；业务数据由各用户自行访问", 403)
     return user
 
 
 def runtime(request, user, write=False):
+    cached = getattr(request.state, "runtime_binding", None)
+    if cached and cached["uid"] == user["uid"]:
+        if not cached["id"] or cached["status"] not in (("ready",) if write else ("ready", "updating")):
+            fail("你的环境尚未就绪，请稍后重试或联系管理员", 409)
+        return f"http://px-{cached['id']}-gateway:8080", {"X-Peixian-Key": cached["key"]}
     s = request.app.state.store
     r = s.one("SELECT * FROM runtimes WHERE uid=?", (user["uid"],))
     if not r or r["status"] not in (("ready",) if write else ("ready", "updating")):
@@ -107,13 +130,28 @@ def runtime(request, user, write=False):
     return f"http://px-{r['id']}-gateway:8080", {"X-Peixian-Key": spec["gateway_key"]}
 
 
+async def runtime_context(request, user, write=False):
+    binding = getattr(request.state, "runtime_binding", None)
+    if binding and binding["uid"] == user["uid"]:
+        return runtime(request, user, write)
+    return await request.app.state.db_work.run(runtime, request, user, write)
+
+
 async def upstream(request, user, method, path, **kwargs):
     continuation = re.fullmatch(r"/session/[^/]+/abort|/(permission|question)/[^/]+/(reply|reject)", path) is not None
-    base, headers = runtime(request, user, method not in ("GET", "HEAD") and not continuation)
+    base, headers = await runtime_context(request, user, method not in ("GET", "HEAD") and not continuation)
     try:
         response = await request.app.state.http.request(method, base + path, headers=headers, **kwargs)
+    except httpx.PoolTimeout:
+        raise overloaded() from None
+    except httpx.TimeoutException:
+        if method not in ("GET", "HEAD"):
+            fail("提交结果待确认，请先刷新历史或状态，不要重复提交", 504)
+        raise overloaded("环境响应超时，请稍后重试") from None
     except httpx.HTTPError:
-        fail("环境暂时无法连接，请稍后重试", 503)
+        if method not in ("GET", "HEAD"):
+            fail("提交结果待确认，请先刷新历史或状态，不要重复提交", 504)
+        raise overloaded("环境暂时无法连接，请稍后重试") from None
     if response.status_code >= 400:
         message = "请求未能完成，请检查输入或稍后重试"
         try:
@@ -291,34 +329,39 @@ class RequestLimits:
 
 
 async def download_stream(request, user, path):
-    base, headers = runtime(request, user)
-    try:
-        response = await request.app.state.http.send(request.app.state.http.build_request("GET", base + path, headers=headers), stream=True)
-    except httpx.HTTPError:
-        fail("文件服务暂时无法连接", 503)
-    if response.status_code != 200:
-        await response.aclose()
-        fail("文件不存在或不可下载", 404)
-    async def stream():
-        try:
-            async for chunk in response.aiter_bytes():
-                principal(request)
-                yield chunk
-        finally:
-            await response.aclose()
-    return StreamingResponse(stream(), media_type="application/octet-stream", headers={"Content-Disposition": response.headers.get("Content-Disposition", "attachment")})
+    from .streams import download_response
+    return await download_response(request, user, path)
 
 
 def create_app(store=None):
     @asynccontextmanager
     async def lifespan(app):
-        app.state.store = store or configured_store()
-        app.state.http = httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10), trust_env=False)
-        app.state.login_attempts = {}
+        config = app.state.limits = settings()
+        app.state.db_work = WorkPool(config["db_workers"], config["db_queue"], config["db_queue_seconds"], "database")
+        app.state.crypto_work = WorkPool(config["crypto_workers"], config["crypto_queue"], config["crypto_queue_seconds"], "password")
+        app.state.store = store or await app.state.db_work.run(configured_store)
+        app.state.http = httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10, pool=2), trust_env=False,
+            limits=httpx.Limits(max_connections=config["http_connections"], max_keepalive_connections=config["http_keepalive"]))
+        app.state.stream_http = httpx.AsyncClient(timeout=httpx.Timeout(None, connect=5, pool=2, write=10), trust_env=False,
+            limits=httpx.Limits(max_connections=config["sse_viewers"], max_keepalive_connections=0))
+        app.state.download_http = httpx.AsyncClient(timeout=httpx.Timeout(60, connect=5, pool=2), trust_env=False,
+            limits=httpx.Limits(max_connections=config["downloads"], max_keepalive_connections=0))
+        app.state.login_limiter = LoginLimiter(config)
+        app.state.login_attempts = app.state.login_limiter.attempts
         from .live_text import LiveTextCache
-        app.state.live_text = LiveTextCache()
-        yield
-        await app.state.http.aclose()
+        from .streams import initialize_streams, close_streams
+        app.state.live_text = LiveTextCache(max_owners=config["sse_owners"], owner_ttl_seconds=config["sse_owner_ttl_seconds"],
+            max_total_bytes=32 * 1024 * 1024, max_parts=1024, max_messages=1024)
+        await initialize_streams(app)
+        try:
+            yield
+        finally:
+            await close_streams(app)
+            await app.state.http.aclose()
+            await app.state.stream_http.aclose()
+            await app.state.download_http.aclose()
+            await app.state.crypto_work.close()
+            await app.state.db_work.close()
 
     app = FastAPI(title="Agent 工作台", version="1.2.0", lifespan=lifespan, docs_url=None, redoc_url=None)
 
@@ -347,15 +390,27 @@ def create_app(store=None):
                 # Never persist request bodies, query strings, URLs, headers or arbitrary paths.
                 if not isinstance(target, str) or not re.fullmatch(r"[A-Za-z0-9_.@-]{1,128}", target):
                     target = "invalid-target"
-                app.state.store.audit(actor["uid"], action, target, actor_role=actor["role"], result=result)
+                try:
+                    await app.state.db_work.run(app.state.store.audit, actor["uid"], action, target, actor_role=actor["role"], result=result)
+                except (HTTPException, sqlite3.OperationalError):
+                    # Do not turn a successfully applied mutation into an ambiguous 500.
+                    # Bounded fallback keeps only the same non-secret audit identity fields.
+                    logging.getLogger("peixian.audit").error("audit_fallback actor=%s role=%s action=%s target=%s result=%s",
+                        actor["uid"], actor["role"], action, target, result)
 
     @app.exception_handler(StarletteHTTPException)
     async def error(request, exc):
-        return JSONResponse({"message": str(exc.detail), "code": f"http_{exc.status_code}", "request_id": ident()}, status_code=exc.status_code)
+        return JSONResponse({"message": str(exc.detail), "code": f"http_{exc.status_code}", "request_id": ident()}, status_code=exc.status_code, headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):
         return JSONResponse({"message": "请求格式不正确，请检查填写内容", "code": "invalid_request", "request_id": ident()}, status_code=422)
+
+    @app.exception_handler(sqlite3.OperationalError)
+    async def database_error(request, exc):
+        if getattr(exc, "sqlite_errorcode", 0) & 255 in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+            return JSONResponse({"message": "服务繁忙，请稍后重试", "code": "database_busy", "request_id": ident()}, status_code=503, headers={"Retry-After": "1"})
+        return await unexpected(request, exc)
 
     @app.exception_handler(Exception)
     async def unexpected(request, exc):
@@ -364,7 +419,8 @@ def create_app(store=None):
         return JSONResponse({"message": "操作暂时未能完成，请稍后重试", "code": "internal_error", "request_id": ref}, status_code=500)
 
     @app.get("/health")
-    async def health():
+    @blocking_endpoint(app)
+    def health():
         return {"status": "ok", "version": "1.2.0", "schema_version": app.state.store.schema_version()}
 
     @app.get(PREFIX + "/platform")
@@ -377,35 +433,39 @@ def create_app(store=None):
     async def login(request: Request):
         origin_ok(request)
         data = body_fields(await request.json(), ("username", "password"))
+        username, password = data.get("username"), data.get("password")
+        if not isinstance(username, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{2,39}", username) or not isinstance(password, str) or len(password) > 256:
+            fail("账号或密码格式不正确", 400)
         s = app.state.store
-        key = (request.client.host, str(data.get("username", "")))
-        attempts = [t for t in app.state.login_attempts.get(key, []) if now() - t < 300]
-        if len(attempts) >= 10:
-            fail("尝试次数过多，请五分钟后重试", 429)
-        app.state.login_attempts[key] = attempts + [now()]
-        user = s.one("SELECT * FROM users WHERE username=?", (data.get("username"),))
+        source = request.client.host if request.client else "unknown"
+        app.state.login_limiter.check(source, username)
+        user = await app.state.db_work.run(s.one, "SELECT * FROM users WHERE username=?", (username,))
         try:
-            valid = user and user["active"] and s.passwords.verify(user["password"], data.get("password", ""))
+            valid = user and user["active"] and await app.state.crypto_work.run(s.passwords.verify, user["password"], password)
         except (VerificationError, TypeError):
             valid = False
         if not valid:
             fail("账号或密码不正确", 401)
-        app.state.login_attempts.pop(key, None)
         token, csrf = secrets.token_urlsafe(48), secrets.token_urlsafe(32)
-        with s.tx() as db:
-            db.execute("INSERT INTO auth VALUES(?,?,?,?,?,?,?,?)", (digest(token), user["id"], "session", "browser", csrf, now() + 28800, user["auth_version"], now()))
+        accepted = await app.state.db_work.run(s.create_browser_auth, user["id"], expected_password=user["password"],
+            expected_auth_version=user["auth_version"], token_hash=digest(token), csrf=csrf, expires=now() + 28800)
+        if not accepted:
+            fail("账号状态已变化，请重新登录", 401)
+        app.state.login_limiter.success(source, username)
         from .roles import capabilities
-        response = JSONResponse({"user": s.user(user["id"]), "csrf_token": csrf, "capabilities": capabilities(user["role"])})
+        response = JSONResponse({"user": await app.state.db_work.run(s.user, user["id"]), "csrf_token": csrf, "capabilities": capabilities(user["role"])})
         response.set_cookie("px_session", token, httponly=True, samesite="strict", secure=os.getenv("COOKIE_SECURE") == "true", max_age=28800, path="/")
         return response
 
     @app.get(PREFIX + "/me")
-    async def me(request: Request, user=Depends(principal)):
+    @blocking_endpoint(app)
+    def me(request: Request, user=Depends(principal)):
         from .roles import capabilities
         return {"user": app.state.store.user(user["uid"]), "csrf_token": user["csrf"], "capabilities": capabilities(user["role"])}
 
     @app.post(PREFIX + "/auth/logout")
-    async def logout(request: Request, user=Depends(principal)):
+    @blocking_endpoint(app)
+    def logout(request: Request, user=Depends(principal)):
         with app.state.store.tx() as db:
             db.execute("DELETE FROM auth WHERE hash=?", (user["hash"],))
         response = JSONResponse({"ok": True})
@@ -416,40 +476,49 @@ def create_app(store=None):
     async def change_password(request: Request, user=Depends(principal)):
         data = body_fields(await request.json(), ("current_password", "password"))
         s = app.state.store
-        current = s.one("SELECT password FROM users WHERE id=?", (user["uid"],))
+        password = password_valid(data.get("password"))
+        current_password = data.get("current_password")
+        if not isinstance(current_password, str) or len(current_password) > 256:
+            fail("当前密码不正确")
+        current = await app.state.db_work.run(s.one, "SELECT password,auth_version FROM users WHERE id=?", (user["uid"],))
         try:
-            s.passwords.verify(current["password"], data.get("current_password", ""))
+            await app.state.crypto_work.run(s.passwords.verify, current["password"], current_password)
         except (VerificationError, TypeError):
             fail("当前密码不正确")
-        password = password_valid(data.get("password"))
-        with s.tx() as db:
-            db.execute("UPDATE users SET password=?,must_change=0,auth_version=auth_version+1 WHERE id=?", (s.passwords.hash(password), user["uid"]))
-            db.execute("DELETE FROM auth WHERE uid=? AND hash<>?", (user["uid"], user["hash"]))
-            db.execute("UPDATE auth SET version=version+1 WHERE hash=?", (user["hash"],))
-        s.audit(user["uid"], "password.changed", user["uid"])
+        hashed = await app.state.crypto_work.run(s.passwords.hash, password)
+        accepted = await app.state.db_work.run(s.change_password, user["uid"], expected_password=current["password"],
+            expected_auth_version=current["auth_version"], session_hash=user["hash"], new_password_hash=hashed)
+        if not accepted:
+            fail("账号状态已变化，请重新登录后修改", 409)
+        await app.state.db_work.run(s.audit, user["uid"], "password.changed", user["uid"])
         return {"ok": True}
 
     @app.get(PREFIX + "/tokens")
-    async def tokens(request: Request, user=Depends(principal)):
+    @blocking_endpoint(app)
+    def tokens(request: Request, user=Depends(principal)):
         return {"items": app.state.store.rows("SELECT hash AS id,name,created,expires FROM auth WHERE uid=? AND kind='token'", (user["uid"],))}
 
     @app.post(PREFIX + "/tokens")
-    async def token_create(request: Request, user=Depends(principal)):
-        data = body_fields(await request.json(), ("name",))
+    @blocking_endpoint(app, json_body=True)
+    def token_create(request: Request, user=Depends(principal)):
+        data = body_fields(request.state.json_body, ("name",))
         token = "px_" + secrets.token_urlsafe(48)
         item = {"id": digest(token), "name": str(data.get("name", "Python"))[:80], "created": now(), "expires": now() + 2592000}
         with app.state.store.tx() as db:
+            current_authority(db, user)
             db.execute("INSERT INTO auth VALUES(?,?,?,?,?,?,?,?)", (item["id"], user["uid"], "token", item["name"], None, item["expires"], user["version"], now()))
         return {"token": token, "item": item}
 
     @app.delete(PREFIX + "/tokens/{tid}")
-    async def token_delete(tid: str, request: Request, user=Depends(principal)):
+    @blocking_endpoint(app)
+    def token_delete(tid: str, request: Request, user=Depends(principal)):
         with app.state.store.tx() as db:
             db.execute("DELETE FROM auth WHERE hash=? AND uid=? AND kind='token'", (tid, user["uid"]))
         return {"ok": True}
 
     @app.get(PREFIX + "/models")
-    async def models(request: Request, user=Depends(normal)):
+    @blocking_endpoint(app)
+    def models(request: Request, user=Depends(normal)):
         return {"items": app.state.store.rows("SELECT m.id,m.name,m.description,m.is_default FROM models m JOIN grants g ON g.resource=m.id AND g.kind='model' WHERE g.uid=? AND m.enabled=1 ORDER BY m.is_default DESC,m.name", (user["uid"],))}
 
     @app.get(PREFIX + "/sessions")
@@ -480,7 +549,7 @@ def create_app(store=None):
         await session_owned(request, user, sid)
         values = (await upstream(request, user, "GET", f"/session/{sid}/message")).json()
         values = app.state.live_text.overlay(user["uid"], sid, values)
-        return {"items": public_messages(values, tool_displays(app.state.store, user["uid"]))}
+        return {"items": await app.state.db_work.run(lambda: public_messages(values, tool_displays(app.state.store, user["uid"])))}
 
     @app.post(PREFIX + "/sessions/{sid}/messages", status_code=202)
     async def message_send(sid: str, request: Request, user=Depends(normal)):
@@ -501,7 +570,7 @@ def create_app(store=None):
         prelude = []
         input_bytes = len(text.encode("utf-8"))
         for skill_id in skills:
-            skill = s.one("SELECT name,content FROM skills WHERE id=? AND uid=? AND enabled=1", (own_id(skill_id), user["uid"]))
+            skill = await app.state.db_work.run(s.one, "SELECT name,content FROM skills WHERE id=? AND uid=? AND enabled=1", (own_id(skill_id), user["uid"]))
             if not skill:
                 fail("所选技能不存在或未启用", 404)
             input_bytes += len(skill["content"].encode("utf-8"))
@@ -534,47 +603,8 @@ def create_app(store=None):
 
     @app.get(PREFIX + "/events")
     async def events(request: Request, user=Depends(normal)):
-        base, headers = runtime(request, user)
-        async def stream():
-            stream_id = ident()
-            try:
-                async with app.state.http.stream("GET", base + "/global/event", headers=headers, timeout=None) as response:
-                    if response.status_code != 200:
-                        return
-                    app.state.live_text.acquire(user["uid"], stream_id)
-                    yield 'event: change\ndata: {"type":"connected"}\n\n'
-                    iterator = response.aiter_lines().__aiter__()
-                    pending = asyncio.create_task(iterator.__anext__())
-                    try:
-                        while not await request.is_disconnected():
-                            try:
-                                principal(request)
-                            except HTTPException:
-                                return
-                            app.state.live_text.acquire(user["uid"], stream_id)
-                            done, _ = await asyncio.wait([pending], timeout=1)
-                            if not done:
-                                yield ': heartbeat\n\n'
-                                continue
-                            try:
-                                line = pending.result()
-                            except StopAsyncIteration:
-                                return
-                            pending = asyncio.create_task(iterator.__anext__())
-                            if line.startswith("data:"):
-                                try:
-                                    app.state.live_text.observe(user["uid"], json.loads(line[5:]), stream_id)
-                                except (ValueError, TypeError):
-                                    pass
-                                # Never broadcast raw tool arguments, internal configuration or paths.
-                                yield 'event: change\ndata: {"type":"updated"}\n\n'
-                    finally:
-                        pending.cancel()
-            except (httpx.HTTPError, asyncio.CancelledError):
-                return
-            finally:
-                app.state.live_text.release(user["uid"], stream_id)
-        return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+        from .streams import event_response
+        return await event_response(request, user)
 
     register_catalog(app)
     register_admin(app)
@@ -600,9 +630,14 @@ def register_files(app):
     @app.get(PREFIX + "/files")
     async def files(request: Request, user=Depends(normal)):
         result = (await upstream(request, user, "GET", "/files")).json()
-        with app.state.store.tx() as db:
-            for item in result.get("items", []):
-                db.execute("INSERT OR REPLACE INTO files VALUES(?,?,?)", (user["uid"], item["id"], encode(item)))
+        def synchronize():
+            s = app.state.store
+            stored = {row["id"]: row["metadata"] for row in s.rows("SELECT id,metadata FROM files WHERE uid=?", (user["uid"],))}
+            changed = [(user["uid"], item["id"], encode(item)) for item in result.get("items", []) if stored.get(item["id"]) != encode(item)]
+            if changed:
+                with s.tx() as db:
+                    db.executemany("INSERT OR REPLACE INTO files VALUES(?,?,?)", changed)
+        await app.state.db_work.run(synchronize)
         return result
 
     @app.post(PREFIX + "/files", status_code=202)
@@ -623,8 +658,10 @@ def register_files(app):
     @app.delete(PREFIX + "/files/{fid}")
     async def file_delete(fid: str, request: Request, user=Depends(normal)):
         result = (await upstream(request, user, "DELETE", f"/files/{own_id(fid)}")).json()
-        with app.state.store.tx() as db:
-            db.execute("DELETE FROM files WHERE uid=? AND id=?", (user["uid"], fid))
+        def remove_metadata():
+            with app.state.store.tx() as db:
+                db.execute("DELETE FROM files WHERE uid=? AND id=?", (user["uid"], fid))
+        await app.state.db_work.run(remove_metadata)
         return result
 
     @app.get(PREFIX + "/results")

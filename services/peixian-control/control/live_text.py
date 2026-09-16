@@ -90,23 +90,27 @@ class LiveTextCache:
                 break
             self.seen.pop(key)
 
-    def acquire(self, uid, stream_id):
-        """Acquire or renew the account's single feeder; call during heartbeats."""
+    def acquire_result(self, uid, stream_id):
+        """Distinguish an existing feeder from exhausted account-owner capacity."""
         if not valid_id(uid) or not valid_id(stream_id):
-            return False
+            return "invalid_identity"
         with self.lock:
             now = self.clock()
             self._purge(now)
             owner = self.owners.get(uid)
             if owner is not None and owner[0] != stream_id:
-                return False
+                return "already_owned"
             if owner is None:
                 if len(self.owners) >= self.max_owners:
-                    return False
+                    return "owner_capacity_exceeded"
                 # Never splice an unobserved stream interval onto an old prefix.
                 self._clear_account(uid)
             self.owners[uid] = (stream_id, now)
-            return True
+            return "renewed" if owner is not None else "acquired"
+
+    def acquire(self, uid, stream_id):
+        """Compatibility boolean for existing cache consumers."""
+        return self.acquire_result(uid, stream_id) in ("acquired", "renewed")
 
     def release(self, uid, stream_id):
         """Release only this feeder, discarding incomplete account text."""

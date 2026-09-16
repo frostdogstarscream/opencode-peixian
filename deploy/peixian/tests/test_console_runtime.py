@@ -84,7 +84,7 @@ class FakeRuntime(runtime.RuntimeManager):
     def ensure_networks(self, spec):
         pass
 
-    def attach_control(self, runtime_id):
+    def attach_control(self, runtime_id, uid=None):
         pass
 
     def verify(self, spec, revision):
@@ -286,17 +286,19 @@ class RuntimeTests(unittest.TestCase):
 
 
 class WorkerTests(unittest.TestCase):
-    def test_failed_cleanup_signal_and_lease_sent_without_credentials_in_logs(self):
+    def test_legacy_claim_is_rejected_before_any_host_mutation(self):
         bodies = []
 
         def dispatch(request):
+            if request.url.path.endswith("/reconcile"):
+                return httpx.Response(200, json={"protocol_version": 2, "items": []})
             if request.url.path.endswith("/claim"):
                 return httpx.Response(200, json={"job": job(), "spec": spec()})
             bodies.append((request.url.path, json.loads(request.content)))
             return httpx.Response(200, json={"ok": True})
 
         class Manager:
-            def reconcile(self):
+            def reconcile(self, **kwargs):
                 return []
 
             def apply(self, *args):
@@ -305,9 +307,9 @@ class WorkerTests(unittest.TestCase):
         out = io.StringIO()
         with httpx.Client(transport=httpx.MockTransport(dispatch), base_url="http://127.0.0.1") as client:
             with contextlib.redirect_stdout(out):
-                self.assertTrue(worker.Worker(client, Manager()).once())
-        self.assertFalse(bodies[-1][1]["cleanup_confirmed"])
-        self.assertEqual(bodies[-1][1]["lease"], "synthetic-lease")
+                with self.assertRaisesRegex(runtime.RuntimeFailure, "worker_protocol_mismatch"):
+                    worker.Worker(client, Manager()).once()
+        self.assertEqual(bodies, [])
         self.assertNotIn("synthetic-gateway-credential", out.getvalue())
         self.assertNotIn("synthetic-agent-password", out.getvalue())
         self.assertNotIn("synthetic-lease", out.getvalue())

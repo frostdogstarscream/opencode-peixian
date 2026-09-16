@@ -42,7 +42,7 @@ class Boundary:
     def __init__(self, cfg, base=Path('/sys/fs/cgroup')):
         if not re.fullmatch(r'loadtest-[a-z0-9-]{1,30}', cfg.deployment_id):
             raise ValueError('synthetic_deployment_required')
-        if cfg.version != 2 or cfg.capacity_policy.get('host_memory_reserve_mib', 0) < 4096:
+        if cfg.version not in (2, 3) or cfg.capacity_policy.get('host_memory_reserve_mib', 0) < 4096:
             raise ValueError('test_requires_v2_and_four_gib_reserve')
         self.cfg, self.base = cfg, Path(base)
         self.name = cfg.deployment_id

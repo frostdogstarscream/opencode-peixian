@@ -14,6 +14,11 @@ _spec = importlib.util.spec_from_file_location("peixian_capacity", Path(__file__
 capacity = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(capacity)
 
+_orchestration_path = Path(__file__).resolve().parents[2] / "services/peixian-control/shared/orchestration_config.py"
+_orchestration_spec = importlib.util.spec_from_file_location("platform_orchestration_config", _orchestration_path)
+orchestration_settings = importlib.util.module_from_spec(_orchestration_spec)
+_orchestration_spec.loader.exec_module(orchestration_settings)
+
 PROXY_IMAGE = "agent-platform-proxy:nginx-1.28.0"
 PROXY_UPSTREAM = "nginx:1.28.0-alpine@sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284"
 IMAGES = {"control": "agent-platform-control:1.0.0", "gateway": "agent-platform-gateway:1.0.0",
@@ -63,6 +68,17 @@ def image_supports_config(labels, version):
         raise ConfigError("control_image_configuration_incompatible")
 
 
+def image_supports_orchestration(labels, component, version):
+    if version < 3 or component == "proxy":
+        return
+    labels = labels or {}
+    if labels.get("org.peixian.runtime.protocol") != "2":
+        raise ConfigError("runtime_image_protocol_incompatible")
+    if component == "control" and (labels.get("org.peixian.worker.protocol") != "2"
+                                     or labels.get("org.peixian.control.schema.max") != "4"):
+        raise ConfigError("control_image_orchestration_incompatible")
+
+
 def safe_path(value, parent):
     if not isinstance(value, str) or not value or any(c in value for c in "\0\r\n,"):
         raise ConfigError("invalid_platform_path")
@@ -94,6 +110,7 @@ class PlatformConfig:
     control_resources: dict
     capacity_policy: dict
     concurrency: dict
+    orchestration: dict
 
     def verify_control_image(self, labels):
         image_supports_config(labels, self.version)
@@ -139,6 +156,10 @@ class PlatformConfig:
     def concurrency_environment(self):
         return {"PX_" + key.upper(): str(value) for key, value in self.concurrency.items()}
 
+    @property
+    def orchestration_environment(self):
+        return orchestration_settings.environment(self.orchestration) if self.version == 3 else {}
+
 
 def load_config(path):
     source = Path(path).resolve()
@@ -148,12 +169,15 @@ def load_config(path):
         raise ConfigError("platform_configuration_unavailable") from None
     fields = {"version", "deployment_id", "product", "public_url", "bind_host", "https_port", "control_port",
               "data_root", "tls", "network_pool", "max_runtimes", "resource_limits", "images"}
-    if not isinstance(raw, dict) or type(raw.get("version")) is not int or raw["version"] not in (1, 2):
+    if not isinstance(raw, dict) or type(raw.get("version")) is not int or raw["version"] not in (1, 2, 3):
         raise ConfigError("invalid_platform_configuration_version_or_fields")
     version = raw["version"]
-    if version == 2:
+    if version >= 2:
         fields |= {"profile", "control_resources", "capacity_policy", "concurrency"}
-    if set(raw) - fields or (version == 2 and raw.get("profile") != "single-host-50-io"):
+    if version == 3:
+        fields.add("orchestration")
+    if (set(raw) - fields or (version == 2 and raw.get("profile") != "single-host-50-io")
+            or (version == 3 and raw.get("profile") != "single-host-orchestration")):
         raise ConfigError("invalid_platform_configuration_version_or_fields")
     identity = raw.get("deployment_id", "agent-platform")
     if not isinstance(identity, str) or not re.fullmatch(r"[a-z][a-z0-9-]{2,39}", identity):
@@ -204,10 +228,14 @@ def load_config(path):
             type(control["memory_mib"]) is not int or not 512 <= control["memory_mib"] <= 65536):
         raise ConfigError("invalid_control_resources")
     try:
-        policy = capacity.policy(raw.get("capacity_policy", {}), control) if version == 2 else {}
+        policy = capacity.policy(raw.get("capacity_policy", {}), control) if version >= 2 else {}
     except ValueError as error:
         raise ConfigError(str(error)) from None
-    concurrency = concurrency_config(raw.get("concurrency", {})) if version == 2 else {}
+    concurrency = concurrency_config(raw.get("concurrency", {})) if version >= 2 else {}
+    try:
+        orchestration = orchestration_settings.validate(raw.get("orchestration", {})) if version == 3 else {}
+    except ValueError as error:
+        raise ConfigError(str(error)) from None
     product = raw.get("product", PRODUCT)
     if (not isinstance(product, dict) or set(product) != set(PRODUCT)
             or any(not isinstance(v, str) or not v.strip() or len(v) > 200 or any(c in v for c in "\0\r\n") for v in product.values())):
@@ -228,4 +256,4 @@ def load_config(path):
     return PlatformConfig(source, identity, product, raw["public_url"].rstrip("/"), host, *ports,
                           data_root,
                           safe_path(tls["certificate"], source.parent), safe_path(tls["private_key"], source.parent),
-                          str(pool), maximum, limits, images, version, raw.get("profile"), control, policy, concurrency)
+                          str(pool), maximum, limits, images, version, raw.get("profile"), control, policy, concurrency, orchestration)

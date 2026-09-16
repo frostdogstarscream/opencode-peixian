@@ -1,0 +1,41 @@
+{
+  "version": 3,
+  "profile": "single-host-orchestration",
+  "deployment_id": "synthetic-r2-example",
+  "public_url": "https://127.0.0.1:19444",
+  "bind_host": "127.0.0.1",
+  "https_port": 19444,
+  "control_port": 14096,
+  "data_root": "./synthetic-r2-data",
+  "tls": {"certificate": "./tls/certificate.pem", "private_key": "./tls/private-key.pem"},
+  "network_pool": "10.242.0.0/16",
+  "max_runtimes": 4,
+  "control_resources": {"cpus": 2, "memory_mib": 2048},
+  "capacity_policy": {"cpu_mode": "shared", "cpu_reserve": 4, "cpu_overcommit_factor": 2, "host_memory_reserve_mib": 4096},
+  "orchestration": {
+    "worker_lease_seconds": 90,
+    "worker_heartbeat_seconds": 20,
+    "worker_heartbeat_timeout_seconds": 5,
+    "defer_seconds": 15,
+    "gate_probe_seconds": 2,
+    "reconcile_seconds": 30,
+    "reconcile_batch": 4,
+    "observation_ttl_seconds": 60,
+    "gate_observation_seconds": 3,
+    "receipt_retention_seconds": 604800,
+    "apply_defer_max_seconds": 300,
+    "drain_alert_seconds": 900,
+    "security_permit_ttl_seconds": 4,
+    "security_renew_seconds": 1,
+    "security_watchdog_ms": 100,
+    "security_request_seconds": 1,
+    "security_connections": 4,
+    "cancel_observe_seconds": 10
+  },
+  "images": {
+    "control": "agent-platform-control:orchestration-r2",
+    "gateway": "agent-platform-gateway:orchestration-r2",
+    "agent": "peixian-opencode:1.18.30-managed-r2",
+    "proxy": "agent-platform-proxy:nginx-1.28.0"
+  }
+}

@@ -227,6 +227,8 @@ def backup(cfg, destination):
                 meta = json.loads(command(*helper(image["Id"], name, "_database")))
                 if meta["busy"]:
                     raise BackupError("finish_environment_jobs_before_backup")
+                if meta["schema_version"] >= 4 and (meta.get("maintenance_mode") != "frozen" or meta.get("runtime_unsafe")):
+                    raise BackupError("freeze_and_resolve_runtime_responsibility_before_backup")
                 manifest["database"] = meta
             file = destination / (name + ".tar.gz")
             with file.open("xb") as out:
@@ -354,6 +356,8 @@ def restore(cfg, folder):
         raise BackupError("restore_image_schema_contract_missing") from None
     if not low <= manifest["database"]["schema_version"] <= high:
         raise BackupError("restore_image_database_incompatible")
+    if manifest["database"]["schema_version"] >= 4 and not manifest["database"].get("migration_identity"):
+        raise BackupError("restore_migration_identity_missing")
     targets = {name: cfg.control_volume if name == manifest["control_volume"] else name for name in manifest["volumes"]}
     existing = set(command("docker", "volume", "ls", "--format", "{{.Name}}").splitlines())
     containers = command("docker", "ps", "-a", "--format", "{{.Names}}").splitlines()
@@ -403,9 +407,42 @@ def database_meta(root):
             if (root / name).exists():
                 shutil.copyfile(root / name, Path(temporary) / name)
         with closing(sqlite3.connect(str(Path(temporary) / "control.sqlite3"))) as db:
-            return {"schema_version": db.execute("PRAGMA user_version").fetchone()[0],
-                    "busy": bool(db.execute("SELECT count(*) FROM jobs WHERE status IN ('queued','running')").fetchone()[0]),
-                    "users": db.execute("SELECT count(*) FROM users").fetchone()[0]}
+            result = {"schema_version": db.execute("PRAGMA user_version").fetchone()[0],
+                      "busy": bool(db.execute("SELECT count(*) FROM jobs WHERE status IN ('queued','running')").fetchone()[0]),
+                      "users": db.execute("SELECT count(*) FROM users").fetchone()[0]}
+            if result["schema_version"] >= 4:
+                db.row_factory = sqlite3.Row
+                try:
+                    from control.migrations_v4 import validate
+                except ModuleNotFoundError:
+                    import importlib.util
+                    module_path = Path(__file__).resolve().parents[2] / "services/peixian-control/control/migrations_v4.py"
+                    module_spec = importlib.util.spec_from_file_location("backup_migrations_v4", module_path)
+                    module = importlib.util.module_from_spec(module_spec)
+                    module_spec.loader.exec_module(module)
+                    validate = module.validate
+                try:
+                    validate(db)
+                except ValueError:
+                    raise BackupError("backup_v4_migration_identity_invalid") from None
+                result["migration_identity"] = [dict(row) for row in db.execute(
+                    "SELECT migration_id,from_version,to_version,script_digest,structure_digest FROM schema_migrations ORDER BY migration_id")]
+                result["maintenance_mode"] = db.execute("SELECT maintenance_mode FROM platform_state WHERE id=1").fetchone()[0]
+                result["runtime_unsafe"] = bool(db.execute(
+                    "SELECT 1 FROM runtimes WHERE recovery_required=1 OR drain_job_id IS NOT NULL OR status IN ('updating','draining') LIMIT 1").fetchone())
+            return result
+
+
+def pause_database(path):
+    with closing(sqlite3.connect(str(path))) as db, db:
+        version = db.execute("PRAGMA user_version").fetchone()[0]
+        db.execute("UPDATE runtimes SET status='paused',reserved=0,error=NULL")
+        db.execute("UPDATE users SET auth_version=auth_version+1")
+        db.execute("DELETE FROM auth")
+        if version >= 4:
+            db.execute("UPDATE runtimes SET gate_policy='closed',state_version=state_version+1,gate_epoch=gate_epoch+1,gateway_boot_id=NULL,relay_boot_id=NULL")
+            db.execute("UPDATE platform_state SET maintenance_mode='frozen',state_version=state_version+1 WHERE id=1")
+            db.execute("DELETE FROM runtime_observations")
 
 
 if __name__ == "__main__":
@@ -420,10 +457,7 @@ if __name__ == "__main__":
         with tarfile.open(fileobj=sys.stdin.buffer, mode="r|gz") as archive:
             unpack_empty("/data", archive, owner=10001)
     elif action == "_pause_database":
-        with closing(sqlite3.connect("/data/control.sqlite3")) as db, db:
-            db.execute("UPDATE runtimes SET status='paused',reserved=0,error=NULL")
-            db.execute("UPDATE users SET auth_version=auth_version+1")
-            db.execute("DELETE FROM auth")
+        pause_database("/data/control.sqlite3")
     elif action == "_validate_key":
         from cryptography.fernet import Fernet
         cipher = Fernet(sys.stdin.buffer.read(128).strip())
@@ -434,7 +468,11 @@ if __name__ == "__main__":
                     shutil.copyfile(source, Path(temporary) / name)
             with closing(sqlite3.connect(str(Path(temporary) / "control.sqlite3"))) as db:
                 tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-                for table, column in (("runtimes", "spec"), ("models", "secret"), ("installs", "config"), ("connections", "secret")):
+                for table, column in (("runtimes", "spec"), ("models", "secret"), ("installs", "config"), ("connections", "secret"),
+                                      ("job_attempts", "spec_ciphertext"), ("request_idempotency", "response_ciphertext")):
                     if table in tables:
-                        for row in db.execute("SELECT " + column + " FROM " + table):
+                        for row in db.execute("SELECT " + column + " FROM " + table + " WHERE " + column + " IS NOT NULL"):
                             json.loads(cipher.decrypt(row[0].encode()))
+                if "applied_spec_ciphertext" in {row[1] for row in db.execute("PRAGMA table_info(runtimes)")}:
+                    for row in db.execute("SELECT applied_spec_ciphertext FROM runtimes WHERE applied_spec_ciphertext IS NOT NULL"):
+                        json.loads(cipher.decrypt(row[0].encode()))

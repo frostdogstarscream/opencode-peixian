@@ -83,7 +83,7 @@ class FaultDriverTests(unittest.TestCase):
             manager.apply({"uid": "d" * 32}, {"runtime_id": RID}, lambda _: None, lambda: None)
         apply.assert_not_called()
 
-    def test_claim_race_returns_other_lease_without_executing_it(self):
+    def test_claim_race_never_mutates_or_fabricates_observation_for_other_lease(self):
         calls = []
         def dispatch(request):
             calls.append(request)
@@ -92,10 +92,9 @@ class FaultDriverTests(unittest.TestCase):
             return httpx.Response(200, json={})
         with httpx.Client(base_url="http://127.0.0.1", transport=httpx.MockTransport(dispatch)) as api:
             client = fault.ScopedWorker(api, SimpleNamespace(), self.journal, JID)
-            with self.assertRaisesRegex(fault.runtime.RuntimeFailure, "other_job_claimed_and_deferred_without_execution"):
+            with self.assertRaisesRegex(fault.runtime.RuntimeFailure, "other_job_claimed_without_execution"):
                 client.request("POST", "/internal/worker/claim")
-        self.assertEqual(len(calls), 2)
-        self.assertTrue(json.loads(calls[1].content)["deferred"])
+        self.assertEqual(len(calls), 1)
         self.assertEqual(json.loads(self.journal.read_text())["claims"], [])
 
     def test_target_claim_persists_only_lease_digest(self):

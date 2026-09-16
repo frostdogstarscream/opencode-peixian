@@ -9,3 +9,4 @@ dist/
 wheels/
 .playwright-cli/
 output/
+.pytest-r2-*/

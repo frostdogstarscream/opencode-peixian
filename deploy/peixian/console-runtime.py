@@ -215,8 +215,23 @@ except Exception:
  sys.exit(2)
 """
 
+CONTROL_RUNTIME = """import json,sys,urllib.request
+v=json.load(sys.stdin)
+try:
+ body=json.dumps(v['body']).encode() if v.get('body') is not None else None
+ req=urllib.request.Request(v['url'],data=body,method=v['method'],headers={'X-Peixian-Key':v['key'],'Content-Type':'application/json'})
+ with urllib.request.urlopen(req,timeout=v['timeout']) as r:
+  b=r.read(262145)
+  if len(b)>262144: raise ValueError()
+  print(json.dumps(json.loads(b)))
+except Exception:
+ print('{"error":"runtime_probe_unavailable"}')
+ sys.exit(2)
+"""
 
-def compose_spec(spec, release, *, agent_image, gateway_image, limits=None, deployment_id=None):
+
+def compose_spec(spec, release, *, agent_image, gateway_image, limits=None, deployment_id=None,
+                 control_container="peixian-console", orchestration=None):
     runtime_id, uid = check_id(spec["runtime_id"]), check_id(spec["uid"])
     project = "px-" + runtime_id
     release = Path(release).resolve()
@@ -291,6 +306,28 @@ def compose_spec(spec, release, *, agent_image, gateway_image, limits=None, depl
             "sysctls": {"net.ipv4.ip_forward": "0"},
         },
     }
+    if "runtime_key" in spec["private"]:
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", control_container):
+            raise RuntimeFailure("invalid_control_container")
+        shared_env = {"PX_RUNTIME_PROTOCOL": "2", "PX_RUNTIME_ID": runtime_id}
+        shared_env.update({"PX_R2_" + key.upper(): str(value) for key, value in (orchestration or {}).items()})
+        services["gateway"]["environment"].update(shared_env)
+        services["gateway"]["environment"].update({
+            "PX_CONTROL_URL": "http://" + control_container + ":8080",
+            "PX_RUNTIME_KEY_FILE": "/run/secrets/runtime-key",
+            "PX_RELAY_MANAGEMENT_KEY_FILE": "/run/secrets/relay-management-key",
+            "PX_RELAY_URL": "http://model-relay:8081",
+        })
+        services["gateway"]["volumes"].extend([
+            bind("private/runtime-key", "/run/secrets/runtime-key"),
+            bind("private/relay-management-key", "/run/secrets/relay-management-key"),
+        ])
+        services["model-relay"]["environment"].update(shared_env)
+        services["model-relay"]["environment"].update({
+            "PX_GATEWAY_URL": "http://gateway:8080",
+            "PX_RELAY_MANAGEMENT_KEY_FILE": "/run/secrets/relay-management-key",
+        })
+        services["model-relay"]["volumes"].append(bind("private/relay-management-key", "/run/secrets/relay-management-key"))
     limits = normalize_limits(limits)
     for name, key in (("agent", "agent"), ("gateway", "gateway"), ("model-relay", "relay")):
         services[name].update(cpus=limits[key]["cpus"], mem_limit=str(limits[key]["memory_mib"]) + "m")
@@ -309,7 +346,7 @@ class RuntimeManager:
                  agent_image="peixian-opencode:1.18.30-managed-r1",
                  gateway_image="peixian-gateway:console-r1", maximum=4,
                  resource_limits=None, network_pool=None, deployment_id=None, config_version=1,
-                 control_resources=None, capacity_policy=None):
+                 control_resources=None, capacity_policy=None, orchestration=None):
         self.root = Path(root).absolute()
         protect_root(self.root)
         self.root = self.root.resolve()
@@ -320,8 +357,10 @@ class RuntimeManager:
         except ValueError as error:
             raise RuntimeFailure(str(error)) from None
         self.config_version = config_version
-        self.control_resources = control_resources or ({"cpus": 2.0, "memory_mib": 2048} if config_version == 2 else {"cpus": 1.0, "memory_mib": 512})
+        self.control_resources = control_resources or ({"cpus": 2.0, "memory_mib": 2048} if config_version >= 2 else {"cpus": 1.0, "memory_mib": 512})
         self.capacity_policy = capacity_policy or {}
+        self.orchestration = orchestration or {}
+        self.reconcile_cursor = 0
         self.control_container, self.agent_image, self.gateway_image = control_container, agent_image, gateway_image
         self.maximum = maximum
         self.limits = normalize_limits(resource_limits)
@@ -362,7 +401,7 @@ class RuntimeManager:
         limits = getattr(self, "limits", DEFAULT_LIMITS)
         for name, key in (("agent", "agent"), ("gateway", "gateway"), ("model-relay", "relay")):
             source["services"][name].update(cpus=limits[key]["cpus"], mem_limit=str(limits[key]["memory_mib"]) + "m")
-            if getattr(self, "config_version", 1) == 2:
+            if getattr(self, "config_version", 1) >= 2:
                 source["services"][name]["memswap_limit"] = source["services"][name]["mem_limit"]
         target = directory / "operations" / (Path(file).parent.name + "-compose.json")
         write_json(target, source)
@@ -370,7 +409,7 @@ class RuntimeManager:
 
     def ensure_networks(self, spec):
         identity, uid = check_id(spec["runtime_id"]), check_id(spec["uid"])
-        if getattr(self, "config_version", 1) == 2:
+        if getattr(self, "config_version", 1) >= 2:
             identifiers = self.docker_run("network", "ls", "--format", "{{.ID}}").split()
             records = json.loads(self.docker_run("network", "inspect", *identifiers)) if identifiers else []
             try:
@@ -433,19 +472,160 @@ class RuntimeManager:
             raise RuntimeFailure("invalid_private_probe_response")
         return result
 
-    def attach_control(self, runtime_id):
+    def runtime_request(self, spec, method, endpoint, body=None):
+        if (method, endpoint) not in {("GET", "/internal/runtime/state"),
+                                     ("POST", "/internal/runtime/gate"),
+                                     ("POST", "/internal/runtime/cancel")}:
+            raise RuntimeFailure("invalid_runtime_probe")
+        timeout = getattr(self, "orchestration", {}).get("gate_probe_seconds", 2)
+        url = "http://px-" + check_id(spec["runtime_id"]) + "-gateway:8080" + endpoint
+        raw = self.docker_run("exec", "-i", self.control_container, "python3", "-c", CONTROL_RUNTIME,
+                              data=json_bytes({"url": url, "key": spec["private"]["gateway_key"],
+                                               "method": method, "body": body, "timeout": timeout}),
+                              timeout=timeout + 1)
+        value = json.loads(raw)
+        if (not isinstance(value, dict) or value.get("protocol_version") != 2
+                or value.get("runtime_id") != spec["runtime_id"]):
+            raise RuntimeFailure("invalid_runtime_probe_response")
+        return value
+
+    def components(self, spec):
+        """A complete three-service inventory; missing/foreign evidence stays unknown."""
+        runtime_id, uid = check_id(spec["runtime_id"]), check_id(spec["uid"])
+        states = {"agent": "stopped", "gateway": "stopped", "relay": "stopped"}
+        try:
+            ids = self.docker_run("ps", "-a", "--filter", "label=com.docker.compose.project=px-" + runtime_id,
+                                  "--format", "{{.ID}}", timeout=2).split()
+            records = json.loads(self.docker_run("inspect", *ids, timeout=2)) if ids else []
+            seen = set()
+            for record in records:
+                labels = record.get("Config", {}).get("Labels") or {}
+                name = {"agent": "agent", "gateway": "gateway", "model-relay": "relay"}.get(labels.get("com.docker.compose.service"))
+                if (name is None or name in seen or labels.get(MANAGED) != "true"
+                        or labels.get("peixian.runtime_id") != runtime_id or labels.get("peixian.uid") != uid
+                        or (getattr(self, "deployment_id", None) and labels.get("peixian.deployment") != self.deployment_id)):
+                    raise ValueError()
+                seen.add(name)
+                state = record.get("State", {})
+                if type(state.get("Running")) is not bool or state.get("Restarting") or state.get("Paused"):
+                    raise ValueError()
+                states[name] = "running" if state["Running"] else "stopped"
+            return states, True
+        except (RuntimeFailure, ValueError, KeyError, TypeError):
+            return {name: "unknown" for name in states}, False
+
+    def mutation_record(self, job, state):
+        write_json(self.directory(job["runtime_id"]) / "mutation.json", {
+            "job_id": job["id"], "attempt": job["attempt"], "runtime_id": job["runtime_id"],
+            "revision": job["revision"], "spec_digest": job["spec_digest"],
+            "state": state, "recorded_at": int(time.time()),
+        })
+
+    def mutation_state(self, runtime_id):
+        path = self.directory(runtime_id) / "mutation.json"
+        if not path.exists():
+            return "idle"
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+            if value.get("runtime_id") != runtime_id or value.get("state") not in ("idle", "running", "unknown"):
+                return "unknown"
+            # A prior process dying with an in-flight Docker operation is not proof of exit.
+            return "unknown" if value["state"] == "running" else value["state"]
+        except (ValueError, OSError):
+            return "unknown"
+
+    def observe(self, job, spec, host_boot_id):
+        states, complete = self.components(spec)
+        stopped = complete and all(value == "stopped" for value in states.values())
+        mutation = self.mutation_state(spec["runtime_id"])
+        gate = None
+        if states["gateway"] == "running":
+            try:
+                gate = self.runtime_request(spec, "GET", "/internal/runtime/state")
+            except (RuntimeFailure, ValueError):
+                complete = False
+        activity = gate.get("activity", {}) if gate else {}
+        if not stopped and (not gate or activity.get("complete") is not True or activity.get("unknown") is not False):
+            complete = False
+        if gate:
+            total = activity.get("total")
+            owner = job.get("gate_owner") or "job:" + job["id"] + ":" + str(job["attempt"])
+            if (type(total) is not int or total < 0 or activity.get("idle") is not (total == 0)
+                    or gate.get("gate_epoch") != job["gate_epoch"] or gate.get("owner") != owner
+                    or not isinstance(gate.get("boot_id"), str) or not gate["boot_id"]
+                    or gate.get("gate") not in ("open", "draining", "closed")):
+                complete = False
+        revision = gate.get("revision", 0) if gate else 0
+        value = {"observation_id": uuid.uuid4().hex, "runtime_id": spec["runtime_id"],
+                 "job_id": job["id"], "attempt": job["attempt"], "lease": job["lease"],
+                 "state_version": job["state_version"], "host_boot_id": host_boot_id,
+                 "gateway_boot_id": gate.get("boot_id", "unknown") if gate else ("absent" if stopped else "unknown"),
+                 "gate_epoch": gate.get("gate_epoch", job["gate_epoch"]) if gate else job["gate_epoch"],
+                 "observed_at": int(time.time()), "components": states, "mutation_state": mutation,
+                 "complete": complete, "accepting": gate.get("gate") == "open" if gate else False,
+                 "egress_closed": bool(stopped or (gate and isinstance(gate.get("relay"), dict)
+                                                      and gate["relay"].get("gate") == "closed")),
+                 "activity_count": activity.get("total") if gate else (0 if stopped else None),
+                 "applied_revision": revision, "spec_digest": None, "evidence_ref": uuid.uuid4().hex}
+        local = self.state(spec["runtime_id"])
+        if local and local.get("revision") == revision:
+            try:
+                publication = json.loads((Path(local["compose"]).parent / "publication.json").read_text(encoding="utf-8"))
+                value["spec_digest"] = publication["digest"]
+            except (OSError, ValueError, KeyError):
+                value["complete"] = False
+        if value["complete"] and not stopped and value["spec_digest"] is None:
+            value["complete"] = False
+        # Durable evidence excludes lease and secrets, and is safe for a stopped backup.
+        write_json(self.directory(spec["runtime_id"]) / "last-observation.json",
+                   {key: item for key, item in value.items() if key != "lease"})
+        return value, gate
+
+    def attach_control(self, runtime_id, uid=None):
         network = "px-" + check_id(runtime_id) + "-management"
         record = json.loads(self.docker_run("network", "inspect", network))[0]
         labels = record.get("Labels") or {}
         if (record.get("Name") != network or record.get("Internal") is not True or
                 labels.get(MANAGED) != "true" or labels.get("peixian.runtime_id") != runtime_id):
             raise RuntimeFailure("management_network_owner_mismatch")
-        attached = json.loads(self.docker_run("inspect", "--format", "{{json .NetworkSettings.Networks}}", self.control_container))
+        if uid is None:
+            state = self.state(runtime_id)
+            if state is None:
+                pending = self.directory(runtime_id) / "pending.json"
+                state = json.loads(pending.read_text(encoding="utf-8")) if pending.is_file() else {}
+            if state.get("runtime_id") != runtime_id:
+                raise RuntimeFailure("runtime_owner_mismatch")
+            uid = state.get("uid")
+        uid = check_id(uid)
+        deployment = getattr(self, "deployment_id", None)
+        if (labels.get("peixian.uid") != uid
+                or (deployment and labels.get("peixian.deployment") != deployment)):
+            raise RuntimeFailure("management_network_owner_mismatch")
+        control = json.loads(self.docker_run("inspect", self.control_container))[0]
+        control_labels = control.get("Config", {}).get("Labels") or {}
+        if (control.get("Name") != "/" + self.control_container
+                or (deployment and control_labels.get("peixian.deployment") != deployment)):
+            raise RuntimeFailure("management_control_owner_mismatch")
+        attached = control.get("NetworkSettings", {}).get("Networks", {})
         if network not in attached:
-            self.docker_run("network", "connect", network, self.control_container, timeout=30)
+            network_id, control_id = record.get("Id"), control.get("Id")
+            if not network_id or not control_id:
+                raise RuntimeFailure("management_network_identity_missing")
+            try:
+                self.docker_run("network", "connect", network_id, control_id, timeout=30)
+            except RuntimeFailure:
+                # Another current deployment maintenance operation may already
+                # have connected it. Read back the same immutable identities.
+                pass
+            current = json.loads(self.docker_run("inspect", control_id))[0]
+            attached = current.get("NetworkSettings", {}).get("Networks", {})
+            if attached.get(network, {}).get("NetworkID") != network_id:
+                raise RuntimeFailure("management_network_reconnect_unconfirmed")
+        elif record.get("Id") and attached[network].get("NetworkID") != record["Id"]:
+            raise RuntimeFailure("management_network_owner_mismatch")
 
     def verify(self, spec, revision):
-        self.attach_control(spec["runtime_id"])
+        self.attach_control(spec["runtime_id"], spec.get("uid"))
         for _ in range(18):
             try:
                 health = self.private_get(spec, "/health")
@@ -461,25 +641,33 @@ class RuntimeManager:
             time.sleep(2)
         raise RuntimeFailure("runtime_revision_health_failed")
 
-    def wait_idle(self, spec, heartbeat, *, seconds=300):
-        deadline = time.monotonic() + seconds
-        while True:
-            heartbeat()
-            status = self.private_get(spec, "/session/status")
-            if all(isinstance(item, dict) and item.get("type") == "idle" for item in status.values()):
-                return
-            if time.monotonic() >= deadline:
+    def wait_idle(self, spec, heartbeat, *, seconds=2):
+        # Historical migration callers also get one bounded probe, never a 300 s hold.
+        heartbeat()
+        if "runtime_key" in spec.get("private", {}):
+            state = self.runtime_request(spec, "GET", "/internal/runtime/state")
+            activity = state.get("activity", {})
+            if activity.get("complete") is not True or activity.get("unknown") is not False:
+                raise RuntimeFailure("runtime_activity_unknown")
+            if activity.get("idle") is not True:
                 raise Deferred()
-            time.sleep(min(5, max(0, deadline - time.monotonic())))
+            return
+        status = self.private_get(spec, "/session/status")
+        if any(not isinstance(item, dict) or item.get("type") != "idle" for item in status.values()):
+            raise Deferred()
 
-    def reconcile(self):
+    def reconcile(self, *, batch=4):
         failures = []
         directory = self.root / "runtimes"
         if not directory.is_dir():
             return failures
-        for account in directory.iterdir():
-            if not ID.fullmatch(account.name):
-                continue
+        accounts = sorted(account for account in directory.iterdir() if ID.fullmatch(account.name))
+        if not accounts:
+            return failures
+        start = getattr(self, "reconcile_cursor", 0) % len(accounts)
+        selected = [accounts[(start + i) % len(accounts)] for i in range(min(batch, len(accounts)))]
+        self.reconcile_cursor = (start + len(selected)) % len(accounts)
+        for account in selected:
             try:
                 value = self.state(account.name)
                 if value is None or value.get("paused") or not self.running(account.name):
@@ -584,11 +772,16 @@ class RuntimeManager:
         write_json(stage / "relay/revision.json", version)
         write_secret(stage / "private/gateway-token", spec["private"]["gateway_key"])
         write_secret(stage / "private/opencode-password", spec["private"]["agent_password"])
+        if "runtime_key" in spec["private"]:
+            write_secret(stage / "private/runtime-key", spec["private"]["runtime_key"])
+            write_secret(stage / "private/relay-management-key", spec["private"]["relay_management_key"])
         write_json(stage / "publication.json", {"digest": digest, "uid": uid, "revision": revision})
         # Compose paths point at the final immutable location, never the staging name.
         write_json(stage / "compose.json", compose_spec(spec, release, agent_image=self.agent_image,
                    gateway_image=self.gateway_image, limits=getattr(self, "limits", None),
-                   deployment_id=getattr(self, "deployment_id", None)))
+                   deployment_id=getattr(self, "deployment_id", None),
+                   control_container=getattr(self, "control_container", "peixian-console"),
+                   orchestration=getattr(self, "orchestration", None)))
         grant_container_read(stage)
         os.rename(stage, release)
         return release
@@ -645,6 +838,12 @@ class RuntimeManager:
         runtime_id, uid = check_id(spec["runtime_id"]), check_id(spec["uid"])
         if job["uid"] != uid or job["revision"] != spec["revision"] or job["action"] not in {"provision", "apply", "pause", "resume"}:
             raise RuntimeFailure("job_spec_mismatch")
+        managed = "runtime_key" in spec.get("private", {})
+        if managed and (job.get("phase") != "applying" or job.get("mutation_authorized") is not True):
+            raise RuntimeFailure("runtime_mutation_requires_applying_receipt")
+        if managed:
+            heartbeat()
+            self.mutation_record(job, "running")
         previous = self.state(runtime_id)
         if previous and previous["uid"] != uid:
             raise RuntimeFailure("runtime_owner_mismatch")
@@ -658,13 +857,15 @@ class RuntimeManager:
                 raise RuntimeFailure("runtime_state_missing")
             old_file = inside(self.directory(runtime_id), Path(pending["compose"]))
             previous = {**pending, "paused": True}
-        if previous and not previous.get("paused") and running:
+        if previous and not previous.get("paused") and running and not managed:
             self.attach_control(runtime_id)
             self.wait_idle(spec, heartbeat)
         if job["action"] == "pause":
             if previous:
                 self.stop_checked(runtime_id, old_file)
                 write_json(self.directory(runtime_id) / "state.json", {**previous, "paused": True})
+            if managed:
+                self.mutation_record(job, "idle")
             return {"ok": True, "cleanup_confirmed": True}
         file = None
         attempted = False
@@ -686,9 +887,14 @@ class RuntimeManager:
             write_json(self.directory(runtime_id) / "state.json", {
                 "uid": uid, "runtime_id": runtime_id, "revision": spec["revision"], "compose": str(file), "paused": False,
             })
+            if managed:
+                self.mutation_record(job, "idle")
             return {"ok": True}
         except Exception as error:
             code = error.code if isinstance(error, RuntimeFailure) else "release_failed"
+            if managed and code in {"worker_heartbeat_failed", "worker_lease_lost", "control_api_unavailable", "host_command_unavailable"}:
+                self.mutation_record(job, "unknown")
+                raise RuntimeFailure(code) from None
             if previous and not previous.get("paused"):
                 try:
                     if attempted:
@@ -697,6 +903,8 @@ class RuntimeManager:
                 except (RuntimeFailure, ValueError):
                     pass
                 else:
+                    if managed:
+                        self.mutation_record(job, "idle")
                     raise RuntimeFailure("release_failed_rolled_back", rolled_back=True) from None
             try:
                 current = self.running(runtime_id)
@@ -708,4 +916,6 @@ class RuntimeManager:
             except (RuntimeFailure, ValueError):
                 raise RuntimeFailure("release_failed_cleanup_unconfirmed") from None
             # Only this branch has confirmed every project container is stopped.
+            if managed:
+                self.mutation_record(job, "idle")
             raise RuntimeFailure(code, cleanup_confirmed=True) from None

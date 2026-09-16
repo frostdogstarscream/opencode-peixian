@@ -350,6 +350,7 @@ def start_legacy(info):
 
 
 def api_call(api, method, path, **kwargs):
+    kwargs["headers"] = {**kwargs.pop("headers", {}), "X-Peixian-Protocol": "2"}
     response = api.request(method, "/internal/worker/" + path, **kwargs)
     if response.status_code not in (200, 202):
         raise runtime.RuntimeFailure("migration_control_api_failed")
@@ -403,9 +404,29 @@ def rollback(manager, api, journal, path):
         if state is not None:
             config = json.loads(runtime.inside(manager.directory(rid), Path(state["compose"])).read_text(encoding="utf-8"))
             managed_files = config["volumes"]["files"]["name"]
-        # Stop is verified before the API can release the new runtime reservation.
-        api_call(api, "POST", "legacy-rollback", json={"uid": imported["uid"],
-            "snapshot_id": verify_snapshot(Path(journal["snapshot"]))["id"], "cleanup_confirmed": True})
+        # A complete host observation and current version authorize release.
+        status = api_call(api, "GET", "legacy-status/" + imported["uid"])
+        components, complete = manager.components(imported)
+        mutation = manager.mutation_state(rid)
+        if not complete or mutation != "idle" or any(value != "stopped" for value in components.values()):
+            raise runtime.RuntimeFailure("legacy_rollback_stop_observation_incomplete")
+        observation_id = uuid.uuid4().hex
+        api_call(api, "POST", "reconcile", json={"observation_id": observation_id,
+            "runtime_id": rid, "state_version": status["state_version"], "host_boot_id": worker.host_boot_id(),
+            "observed_at": int(time.time()), "components": components, "mutation_state": mutation,
+            "complete": True, "evidence_ref": uuid.uuid4().hex})
+        # Persist the exact request before sending. An unknown response must be
+        # reconciled using this same operation; do not invent a second rollback.
+        body = {"uid": imported["uid"], "snapshot_id": verify_snapshot(Path(journal["snapshot"]))["id"],
+                "cleanup_confirmed": True, "observation_id": observation_id,
+                "expected_state_version": status["state_version"], "operation_id": uuid.uuid4().hex}
+        prior = journal.get("rollback_request")
+        if prior is not None:
+            body = prior
+        else:
+            journal["rollback_request"] = body
+            runtime.write_json(path, journal)
+        api_call(api, "POST", "legacy-rollback", json=body)
     if imported or stopped(inventory(journal["client"])):
         saved, report = snapshot(manager.root, journal["client"], require_stopped=True)
         if managed_files is not None:

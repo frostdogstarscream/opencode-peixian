@@ -102,6 +102,11 @@ class ScopedWorker(worker.Worker):
         super().__init__(api, manager)
         self.journal, self.expected_job = Path(journal), expected_job
 
+    def reconcile(self):
+        # Fault acceptance is bound to one explicitly selected synthetic account.
+        # The ordinary worker's platform reconciliation is a separate acceptance.
+        return
+
     def request(self, method, path, **kwargs):
         response = super().request(method, path, **kwargs)
         if path != "/internal/worker/claim":
@@ -112,11 +117,9 @@ class ScopedWorker(worker.Worker):
             return response
         value = json.loads(self.journal.read_text(encoding="utf-8"))
         if job["uid"] != value["uid"] or job["id"] != self.expected_job:
-            # A UI update can race the read-only preflight. Return its lease
-            # immediately; never call RuntimeManager.apply for another job.
-            super().request("POST", "/internal/worker/jobs/" + job["id"] + "/complete",
-                            json={"lease": job["lease"], "ok": False, "deferred": True})
-            raise runtime.RuntimeFailure("other_job_claimed_and_deferred_without_execution")
+            # No observation authorizes this driver's defer or completion for the
+            # other account. Leave its unmutated lease to expire conservatively.
+            raise runtime.RuntimeFailure("other_job_claimed_without_execution")
         claim = {"job_id": job["id"], "runtime_id": payload["spec"]["runtime_id"],
                  "lease_sha256": hashlib.sha256(job["lease"].encode()).hexdigest(), "claimed_at": time.time()}
         value.setdefault("claims", []).append(claim)

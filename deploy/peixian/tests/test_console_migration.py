@@ -357,6 +357,8 @@ class MigrationTests(unittest.TestCase):
         current = ["synthetic-container"]
         manager = SimpleNamespace(root=self.root, state=lambda _: state, directory=lambda _: directory,
             running=lambda _: current.copy(), wait_idle=lambda *_: events.append("idle"),
+            components=lambda _: ({key: "stopped" for key in ("agent", "gateway", "relay")}, True),
+            mutation_state=lambda _: "idle",
             stop_checked=lambda *_: (events.append("stop-new"), current.clear()))
         saved = self.root / "saved"
         saved.mkdir()
@@ -366,8 +368,16 @@ class MigrationTests(unittest.TestCase):
 
         def request(*args, **kwargs):
             self.assertEqual(current, [])
+            if args[1] == "GET":
+                return {"state_version": 7}
+            if args[2] == "reconcile":
+                self.assertTrue(kwargs["json"]["complete"])
+                events.append("control-observation")
+                return {"classification": "stopped"}
             self.assertTrue(kwargs["json"]["cleanup_confirmed"])
             self.assertEqual(kwargs["json"]["snapshot_id"], "synthetic-snapshot")
+            self.assertEqual(kwargs["json"]["expected_state_version"], 7)
+            self.assertEqual(len(kwargs["json"]["observation_id"]), 32)
             events.append("control-rollback")
 
         with patch.object(migration, "api_call", side_effect=request), \
@@ -377,7 +387,7 @@ class MigrationTests(unittest.TestCase):
              patch.object(migration, "archive_volume", side_effect=lambda *_: events.append("new-files-backup") or {"sha256": "synthetic"}), \
              patch.object(migration, "start_legacy", side_effect=lambda *_: events.append("start-old")):
             migration.rollback(manager, object(), journal, self.root / "journal.json")
-        self.assertEqual(events, ["idle", "stop-new", "control-rollback", "snapshot", "new-files-backup", "start-old"])
+        self.assertEqual(events, ["idle", "stop-new", "control-observation", "control-rollback", "snapshot", "new-files-backup", "start-old"])
         self.assertEqual(journal["status"], "rolled_back")
         self.assertEqual(json.loads((saved / "snapshot.json").read_text())["retained_managed_files_volume"], "synthetic-managed-files")
 

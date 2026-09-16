@@ -109,9 +109,11 @@ def compose_config(cfg, pinned=None):
                "healthcheck": {"test": ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3)"],
                                "interval": "10s", "timeout": "5s", "start_period": "20s", "retries": 6},
                "networks": ["front"]}
-    if cfg.version == 2:
+    if cfg.version >= 2:
         console["memswap_limit"] = console["mem_limit"]
         console["environment"].update(cfg.concurrency_environment)
+    if cfg.version == 3:
+        console["environment"].update(cfg.orchestration_environment)
     # This applies to v1 upgrades too: browser users must not share the proxy IP
     # in source-based login limits. No account management network is trusted.
     console["environment"]["FORWARDED_ALLOW_IPS"] = str(next(ipaddress.ip_network(cfg.network_pool).subnets(new_prefix=28)))
@@ -125,7 +127,7 @@ def compose_config(cfg, pinned=None):
              "depends_on": {"console": {"condition": "service_healthy"}}, "networks": ["front"],
              "healthcheck": {"test": ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://127.0.0.1:8443/health"],
                              "interval": "10s", "timeout": "5s", "retries": 6}}
-    if cfg.version == 2:
+    if cfg.version >= 2:
         proxy["memswap_limit"] = proxy["mem_limit"]
     proxy_fingerprint = hashlib.sha256((ROOT / "server/nginx.conf").read_bytes())
     if cfg.certificate.is_file():
@@ -161,6 +163,10 @@ def inspect_images(cfg):
                 config.image_supports_config(info.get("Config", {}).get("Labels"), cfg.version)
             except config.ConfigError as error:
                 raise PlatformError(str(error)) from None
+        try:
+            config.image_supports_orchestration(info.get("Config", {}).get("Labels"), name, cfg.version)
+        except config.ConfigError as error:
+            raise PlatformError(str(error)) from None
         result[name] = info["Id"]
     return result
 
@@ -206,7 +212,7 @@ def check(cfg):
                 if other.version == 4 and subnet.overlaps(other):
                     raise PlatformError("entry_subnet_conflicts_choose_unused_network_pool")
     network = None
-    if cfg.version == 2:
+    if cfg.version >= 2:
         try:
             network = config.capacity.network_capacity(cfg.network_pool, networks, cfg.deployment_id,
                                                        cfg.max_runtimes, config.capacity.retained_ids(cfg.worker_root))
@@ -229,7 +235,68 @@ def up(cfg):
     if verified["image_id"] != checked["images"]["control"]:
         raise PlatformError("control_image_changed_during_check")
     command("docker", "compose", "-f", str(cfg.compose_path), "up", "-d", "--no-build", "--pull", "never", "--wait", timeout=240)
-    return {"status": "started", "url": cfg.public_url, "images": checked["images"]}
+    restored = restore_control_networks(cfg)
+    return {"status": "started", "url": cfg.public_url, "images": checked["images"],
+            "runtime_management": restored}
+
+
+def restore_control_networks(cfg):
+    """Restore dynamic management attachments lost when Compose replaces Control.
+
+    This is deployment maintenance, after image/schema checks and replacement.
+    It neither changes a runtime release nor opens its lifecycle gate.
+    """
+    runtime = module("console-runtime")
+    registry = cfg.worker_root / "runtimes"
+    if not registry.exists():
+        return {"registered": 0, "connected": 0, "paused_missing": 0}
+    if registry.is_symlink() or not registry.is_dir():
+        raise PlatformError("runtime_management_registry_invalid")
+    manager = object.__new__(runtime.RuntimeManager)
+    manager.root, manager.control_container = cfg.worker_root, cfg.control_container
+    manager.deployment_id = cfg.deployment_id
+    def execute(*args, **kwargs):
+        try:
+            return command("docker", *args, timeout=kwargs.get("timeout", 30))
+        except PlatformError:
+            raise runtime.RuntimeFailure("runtime_management_recovery_pending") from None
+    manager.docker_run = execute
+    names = set(command("docker", "network", "ls", "--format", "{{.Name}}").splitlines())
+    selected, paused_missing, registered = [], 0, 0
+    try:
+        for directory in sorted(registry.iterdir()):
+            if directory.is_symlink() or not directory.is_dir() or not runtime.ID.fullmatch(directory.name):
+                raise PlatformError("runtime_management_registry_invalid")
+            path = directory / "state.json"
+            if not path.exists():
+                # An unfinished first provision has no registered release and
+                # cannot be silently reported as a completed deployment repair.
+                if (directory / "pending.json").exists():
+                    raise PlatformError("runtime_management_recovery_pending")
+                continue
+            if path.is_symlink() or not path.is_file():
+                raise PlatformError("runtime_management_registry_invalid")
+            state = manager.state(directory.name)
+            runtime.check_id(state["uid"])
+            runtime.inside(directory, Path(state["compose"]))
+            registered += 1
+            components, complete = manager.components(state)
+            if not complete or "unknown" in components.values():
+                raise PlatformError("runtime_management_recovery_pending")
+            network = "px-" + directory.name + "-management"
+            if network not in names:
+                if state.get("paused") is True and all(value == "stopped" for value in components.values()):
+                    paused_missing += 1
+                    continue
+                raise PlatformError("runtime_management_recovery_pending")
+            selected.append(state)
+        for state in selected:
+            manager.attach_control(state["runtime_id"], state["uid"])
+    except runtime.RuntimeFailure as error:
+        raise PlatformError(error.code) from None
+    except (OSError, ValueError, KeyError, TypeError):
+        raise PlatformError("runtime_management_registry_invalid") from None
+    return {"registered": registered, "connected": len(selected), "paused_missing": paused_missing}
 
 
 def main():

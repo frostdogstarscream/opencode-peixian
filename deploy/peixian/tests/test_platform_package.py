@@ -63,6 +63,9 @@ class PackageTests(unittest.TestCase):
         deploy.mkdir(parents=True)
         for name in ("platform-config.py","platform-capacity.py"):
             shutil.copyfile(ROOT/name,deploy/name)
+        shared = source / "services/peixian-control/shared"
+        shared.mkdir(parents=True)
+        shutil.copyfile(ROOT.parents[1] / "services/peixian-control/shared/orchestration_config.py", shared / "orchestration_config.py")
         (source/"LICENSE").write_text("synthetic")
         wheels=self.root/"wheels"
         wheels.mkdir()

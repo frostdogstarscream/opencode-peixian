@@ -18,6 +18,7 @@ ALLOWED_FILES = (
     "LICENSE",
     "deploy/peixian/platform-capacity.py", "deploy/peixian/platform-sample.py",
     "deploy/peixian/server/platform.50-io.example.json",
+    "deploy/peixian/server/platform.orchestration.example.json",
     "deploy/peixian/platform-config.py", "deploy/peixian/platform-manage.py", "deploy/peixian/platform-backup.py",
     "deploy/peixian/platform-package.py", "deploy/peixian/platform.ps1", "deploy/peixian/console-worker.py",
     "deploy/peixian/console-runtime.py", "deploy/peixian/console-guard.py", "deploy/peixian/plugin-client.mjs",
@@ -28,6 +29,10 @@ ALLOWED_FILES = (
     "deploy/peixian/examples/records-plugin/entry.mjs", "deploy/peixian/examples/records-plugin/manifest.json",
     "deploy/peixian/examples/records-plugin/SKILL.md", "services/peixian-control/docs/openapi.json",
     "services/peixian-control/requirements.lock",
+    "services/peixian-control/shared/orchestration_config.py",
+    "deploy/peixian/constrained-test.py",
+    "deploy/peixian/r2-acceptance.py", "deploy/peixian/R2_ACCEPTANCE.md",
+    "deploy/peixian/r2-local-smoke.py",
     "services/peixian-control/examples/console_client.py",
     "services/peixian-control/benchmarks/platform_load.py",
     "services/peixian-control/benchmarks/control_layer_load.py",
@@ -152,6 +157,7 @@ def assemble(destination, wheels, commit, *, export_images=False, config_path=No
     effective_config = ({"version": cfg.version, "profile": cfg.profile, "max_runtimes": cfg.max_runtimes,
                          "control_resources": cfg.control_resources, "resource_limits": cfg.resource_limits,
                          "capacity_policy": cfg.capacity_policy, "concurrency": cfg.concurrency,
+                         "orchestration": cfg.orchestration,
                          "resource_budget": cfg.resource_budget} if cfg else {"version": 1})
     archive = destination / "images.tar"
     if source_only and archive.exists():
@@ -178,6 +184,8 @@ def assemble(destination, wheels, commit, *, export_images=False, config_path=No
             raise PackageError("exported_images_require_linux_amd64")
         try:
             settings.image_supports_config(images[expected_images["control"]]["labels"], config_version)
+            for name, tag in expected_images.items():
+                settings.image_supports_orchestration(images[tag]["labels"], name, config_version)
         except settings.ConfigError as error:
             raise PackageError(str(error)) from None
     else:
@@ -234,7 +242,8 @@ images.tar 不存在。镜像构建、Linux 容器运行、真实 50 环境容�
     manifest = {"format": 1, "product": "Agent 工作台", "source_commit": full_commit,
                 "source_matches_commit": matches, "working_tree_clean": not bool(command("git", "status", "--porcelain")),
                 "target": {"os": "Ubuntu 24.04", "architecture": "amd64", "python": "3.12", "docker": "Engine + Compose v2"},
-                "control_schema_version": 3, "opencode_version": "1.18.30",
+                "control_schema_version": 4, "worker_protocol_version": 2, "runtime_protocol_version": 2,
+                "opencode_version": "1.18.30",
                 "package_kind": "source_and_tools_without_images" if source_only else "offline_deployment",
                 "platform_config_version": config_version, "effective_config": effective_config,
                 "requested_images": expected_images, "images_included": not source_only,

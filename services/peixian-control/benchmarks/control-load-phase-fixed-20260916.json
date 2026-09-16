@@ -1,0 +1,479 @@
+{
+  "profile": "L2-control-only-real-loopback-http-with-mocked-gateways",
+  "control_fixture_passed": false,
+  "failure": "A synthetic SSE stream closed before the revocation scenario",
+  "parameters": {
+    "stages": [
+      10,
+      20,
+      35,
+      50
+    ],
+    "stage_seconds": 10.0,
+    "request_pause_ms": 500.0,
+    "gateway_delay_ms": 10,
+    "event_interval_ms": 250,
+    "request_cadence_ms": {
+      "messages": 500.0,
+      "sessions": 2000,
+      "me": 5000,
+      "health": 5000,
+      "models": 30000,
+      "files": 30000,
+      "skills": 30000,
+      "plugins": 30000
+    }
+  },
+  "stages": [
+    {
+      "accounts": 10,
+      "target_sse": 20,
+      "duration_seconds": 10.0,
+      "active_synthetic_generations": 10,
+      "streams": {
+        "viewers": 20,
+        "upstreams": 20,
+        "owners": 10,
+        "downloads": 0,
+        "prepared": 0,
+        "rejected": 0,
+        "released": 0,
+        "expired": 0
+      },
+      "early_stream_closures": 0,
+      "metrics": {
+        "health": {
+          "count": 21,
+          "sample_count": 21,
+          "status_counts": {
+            "200": 21
+          },
+          "p95_ms": 21.52,
+          "p99_ms": 23.91,
+          "maximum_ms": 23.91
+        },
+        "me": {
+          "count": 20,
+          "sample_count": 20,
+          "status_counts": {
+            "200": 20
+          },
+          "p95_ms": 25.98,
+          "p99_ms": 31.9,
+          "maximum_ms": 31.9
+        },
+        "messages": {
+          "count": 200,
+          "sample_count": 200,
+          "status_counts": {
+            "200": 200
+          },
+          "p95_ms": 63.1,
+          "p99_ms": 80.99,
+          "maximum_ms": 84.38
+        },
+        "sessions": {
+          "count": 50,
+          "sample_count": 50,
+          "status_counts": {
+            "200": 50
+          },
+          "p95_ms": 63.13,
+          "p99_ms": 80.53,
+          "maximum_ms": 80.53
+        },
+        "models": {
+          "count": 10,
+          "sample_count": 10,
+          "status_counts": {
+            "200": 10
+          },
+          "p95_ms": 33.85,
+          "p99_ms": 33.85,
+          "maximum_ms": 33.85
+        },
+        "files": {
+          "count": 10,
+          "sample_count": 10,
+          "status_counts": {
+            "200": 10
+          },
+          "p95_ms": 37.15,
+          "p99_ms": 37.15,
+          "maximum_ms": 37.15
+        },
+        "skills": {
+          "count": 10,
+          "sample_count": 10,
+          "status_counts": {
+            "200": 10
+          },
+          "p95_ms": 17.91,
+          "p99_ms": 17.91,
+          "maximum_ms": 17.91
+        },
+        "plugins": {
+          "count": 10,
+          "sample_count": 10,
+          "status_counts": {
+            "200": 10
+          },
+          "p95_ms": 10.82,
+          "p99_ms": 10.82,
+          "maximum_ms": 10.82
+        }
+      }
+    },
+    {
+      "accounts": 20,
+      "target_sse": 40,
+      "duration_seconds": 9.99,
+      "active_synthetic_generations": 20,
+      "streams": {
+        "viewers": 40,
+        "upstreams": 40,
+        "owners": 20,
+        "downloads": 0,
+        "prepared": 0,
+        "rejected": 0,
+        "released": 0,
+        "expired": 0
+      },
+      "early_stream_closures": 0,
+      "metrics": {
+        "health": {
+          "count": 40,
+          "sample_count": 40,
+          "status_counts": {
+            "200": 40
+          },
+          "p95_ms": 26.14,
+          "p99_ms": 27.74,
+          "maximum_ms": 27.74
+        },
+        "me": {
+          "count": 40,
+          "sample_count": 40,
+          "status_counts": {
+            "200": 40
+          },
+          "p95_ms": 38.15,
+          "p99_ms": 45.36,
+          "maximum_ms": 45.36
+        },
+        "messages": {
+          "count": 400,
+          "sample_count": 400,
+          "status_counts": {
+            "200": 400
+          },
+          "p95_ms": 74.89,
+          "p99_ms": 90.78,
+          "maximum_ms": 101.01
+        },
+        "sessions": {
+          "count": 100,
+          "sample_count": 100,
+          "status_counts": {
+            "200": 100
+          },
+          "p95_ms": 59.36,
+          "p99_ms": 66.2,
+          "maximum_ms": 70.82
+        },
+        "models": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 17
+          },
+          "p95_ms": 33.61,
+          "p99_ms": 33.61,
+          "maximum_ms": 33.61
+        },
+        "files": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 17
+          },
+          "p95_ms": 53.6,
+          "p99_ms": 53.6,
+          "maximum_ms": 53.6
+        },
+        "skills": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 17
+          },
+          "p95_ms": 42.88,
+          "p99_ms": 42.88,
+          "maximum_ms": 42.88
+        },
+        "plugins": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 17
+          },
+          "p95_ms": 37.03,
+          "p99_ms": 37.03,
+          "maximum_ms": 37.03
+        }
+      }
+    },
+    {
+      "accounts": 35,
+      "target_sse": 70,
+      "duration_seconds": 10.0,
+      "active_synthetic_generations": 35,
+      "streams": {
+        "viewers": 70,
+        "upstreams": 70,
+        "owners": 35,
+        "downloads": 0,
+        "prepared": 0,
+        "rejected": 0,
+        "released": 0,
+        "expired": 0
+      },
+      "early_stream_closures": 0,
+      "metrics": {
+        "health": {
+          "count": 71,
+          "sample_count": 71,
+          "status_counts": {
+            "200": 71
+          },
+          "p95_ms": 39.99,
+          "p99_ms": 64.59,
+          "maximum_ms": 64.59
+        },
+        "me": {
+          "count": 70,
+          "sample_count": 70,
+          "status_counts": {
+            "200": 70
+          },
+          "p95_ms": 69.45,
+          "p99_ms": 98.06,
+          "maximum_ms": 98.06
+        },
+        "messages": {
+          "count": 700,
+          "sample_count": 700,
+          "status_counts": {
+            "200": 700
+          },
+          "p95_ms": 126.07,
+          "p99_ms": 167.42,
+          "maximum_ms": 187.49
+        },
+        "sessions": {
+          "count": 175,
+          "sample_count": 175,
+          "status_counts": {
+            "200": 175
+          },
+          "p95_ms": 98.87,
+          "p99_ms": 140.57,
+          "maximum_ms": 141.38
+        },
+        "models": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 17
+          },
+          "p95_ms": 67.41,
+          "p99_ms": 67.41,
+          "maximum_ms": 67.41
+        },
+        "files": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 17
+          },
+          "p95_ms": 109.98,
+          "p99_ms": 109.98,
+          "maximum_ms": 109.98
+        },
+        "skills": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 17
+          },
+          "p95_ms": 87.16,
+          "p99_ms": 87.16,
+          "maximum_ms": 87.16
+        },
+        "plugins": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 17
+          },
+          "p95_ms": 67.55,
+          "p99_ms": 67.55,
+          "maximum_ms": 67.55
+        }
+      }
+    },
+    {
+      "accounts": 50,
+      "target_sse": 100,
+      "duration_seconds": 10.14,
+      "active_synthetic_generations": 50,
+      "streams": {
+        "viewers": 72,
+        "upstreams": 72,
+        "owners": 40,
+        "downloads": 0,
+        "prepared": 0,
+        "rejected": 0,
+        "released": 28,
+        "expired": 0
+      },
+      "early_stream_closures": 28,
+      "metrics": {
+        "health": {
+          "count": 101,
+          "sample_count": 101,
+          "status_counts": {
+            "200": 100,
+            "503": 1
+          },
+          "p95_ms": 99.28,
+          "p99_ms": 138.52,
+          "maximum_ms": 168.12
+        },
+        "me": {
+          "count": 100,
+          "sample_count": 100,
+          "status_counts": {
+            "200": 99,
+            "503": 1
+          },
+          "p95_ms": 176.66,
+          "p99_ms": 206.77,
+          "maximum_ms": 208.49
+        },
+        "messages": {
+          "count": 992,
+          "sample_count": 992,
+          "status_counts": {
+            "200": 904,
+            "503": 88
+          },
+          "p95_ms": 348.68,
+          "p99_ms": 394.11,
+          "maximum_ms": 415.52
+        },
+        "sessions": {
+          "count": 248,
+          "sample_count": 248,
+          "status_counts": {
+            "200": 230,
+            "503": 18
+          },
+          "p95_ms": 270.42,
+          "p99_ms": 316.97,
+          "maximum_ms": 323.18
+        },
+        "models": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 15,
+            "503": 2
+          },
+          "p95_ms": 222.48,
+          "p99_ms": 222.48,
+          "maximum_ms": 222.48
+        },
+        "files": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 15,
+            "503": 2
+          },
+          "p95_ms": 256.14,
+          "p99_ms": 256.14,
+          "maximum_ms": 256.14
+        },
+        "skills": {
+          "count": 17,
+          "sample_count": 17,
+          "status_counts": {
+            "200": 13,
+            "503": 4
+          },
+          "p95_ms": 175.93,
+          "p99_ms": 175.93,
+          "maximum_ms": 175.93
+        },
+        "plugins": {
+          "count": 16,
+          "sample_count": 16,
+          "status_counts": {
+            "200": 12,
+            "503": 4
+          },
+          "p95_ms": 181.47,
+          "p99_ms": 181.47,
+          "maximum_ms": 181.47
+        }
+      }
+    }
+  ],
+  "peak": {
+    "viewers": 100,
+    "upstreams": 100,
+    "owners": 50,
+    "client_requests_in_flight": 43,
+    "db_outstanding": 40
+  },
+  "limits": {
+    "http_connections": 64,
+    "http_keepalive": 16,
+    "sse_viewers": 128,
+    "sse_per_account": 4,
+    "sse_owners": 64,
+    "sse_heartbeat_seconds": 15,
+    "sse_renew_seconds": 5,
+    "sse_owner_ttl_seconds": 20,
+    "auth_recheck_seconds": 2,
+    "downloads": 8,
+    "db_workers": 8,
+    "db_queue": 32,
+    "db_queue_seconds": 1,
+    "db_busy_ms": 1000,
+    "crypto_workers": 2,
+    "crypto_queue": 16,
+    "crypto_queue_seconds": 2,
+    "login_capacity": 4096,
+    "login_ttl_seconds": 300,
+    "login_rate": 10,
+    "login_burst": 50,
+    "login_source_rate": 5,
+    "login_source_burst": 50
+  },
+  "db_rejected": 148,
+  "streams": {
+    "viewers": 0,
+    "upstreams": 0,
+    "owners": 0,
+    "downloads": 0,
+    "prepared": 0,
+    "rejected": 0,
+    "released": 100,
+    "expired": 0
+  },
+  "checks": {},
+  "peak_synthetic_generations": 50,
+  "evidence_boundary": "Real Control/socket/SQLite/auth; synthetic Gateway/LLM. No real account containers or production capacity acceptance."
+}

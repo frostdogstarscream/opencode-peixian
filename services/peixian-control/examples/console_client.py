@@ -23,6 +23,9 @@ import json
 import os
 from pathlib import Path
 import re
+import random
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from urllib.parse import urlsplit
 
 import httpx
@@ -31,7 +34,19 @@ PREFIX = "/api/console/v1"
 
 
 class ConsoleError(RuntimeError):
-    pass
+    def __init__(self, message, *, status=None, retry_after=None, result_unknown=False):
+        super().__init__(message)
+        self.status, self.retry_after, self.result_unknown = status, retry_after, result_unknown
+
+
+def retry_seconds(value):
+    try:
+        return max(0, min(300, float(value)))
+    except (TypeError, ValueError):
+        try:
+            return max(0, min(300, (parsedate_to_datetime(value) - datetime.now(timezone.utc)).total_seconds()))
+        except (TypeError, ValueError, OverflowError):
+            return None
 
 
 def resource_id(value):
@@ -73,22 +88,35 @@ class ConsoleClient:
         self.http = httpx.AsyncClient(
             base_url=self.origin, headers=headers, trust_env=False, follow_redirects=False,
             timeout=httpx.Timeout(60, connect=10), transport=transport,
+            limits=httpx.Limits(max_connections=8, max_keepalive_connections=4),
         )
+        self.stream_http = httpx.AsyncClient(base_url=self.origin, trust_env=False, follow_redirects=False,
+            timeout=httpx.Timeout(None, connect=10, pool=2), transport=transport,
+            limits=httpx.Limits(max_connections=1, max_keepalive_connections=0))
 
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, *args):
+        await self.stream_http.aclose()
         await self.http.aclose()
 
     @staticmethod
     def check(response):
         if not 200 <= response.status_code < 300:
             # Avoid echoing response bodies, URLs, cookies or credentials in logs.
-            raise ConsoleError(f"Console request failed (HTTP {response.status_code})")
+            suffix = "; result unknown, inspect history/status before resubmitting" if response.status_code == 504 else ""
+            raise ConsoleError(f"Console request failed (HTTP {response.status_code})" + suffix,
+                status=response.status_code, retry_after=retry_seconds(response.headers.get("Retry-After")),
+                result_unknown=response.status_code == 504)
 
     async def request(self, method, path, **kwargs):
-        response = await self.http.request(method, PREFIX + path, **kwargs)
+        try:
+            response = await self.http.request(method, PREFIX + path, **kwargs)
+        except httpx.HTTPError:
+            if method not in ("GET", "HEAD"):
+                raise ConsoleError("Submission result unknown; inspect history/status before resubmitting", result_unknown=True) from None
+            raise
         self.check(response)
         return response.json()
 
@@ -186,10 +214,27 @@ class ConsoleClient:
         return await self.request("POST", "/sessions/" + resource_id(session_id) + "/abort")
 
     async def events(self):
-        async with self.http.stream("GET", PREFIX + "/events", timeout=None) as response:
-            self.check(response)
-            async for event in sse_events(response.aiter_lines()):
-                yield event
+        """Reconnect reads only; credentials are copied at each new subscription."""
+        attempt = 0
+        while True:
+            retry = None
+            try:
+                self.stream_http.cookies.clear()
+                self.stream_http.cookies.update(self.http.cookies)
+                async with self.stream_http.stream("GET", PREFIX + "/events", headers=self.http.headers) as response:
+                    self.check(response)
+                    async for event in sse_events(response.aiter_lines()):
+                        attempt = 0
+                        yield event
+            except ConsoleError as error:
+                if error.status not in (429, 503):
+                    raise
+                retry = error.retry_after
+            except httpx.HTTPError:
+                pass
+            delay = retry if retry is not None else min(15, 2 ** min(attempt, 4)) + random.random() * .25
+            attempt += 1
+            await asyncio.sleep(delay)
 
     async def run_message(self, session_id, text, *, timeout=180, on_update=None, **options):
         """Subscribe before sending; use persisted messages + idle state for completion.
@@ -236,14 +281,15 @@ class ConsoleClient:
                         on_update(new)
                     if any(value["info"].get("error") for value in new):
                         raise ConsoleError("The model reported an incomplete request")
-                    sessions = await self.sessions()
-                    state = next((value for value in sessions if value["id"] == session_id), None)
-                    if state is None:
-                        raise ConsoleError("Session is no longer available")
                     completed = any(value["info"].get("time", {}).get("completed") for value in new)
-                    if new and completed and state.get("status") == "idle":
-                        return values
-                    await asyncio.sleep(0.25)
+                    if new and completed:
+                        sessions = await self.sessions()
+                        state = next((value for value in sessions if value["id"] == session_id), None)
+                        if state is None:
+                            raise ConsoleError("Session is no longer available")
+                        if state.get("status") == "idle":
+                            return values
+                    await asyncio.sleep(0.5)
         except BaseException:
             if submitted:
                 with suppress(Exception):

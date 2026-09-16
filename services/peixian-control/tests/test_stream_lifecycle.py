@@ -434,3 +434,51 @@ def test_delayed_response_checks_auth_before_sending_any_body(monkeypatch):
             assert created[0].closed
             assert app.state.stream_registry.stats()["downloads"] == 0
     asyncio.run(run())
+
+
+
+def test_registry_hub_failure_still_closes_reservations_and_reaper(monkeypatch):
+    from control.shutdown import ShutdownError
+    async def run():
+        async with fixture(monkeypatch) as (app, request, user, created):
+            registry = app.state.stream_registry
+            item = registry.reserve("another", "download")
+            item.response = httpx.Response(200, stream=BytesStream())
+            original = registry.hubs.close
+            async def fail():
+                raise TimeoutError()
+            registry.hubs.close = fail
+            with pytest.raises(ShutdownError):
+                await registry.close()
+            assert registry.closed and registry.reaper is None
+            assert item.closed and item.response.is_closed
+            assert registry.released == 1
+            assert registry.shutdown.report["stages"][0]["errors"] == ["timeout"]
+            with pytest.raises(HTTPException):
+                registry.reserve("another", "download")
+            # Fixture cleanup may observe the same error; explicitly reset only test wrapper.
+            registry.hubs.close = original
+            async def completed():
+                return None
+            registry.shutdown_task = asyncio.create_task(completed())
+    asyncio.run(run())
+
+
+def test_one_reservation_failure_does_not_skip_other_account_cleanup():
+    from control.shutdown import ShutdownError
+    async def run():
+        registry = StreamRegistry(LiveTextCache())
+        registry.start()
+        first = registry.reserve("a", "download")
+        second = registry.reserve("b", "download")
+        class Broken:
+            async def aclose(self):
+                raise ValueError("private transport failure")
+        first.response = Broken()
+        second.response = httpx.Response(200, stream=BytesStream())
+        with pytest.raises(ShutdownError):
+            await registry.close()
+        assert second.response.is_closed
+        assert registry.released == 2 and registry.reaper is None
+        assert "private transport" not in str(registry.shutdown.report)
+    asyncio.run(run())

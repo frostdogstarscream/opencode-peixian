@@ -133,8 +133,12 @@ class PackageTests(unittest.TestCase):
         source, deploy, wheels, destination, cfg = self.package_tree(list(profile["images"].values()))
         def git(*args):
             return subprocess.run(["git", *args], cwd=source, capture_output=True, check=True, text=True).stdout.strip()
+        docs = tuple(name for name in package.ALLOWED_FILES if name.endswith(("EVENTHUB_HF1_REVIEW.md", "N1_N2_LOCAL_REVIEW.md")))
+        self.assertEqual(len(docs), 2)
+        for name in docs:
+            (source / name).write_text("synthetic review", encoding="utf-8")
         git("init", "--quiet")
-        git("add", "LICENSE")
+        git("add", "LICENSE", *docs)
         git("-c", "user.name=Synthetic Test", "-c", "user.email=synthetic@example.invalid",
             "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "test: synthetic source")
         sha = git("rev-parse", "HEAD")
@@ -144,7 +148,7 @@ class PackageTests(unittest.TestCase):
                 return json.dumps([{"Id": "synthetic"}])
             return original(*args)
         with patch.object(package, "ROOT", source), patch.object(package, "DEPLOY", deploy), \
-                patch.object(package, "ALLOWED_FILES", ("LICENSE",)), patch.object(package, "OPTIONAL_FILES", ()), \
+                patch.object(package, "ALLOWED_FILES", ("LICENSE", *docs)), patch.object(package, "OPTIONAL_FILES", ()), \
                 patch.object(package, "command", side_effect=command):
             self.assertTrue(package.assemble(destination, wheels, sha, config_path=cfg)["source_matches_commit"])
             archive = destination / "source.tar.gz"
@@ -152,7 +156,9 @@ class PackageTests(unittest.TestCase):
             with tarfile.open(archive) as contents:
                 self.assertEqual(contents.pax_headers["comment"], sha)
                 self.assertEqual(contents.extractfile("LICENSE").read(), b"synthetic")
-                self.assertEqual([x.name for x in contents], ["LICENSE"])
+                for name in docs:
+                    self.assertEqual(contents.extractfile(name).read(), b"synthetic review")
+                    self.assertEqual((destination / name).read_text(encoding="utf-8"), "synthetic review")
             with self.assertRaisesRegex(package.PackageError, "source_archive_already_exists"):
                 package.assemble(destination, wheels, sha, config_path=cfg)
             self.assertEqual(archive.read_bytes(), before)

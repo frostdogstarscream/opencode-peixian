@@ -330,3 +330,27 @@ def test_shutdown_timeout_keeps_cleanup_tracked():
             assert hubs.stats()["closed"] == 1
             assert hubs.stats()["hubs"] == 0
     asyncio.run(run())
+
+
+
+def test_capacity_pressure_has_bounded_wait_for_closing_hub():
+    async def run():
+        async with fixture(hub_shutdown_seconds=.05) as (hubs, registry, subscribe, opened, identity):
+            item, sub = await subscribe("a")
+            item.started = item.retain = True
+            await item.close()
+            await subscribe("b")
+            identity["cleanup_entered"] = asyncio.Event()
+            identity["cleanup_resume"] = asyncio.Event()
+            try:
+                async with asyncio.timeout(.3):
+                    with pytest.raises(HTTPException) as error:
+                        await subscribe("c")
+                assert error.value.status_code == 503
+                assert hubs.hubs["a"] is sub.hub
+                assert not sub.hub.task.done()
+                assert len(opened) == 2
+            finally:
+                identity["cleanup_resume"].set()
+            await sub.hub.close("finish_test")
+    asyncio.run(run())

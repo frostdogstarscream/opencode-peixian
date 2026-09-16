@@ -296,7 +296,11 @@ class AccountEventHubs:
                 idle = next((value for value in self.hubs.values() if not value.subscribers), None)
                 if idle is None:
                     raise HTTPException(503, "实时连接暂时繁忙", headers={"Retry-After": "2"})
-                await idle.close("capacity_pressure")
+                idle.begin_close("capacity_pressure")
+                done, _ = await asyncio.wait((idle.cleanup_task,), timeout=min(1, self.config["hub_shutdown_seconds"]))
+                if not done:
+                    raise HTTPException(503, "实时连接正在清理，请稍后重试", headers={"Retry-After": "2"})
+                idle.cleanup_task.result()
                 return await self.subscribe(reservation, authorize)
             hub = AccountHub(self, uid)
             self.hubs[uid] = hub
@@ -318,8 +322,13 @@ class AccountEventHubs:
             await subscriber.close()
             raise
 
-    async def close(self):
+    def stop(self):
         self.stopped = True
+        for hub in tuple(self.hubs.values()):
+            hub.begin_close("shutdown")
+
+    async def close(self):
+        self.stop()
         await asyncio.wait_for(asyncio.gather(*(hub.close("shutdown") for hub in tuple(self.hubs.values()))),
                                self.config["hub_shutdown_seconds"])
 

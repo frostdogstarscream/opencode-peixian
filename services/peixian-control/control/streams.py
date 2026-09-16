@@ -11,6 +11,7 @@ from starlette.responses import JSONResponse, StreamingResponse
 
 from .live_text import valid_id
 from .store import ident
+from .shutdown import Shutdown, join_owned
 
 
 class Reservation:
@@ -26,6 +27,7 @@ class Reservation:
         self.owner_task = None
         self.subscription = None
         self.retain = False
+        self.close_task = None
 
     def activate(self):
         if self.closed or self.registry.closed:
@@ -34,19 +36,28 @@ class Reservation:
         return True
 
     async def close(self):
-        if self.closed:
-            return
-        self.closed = True
-        self.registry.items.pop(self.id, None)
-        if self.subscription is not None:
-            await self.subscription.close(retain=self.retain and self.started)
-        elif self.kind == "events":
-            self.registry.cache.release(self.uid, self.id)
-        self.registry.released += 1
-        if self.response is not None:
-            # Release bookkeeping first, even if a broken transport stalls close.
-            with suppress(Exception):
-                await asyncio.wait_for(self.response.aclose(), timeout=1)
+        if self.close_task is None:
+            self.closed = True
+            self.registry.items.pop(self.id, None)
+            self.registry.released += 1
+            self.close_task = asyncio.create_task(self._finish_close())
+            self.registry.cleanup_tasks.add(self.close_task)
+            def finished(task):
+                self.registry.cleanup_tasks.discard(task)
+                if not task.cancelled():
+                    task.exception()
+            self.close_task.add_done_callback(finished)
+        await asyncio.shield(self.close_task)
+
+    async def _finish_close(self):
+        try:
+            if self.subscription is not None:
+                await self.subscription.close(retain=self.retain and self.started and not self.registry.closed)
+            elif self.kind == "events":
+                self.registry.cache.release(self.uid, self.id)
+        finally:
+            if self.response is not None:
+                await self.response.aclose()
 
 
 class StreamRegistry:
@@ -63,6 +74,9 @@ class StreamRegistry:
         self.items = {}
         self.closed = False
         self.reaper = None
+        self.cleanup_tasks = set()
+        self.shutdown_task = None
+        self.shutdown = None
         self.rejected = self.released = self.expired = 0
 
     def start(self):
@@ -101,22 +115,45 @@ class StreamRegistry:
         except asyncio.CancelledError:
             pass
 
-    async def close(self):
+    def stop_admission(self):
         self.closed = True
         if self.hubs is not None:
-            await self.hubs.close()
-        if self.reaper is not None:
-            self.reaper.cancel()
-            await asyncio.gather(self.reaper, return_exceptions=True)
-            self.reaper = None
+            self.hubs.stop()
+
+    async def close(self):
+        if self.shutdown_task is None:
+            self.stop_admission()
+            self.shutdown_task = asyncio.create_task(self._finish_close())
+        return await join_owned(self.shutdown_task)
+
+    async def _finish_close(self):
+        budget = self.hubs.config["hub_shutdown_seconds"] if self.hubs is not None else 5
+        self.shutdown = Shutdown(budget)
         items = tuple(self.items.values())
-        tasks = {item.owner_task for item in items
-                 if item.owner_task is not None and item.owner_task is not asyncio.current_task()}
-        for task in tasks:
+        reaper = self.reaper
+        if reaper is not None:
+            reaper.cancel()
+        owners = {item.owner_task for item in items if item.owner_task is not None}
+        for task in owners:
             task.cancel()
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
-        await asyncio.gather(*(item.close() for item in items), return_exceptions=True)
+        # Request all independent reservation closes before observing the Hub join.
+        reservations = [asyncio.create_task(item.close()) for item in items]
+        if self.hubs is not None:
+            await self.shutdown.stage("hubs", [asyncio.create_task(self.hubs.close())], budget * .5)
+        # Cancellation requested here is an expected stop, not a failed component.
+        async def stopped(tasks):
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            if any(isinstance(value, Exception) for value in results):
+                raise RuntimeError("stream_task_close_failed")
+        await self.shutdown.stage("reaper", [asyncio.create_task(stopped([reaper]))] if reaper else [], budget * .1)
+        if reaper is not None and reaper.done():
+            self.reaper = None
+        await self.shutdown.stage("stream_owners", [asyncio.create_task(stopped(owners))] if owners else [], budget * .2)
+        await self.shutdown.stage("reservations", [*reservations, *self.cleanup_tasks], budget * .2)
+        self.shutdown.report["hub_cleanup_pending"] = sum(
+            hub.cleanup_task is not None and not hub.cleanup_task.done()
+            for hub in self.hubs.hubs.values()) if self.hubs is not None else 0
+        return self.shutdown.finish()
 
     def stats(self):
         return {"viewers": sum(item.kind == "events" for item in self.items.values()),

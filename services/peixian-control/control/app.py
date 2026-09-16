@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import sys
 import sqlite3
 import time
 import zipfile
@@ -376,9 +377,43 @@ async def download_stream(request, user, path):
     return await download_response(request, user, path)
 
 
+async def shutdown_app(app):
+    from .shutdown import Shutdown, join_owned
+    from .streams import close_streams
+    if getattr(app.state, "shutdown_task", None) is None:
+        app.state.stream_registry.stop_admission()
+        app.state.safety.closing = True
+
+        async def finish():
+            budget = app.state.limits["hub_shutdown_seconds"]
+            shutdown = app.state.shutdown = Shutdown(budget * 4)
+            try:
+                await shutdown.stage("safety", [asyncio.create_task(app.state.safety.close())], budget)
+                await shutdown.stage("streams", [asyncio.create_task(close_streams(app))], budget)
+                # Producers have been stopped and observed before closing dependencies.
+                for name in ("http", "stream_http", "download_http"):
+                    await shutdown.stage(name, [asyncio.create_task(getattr(app.state, name).aclose())], budget / 3)
+                for name in ("crypto_work", "db_work"):
+                    await shutdown.stage(name, [asyncio.create_task(getattr(app.state, name).close())], budget / 2)
+                stream_shutdown = getattr(app.state.stream_registry, "shutdown", None)
+                if stream_shutdown is not None:
+                    shutdown.report["stream_cleanup"] = stream_shutdown.report
+                shutdown.report["worker_futures"] = sum(len(getattr(app.state, name).futures) for name in ("crypto_work", "db_work"))
+                if shutdown.report["worker_futures"]:
+                    shutdown.report["stages"].append({"resource": "worker_futures", "result": "incomplete",
+                        "pending": shutdown.report["worker_futures"], "errors": []})
+                return shutdown.finish()
+            finally:
+                logging.getLogger(__name__).info("shutdown_summary %s", json.dumps(shutdown.report))
+
+        app.state.shutdown_task = asyncio.create_task(finish())
+    return await join_owned(app.state.shutdown_task)
+
+
 def create_app(store=None):
     @asynccontextmanager
     async def lifespan(app):
+        app.state.shutdown_task = None
         from shared.orchestration_config import from_environment
         from .runtime_security import SafetyCoordinator
         app.state.orchestration_settings = from_environment()
@@ -398,7 +433,7 @@ def create_app(store=None):
         app.state.login_limiter = LoginLimiter(config)
         app.state.login_attempts = app.state.login_limiter.attempts
         from .live_text import LiveTextCache
-        from .streams import initialize_streams, close_streams
+        from .streams import initialize_streams
         app.state.live_text = LiveTextCache(max_owners=config["sse_owners"], owner_ttl_seconds=config["sse_owner_ttl_seconds"],
             max_total_bytes=32 * 1024 * 1024, max_parts=1024, max_messages=1024)
         await initialize_streams(app)
@@ -407,13 +442,13 @@ def create_app(store=None):
         try:
             yield
         finally:
-            await app.state.safety.close()
-            await close_streams(app)
-            await app.state.http.aclose()
-            await app.state.stream_http.aclose()
-            await app.state.download_http.aclose()
-            await app.state.crypto_work.close()
-            await app.state.db_work.close()
+            original = sys.exc_info()[1]
+            try:
+                await shutdown_app(app)
+            except BaseException:
+                if original is None:
+                    raise
+                original.add_note("shutdown_incomplete; inspect the sanitized shutdown summary")
 
     app = FastAPI(title="Agent 工作台", version="1.3.0", lifespan=lifespan, docs_url=None, redoc_url=None)
 

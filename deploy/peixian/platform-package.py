@@ -43,6 +43,7 @@ ALLOWED_FILES = (
     "deploy/peixian/reports/r3-revocation-check-02.json", "deploy/peixian/reports/r3-restart-check-01.json",
     "deploy/peixian/reports/r3-local-smoke-01.json",
     "deploy/peixian/R4_DOCUMENT_REVIEW.md", "deploy/peixian/reports/r4-local-check.json",
+    "deploy/peixian/EVENTHUB_HF1_REVIEW.md", "deploy/peixian/N1_N2_LOCAL_REVIEW.md",
     "services/peixian-control/docs/schema_v4_protocol.md",
     "services/peixian-control/gateway/README.md",
     "services/peixian-control/examples/console_client.py",

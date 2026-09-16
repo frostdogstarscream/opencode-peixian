@@ -42,6 +42,7 @@ ALLOWED_FILES = (
     "deploy/peixian/reports/r3-local-check-01.json", "deploy/peixian/reports/r3-local-check-02.json",
     "deploy/peixian/reports/r3-revocation-check-02.json", "deploy/peixian/reports/r3-restart-check-01.json",
     "deploy/peixian/reports/r3-local-smoke-01.json",
+    "deploy/peixian/R4_DOCUMENT_REVIEW.md", "deploy/peixian/reports/r4-local-check.json",
     "services/peixian-control/docs/schema_v4_protocol.md",
     "services/peixian-control/gateway/README.md",
     "services/peixian-control/examples/console_client.py",
@@ -173,6 +174,9 @@ def assemble(destination, wheels, commit, *, export_images=False, config_path=No
     archive = destination / "images.tar"
     if source_only and archive.exists():
         raise PackageError("source_only_package_must_not_include_old_images")
+    source_archive = destination / "source.tar.gz"
+    if source_archive.exists():
+        raise PackageError("source_archive_already_exists_use_new_destination")
     if export_images and not source_only:
         if archive.exists():
             raise PackageError("existing_images_archive_preserved_use_assemble")
@@ -199,12 +203,9 @@ def assemble(destination, wheels, commit, *, export_images=False, config_path=No
                 settings.image_supports_orchestration(images[tag]["labels"], name, config_version)
         except settings.ConfigError as error:
             raise PackageError(str(error)) from None
-    else:
-        source_archive = destination / "source.tar.gz"
-        if source_archive.exists():
-            raise PackageError("source_archive_already_exists_use_new_destination")
-        # Archive only the chosen Git commit; never sweep workspace credentials.
-        command("git", "archive", "--format=tar.gz", "--output=" + str(source_archive), full_commit)
+    # Both complete and source-only bundles include committed source. Never
+    # sweep the working tree or overwrite an earlier source archive.
+    command("git", "archive", "--format=tar.gz", "--output=" + str(source_archive), full_commit)
     for tag, item in images.items():
         try:
             local = json.loads(command("docker", "image", "inspect", tag))[0]

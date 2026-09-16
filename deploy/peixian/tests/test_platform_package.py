@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import shutil
+import subprocess
 from unittest.mock import patch
 from pathlib import Path
 import tarfile
@@ -102,12 +103,16 @@ class PackageTests(unittest.TestCase):
                 return ""
             if args[:3]==("docker","image","inspect"):
                 return json.dumps([{"Id":"synthetic"}])
+            if args[:2]==("git","archive"):
+                Path(args[3].removeprefix("--output=")).write_bytes(b"synthetic committed archive")
+                return ""
             self.fail("unexpected side effect")
         with patch.object(package,"ROOT",source),patch.object(package,"DEPLOY",deploy), \
                 patch.object(package,"ALLOWED_FILES",("LICENSE",)),patch.object(package,"OPTIONAL_FILES",()), \
                 patch.object(package,"command",side_effect=command):
             result=package.assemble(destination,wheels,"HEAD",config_path=cfg)
             self.assertEqual(result["images"],4)
+            self.assertEqual((destination/"source.tar.gz").read_bytes(), b"synthetic committed archive")
             report=json.loads((destination/"release-manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(report["platform_config_version"],2)
             self.assertEqual(report["requested_images"],profile["images"])
@@ -122,6 +127,35 @@ class PackageTests(unittest.TestCase):
         self.assertIn("deploy/peixian/plugin-client.mjs", package.ALLOWED_FILES)
         self.assertIn("deploy/peixian/platform.ps1", package.ALLOWED_FILES)
         self.assertIn("source.tar.gz", package.ARTIFACTS)
+
+    def test_full_bundle_exports_real_commit_and_preserves_existing_archive(self):
+        profile = json.loads((ROOT / "server/platform.50-io.example.json").read_text(encoding="utf-8"))
+        source, deploy, wheels, destination, cfg = self.package_tree(list(profile["images"].values()))
+        def git(*args):
+            return subprocess.run(["git", *args], cwd=source, capture_output=True, check=True, text=True).stdout.strip()
+        git("init", "--quiet")
+        git("add", "LICENSE")
+        git("-c", "user.name=Synthetic Test", "-c", "user.email=synthetic@example.invalid",
+            "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "test: synthetic source")
+        sha = git("rev-parse", "HEAD")
+        original = package.command
+        def command(*args):
+            if args[:3] == ("docker", "image", "inspect"):
+                return json.dumps([{"Id": "synthetic"}])
+            return original(*args)
+        with patch.object(package, "ROOT", source), patch.object(package, "DEPLOY", deploy), \
+                patch.object(package, "ALLOWED_FILES", ("LICENSE",)), patch.object(package, "OPTIONAL_FILES", ()), \
+                patch.object(package, "command", side_effect=command):
+            self.assertTrue(package.assemble(destination, wheels, sha, config_path=cfg)["source_matches_commit"])
+            archive = destination / "source.tar.gz"
+            before = archive.read_bytes()
+            with tarfile.open(archive) as contents:
+                self.assertEqual(contents.pax_headers["comment"], sha)
+                self.assertEqual(contents.extractfile("LICENSE").read(), b"synthetic")
+                self.assertEqual([x.name for x in contents], ["LICENSE"])
+            with self.assertRaisesRegex(package.PackageError, "source_archive_already_exists"):
+                package.assemble(destination, wheels, sha, config_path=cfg)
+            self.assertEqual(archive.read_bytes(), before)
 
 
 if __name__ == "__main__":

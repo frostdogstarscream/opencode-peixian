@@ -87,7 +87,23 @@ class Worker:
         allow_state_conflict = kwargs.pop("allow_state_conflict", False)
         kwargs["headers"] = {**kwargs.pop("headers", {}), "X-Peixian-Protocol": "2"}
         kwargs.setdefault("timeout", self.config["worker_heartbeat_timeout_seconds"])
-        response = self.api.request(method, path, **kwargs)
+        started = self.clock()
+        transport = {"new_connection": False}
+        def trace(name, info):
+            if name == "connection.connect_tcp.started":
+                transport["new_connection"] = True
+        kwargs["extensions"] = {"trace": trace}
+        try:
+            response = self.api.request(method, path, **kwargs)
+        except httpx.HTTPError as error:
+            category = path.rsplit("/", 1)[-1]
+            if category not in {"claim", "heartbeat", "phase", "complete", "boot", "reconcile", "observations"}:
+                category = "query"
+            print(json.dumps({"state": "control_transport_failure", "operation": category,
+                "method": method, "code": type(error).__name__,
+                "new_connection": transport["new_connection"],
+                "elapsed_ms": round((self.clock() - started) * 1000)}), flush=True)
+            raise
         if response.status_code == 409:
             if allow_state_conflict:
                 return response
@@ -318,6 +334,16 @@ class Worker:
         return True
 
 
+def control_client(url, key):
+    # Low-rate host management crosses Docker Desktop's published port. A peer
+    # can close an idle socket while the pool still considers it reusable.
+    # Fresh sockets avoid that ambiguous POST outcome; no transport retries.
+    return httpx.Client(base_url=url.rstrip("/"), headers={"X-Worker-Key": key},
+        timeout=httpx.Timeout(connect=10, read=60, write=30, pool=10),
+        limits=httpx.Limits(max_connections=4, max_keepalive_connections=0),
+        trust_env=False, follow_redirects=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, help="Use the same platform configuration as the server")
@@ -361,10 +387,7 @@ def main():
     manager = runtime.RuntimeManager(args.state_root, control_container=args.control_container,
                                      agent_image=args.agent_image, gateway_image=args.gateway_image,
                                      maximum=args.max_runtimes, **manager_options)
-    with host_lock(manager.root), httpx.Client(
-        base_url=args.control_url.rstrip("/"), headers={"X-Worker-Key": key},
-        timeout=httpx.Timeout(connect=10, read=60, write=30, pool=10), trust_env=False, follow_redirects=False,
-    ) as client:
+    with host_lock(manager.root), control_client(args.control_url, key) as client:
         worker = Worker(client, manager, orchestration=manager_options.get("orchestration"))
         while True:
             try:

@@ -93,7 +93,7 @@ async def run(args):
             record("file_parse_and_account_isolation")
             initial = await usable(clients[0])
             marker = "r2-" + uuid.uuid4().hex
-            response = await fixture.post("/internal/fixture/modes/" + marker, json={"seconds": 45})
+            response = await fixture.post("/internal/fixture/modes/" + marker, json={"seconds": 120})
             response.raise_for_status()
             before = (await fixture.get("/internal/fixture/stats")).json()["accepted"]
             sid = (await clients[0].create_session("Local update during answer"))["id"]
@@ -104,7 +104,20 @@ async def run(args):
             skill = await clients[0].request("POST", "/skills", json={"name": "local-r2-" + uuid.uuid4().hex[:8],
                 "description": "Synthetic local smoke", "content": "Summarize synthetic input only.", "enabled": False})
             check(skill.get("job"), "skill_publish_job")
-            await asyncio.sleep(7)
+            # Pending desired alone does not prove the Worker observed busy.
+            # Wait for the persisted defer receipt before releasing the fixture.
+            try:
+                async with asyncio.timeout(50):
+                    while True:
+                        jobs = (await admin.request("GET", "/admin/jobs"))["items"]
+                        job = next((item for item in jobs if item["id"] == skill["job"]["id"]), None)
+                        check(job is not None and job["status"] not in ("failed", "cancelled", "succeeded"), "busy_job_finished_before_defer")
+                        if job["defer_count"] > 0:
+                            break
+                        await asyncio.sleep(.5)
+            except BaseException:
+                await fixture.post("/internal/fixture/modes/" + marker, json={"release": True})
+                raise
             pending = (await clients[0].me())["runtime"]
             check(pending["revision"] == initial["revision"] and pending["desired"] == initial["desired"] + 1, "applied_changed_while_busy")
             check((await clients[1].me())["runtime"]["status"] == "ready", "other_account_unavailable")
@@ -112,7 +125,7 @@ async def run(args):
             await done(clients[0], sid)
             published = await usable(clients[0])
             check(published["revision"] == initial["desired"] + 1, "configuration_version_incorrect")
-            record("busy_update_defers_then_verifies_applied_without_extra_desired")
+            record("busy_update_defers_then_verifies_applied_without_extra_desired", persisted_defer_count=job["defer_count"])
             check("local synthetic content" in (await clients[0].text(upload["id"]))["text"], "update_lost_file")
             check(len(await clients[0].messages(ids[0])) >= 2, "update_lost_history")
             record("configuration_rebuild_preserves_history_and_files")

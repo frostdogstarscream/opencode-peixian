@@ -1,0 +1,41 @@
+{
+  "status": "passed",
+  "scope": "local_preliminary",
+  "real_runtimes": 2,
+  "concurrency_tested": false,
+  "paid_model_used": false,
+  "checks": [
+    {
+      "name": "two_real_environments_open_after_verified_provision",
+      "passed": true
+    },
+    {
+      "name": "three_role_boundary",
+      "passed": true
+    },
+    {
+      "name": "native_agent_synthetic_answer",
+      "passed": true,
+      "account": "A"
+    },
+    {
+      "name": "native_agent_synthetic_answer",
+      "passed": true,
+      "account": "B"
+    },
+    {
+      "name": "file_parse_and_account_isolation",
+      "passed": true
+    },
+    {
+      "name": "busy_update_defers_then_verifies_applied_without_extra_desired",
+      "passed": true,
+      "persisted_defer_count": 1
+    },
+    {
+      "name": "configuration_rebuild_preserves_history_and_files",
+      "passed": true
+    }
+  ],
+  "elapsed_seconds": 51.063
+}

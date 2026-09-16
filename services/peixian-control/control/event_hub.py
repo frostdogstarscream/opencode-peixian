@@ -135,6 +135,8 @@ class AccountHub:
                     while not self.closed:
                         done, _ = await asyncio.wait((pending,), timeout=min(.25, self.manager.config["auth_recheck_seconds"]))
                         current = time.monotonic()
+                        if self.manager.cache.take_resync(self.uid, self.id):
+                            self.publish(RESYNC)
                         if current - checked >= self.manager.config["auth_recheck_seconds"]:
                             fresh = await self.manager.binding(self.uid)
                             if fresh["identity"] != self.identity:
@@ -151,8 +153,11 @@ class AccountHub:
                                 if absent >= self.manager.config["hub_idle_seconds"] and not await self.manager.active(binding):
                                     return
                         if current - renewed >= self.manager.config["sse_renew_seconds"]:
-                            if self.manager.cache.acquire_result(self.uid, self.id) not in ("acquired", "renewed"):
+                            ownership = self.manager.cache.acquire_result(self.uid, self.id)
+                            if ownership not in ("acquired", "renewed"):
                                 return
+                            if ownership == "acquired":
+                                self.publish(RESYNC)
                             renewed = current
                         if not done:
                             continue

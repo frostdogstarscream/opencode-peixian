@@ -1,4 +1,5 @@
 import asyncio
+import json
 from contextlib import asynccontextmanager
 
 import httpx
@@ -9,6 +10,7 @@ from control.concurrency import DEFAULTS
 from control.event_hub import AccountEventHubs, RESYNC
 from control.live_text import LiveTextCache
 from control.streams import StreamRegistry
+from test_live_text import seed, delta_event
 
 
 @asynccontextmanager
@@ -145,4 +147,21 @@ def test_boot_change_replaces_reader_and_requests_history_resync():
             assert opened[0].closed
             assert sub.hub.identity == ("a", 2)
             assert await sub.queue.get() == RESYNC
+    asyncio.run(run())
+
+
+def test_cache_eviction_resync_reaches_only_the_affected_account_without_next_event():
+    async def run():
+        async with fixture() as (hubs, registry, subscribe, opened, identity):
+            item, sub = await subscribe("a")
+            _, other = await subscribe("b")
+            hubs.cache.max_part_bytes = 4
+            seed(hubs.cache, "a", sub.hub.id)
+            envelope = delta_event(3, "large private synthetic text")
+            await opened[0].queue.put(("data: " + json.dumps(envelope) + "\n\n").encode())
+            async with asyncio.timeout(1):
+                while await sub.queue.get() != RESYNC:
+                    pass
+            assert other.queue.empty()
+            assert hubs.cache.stats()["resync_pending"] == 0
     asyncio.run(run())

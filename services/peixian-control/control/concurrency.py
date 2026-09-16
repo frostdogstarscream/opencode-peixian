@@ -101,6 +101,12 @@ class WorkPool:
             await asyncio.wait(tuple(self.futures), timeout=5)
         self.executor.shutdown(wait=False, cancel_futures=False)
 
+    def stats(self):
+        """Read on the owning event loop; no task arguments or identities."""
+        return {"outstanding": self.outstanding, "running": len(self.futures),
+                "queued": self.outstanding - len(self.futures), "capacity": self.capacity,
+                "rejected": self.rejected, "closed": self.closed}
+
 
 def blocking_endpoint(app, *, json_body=False, upload=False, hash_password=False):
     """Read ASGI input on its loop, then execute the entire synchronous business block."""

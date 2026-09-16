@@ -28,6 +28,8 @@ def test_cancelled_running_work_retains_capacity_until_thread_finishes():
             await pool.run(lambda: 3)
         assert error.value.status_code == 503
         assert error.value.headers["Retry-After"] == "1"
+        assert pool.stats() == {"outstanding": 2, "running": 1, "queued": 1,
+                                "capacity": 2, "rejected": 1, "closed": False}
         with pytest.raises(HTTPException):
             await queued
         assert pool.outstanding == 1
@@ -37,6 +39,7 @@ def test_cancelled_running_work_retains_capacity_until_thread_finishes():
                 break
             await asyncio.sleep(.01)
         assert pool.outstanding == 0
+        assert pool.stats()["queued"] == pool.stats()["running"] == 0
         assert await pool.run(lambda: 4) == 4
         await pool.close()
     asyncio.run(run())

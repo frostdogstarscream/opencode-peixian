@@ -318,7 +318,7 @@ CONTRACTS = {
     ("post", "/admin/users/{uid}/reset-password"): ("PasswordResetBody", ref("PasswordReset"), "重设账号初始密码", "管理：账号", ""),
     ("post", "/admin/users/{uid}/runtime/{action}"): (None, ref("Queued"), "排队执行环境操作", "管理：账号", "pause 保留数据并停止环境；resume 恢复；retry 重试开通；apply 应用当前授权配置。"),
     ("get", "/admin/jobs"): (None, items(ref("Job")), "查看最近环境任务", "管理：审计", "最多最近 200 项。"),
-    ("get", "/admin/diagnostics/events"): (None, {"type": "object", "additionalProperties": True}, "事件连接诊断", "管理：环境", "仅超级管理员。返回 Hub、订阅和关闭原因的聚合计数，不包含账号或正文。"),
+    ("get", "/admin/diagnostics/events"): (None, {"type": "object", "additionalProperties": True}, "事件连接诊断", "管理：环境", "仅超级管理员。返回 Hub、订阅、缓存淘汰、数据库及密码工作池排队/拒绝的聚合计数，不包含账号、任务参数或正文。所有计数随进程重启清零，不代表容量验收结果。"),
     ("get", "/admin/audit"): (None, items(ref("Audit")), "查看最近管理审计", "管理：审计", "最多最近 500 项。actor 为账号 ID 精确筛选，action 为管理动作精确筛选，result 为 success/denied/failed。仅管理操作元数据；不包含业务调用、迁移负载、密钥、正文或文件路径。"),
     ("get", "/admin/models"): (None, items(ref("AdminModel")), "列出模型配置", "管理：模型", "返回 api_key_configured，不返回密钥值。"),
     ("post", "/admin/models"): ("ModelCreateBody", ref("AdminModel"), "新增可授权模型", "管理：模型", ""),

@@ -46,11 +46,29 @@ class LiveTextCache:
         self.parts, self.messages, self.seen, self.owners = (OrderedDict() for _ in range(4))
         self.account_bytes = {}
         self.total_bytes = 0
+        self.resync_pending = set()
+        self.evictions = dict.fromkeys(("part_bytes", "part_capacity", "total_bytes", "account_bytes",
+                                      "part_ttl", "message_ttl", "message_capacity", "owner_ttl"), 0)
         self.lock = RLock()
 
-    def _drop_part(self, key):
+    def _invalidate(self, uid, reason):
+        self.evictions[reason] += 1
+        if uid in self.owners:
+            self.resync_pending.add(uid)
+
+    def take_resync(self, uid, stream_id):
+        """One bounded flag per active owner; never exposes another account."""
+        with self.lock:
+            if self.owners.get(uid, (None,))[0] != stream_id or uid not in self.resync_pending:
+                return False
+            self.resync_pending.remove(uid)
+            return True
+
+    def _drop_part(self, key, reason=None):
         previous = self.parts.pop(key, None)
         if previous is not None:
+            if reason:
+                self._invalidate(key[0], reason)
             self.total_bytes -= previous.size
             remaining = self.account_bytes.get(key[0], 0) - previous.size
             if remaining:
@@ -58,13 +76,16 @@ class LiveTextCache:
             else:
                 self.account_bytes.pop(key[0], None)
 
-    def _drop_message(self, key):
-        self.messages.pop(key, None)
+    def _drop_message(self, key, reason=None):
+        previous = self.messages.pop(key, None)
+        if previous is not None and reason:
+            self._invalidate(key[0], reason)
         for part_key in list(self.parts):
             if part_key[:3] == key:
                 self._drop_part(part_key)
 
     def _clear_account(self, uid):
+        self.resync_pending.discard(uid)
         for key in list(self.parts):
             if key[0] == uid:
                 self._drop_part(key)
@@ -76,14 +97,15 @@ class LiveTextCache:
     def _purge(self, now):
         for uid, (_, touched) in list(self.owners.items()):
             if now - touched >= self.owner_ttl:
+                self.evictions["owner_ttl"] += 1
                 self.owners.pop(uid, None)
                 self._clear_account(uid)
         for key, part in list(self.parts.items()):
             if now - part.touched >= self.ttl:
-                self._drop_part(key)
+                self._drop_part(key, "part_ttl")
         for key, (_, touched) in list(self.messages.items()):
             if now - touched >= self.ttl:
-                self._drop_message(key)
+                self._drop_message(key, "message_ttl")
         while self.seen:
             key, touched = next(iter(self.seen.items()))
             if now - touched < self.ttl:
@@ -132,20 +154,23 @@ class LiveTextCache:
     def _put(self, key, text, now):
         if len(text) > self.max_part_bytes:
             self._drop_part(key)
+            self._invalidate(key[0], "part_bytes")
             return False
         size = len(text.encode("utf-8"))
         if size > min(self.max_part_bytes, self.max_account_bytes, self.max_total_bytes):
             self._drop_part(key)
+            self._invalidate(key[0], "part_bytes" if size > self.max_part_bytes else
+                             "account_bytes" if size > self.max_account_bytes else "total_bytes")
             return False
         self._drop_part(key)
         while self.parts and (len(self.parts) >= self.max_parts
                               or self.total_bytes + size > self.max_total_bytes):
-            self._drop_part(next(iter(self.parts)))
+            self._drop_part(next(iter(self.parts)), "part_capacity" if len(self.parts) >= self.max_parts else "total_bytes")
         while self.account_bytes.get(key[0], 0) + size > self.max_account_bytes:
             victim = next((item for item in self.parts if item[0] == key[0]), None)
             if victim is None:
                 return False
-            self._drop_part(victim)
+            self._drop_part(victim, "account_bytes")
         self.parts[key] = Part(text, size, now)
         self.total_bytes += size
         self.account_bytes[key[0]] = self.account_bytes.get(key[0], 0) + size
@@ -186,7 +211,7 @@ class LiveTextCache:
                 self.messages[key] = (allowed, now)
                 self.messages.move_to_end(key)
                 while len(self.messages) > self.max_messages:
-                    self._drop_message(next(iter(self.messages)))
+                    self._drop_message(next(iter(self.messages)), "message_capacity")
                 return allowed
             if kind == "message.part.updated":
                 part = props.get("part")
@@ -215,10 +240,10 @@ class LiveTextCache:
             if not delta:
                 return False
             if len(delta) > self.max_part_bytes:
-                self._drop_part(key)
+                self._drop_part(key, "part_bytes")
                 return False
             if part.size + len(delta.encode("utf-8")) > self.max_part_bytes:
-                self._drop_part(key)
+                self._drop_part(key, "part_bytes")
                 return False
             self.messages[key[:3]] = (True, now)
             self.messages.move_to_end(key[:3])
@@ -280,4 +305,5 @@ class LiveTextCache:
             self._purge(self.clock())
             return {"parts": len(self.parts), "messages": len(self.messages), "seen_events": len(self.seen),
                     "owners": len(self.owners), "text_bytes": self.total_bytes,
-                    "maximum_account_bytes": max(self.account_bytes.values(), default=0)}
+                    "maximum_account_bytes": max(self.account_bytes.values(), default=0),
+                    "resync_pending": len(self.resync_pending), "evictions": dict(self.evictions)}

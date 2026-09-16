@@ -4,6 +4,10 @@ import { Button, ErrorLine, Modal } from "../components"
 
 type State = { mode: "normal" | "frozen" | "repair_only"; state_version: number; recovery_required: number; security_pending: number; capacity_healthy: boolean }
 const labels = { normal: "正常服务", frozen: "维护中", repair_only: "仅恢复处理" }
+type Resources = {
+  cache?: { text_bytes: number; evictions: Record<string, number> }
+  work?: { database: { queued: number; rejected: number }; password: { queued: number; rejected: number } }
+}
 
 export default function RuntimeMaintenance() {
   const [state, setState] = createSignal<State>()
@@ -11,6 +15,7 @@ export default function RuntimeMaintenance() {
   const [error, setError] = createSignal("")
   const [choice, setChoice] = createSignal<State["mode"]>()
   const [events, setEvents] = createSignal<{ hubs: number; upstreams: number; subscribers: number; reconnects: number; overflows: number }>()
+  const [resources, setResources] = createSignal<Resources>()
   let refreshing = false
   let disposed = false
   const controller = new AbortController()
@@ -20,9 +25,9 @@ export default function RuntimeMaintenance() {
     try {
       const [result, diagnostics] = await Promise.all([
         api<State>("/admin/maintenance", { signal: controller.signal }),
-        api<{ hub: NonNullable<ReturnType<typeof events>> }>("/admin/diagnostics/events", { signal: controller.signal }),
+        api<Resources & { hub: NonNullable<ReturnType<typeof events>> }>("/admin/diagnostics/events", { signal: controller.signal }),
       ])
-      if (!disposed) { setState(result); setEvents(diagnostics.hub) }
+      if (!disposed) { setState(result); setEvents(diagnostics.hub); setResources(diagnostics); setError("") }
     } catch (failure) {
       if (!disposed) setError((failure as Error).message)
     } finally { refreshing = false }
@@ -50,6 +55,13 @@ export default function RuntimeMaintenance() {
       <strong>平台状态：{state() ? labels[state()!.mode] : "正在读取"}</strong>
       <Show when={state()}><p>待恢复空间 {state()!.recovery_required} 个，停止待确认 {state()!.security_pending} 个。</p></Show>
       <Show when={events()}><p>实时通知：{events()!.hubs} 个账号、{events()!.subscribers} 个页面，共 {events()!.upstreams} 条上游连接。累计重连 {events()!.reconnects} 次，慢页面重新同步 {events()!.overflows} 次。</p></Show>
+      <Show when={resources()?.cache && resources()?.work}>
+        <details><summary>后台资源诊断</summary>
+          <p>临时正文缓存：{Math.ceil(resources()!.cache!.text_bytes / 1024)} KiB，累计清理 {Object.values(resources()!.cache!.evictions).reduce((sum, value) => sum + value, 0)} 次。清理后通过历史重新同步。</p>
+          <p>数据操作排队 {resources()!.work!.database.queued}，密码校验排队 {resources()!.work!.password.queued}；累计繁忙拒绝 {resources()!.work!.database.rejected + resources()!.work!.password.rejected} 次。</p>
+          <p>计数在服务重启后清零，仅用于排查，不代表并发容量已通过验收。</p>
+        </details>
+      </Show>
       <ErrorLine message={error()} />
     </div>
     <Button variant="ghost" disabled={busy() || !state()} onClick={() => setChoice(state()?.mode === "normal" ? "frozen" : "normal")}>

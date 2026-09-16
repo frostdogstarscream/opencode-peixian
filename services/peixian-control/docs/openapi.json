@@ -4404,7 +4404,7 @@
     },
     "/api/console/v1/admin/diagnostics/events": {
       "get": {
-        "description": "仅超级管理员。返回 Hub、订阅和关闭原因的聚合计数，不包含账号或正文。",
+        "description": "仅超级管理员。返回 Hub、订阅、缓存淘汰、数据库及密码工作池排队/拒绝的聚合计数，不包含账号、任务参数或正文。所有计数随进程重启清零，不代表容量验收结果。",
         "operationId": "event_diagnostics_api_console_v1_admin_diagnostics_events_get",
         "responses": {
           "200": {

@@ -1,4 +1,5 @@
 from copy import deepcopy
+import json
 
 import pytest
 
@@ -66,6 +67,45 @@ def test_order_dedup_and_authoritative_part_update():
     original = native()
     assert cache.overlay("account", "session", original)[0]["parts"][0]["text"] == "canonical tail"
     assert original[0]["parts"][0]["text"] == ""
+
+
+def test_eviction_requests_only_affected_owner_to_resync():
+    cache = LiveTextCache(max_part_bytes=4)
+    seed(cache, "account-a", "stream-a")
+    seed(cache, "account-b", "stream-b")
+    assert not cache.observe("account-a", delta_event(3, "oversized private content"), "stream-a")
+    assert not cache.take_resync("account-a", "stream-b")
+    assert not cache.take_resync("account-b", "stream-b")
+    assert cache.take_resync("account-a", "stream-a")
+    assert not cache.take_resync("account-a", "stream-a")
+    assert cache.stats()["evictions"]["part_bytes"] == 1
+    assert "account-a" not in json.dumps(cache.stats()) and "private content" not in json.dumps(cache.stats())
+    assert cache.overlay("account-a", "session", native(text="authoritative complete text"))[0]["parts"][0]["text"] == "authoritative complete text"
+
+
+def test_cross_account_capacity_eviction_and_expiry_are_bounded():
+    clock = Clock()
+    cache = LiveTextCache(max_parts=1, ttl_seconds=2, owner_ttl_seconds=5, clock=clock)
+    seed(cache, "account-a")
+    seed(cache, "account-b")
+    assert cache.take_resync("account-a", "owner")
+    assert not cache.take_resync("account-b", "owner")
+    clock.now = 3
+    stats = cache.stats()
+    assert stats["evictions"]["part_capacity"] == 1
+    assert stats["evictions"]["part_ttl"] == 1
+    assert cache.take_resync("account-b", "owner")
+    clock.now = 6
+    assert cache.stats()["owners"] == cache.stats()["resync_pending"] == 0
+    assert cache.stats()["evictions"]["owner_ttl"] == 2
+
+
+def test_released_owner_does_not_leave_pending_resync():
+    cache = LiveTextCache(max_part_bytes=1)
+    seed(cache)
+    cache.observe("account", delta_event(3, "large"), "owner")
+    cache.release("account", "owner")
+    assert cache.stats()["resync_pending"] == 0
 
 
 def test_account_session_message_and_part_boundaries():

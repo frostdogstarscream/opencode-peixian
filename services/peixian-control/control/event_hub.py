@@ -49,9 +49,10 @@ class Subscriber:
         self.pending.clear()
         self.queue.put_nowait(None)
         if not self.hub.subscribers:
-            self.hub.absent_since = time.monotonic()
             retain = retain and self.hub.manager.config["hub_retention_seconds"] > 0
             self.hub.retainer = self.authorize if retain else None
+            if retain and not self.hub.closed:
+                self.hub.start_retention()
             if not retain:
                 await self.hub.close("last_subscription_closed")
 
@@ -81,30 +82,107 @@ class AccountHub:
         self.absent_since = None
         self.retainer = None
         self.identity = None
+        self.retention_generation = 0
+        self.deadline_handle = None
+        self.cleanup_task = None
+
+    def invalidate_retention(self):
+        self.retention_generation += 1
+        self.absent_since = None
+        self.retainer = None
+        if self.deadline_handle is not None:
+            self.deadline_handle.cancel()
+            self.deadline_handle = None
+
+    def start_retention(self):
+        self.retention_generation += 1
+        generation = self.retention_generation
+        self.absent_since = time.monotonic()
+        if self.deadline_handle is not None:
+            self.deadline_handle.cancel()
+        def expire():
+            if self.retention_current(generation):
+                self.begin_close("retention_expired")
+        self.deadline_handle = asyncio.get_running_loop().call_later(
+            self.manager.config["hub_retention_seconds"], expire)
+
+    def retention_current(self, generation):
+        return (not self.closed and not self.subscribers and self.absent_since is not None
+                and generation == self.retention_generation)
+
+    async def check_retention(self, binding):
+        generation = self.retention_generation
+        if not self.retention_current(generation):
+            return False
+        try:
+            if self.retainer is None:
+                return True
+            await asyncio.wait_for(self.retainer(), 2)
+        except (HTTPException, TimeoutError):
+            return self.retention_current(generation)
+        if not self.retention_current(generation):
+            return False
+        if time.monotonic() - self.absent_since < self.manager.config["hub_idle_seconds"]:
+            return False
+        try:
+            active = await self.manager.active(binding)
+        except Exception:
+            active = True  # Unknown may retain only until the independent deadline.
+        return self.retention_current(generation) and not active
 
     def publish(self, notice):
         for subscriber in tuple(self.subscribers.values()):
             subscriber.put(notice)
 
-    async def close(self, reason):
+    def begin_close(self, reason):
         if self.closed:
             return
         self.closed = True
+        self.invalidate_retention()
         if not self.ready.done():
             self.ready.set_result(False)
         if self.task is not None and self.task is not asyncio.current_task():
             self.task.cancel()
+        self.cleanup_task = asyncio.create_task(self.finish_close(reason))
+
+    async def close(self, reason):
+        self.begin_close(reason)
+        if asyncio.current_task() is self.task:
+            return  # Cleanup joins the reader, never the other way round.
+        await asyncio.shield(self.cleanup_task)
+
+    async def finish_close(self, reason):
+        # Keep the account registered until the reader has actually terminated.
+        if self.task is not None:
             await asyncio.gather(self.task, return_exceptions=True)
         for subscriber in tuple(self.subscribers.values()):
-            await subscriber.close()
+            subscriber.closed = True
+            while not subscriber.queue.empty():
+                subscriber.queue.get_nowait()
+            subscriber.pending.clear()
+            subscriber.queue.put_nowait(None)
             runner = subscriber.reservation.runner
             if runner is not None and runner is not asyncio.current_task():
                 runner.cancel()
-        self.manager.cache.release(self.uid, self.id)
+        self.subscribers.clear()
         if self.manager.hubs.get(self.uid) is self:
             self.manager.hubs.pop(self.uid)
         self.manager.closed_count += 1
         self.manager.reasons[reason] = self.manager.reasons.get(reason, 0) + 1
+
+    async def cleanup_stream(self, pending, iterator):
+        try:
+            if pending is not None:
+                pending.cancel()
+                await asyncio.gather(pending, return_exceptions=True)
+            if iterator is not None:
+                await iterator.aclose()
+        finally:
+            if self.response is not None:
+                with suppress(Exception):
+                    await asyncio.wait_for(self.response.aclose(), 1)
+                self.response = None
+            self.manager.cache.release(self.uid, self.id)
 
     async def run(self):
         from .streams import _events, change_notice, _open_response
@@ -112,6 +190,8 @@ class AccountHub:
         try:
             while not self.closed:
                 binding = await self.manager.binding(self.uid)
+                if self.closed:
+                    return
                 if self.manager.cache.acquire_result(self.uid, self.id) not in ("acquired", "renewed"):
                     break
                 pending = None
@@ -120,6 +200,8 @@ class AccountHub:
                     request = self.manager.client.build_request("GET", binding["base"] + "/global/event",
                         headers=binding["headers"], timeout=httpx.Timeout(None, connect=4, write=4, pool=1))
                     self.response = await asyncio.wait_for(_open_response(self.manager.client, request, self), 4)
+                    if self.closed:
+                        return
                     if self.response.status_code != 200:
                         raise httpx.RemoteProtocolError("Event upstream unavailable")
                     self.identity = binding["identity"]
@@ -134,6 +216,8 @@ class AccountHub:
                     opened = checked
                     while not self.closed:
                         done, _ = await asyncio.wait((pending,), timeout=min(.25, self.manager.config["auth_recheck_seconds"]))
+                        if self.closed:
+                            return
                         current = time.monotonic()
                         if self.manager.cache.take_resync(self.uid, self.id):
                             self.publish(RESYNC)
@@ -143,15 +227,10 @@ class AccountHub:
                                 self.publish(RESYNC)
                                 break
                             checked = current
-                            if not self.subscribers:
-                                if self.retainer is None:
-                                    return
-                                await asyncio.wait_for(self.retainer(), 2)
-                                absent = current - self.absent_since
-                                if absent >= self.manager.config["hub_retention_seconds"]:
-                                    return
-                                if absent >= self.manager.config["hub_idle_seconds"] and not await self.manager.active(binding):
-                                    return
+                            if await self.check_retention(binding):
+                                return
+                        if self.closed:
+                            return
                         if current - renewed >= self.manager.config["sse_renew_seconds"]:
                             ownership = self.manager.cache.acquire_result(self.uid, self.id)
                             if ownership not in ("acquired", "renewed"):
@@ -177,17 +256,15 @@ class AccountHub:
                         self.ready.set_result(False)
                         return
                 finally:
-                    if pending is not None:
-                        pending.cancel()
-                        await asyncio.gather(pending, return_exceptions=True)
-                    if iterator is not None:
-                        await iterator.aclose()
-                    if self.response is not None:
-                        with suppress(Exception):
-                            await asyncio.wait_for(self.response.aclose(), 1)
-                        self.response = None
-                    # An unobserved interval cannot be spliced into the old text.
-                    self.manager.cache.release(self.uid, self.id)
+                    cleanup = asyncio.create_task(self.cleanup_stream(pending, iterator))
+                    try:
+                        await asyncio.shield(cleanup)
+                    except asyncio.CancelledError:
+                        # Expiry during an existing EOF/error cleanup must not orphan it.
+                        await asyncio.shield(cleanup)
+                        raise
+                if self.closed:
+                    return
                 self.publish(RESYNC)
                 self.manager.reconnects += 1
                 await asyncio.sleep(min(2 ** min(attempt, 5), self.manager.config["hub_reconnect_seconds"]) + random.random() * .2)
@@ -224,10 +301,12 @@ class AccountEventHubs:
             hub = AccountHub(self, uid)
             self.hubs[uid] = hub
             self.created += 1
+        if hub.closed:
+            raise HTTPException(503, "实时连接正在清理，请稍后重试", headers={"Retry-After": "2"})
         subscriber = Subscriber(hub, reservation, authorize)
         reservation.subscription = subscriber
         hub.subscribers[reservation.id] = subscriber
-        hub.absent_since = None
+        hub.invalidate_retention()
         if hub.task is None:
             hub.task = asyncio.create_task(hub.run())
         try:
@@ -247,7 +326,8 @@ class AccountEventHubs:
     def stats(self):
         return {"hubs": len(self.hubs), "upstreams": sum(h.response is not None for h in self.hubs.values()),
             "subscribers": sum(len(h.subscribers) for h in self.hubs.values()),
-            "retained": sum(not h.subscribers for h in self.hubs.values()), "created": self.created,
+            "retained": sum(not h.subscribers and not h.closed for h in self.hubs.values()),
+            "closing": sum(h.closed for h in self.hubs.values()), "created": self.created,
             "closed": self.closed_count, "reconnects": self.reconnects, "overflows": self.overflow,
             "close_reasons": dict(self.reasons)}
 

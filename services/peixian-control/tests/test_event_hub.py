@@ -28,9 +28,23 @@ async def fixture(**settings):
                     return
                 yield item
         async def aclose(self):
+            if identity.get("cleanup_entered") is not None:
+                identity["cleanup_entered"].set()
+                try:
+                    await identity["cleanup_resume"].wait()
+                except asyncio.CancelledError:
+                    # Simulate an upstream which must finish asynchronous cleanup.
+                    await identity["cleanup_resume"].wait()
             self.closed = True
-    def transport(request):
+    async def transport(request):
+        identity["requests"] = identity.get("requests", 0) + 1
+        if opened and identity.get("mode") == "connect":
+            await asyncio.Event().wait()
+        if opened and identity.get("mode") == "503":
+            return httpx.Response(503)
         stream = Stream()
+        if opened and identity.get("mode") == "eof":
+            stream.queue.put_nowait(None)
         opened.append(stream)
         return httpx.Response(200, stream=stream)
     async def binding(uid):
@@ -164,4 +178,155 @@ def test_cache_eviction_resync_reaches_only_the_affected_account_without_next_ev
                     pass
             assert other.queue.empty()
             assert hubs.cache.stats()["resync_pending"] == 0
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("outcome", ["success", "failure", "timeout", "inactive"])
+def test_retention_result_cannot_close_a_new_subscription(outcome):
+    async def run():
+        async with fixture(hub_retention_seconds=5, hub_idle_seconds=0) as (hubs, registry, subscribe, opened, identity):
+            entered, resume = asyncio.Event(), asyncio.Event()
+            async def suspended():
+                entered.set()
+                await resume.wait()
+                if outcome == "failure":
+                    raise HTTPException(401, "expired")
+                if outcome == "timeout":
+                    raise TimeoutError()
+                return False
+            item, sub = await subscribe()
+            if outcome == "inactive":
+                hubs.active = lambda binding: suspended()
+            else:
+                sub.authorize = suspended
+            item.started = item.retain = True
+            await item.close()
+            await asyncio.wait_for(entered.wait(), 1)
+            _, new = await subscribe()
+            resume.set()
+            await asyncio.sleep(.08)
+            assert not new.closed
+            assert not new.hub.task.done()
+            assert len(opened) == 1
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("mode", ["503", "eof", "connect", "active", "backoff"])
+def test_deadline_is_independent_of_upstream_and_activity(mode, monkeypatch):
+    monkeypatch.setattr("control.event_hub.random.random", lambda: 0)
+    async def run():
+        async with fixture(hub_idle_seconds=0, hub_reconnect_seconds=10 if mode == "backoff" else .01) as (hubs, registry, subscribe, opened, identity):
+            item, sub = await subscribe()
+            identity["active"] = True
+            identity["mode"] = mode
+            if mode == "active":
+                async def active(binding):
+                    await asyncio.Event().wait()
+                hubs.active = active
+            item.started = item.retain = True
+            await item.close()
+            if mode != "active":
+                opened[0].queue.put_nowait(None)
+            await asyncio.sleep(.35)
+            assert sub.hub.closed
+            assert sub.hub.task.done()
+            assert hubs.stats()["hubs"] == 0
+            if mode in ("503", "eof", "connect"):
+                assert identity["requests"] >= 2
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("eof_first", [False, True])
+def test_deadline_marks_closed_but_tracks_slow_cleanup_and_rejects_second_reader(eof_first):
+    async def run():
+        async with fixture(hub_idle_seconds=5) as (hubs, registry, subscribe, opened, identity):
+            item, sub = await subscribe()
+            identity["cleanup_entered"] = asyncio.Event()
+            identity["cleanup_resume"] = asyncio.Event()
+            item.started = item.retain = True
+            await item.close()
+            if eof_first:
+                opened[0].queue.put_nowait(None)
+            await asyncio.wait_for(identity["cleanup_entered"].wait(), .5)
+            await asyncio.sleep(.16)
+            assert sub.hub.closed
+            assert not sub.hub.task.done()
+            assert hubs.stats()["closing"] == 1
+            assert hubs.stats()["closed"] == 0
+            try:
+                with pytest.raises(HTTPException) as error:
+                    await subscribe()
+                assert error.value.status_code == 503
+                assert len(opened) == 1
+                first = asyncio.create_task(sub.hub.close("again"))
+                second = asyncio.create_task(sub.hub.close("again"))
+                await asyncio.sleep(0)
+                first.cancel()
+                await asyncio.gather(first, return_exceptions=True)
+                assert not sub.hub.cleanup_task.done()
+            finally:
+                identity["cleanup_resume"].set()
+            await asyncio.wait_for(second, 1)
+            assert hubs.stats()["hubs"] == 0
+            assert hubs.stats()["closed"] == 1
+            assert sub.hub.task.done() and opened[0].closed
+            assert hubs.cache.stats()["owners"] == 0
+            _, new = await subscribe()
+            assert new.hub is not sub.hub
+    asyncio.run(run())
+
+
+def test_new_subscription_invalidates_old_deadline_and_real_auth_timeout():
+    async def run():
+        async with fixture(hub_retention_seconds=3) as (hubs, registry, subscribe, opened, identity):
+            entered = asyncio.Event()
+            async def authorize():
+                entered.set()
+                await asyncio.Event().wait()
+            item, sub = await subscribe()
+            sub.authorize = authorize
+            item.started = item.retain = True
+            await item.close()
+            await asyncio.wait_for(entered.wait(), 1)
+            _, new = await subscribe()
+            await asyncio.sleep(2.1)
+            assert not new.closed and not new.hub.task.done()
+            assert len(opened) == 1
+    asyncio.run(run())
+
+
+def test_reentry_then_exit_creates_new_deadline_not_old_timer():
+    async def run():
+        async with fixture(hub_idle_seconds=5, hub_retention_seconds=.3) as (hubs, registry, subscribe, opened, identity):
+            item, sub = await subscribe()
+            item.started = item.retain = True
+            await item.close()
+            await asyncio.sleep(.2)
+            second, new = await subscribe()
+            second.started = second.retain = True
+            await second.close()
+            await asyncio.sleep(.15)
+            assert not new.hub.closed
+            await asyncio.sleep(.2)
+            assert new.hub.closed and hubs.stats()["hubs"] == 0
+    asyncio.run(run())
+
+
+def test_shutdown_timeout_keeps_cleanup_tracked():
+    async def run():
+        async with fixture(hub_shutdown_seconds=.02) as (hubs, registry, subscribe, opened, identity):
+            _, sub = await subscribe()
+            identity["cleanup_entered"] = asyncio.Event()
+            identity["cleanup_resume"] = asyncio.Event()
+            try:
+                with pytest.raises(TimeoutError):
+                    await hubs.close()
+                assert hubs.stats()["closing"] == 1
+                assert not sub.hub.cleanup_task.done()
+                assert not sub.hub.task.done()
+            finally:
+                identity["cleanup_resume"].set()
+            await asyncio.wait_for(sub.hub.close("shutdown_again"), 1)
+            assert hubs.stats()["closed"] == 1
+            assert hubs.stats()["hubs"] == 0
     asyncio.run(run())

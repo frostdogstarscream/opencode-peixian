@@ -1,0 +1,32 @@
+{
+  "scope": "windows_local_preliminary",
+  "accounts": 2,
+  "capacity_tested": false,
+  "paid_model_used": false,
+  "checks": [
+    {
+      "name": "two_account_readers_for_three_independent_subscriptions",
+      "passed": true
+    },
+    {
+      "name": "shared_notifications_real_agent_answer_and_account_boundary",
+      "passed": true
+    },
+    {
+      "name": "one_token_revoked_without_closing_other_viewers",
+      "passed": true,
+      "elapsed_seconds": 0.703
+    },
+    {
+      "name": "last_viewer_cleanup_within_retention_budget",
+      "passed": true
+    },
+    {
+      "name": "reopen_restores_persisted_history",
+      "passed": true
+    }
+  ],
+  "status": "passed",
+  "stage": "finished",
+  "elapsed_seconds": 12.672
+}

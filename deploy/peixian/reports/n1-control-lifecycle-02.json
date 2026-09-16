@@ -1,0 +1,99 @@
+{
+  "status": "passed",
+  "scope": "windows_local_preliminary",
+  "capacity_tested": false,
+  "checks": [
+    {
+      "name": "retention_reentry_keeps_reader",
+      "passed": true
+    },
+    {
+      "name": "control_stop_with_open_sse",
+      "passed": true,
+      "elapsed_seconds": 6.391,
+      "exit_code": 143,
+      "shutdown": {
+        "stages": [
+          {
+            "resource": "safety",
+            "pending": 0,
+            "errors": [],
+            "result": "done"
+          },
+          {
+            "resource": "streams",
+            "pending": 0,
+            "errors": [],
+            "result": "done"
+          },
+          {
+            "resource": "http",
+            "pending": 0,
+            "errors": [],
+            "result": "done"
+          },
+          {
+            "resource": "stream_http",
+            "pending": 0,
+            "errors": [],
+            "result": "done"
+          },
+          {
+            "resource": "download_http",
+            "pending": 0,
+            "errors": [],
+            "result": "done"
+          },
+          {
+            "resource": "crypto_work",
+            "pending": 0,
+            "errors": [],
+            "result": "done"
+          },
+          {
+            "resource": "db_work",
+            "pending": 0,
+            "errors": [],
+            "result": "done"
+          }
+        ],
+        "unfinished": 0,
+        "stream_cleanup": {
+          "stages": [
+            {
+              "resource": "hubs",
+              "pending": 0,
+              "errors": [],
+              "result": "done"
+            },
+            {
+              "resource": "reaper",
+              "pending": 0,
+              "errors": [],
+              "result": "done"
+            },
+            {
+              "resource": "stream_owners",
+              "pending": 0,
+              "errors": [],
+              "result": "done"
+            },
+            {
+              "resource": "reservations",
+              "pending": 0,
+              "errors": [],
+              "result": "done"
+            }
+          ],
+          "unfinished": 0,
+          "hub_cleanup_pending": 0
+        },
+        "worker_futures": 0
+      }
+    },
+    {
+      "name": "control_restart_reopens_after_verification",
+      "passed": true
+    }
+  ]
+}

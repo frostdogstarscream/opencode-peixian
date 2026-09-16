@@ -1,0 +1,12 @@
+{
+  "scope": "windows_local_preliminary",
+  "capacity_tested": false,
+  "status": "passed",
+  "checks": [
+    {
+      "name": "gateway_restart_resync_recovery_history_and_other_account",
+      "passed": true,
+      "elapsed_seconds": 14.969
+    }
+  ]
+}

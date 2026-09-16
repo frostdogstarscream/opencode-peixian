@@ -1,0 +1,12 @@
+{
+  "status": "failed",
+  "scope": "windows_local_preliminary",
+  "capacity_tested": false,
+  "checks": [
+    {
+      "name": "retention_reentry_keeps_reader",
+      "passed": true
+    }
+  ],
+  "failure_code": "AssertionError"
+}

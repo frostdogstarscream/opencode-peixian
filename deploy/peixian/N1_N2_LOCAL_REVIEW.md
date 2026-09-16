@@ -17,7 +17,29 @@
 
 ## N2 执行记录
 
-候选源码提交后执行最终完整回归与本机独立环境验证，结果在后续证据提交记录。此文件初始版本不预填通过；镜像、运行环境和包均需单独核对。
+本轮运行代码与部署候选固定为 `50f087754a36661ef31843433f41a12689e0ca9a`。最终证据提交仅补验收脚本的退出码识别、资料白名单与报告，不改运行代码。
+
+| 项目 | 实际结果 |
+| --- | --- |
+| 固定候选 Control 全量 | **301 passed，2 个既有弃用警告，88.79 秒**；重新执行，不与 HF1 的 290/65 相加 |
+| 修正旧 v1 默认值后的部署全量 | **178 passed，2 skipped，163 subtests passed，7.83 秒** |
+| 未修改的前端源码 | **51 passed，2151 assertions**，类型检查、重新构建通过 |
+| 最终运行镜像多订阅、隔离、单令牌撤销 | `reports/n1-final-events.json`；两账号、三订阅、两上游，历史补齐及最后订阅回收通过；单次撤销 1.890 秒，不是性能分位 |
+| 保留期重入、Control 带 SSE 停止／恢复 | `reports/n1-control-lifecycle-02.json`；同一 reader 保留；停止 6.391 秒；各阶段 done，未完成任务／Hub 清理／工作线程均为 0；重新核对后开放 |
+| Gateway 重启与其他账号 | `reports/n1-final-gateway.json`；最终镜像重新执行断连、历史与验证后开放检查 |
+| 文件及配置更新 | `reports/n1-local-smoke.json`；三角色、两账号合成回答、文字文件解析、跨账号文件拒绝；持久 defer=1 后正确发布，历史／文件保留 |
+| 运行代码身份 | `reports/n1-image-identity.json`；运行容器 25 个 control/shared Python 文件与固定候选一致（CRLF/LF 归一化后 SHA-256） |
+
+镜像为 `agent-platform-control:shutdown-n1-c3c57810a`，身份 `sha256:f64e9f2228f6107a1789e61d141d4a07c78da919be935b4437b2af34b0589cba`。镜像构建标签对应 `c3c57810a`；之后 `50f087754` 只修复部署 v1 配置默认值，没有改变镜像输入。实际代码身份另有上述逐文件证据。Gateway/Relay、Agent、Proxy 未改，候选包清单固定各自身份。
+
+所有实际测试仅运行于 `synthetic-r2-local` / `https://127.0.0.1:19444`，原 14090/A/B 未升级。使用合成模型，不调用付费模型。不把 Windows Docker Desktop 的 Linux 容器测试表述为 Linux 主机验收。
+
+### 保留的中间失败
+
+- `n1-local-check.json`：首次就绪前置断言失败，之后确认两账号 ready/open 后以新文件复测通过；不删除失败报告。
+- `n1-control-lifecycle.json`：初版脚本只接受退出码 0，Docker init 的 SIGTERM 143 导致断言失败。日志已显示所有应用收尾完成。复测脚本允许 0/143，但还必须有 Application shutdown complete、全部阶段 done、无未完成任务及无 OOM；不接受强杀 137。
+- 新停止宽限期最初读取旧 v1 不存在的字段，部署回归出现 6 项失败；`50f087754` 恢复默认值 5 秒，部署全量重新通过。
+- `n1-local-check-02.json`、`n1-gateway-restart.json` 是前一镜像初检，最终结果使用 final 文件，不搬用旧镜像结果。
 
 打包部署资料白名单新增本文件及 `EVENTHUB_HF1_REVIEW.md`，真实临时 Git 打包测试同时核对两份文件在源码归档和部署资料目录中存在。
 

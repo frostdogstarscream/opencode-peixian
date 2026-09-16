@@ -70,12 +70,15 @@ async def run(args):
             stopped = True
             await docker("stop", "--time", "35", container)
             state = json.loads(await docker("inspect", "--format", "{{json .State}}", container))
-            assert not state["Running"] and state["ExitCode"] == 0 and not state["OOMKilled"]
+            # Docker init may preserve SIGTERM as 143 after Uvicorn finishes cleanup.
+            # Require the positive application evidence below; never accept SIGKILL/137.
+            assert not state["Running"] and state["ExitCode"] in (0, 143) and not state["OOMKilled"]
             lines = (await docker("logs", "--tail", "100", container)).splitlines()
+            assert any("Application shutdown complete." in line for line in lines)
             summary = json.loads(next(line.split("shutdown_summary ", 1)[1] for line in reversed(lines) if "shutdown_summary " in line))
             assert summary["unfinished"] == 0 and all(s["result"] == "done" for s in summary["stages"])
             report["checks"].append({"name": "control_stop_with_open_sse", "passed": True,
-                "elapsed_seconds": round(time.monotonic() - started, 3), "shutdown": summary})
+                "elapsed_seconds": round(time.monotonic() - started, 3), "exit_code": state["ExitCode"], "shutdown": summary})
             await docker("start", container)
             stopped = False
             async with asyncio.timeout(90):

@@ -2,6 +2,7 @@ import { createEffect, createSignal, For, Index, onCleanup, Show } from "solid-j
 import { list, post, safeMessage } from "./api"
 import { Button, ErrorLine, Icon } from "./components"
 import { useConsole } from "./context"
+import { useResourceRefresh } from "./resource-refresh"
 
 type Question = {
   question: string
@@ -171,17 +172,13 @@ export default function BusinessConfirmations(props: {
     if (result[1].status === "fulfilled") setPermissions(matching(result[1].value))
     setError(result.some((item) => item.status === "rejected") ? "暂时无法读取待确认事项，请稍后重试。" : "")
   }
+  const requestRefresh = useResourceRefresh(["permissions", "questions"], refresh, 4000)
   createEffect(() => {
-    app.changed()
     props.sessionID
     props.available
-    void refresh()
+    void requestRefresh()
   })
-  const timer = setInterval(() => {
-    if (props.sessionID && props.available) void refresh()
-  }, 4000)
   onCleanup(() => {
-    clearInterval(timer)
     generation++
   })
   async function reply(id: string, kind: "questions" | "permissions", value?: string[][] | "once" | "reject") {

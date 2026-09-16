@@ -1,9 +1,10 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
 import { api, list, patch, post, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, Markdown, Modal, Spinner, Status } from "../components"
 import { useConsole } from "../context"
 import BusinessConfirmations from "../BusinessConfirmations"
 import type { FileItem, Message, Model, Session, Skill } from "../types"
+import { createRefreshScheduler, createResponseGuard } from "../refresh"
 export default function Chat() {
   const app = useConsole()
   const [sessions, setSessions] = createSignal<Session[]>([])
@@ -28,82 +29,112 @@ export default function Chat() {
   const [title, setTitle] = createSignal("")
   let scroll!: HTMLDivElement
   let textarea!: HTMLTextAreaElement
-  let selectionRevision = 0
-  let messageFlight: { id: string; revision: number; trailing: boolean; promise: Promise<void> } | undefined
+  const selection = createResponseGuard(selected)
+  let disposed = false
   const active = createMemo(() => sessions().find((s) => s.id === selected()))
   const ready = createMemo(() => ["ready", "running", "healthy"].includes(app.user().runtime?.status ?? ""))
   const available = createMemo(() => ready() || ["updating", "applying"].includes(app.user().runtime?.status ?? ""))
-  function fetchMessages(id: string): Promise<void> {
-    const revision = selectionRevision
-    if (messageFlight?.id === id && messageFlight.revision === revision) {
-      messageFlight.trailing = true
-      return messageFlight.promise
-    }
-    const flight = { id, revision, trailing: false, promise: Promise.resolve() }
-    messageFlight = flight
-    const current = () => selected() === id && selectionRevision === revision
-    flight.promise = (async () => {
-      do {
-        flight.trailing = false
-        const data = await list<Message>("/sessions/" + id + "/messages")
-        if (!current()) return
-        setMessages(data)
-      } while (flight.trailing && current())
-    })().finally(() => {
-      if (messageFlight === flight) messageFlight = undefined
-    })
-    return flight.promise
-  }
-  async function refresh() {
-    if (!available()) {
-      setBusy(false)
-      return
-    }
-    try {
-      const values = await list<Session>("/sessions")
-      setSessions(values)
-      if (selected()) {
-        setBusy(["busy", "retry"].includes(values.find((item) => item.id === selected())?.status ?? "idle"))
-        await fetchMessages(selected()!)
+  const interval = () => (document.hidden ? 15000 : 500)
+  const messageRefresh = createRefreshScheduler(
+    async (signal) => {
+      const id = selected(),
+        current = selection.capture()
+      if (!available() || !id) return
+      try {
+        const data = await list<Message>("/sessions/" + id + "/messages", { signal })
+        if (!disposed && current()) setMessages(data)
+      } catch (error) {
+        if (!disposed && current()) setError((error as Error).message)
       }
-      setError("")
-    } catch (error) {
-      setError((error as Error).message)
-    }
+    },
+    { interval },
+  )
+  const sessionRefresh = createRefreshScheduler(
+    async (signal) => {
+      if (!available()) {
+        setBusy(false)
+        return
+      }
+      const values = await list<Session>("/sessions", { signal })
+      if (disposed) return
+      setSessions(values)
+      if (selected())
+        setBusy(["busy", "retry"].includes(values.find((item) => item.id === selected())?.status ?? "idle"))
+    },
+    { interval, onError: (error) => setError((error as Error).message) },
+  )
+  const modelRefresh = createRefreshScheduler(
+    async (signal) => {
+      const values = await list<Model>("/models", { signal })
+      if (disposed) return
+      setModels(values)
+      if (!values.some((item) => item.id === model()))
+        setModel(values.find((item) => item.is_default)?.id ?? values[0]?.id ?? "")
+    },
+    { interval },
+  )
+  const fileRefresh = createRefreshScheduler(
+    async (signal) => {
+      if (!available()) return
+      const values = await list<FileItem>("/files", { signal })
+      if (!disposed) setFiles(values)
+    },
+    { interval },
+  )
+  const skillRefresh = createRefreshScheduler(
+    async (signal) => {
+      const values = await list<Skill>("/skills", { signal })
+      if (!disposed) setSkills(values)
+    },
+    { interval },
+  )
+  const refresh = async () => {
+    await Promise.all([sessionRefresh.request(), messageRefresh.request()])
   }
-  async function resources() {
-    if (!available()) {
-      setLoading(false)
-      return
-    }
-    const result = await Promise.allSettled([
-      list<Model>("/models"),
-      list<FileItem>("/files"),
-      list<Skill>("/skills"),
-      list<Session>("/sessions"),
-    ])
-    if (result[0].status === "fulfilled") {
-      setModels(result[0].value as Model[])
-      const data = result[0].value as Model[]
-      if (!data.some((item) => item.id === model())) setModel(data.find((x) => x.is_default)?.id ?? data[0]?.id ?? "")
-    }
-    if (result[1].status === "fulfilled") setFiles(result[1].value as FileItem[])
-    if (result[2].status === "fulfilled") setSkills(result[2].value as Skill[])
-    if (result[3].status === "fulfilled") setSessions(result[3].value as Session[])
-    setLoading(false)
+  const calibrate = async () => {
+    await Promise.all([refresh(), modelRefresh.request(), fileRefresh.request(), skillRefresh.request()])
+    if (!disposed) setLoading(false)
   }
-  onMount(() => {
-    void resources()
-  })
+  const subscriptions = [
+    app.subscribe("messages", (event) => {
+      if (!event.session_id || event.session_id === selected()) void messageRefresh.request()
+    }),
+    app.subscribe("sessions", () => {
+      void sessionRefresh.request()
+    }),
+    app.subscribe("models", () => {
+      void modelRefresh.request()
+    }),
+    app.subscribe("files", () => {
+      void fileRefresh.request()
+    }),
+    app.subscribe("skills", () => {
+      void skillRefresh.request()
+    }),
+    app.subscribe("runtime", () => {
+      void calibrate()
+    }),
+  ]
   createEffect(() => {
-    app.changed()
-    void refresh()
-    void resources()
+    available()
+    void calibrate()
   })
   const poll = setInterval(() => {
-    if (busy()) void refresh()
-  }, 1800)
-  onCleanup(() => clearInterval(poll))
+    if (busy() && !document.hidden) void refresh()
+  }, 2000)
+  const calibration = setInterval(() => {
+    if (!document.hidden) void calibrate()
+  }, 30000)
+  onCleanup(() => {
+    disposed = true
+    selection.invalidate()
+    clearInterval(poll)
+    clearInterval(calibration)
+    subscriptions.forEach((dispose) => dispose())
+    ;[messageRefresh, sessionRefresh, modelRefresh, fileRefresh, skillRefresh].forEach((scheduler) =>
+      scheduler.dispose(),
+    )
+  })
   createEffect(() => {
     messages()
     busy()
@@ -112,20 +143,20 @@ export default function Chat() {
     })
   })
   async function choose(id: string) {
-    selectionRevision++
+    selection.invalidate()
     setSelected(id)
     setMessages([])
     setError("")
     setShowHistory(false)
     setBusy(["busy", "retry"].includes(sessions().find((item) => item.id === id)?.status ?? "idle"))
     try {
-      await fetchMessages(id)
+      await messageRefresh.request()
     } catch (error) {
       setError((error as Error).message)
     }
   }
   function fresh() {
-    selectionRevision++
+    selection.invalidate()
     setSelected(undefined)
     setMessages([])
     setDraft("")
@@ -145,7 +176,7 @@ export default function Chat() {
       if (!id) {
         const session = await post<Session>("/sessions", { title: draft().trim().slice(0, 35) })
         id = session.id
-        selectionRevision++
+        selection.invalidate()
         setSelected(id)
       }
       await post("/sessions/" + id + "/messages", {

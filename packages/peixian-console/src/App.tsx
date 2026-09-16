@@ -1,5 +1,5 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, Switch, Match } from "solid-js"
-import { api, ApiError, BASE, onUnauthorized, post, safeMessage, setAuth } from "./api"
+import { api, ApiError, BASE, expireAuth, onUnauthorized, post, safeMessage, setAuth } from "./api"
 import type { Auth, Capability, User } from "./types"
 import { roleNames, visibleManagementTabs } from "./access"
 import { Button, ErrorLine, Field, Icon, Spinner, Status } from "./components"
@@ -12,6 +12,7 @@ import Settings from "./pages/Settings"
 import Admin from "./pages/Admin"
 import { defaultPlatform, platformMetadata } from "./platform"
 import type { Platform } from "./platform"
+import { connectEvents, createChangeBus, parseChange, resources } from "./events"
 const pages = [
   { id: "chat", name: "对话", icon: "chat" },
   { id: "files", name: "我的文件", icon: "file" },
@@ -27,6 +28,7 @@ export default function App() {
   const [page, setPage] = createSignal("chat")
   const [menu, setMenu] = createSignal(false)
   const [changed, setChanged] = createSignal(0)
+  const changes = createChangeBus()
   const [disconnected, setDisconnected] = createSignal(false)
   const [toast, setToast] = createSignal<{ message: string; kind: string }>()
   const [dark, setDark] = createSignal(localStorage.getItem("peixian-theme") === "dark")
@@ -36,22 +38,37 @@ export default function App() {
   const defaultPage = () => (can("business.use") ? "chat" : management() ? "admin" : "settings")
   const visiblePages = () => pages.filter((item) => item.id === "settings" || can("business.use"))
   let timer: ReturnType<typeof setTimeout> | undefined
+  let authGeneration = 0
+  let userFlight: Promise<void> | undefined
   function notify(message: string, kind = "success") {
     clearTimeout(timer)
     setToast({ message: safeMessage(message), kind })
     timer = setTimeout(() => setToast(undefined), 5500)
   }
   function accept(value: Auth) {
+    authGeneration++
     setAuth(value)
     setSession(value)
     setPage(defaultPage())
   }
-  async function refreshUser() {
+  function refreshUser(): Promise<void> {
+    if (userFlight) return userFlight
     const first = !auth()
-    const data = await api<Auth>("/me")
-    setAuth(data)
-    setSession(data)
-    if (first) setPage(defaultPage())
+    const generation = authGeneration
+    const flight = api<Auth>("/me")
+      .then((data) => {
+        if (generation !== authGeneration) return
+        const previous = auth()?.user.runtime
+        setAuth(data)
+        setSession(data)
+        if (first) setPage(defaultPage())
+        if (JSON.stringify(previous) !== JSON.stringify(data.user.runtime)) changes.publish({ resources: ["runtime"] })
+      })
+      .finally(() => {
+        if (userFlight === flight) userFlight = undefined
+      })
+    userFlight = flight
+    return flight
   }
   async function initialize() {
     setLoading(true)
@@ -69,6 +86,7 @@ export default function App() {
       .then((value) => setPlatform(platformMetadata(value)))
       .catch(() => {})
     onUnauthorized(() => {
+      authGeneration++
       setAuth()
       setSession(undefined)
     })
@@ -100,38 +118,47 @@ export default function App() {
       setDisconnected(false)
       return
     }
-    const events = new EventSource(BASE + "/events", { withCredentials: true })
-    let debounce: ReturnType<typeof setTimeout> | undefined
-    events.onopen = () => setDisconnected(false)
-    events.onerror = () => setDisconnected(true)
-    const update = () => {
-      if (debounce) return
-      debounce = setTimeout(() => {
-        debounce = undefined
-        setChanged((value) => value + 1)
-        void refreshUser().catch(() => {})
-      }, 250)
-    }
-    events.addEventListener("change", update)
-    onCleanup(() => {
-      clearTimeout(debounce)
-      events.close()
+    const controller = new AbortController()
+    void connectEvents({
+      url: BASE + "/events",
+      signal: controller.signal,
+      onOpen: () => {
+        setDisconnected(false)
+        changes.publish({ resources: [...resources] })
+      },
+      onDisconnected: () => setDisconnected(true),
+      onUnauthorized: expireAuth,
+      onEvent: (event) => {
+        const change = parseChange(event)
+        if (change) changes.publish(change)
+      },
     })
+    onCleanup(() => controller.abort())
   })
+  let lastAccountPoll = 0
   const accountPoll = setInterval(() => {
     const user = auth()?.user
     if (!user || user.must_change_password) return
+    if (Date.now() - lastAccountPoll < (document.hidden ? 30000 : 5000)) return
+    lastAccountPoll = Date.now()
     void refreshUser().catch(() => {})
-    if (
-      !can("business.use") ||
-      !["ready", "running", "healthy", "updating", "applying"].includes(user.runtime?.status ?? "")
-    )
-      setChanged((value) => value + 1)
+    if (!can("business.use") && !document.hidden) setChanged((value) => value + 1)
   }, 5000)
-  onCleanup(() => clearInterval(accountPoll))
+  const visible = () => {
+    if (document.hidden || !auth()) return
+    lastAccountPoll = Date.now()
+    void refreshUser().catch(() => {})
+    changes.publish({ resources: [...resources] })
+  }
+  document.addEventListener("visibilitychange", visible)
+  onCleanup(() => {
+    clearInterval(accountPoll)
+    document.removeEventListener("visibilitychange", visible)
+  })
   async function logout() {
     try {
       await post("/auth/logout")
+      authGeneration++
       setAuth()
       setSession(undefined)
       setMenu(false)
@@ -158,7 +185,17 @@ export default function App() {
             when={!session().user.must_change_password}
             fallback={<PasswordGate user={session().user} onDone={refreshUser} />}
           >
-            <Context.Provider value={{ user: () => auth()!.user, capabilities, can, notify, refreshUser, changed }}>
+            <Context.Provider
+              value={{
+                user: () => auth()!.user,
+                capabilities,
+                can,
+                notify,
+                refreshUser,
+                changed,
+                subscribe: changes.subscribe,
+              }}
+            >
               <div class="app-shell">
                 <Show when={menu()}>
                   <button class="nav-overlay" aria-label="关闭导航" onClick={() => setMenu(false)} />

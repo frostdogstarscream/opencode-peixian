@@ -8,6 +8,9 @@ export function setAuth(value?: Auth) {
 export function onUnauthorized(callback: () => void) {
   unauthorized = callback
 }
+export function expireAuth() {
+  unauthorized?.()
+}
 export function safeMessage(value: unknown, fallback = "操作未完成，请稍后重试。"): string {
   const text = typeof value === "string" ? value : fallback
   return text
@@ -65,8 +68,8 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   }
   return data as T
 }
-export function list<T>(path: string) {
-  return api<{ items: T[] }>(path).then((data) => data.items ?? [])
+export function list<T>(path: string, options: RequestInit = {}) {
+  return api<{ items: T[] }>(path, options).then((data) => data.items ?? [])
 }
 export function post<T>(path: string, body: unknown = {}) {
   return api<T>(path, { method: "POST", body: JSON.stringify(body) })

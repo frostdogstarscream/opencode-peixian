@@ -14,6 +14,7 @@ import {
   Toggle,
 } from "../components"
 import { useConsole } from "../context"
+import { useResourceRefresh } from "../resource-refresh"
 import type { Skill } from "../types"
 export default function Skills() {
   const app = useConsole()
@@ -45,10 +46,7 @@ export default function Skills() {
       setLoading(false)
     }
   }
-  createEffect(() => {
-    app.changed()
-    void refresh()
-  })
+  useResourceRefresh(["skills"], refresh)
   function edit(item: Partial<Skill> = {}) {
     setEditor(item)
     setName(item.name ?? "")

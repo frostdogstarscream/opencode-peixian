@@ -2,6 +2,7 @@ import { createEffect, createMemo, createSignal, For, Show } from "solid-js"
 import { api, download, list, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, formatDate, formatSize, Icon, Modal, PageHead, Spinner, Status } from "../components"
 import { useConsole } from "../context"
+import { useResourceRefresh } from "../resource-refresh"
 import type { FileItem } from "../types"
 type PreviewChunk = {
   text: string
@@ -84,10 +85,7 @@ export default function Files() {
       setLoading(false)
     }
   }
-  createEffect(() => {
-    app.changed()
-    void refresh()
-  })
+  useResourceRefresh(["files"], refresh)
   const visible = createMemo(() =>
     (tab() === "files" ? items() : results()).filter((item) =>
       item.name?.toLowerCase().includes(search().toLowerCase()),

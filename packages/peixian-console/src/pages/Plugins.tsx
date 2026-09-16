@@ -2,6 +2,7 @@ import { createEffect, createSignal, For, Show } from "solid-js"
 import { api, list, post } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, JobNote, Modal, PageHead, Spinner, Status, Toggle } from "../components"
 import { useConsole } from "../context"
+import { useResourceRefresh } from "../resource-refresh"
 import type { Json, Plugin, Schema } from "../types"
 import { SchemaFields, supportsSchema } from "../SchemaFields"
 import { pluginConnectionReady } from "../connections"
@@ -56,10 +57,7 @@ export default function Plugins() {
       setLoading(false)
     }
   }
-  createEffect(() => {
-    app.changed()
-    void refresh()
-  })
+  useResourceRefresh(["plugins"], refresh)
   function configure(item: Plugin) {
     const version =
       item.installed?.version && (!item.schemas || item.schemas[item.installed.version])

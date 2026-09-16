@@ -1,0 +1,176 @@
+{
+  "status": "passed",
+  "source_candidate": "95896a843f2bd83dc0ee695713cf5dccbebbaad1",
+  "scope": "windows_local_preliminary",
+  "control_image": "sha256:4d9d03022f03747df90bda78a203751ff224b5d8f68a68350638ac787b5a5b2f",
+  "image_config_id": "sha256:4d9d03022f03747df90bda78a203751ff224b5d8f68a68350638ac787b5a5b2f",
+  "control_shared_files": {
+    "control/concurrency.py": "2a0f89da8260929416b64a0e00357678c5509f5becf542a7bd38ca86a4e86afc",
+    "control/catalog.py": "352799db7272c45ea874ba39c16d052440b0c7d11178064f63af6afad6e529ab",
+    "control/openapi_r2.py": "1af017089cff722d359a114afea608923ab8a1402c1b72bd42b1f3a63e74ca71",
+    "control/streams.py": "7cd3258d95aaf7d18307e49a73980162a6dacb694715dd333905fef2050a8c04",
+    "control/idempotency.py": "78c289aeb3d6a77a74190f92d047ac59c4ccdd5377cfb784a70b8c1b5de13c8b",
+    "control/store.py": "132817de41188e619ba6b017fd43f21f644a6a9582a9f3dd1b403149f07522fd",
+    "control/plugin_schema.py": "51dd9410db6a1782837908338c8f632efbd62a31be3898477e2fab32070d5b37",
+    "control/connections.py": "89813a5fb8b59b040fe0825c0a247d5811121f6f1d18f57852ca81d8286009c0",
+    "control/__init__.py": "c6a11fb8e195155f029dfc98d254b29be43462ba2bb3c9965b007aeb280da936",
+    "control/settings.py": "fa2cf0f2e147cbd1410c9dfd60abb7ba0a37818ff7812ee52c1cb058913a328f",
+    "control/migrations_v4.py": "6c4151a48cb3b012c65ef1a54899b784f9e12a07a95fa77dd6074c62c3c8df70",
+    "control/roles.py": "dab6b001f783fa182eeef2205fc11b0de6d0b638805625744d549967114104c3",
+    "control/orchestration.py": "76022f683fe3fbe3ebaba2696c197d720fa35ec756b8effef8247fae236533b0",
+    "control/openapi.py": "e8bca185e0e83781df6a2394685675e1bcd7e4f9b634512436f2688a19f9e7fd",
+    "control/app.py": "666496a0f27caf18aeb1bf9349618db698aef6408f38bec5e596ac429596f6b8",
+    "control/event_hub.py": "ee099c52792a24930d0fd48455c94b3037ef26c7347dad5dc40d5b744b00514c",
+    "control/live_text.py": "0a6dcdde457bd96001856ad24cafc64855aa038761bf36ae364239f894cb2237",
+    "control/runtime_security.py": "614eaf62190f7c4b020b4ab89da8e6f4098d82e4f9eb3aa722be0422c9c9e9d9",
+    "control/shutdown.py": "2d90a75b5db3bf3667da327354e5d4edcfb18d39dff644e0a406deda6953e51b",
+    "control/administration.py": "5e913fd103a066cdd2e5ef8e432f5a91dda40205c56439cb0cfcb3126f976f85",
+    "control/worker_api.py": "2d83365e4eab20f545cede466fd2b158c1353e277ca9a399532d6e1dd3a1f089",
+    "shared/worker_errors.py": "24779f19c3e18cb13ec5efd2da5410975760322c55d2d5e2ad15ebfbd0de8e3a",
+    "shared/__init__.py": "0fa72025001e0efa0d25188d0fb59460c3f8c06f460277bee99c234e1e993942",
+    "shared/connection_policy.py": "94a7afca415e1e1c711a81bed41607e2aed424de06f1e58a7d9522aa177b51bf",
+    "shared/orchestration_config.py": "ad72bca15f45a83179e2759879b27b46c3b675b699f56c3ce4bcec79bb26ce1c",
+    "shared/eventhub_config.py": "8ec28908fd1419189ed272021b1bb725afc81d7026599339d3fd3d3e72938c5a"
+  },
+  "worker_source_sha256": {
+    "deploy/peixian/console-worker.py": "cdf3ce5a25216cef38bff7365904ffd8002254f7fcef417e0baaf2680699bae5",
+    "services/peixian-control/shared/worker_errors.py": "24779f19c3e18cb13ec5efd2da5410975760322c55d2d5e2ad15ebfbd0de8e3a"
+  },
+  "protected_protocol_diagnostic": true,
+  "n3_receipts": [
+    {
+      "job_id": "52d551b78a954e23b2cb70e9999a018b",
+      "attempt": 1,
+      "operation_id": "017fd961ff8a4f54ac927317fd31b34f",
+      "kind": "boot",
+      "status": "recorded",
+      "phase": "reconciling",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "52d551b78a954e23b2cb70e9999a018b",
+      "attempt": 1,
+      "operation_id": "39ca3b2fc9f143e48dbbf30804bf6b27",
+      "kind": "boot",
+      "status": "recorded",
+      "phase": "reconciling",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "52d551b78a954e23b2cb70e9999a018b",
+      "attempt": 1,
+      "operation_id": "8207b418e452474983495b650862c5e7",
+      "kind": "complete",
+      "status": "recorded",
+      "phase": "reconciling",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "6f01a00251ed48fdb8109d84585e75da",
+      "attempt": 1,
+      "operation_id": "57b24da7d7bd4c34864b65bec57391bb",
+      "kind": "complete",
+      "status": "recorded",
+      "phase": "reconciling",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "6f01a00251ed48fdb8109d84585e75da",
+      "attempt": 1,
+      "operation_id": "71a0145cda264676ba8b6cb77a6e20cd",
+      "kind": "boot",
+      "status": "recorded",
+      "phase": "reconciling",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "6f01a00251ed48fdb8109d84585e75da",
+      "attempt": 1,
+      "operation_id": "a2dce8fb2035483e9605cc548a66536e",
+      "kind": "boot",
+      "status": "recorded",
+      "phase": "reconciling",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "99551124ff2341f087ab8d79eeb5f167",
+      "attempt": 1,
+      "operation_id": "1548a09905c1485c9320e2d215cd5d61",
+      "kind": "complete",
+      "status": "recorded",
+      "phase": "draining",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "99551124ff2341f087ab8d79eeb5f167",
+      "attempt": 1,
+      "operation_id": "cb0337575f0b4c4f88f2529d408530e9",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "claimed",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "99551124ff2341f087ab8d79eeb5f167",
+      "attempt": 2,
+      "operation_id": "1ba25cfe57254ccd87ee19c2ae646b72",
+      "kind": "complete",
+      "status": "recorded",
+      "phase": "applying",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "99551124ff2341f087ab8d79eeb5f167",
+      "attempt": 2,
+      "operation_id": "5aa11e35d30c4e5587815de30f63fe1f",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "claimed",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "99551124ff2341f087ab8d79eeb5f167",
+      "attempt": 2,
+      "operation_id": "8b3a9fabb68543618621a33451f83521",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "closing",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "99551124ff2341f087ab8d79eeb5f167",
+      "attempt": 2,
+      "operation_id": "b8666630958c425ab059694df28c1755",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "draining",
+      "receipt_hit": true,
+      "failure_code": null
+    },
+    {
+      "job_id": "99551124ff2341f087ab8d79eeb5f167",
+      "attempt": 2,
+      "operation_id": "e724321ff541491f9704542d26cb9d8d",
+      "kind": "boot",
+      "status": "recorded",
+      "phase": "applying",
+      "receipt_hit": true,
+      "failure_code": null
+    }
+  ],
+  "historical_unconfirmed_journals_not_resolved": 2,
+  "fault_injection": false,
+  "capacity_tested": false,
+  "paid_model_used": false
+}

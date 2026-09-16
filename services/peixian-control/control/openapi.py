@@ -445,6 +445,7 @@ def build_openapi(app):
                 operation["description"] = "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。"
                 operation.setdefault("parameters", []).append({"name": "X-Peixian-Protocol", "in": "header", "required": True, "schema": {"type": "string", "const": "2"}})
                 operation["description"] += "内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。"
+                operation["description"] += "失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。"
                 if path == "/internal/worker/legacy-retry":
                     operation["summary"] = "重试已回退的固定旧环境迁移"
                     operation["description"] += (

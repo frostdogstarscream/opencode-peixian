@@ -487,7 +487,12 @@ def create_app(store=None):
 
     @app.exception_handler(StarletteHTTPException)
     async def error(request, exc):
-        return JSONResponse({"message": str(exc.detail), "code": f"http_{exc.status_code}", "request_id": ident()}, status_code=exc.status_code, headers=exc.headers)
+        headers = dict(exc.headers or {})
+        from shared.worker_errors import CODES, HEADER
+        code = getattr(exc, "worker_code", None)
+        if request.url.path.startswith("/internal/worker/") and code in CODES:
+            headers[HEADER] = code
+        return JSONResponse({"message": str(exc.detail), "code": f"http_{exc.status_code}", "request_id": ident()}, status_code=exc.status_code, headers=headers)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):

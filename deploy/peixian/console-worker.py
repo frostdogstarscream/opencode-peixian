@@ -26,6 +26,17 @@ _settings_spec = importlib.util.spec_from_file_location("worker_orchestration_se
     Path(__file__).resolve().parents[2] / "services/peixian-control/shared/orchestration_config.py")
 settings = importlib.util.module_from_spec(_settings_spec)
 _settings_spec.loader.exec_module(settings)
+_errors_spec = importlib.util.spec_from_file_location("worker_error_codes", _settings_spec.origin.replace("orchestration_config.py", "worker_errors.py"))
+errors = importlib.util.module_from_spec(_errors_spec)
+_errors_spec.loader.exec_module(errors)
+
+
+class ControlFailure(runtime.RuntimeFailure):
+    def __init__(self, code, status):
+        super().__init__(code)
+        self.status = status
+        self.definite = 400 <= status < 500 and status not in (408, 429)
+
 
 
 def host_boot_id():
@@ -104,15 +115,38 @@ class Worker:
                 "new_connection": transport["new_connection"],
                 "elapsed_ms": round((self.clock() - started) * 1000)}), flush=True)
             raise
+        if response.status_code != 200:
+            payload = kwargs.get("json", {})
+            code = response.headers.get(errors.HEADER)
+            code = code if code in errors.CODES else "worker_overloaded" if response.status_code in (429, 503) else "worker_rejected" if 400 <= response.status_code < 500 else "worker_api_unavailable"
+            diagnostic = {"state": "worker_request_rejected", "http_status": response.status_code, "code": code}
+            match = re.fullmatch(r"/internal/worker/jobs/([A-Za-z0-9_-]{1,100})(?:/(heartbeat|phase|boot|complete))?", path)
+            if match:
+                diagnostic.update(job_id=match[1], operation=match[2] or "query")
+            if isinstance(payload, dict):
+                for key in ("operation_id", "job_id", "phase", "expected_phase", "observation_id"):
+                    value = payload.get(key)
+                    if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,100}", value):
+                        diagnostic[key] = value
+                for key in ("attempt", "state_version", "gate_epoch"):
+                    if type(payload.get(key)) is int:
+                        diagnostic[key] = payload[key]
+                if type(payload.get("observed_at")) is int:
+                    diagnostic["observation_age_seconds"] = max(0, int(time.time()) - payload["observed_at"])
+            print(json.dumps(diagnostic), flush=True)
         if response.status_code == 409:
             if allow_state_conflict:
                 return response
-            raise runtime.RuntimeFailure("worker_lease_lost")
+            code = response.headers.get(errors.HEADER)
+            raise ControlFailure(code if code in errors.CODES else "worker_rejected", 409)
         if response.status_code != 200:
             # Fixed diagnostic codes distinguish transport/load failures without
             # exposing request URLs, response bodies, leases or credentials.
             report("control_request_failed", code="http_" + str(response.status_code))
-            raise runtime.RuntimeFailure("control_api_unavailable")
+            code = response.headers.get(errors.HEADER)
+            if code not in errors.CODES:
+                code = "worker_overloaded" if response.status_code in (429, 503) else "worker_rejected" if 400 <= response.status_code < 500 else "worker_api_unavailable"
+            raise ControlFailure(code, response.status_code)
         return response
 
     def query(self, job, operation_id=None):
@@ -127,29 +161,67 @@ class Worker:
         body = {"lease": job["lease"], "attempt": job["attempt"], "operation_id": operation_id, **values}
         path = "/internal/worker/jobs/" + job["id"] + "/" + kind
         journal = self.manager.root / "receipts" / job["id"] / str(job["attempt"]) / (operation_id + ".json")
-        runtime.write_json(journal, {"operation_id": operation_id, "kind": kind, "job_id": job["id"],
-                                   "attempt": job["attempt"], "status": "pending",
-                                   "request_digest": hashlib.sha256(runtime.json_bytes(values)).hexdigest()})
+        fingerprint = hashlib.sha256(runtime.json_bytes(values)).hexdigest()
+        request_hash = hashlib.sha256(runtime.json_bytes({"kind": kind, "body": {k: v for k, v in body.items() if k != "lease"}})).hexdigest()
+        def record(status, **detail):
+            # Only fixed categories and server-generated opaque identities; never body/spec/lease.
+            value = {"operation_id": operation_id, "kind": kind, "job_id": job["id"],
+                "attempt": job["attempt"], "status": status, "request_digest": fingerprint,
+                "phase": job["phase"], "state_version": job["state_version"], "gate_epoch": job["gate_epoch"], **detail}
+            if type(job.get("last_observed_at")) is int:
+                value["observation_age_seconds"] = max(0, int(time.time()) - job["last_observed_at"])
+            runtime.write_json(journal, value)
+            print(json.dumps({"state": "worker_operation", **{k: v for k, v in value.items() if k != "receipt"}}), flush=True)
+        def category(error):
+            if isinstance(error, ControlFailure):
+                return error.code
+            if isinstance(error, httpx.HTTPError):
+                return "worker_transport_failure"
+            return "worker_invalid_response"
+        record("pending")
+        uncertain_prior = False
         for attempt in range(2):
+            failure = None
             try:
                 receipt = self.request("POST", path, json=body).json()
-            except (httpx.HTTPError, runtime.RuntimeFailure):
-                queried = self.query(job, operation_id)
-                receipt = queried.get("receipt")
+            except (httpx.HTTPError, runtime.RuntimeFailure, ValueError) as error:
+                failure = error
+                try:
+                    queried = self.query(job, operation_id)
+                    if not isinstance(queried, dict) or "receipt" not in queried:
+                        raise ValueError("invalid query response")
+                    receipt = queried["receipt"]
+                except (httpx.HTTPError, runtime.RuntimeFailure, ValueError) as query_error:
+                    record("unknown", failure_code=category(error), query_code=category(query_error),
+                           http_status=getattr(error, "status", None), receipt_hit=False)
+                    raise runtime.RuntimeFailure("worker_operation_outcome_unknown") from None
+                # A conflict receipt belongs to a different request; never accept it.
+                if isinstance(error, ControlFailure) and error.code == "worker_receipt_conflict":
+                    record("rejected", failure_code=error.code, http_status=error.status, receipt_hit=receipt is not None)
+                    raise error
                 if receipt is None:
+                    if isinstance(error, ControlFailure) and error.definite:
+                        record("unknown" if uncertain_prior else "rejected", failure_code=error.code, http_status=error.status, receipt_hit=False)
+                        if uncertain_prior:
+                            raise runtime.RuntimeFailure("worker_operation_outcome_unknown") from None
+                        raise error
+                    record("retry_pending" if attempt == 0 else "unknown", failure_code=category(error),
+                           http_status=getattr(error, "status", None), receipt_hit=False)
                     if attempt == 0:
-                        continue
+                        uncertain_prior = True
+                        continue  # Only exact same body/identity; never repeat the host mutation.
                     raise runtime.RuntimeFailure("worker_operation_outcome_unknown") from None
             if (not isinstance(receipt, dict) or receipt.get("receipt_status") != "recorded"
                     or receipt.get("job_id") != job["id"] or receipt.get("attempt") != job["attempt"]
-                    or receipt.get("operation_id") != operation_id):
+                    or receipt.get("operation_id") != operation_id
+                    or receipt.get("request_hash", request_hash) != request_hash
+                    or any(type(receipt.get(k)) is not int or receipt[k] < 0 for k in ("state_version", "gate_epoch"))
+                    or receipt.get("phase_after_commit") not in ("claimed", "draining", "closing", "applying", "reconciling", "finished", "queued")):
+                record("unknown", failure_code="worker_receipt_invalid", receipt_hit=receipt is not None)
                 raise runtime.RuntimeFailure("invalid_worker_receipt")
-            runtime.write_json(journal, {"operation_id": operation_id, "kind": kind,
-                                       "job_id": job["id"], "attempt": job["attempt"],
-                                       "status": "recorded", "receipt": receipt})
+            record("recorded", receipt=receipt, receipt_hit=True,
+                   failure_code=category(failure) if failure is not None else None)
             for field in ("state_version", "gate_epoch"):
-                if type(receipt.get(field)) is not int:
-                    raise runtime.RuntimeFailure("invalid_worker_receipt")
                 job[field] = receipt[field]
             if receipt.get("gate_owner"):
                 job["gate_owner"] = receipt["gate_owner"]
@@ -179,6 +251,7 @@ class Worker:
     def observe(self, job, spec):
         observation, state = self.manager.observe(job, spec, self.boot_id)
         self.request("POST", "/internal/worker/observations", json=observation)
+        job["last_observed_at"] = observation.get("observed_at")
         return observation, state
 
     def reconcile(self):

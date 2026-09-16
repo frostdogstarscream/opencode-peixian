@@ -200,7 +200,8 @@ def test_config_v3_limits_and_runtime_secrets_do_not_reach_agent(tmp_path):
     assert len(services) == 3
 
 
-def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, monkeypatch):
+@pytest.mark.parametrize("lost_action", ["phase:draining", "phase:closing", "phase:applying", "boot", "complete"])
+def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, monkeypatch, lost_action):
     backend = ROOT.parents[1] / "services/peixian-control"
     monkeypatch.syspath_prepend(str(backend))
     from cryptography.fernet import Fernet
@@ -266,12 +267,13 @@ def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, mon
             else:
                 action = path.rsplit("/", 1)[-1]
                 value = getattr(orchestration, action)(requested["id"], body)
-                if action == "complete" and not lost:
+                marker = action + ":" + body["phase"] if action == "phase" else action
+                if marker == lost_action and not lost:
                     lost = True
                     raise httpx.ReadError("synthetic response lost after DB commit", request=request)
             return httpx.Response(200, json=value)
         except HTTPException as exc:
-            return httpx.Response(exc.status_code, json={"detail": exc.detail})
+            return httpx.Response(exc.status_code, headers={"X-Peixian-Worker-Code": getattr(exc, "worker_code", "worker_rejected")}, json={"detail": exc.detail})
     manager = Manager()
     with httpx.Client(transport=httpx.MockTransport(dispatch), base_url="http://127.0.0.1") as client:
         assert worker.Worker(client, manager).once()

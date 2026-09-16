@@ -73,7 +73,8 @@ def register_worker(app):
 
     def protocol_worker(request: Request, authorized=Depends(worker)):
         if request.headers.get("x-peixian-protocol") != "2":
-            fail("执行器协议不匹配，必须使用内部协议 2", 409)
+            from .orchestration import reject
+            reject("执行器协议不匹配，必须使用内部协议 2", code="worker_protocol_mismatch")
         return True
 
     def orchestration():

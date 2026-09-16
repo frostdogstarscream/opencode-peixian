@@ -529,3 +529,50 @@ def test_frozen_refuses_recovery_but_repair_only_can_claim_original_snapshot(sta
     engine.maintenance("repair_only", store.maintenance_status()["state_version"], "synthetic-maintainer")
     recovered = engine.claim(runtime_spec)
     assert recovered["job"]["phase"] == "reconciling" and recovered["spec"] == original["spec"]
+
+
+
+@pytest.mark.parametrize("cause,code", [
+    ("expired", "worker_observation_expired"), ("superseded", "worker_observation_superseded"),
+    ("state", "worker_state_changed"), ("gate", "worker_gate_changed")])
+def test_completion_rejection_keeps_slot_and_has_fixed_reason(state, cause, code):
+    store, engine, clock, _ = state
+    uid = account(state)
+    job = engine.claim(runtime_spec)["job"]
+    applying(engine, job)
+    oid = observation(engine, job, running=True)
+    if cause == "expired":
+        clock[0] += engine.config["observation_ttl_seconds"] + 1
+    if cause == "superseded":
+        observation(engine, job, running=True)
+    if cause in ("state", "gate"):
+        field = "state_version" if cause == "state" else "gate_epoch"
+        with store.tx() as db:
+            db.execute("UPDATE runtimes SET " + field + "=" + field + "+1 WHERE uid=?", (uid,))
+    with pytest.raises(HTTPException) as error:
+        complete(engine, job, ok=True, observation_id=oid)
+    assert error.value.worker_code == code
+    row = store.one("SELECT reserved,gate_policy,revision FROM runtimes WHERE uid=?", (uid,))
+    assert row == {"reserved": 1, "gate_policy": "closed", "revision": 0}
+    assert store.one("SELECT count(*) n FROM worker_operation_receipts WHERE job_id=? AND json_extract(response,'$.job_status_after_commit')='succeeded'", (job["id"],))["n"] == 0
+
+
+@pytest.mark.parametrize("stage", ["claimed", "draining", "closing", "applying"])
+def test_expired_worker_stage_never_frees_slot_or_opens_gate(state, stage):
+    store, engine, clock, _ = state
+    uid = account(state)
+    job = engine.claim(runtime_spec)["job"]
+    for target in ("draining", "closing", "applying"):
+        if stage == "claimed":
+            break
+        phase(engine, job, target, observation(engine, job) if target != "draining" else None)
+        if target == stage:
+            break
+    clock[0] += engine.config["worker_lease_seconds"] + 1
+    with pytest.raises(HTTPException) as error:
+        engine.heartbeat(job["id"], {"lease": job["lease"], "attempt": job["attempt"]})
+    assert error.value.worker_code == "worker_lease_expired"
+    replacement = engine.claim(runtime_spec)["job"]
+    assert replacement["attempt"] == job["attempt"] + 1
+    assert replacement["phase"] == ("reconciling" if stage in ("closing", "applying") else "claimed")
+    assert store.one("SELECT reserved,gate_policy FROM runtimes WHERE uid=?", (uid,)) == {"reserved": 1, "gate_policy": "closed"}

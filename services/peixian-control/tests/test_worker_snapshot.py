@@ -153,3 +153,19 @@ def test_legacy_import_never_rebinds_existing_nonlegacy_account(context):
     spec = store.decrypt(store.one("SELECT spec FROM runtimes WHERE uid=?", (existing["id"],))["spec"])
     assert spec["legacy"] is None
     assert store.rows("SELECT * FROM audit WHERE action='legacy.import'") == []
+
+
+
+def test_worker_error_codes_require_worker_auth_and_do_not_expose_secrets(context):
+    store, app, client = context
+    headers = {"X-Worker-Key": store.worker_key, "X-Peixian-Protocol": "2"}
+    denied = client.post("/internal/worker/claim")
+    assert denied.status_code == 403 and "X-Peixian-Worker-Code" not in denied.headers
+    mismatch = client.post("/internal/worker/claim", headers={"X-Worker-Key": store.worker_key, "X-Peixian-Protocol": "1"})
+    assert mismatch.status_code == 409 and mismatch.headers["X-Peixian-Worker-Code"] == "worker_protocol_mismatch"
+    store.create_user("n3-protocol", PASSWORD)
+    job = client.post("/internal/worker/claim", headers=headers).json()["job"]
+    response = client.post("/internal/worker/jobs/" + job["id"] + "/heartbeat", headers=headers,
+                           json={"lease": "wrong-private-lease", "attempt": job["attempt"]})
+    assert response.status_code == 409 and response.headers["X-Peixian-Worker-Code"] == "worker_lease_expired"
+    assert "wrong-private-lease" not in response.text and store.worker_key not in response.text

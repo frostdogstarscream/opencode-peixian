@@ -3086,6 +3086,10 @@
             "const": 2,
             "type": "integer"
           },
+          "request_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
           "state_version": {
             "type": "integer"
           }
@@ -17358,7 +17362,7 @@
     },
     "/internal/worker/busy": {
       "get": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "busy_internal_worker_busy_get",
         "parameters": [
           {
@@ -17554,7 +17558,7 @@
     },
     "/internal/worker/claim": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "claim_internal_worker_claim_post",
         "parameters": [
           {
@@ -17741,7 +17745,7 @@
     },
     "/internal/worker/jobs/{jid}": {
       "get": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "job_query_internal_worker_jobs__jid__get",
         "parameters": [
           {
@@ -17972,7 +17976,7 @@
     },
     "/internal/worker/jobs/{jid}/boot": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "boot_internal_worker_jobs__jid__boot_post",
         "parameters": [
           {
@@ -18181,7 +18185,7 @@
     },
     "/internal/worker/jobs/{jid}/complete": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "complete_internal_worker_jobs__jid__complete_post",
         "parameters": [
           {
@@ -18390,7 +18394,7 @@
     },
     "/internal/worker/jobs/{jid}/heartbeat": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "heartbeat_internal_worker_jobs__jid__heartbeat_post",
         "parameters": [
           {
@@ -18599,7 +18603,7 @@
     },
     "/internal/worker/jobs/{jid}/phase": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "phase_internal_worker_jobs__jid__phase_post",
         "parameters": [
           {
@@ -18808,7 +18812,7 @@
     },
     "/internal/worker/legacy-import": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "legacy_import_internal_worker_legacy_import_post",
         "parameters": [
           {
@@ -19005,7 +19009,7 @@
     },
     "/internal/worker/legacy-retry": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。仅支持预登记的两个旧账号及精确旧卷组合，必须匹配导入快照和同账号、同环境的回退审计。首次重试要求账号停用、环境 failed 且未占用名额、没有排队或运行任务。在一个事务内重新启用账号、撤销旧认证并预留容量、创建 resume 任务。202 仅表示任务已接受。同一快照重试仅在账号仍启用、认证版本未变、原任务仍为最新任务且处于 queued/running/succeeded、环境为 ready/provisioning，并且该账号环境最新的重试/回退审计仍为本次重试时返回同一 job_id。再次停用后不得以旧请求重新激活。执行器负责验证旧环境确实停止；此接口不直接停止容器或修改旧卷。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。仅支持预登记的两个旧账号及精确旧卷组合，必须匹配导入快照和同账号、同环境的回退审计。首次重试要求账号停用、环境 failed 且未占用名额、没有排队或运行任务。在一个事务内重新启用账号、撤销旧认证并预留容量、创建 resume 任务。202 仅表示任务已接受。同一快照重试仅在账号仍启用、认证版本未变、原任务仍为最新任务且处于 queued/running/succeeded、环境为 ready/provisioning，并且该账号环境最新的重试/回退审计仍为本次重试时返回同一 job_id。再次停用后不得以旧请求重新激活。执行器负责验证旧环境确实停止；此接口不直接停止容器或修改旧卷。",
         "operationId": "legacy_retry_internal_worker_legacy_retry_post",
         "parameters": [
           {
@@ -19202,7 +19206,7 @@
     },
     "/internal/worker/legacy-rollback": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "legacy_rollback_internal_worker_legacy_rollback_post",
         "parameters": [
           {
@@ -19399,7 +19403,7 @@
     },
     "/internal/worker/legacy-status/{uid}": {
       "get": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "legacy_status_internal_worker_legacy_status__uid__get",
         "parameters": [
           {
@@ -19598,7 +19602,7 @@
     },
     "/internal/worker/maintenance": {
       "get": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "maintenance_status_internal_worker_maintenance_get",
         "parameters": [
           {
@@ -19783,7 +19787,7 @@
         "x-runtime-route": "/internal/worker/maintenance"
       },
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "maintenance_update_internal_worker_maintenance_post",
         "parameters": [
           {
@@ -19980,7 +19984,7 @@
     },
     "/internal/worker/observations": {
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "observations_internal_worker_observations_post",
         "parameters": [
           {
@@ -20177,7 +20181,7 @@
     },
     "/internal/worker/packages/{sha}": {
       "get": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "package_internal_worker_packages__sha__get",
         "parameters": [
           {
@@ -20388,7 +20392,7 @@
     },
     "/internal/worker/reconcile": {
       "get": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "reconcile_candidates_internal_worker_reconcile_get",
         "parameters": [
           {
@@ -20603,7 +20607,7 @@
         "x-runtime-route": "/internal/worker/reconcile"
       },
       "post": {
-        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。",
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
         "operationId": "reconcile_observation_internal_worker_reconcile_post",
         "parameters": [
           {

@@ -8,6 +8,7 @@ import secrets
 from fastapi import HTTPException
 
 from shared.orchestration_config import from_environment
+from shared.worker_errors import CODES
 from .migrations_v4 import canonical
 from .store import digest, ident, now
 
@@ -15,8 +16,11 @@ PROTOCOL_VERSION = 2
 TERMINAL = ("succeeded", "failed", "cancelled")
 
 
-def reject(message, status=409):
-    raise HTTPException(status, message)
+def reject(message, status=409, *, code=None):
+    error = HTTPException(status, message)
+    error.worker_code = code or {422: "worker_invalid_request", 404: "worker_not_found"}.get(status, "worker_rejected")
+    assert error.worker_code in CODES
+    raise error
 
 
 def opaque(value, name="identity"):
@@ -64,10 +68,10 @@ class Orchestration:
         if (job["status"] != "running" or job["attempts"] != data["attempt"]
                 or not hmac.compare_digest(job["lease"] or "", lease)
                 or job["heartbeat"] is None or job["heartbeat"] + self.config["worker_lease_seconds"] <= self.clock()):
-            reject("Worker lease or attempt has expired")
+            reject("Worker lease or attempt has expired", code="worker_lease_expired")
         attempt = db.execute("SELECT * FROM job_attempts WHERE job_id=? AND attempt=?", (jid, data["attempt"])).fetchone()
         if not attempt or attempt["outcome"] is not None:
-            reject("Attempt is no longer active")
+            reject("Attempt is no longer active", code="worker_attempt_inactive")
         return job, attempt, self._runtime(db, job["uid"])
 
     def _existing(self, db, jid, data, kind):
@@ -79,14 +83,14 @@ class Orchestration:
                          (jid, data["attempt"], data["operation_id"])).fetchone()
         if row:
             if not hmac.compare_digest(row["lease_hash"], lease_hash) or row["request_hash"] != request_hash:
-                reject("Operation identity conflicts with its recorded request")
+                reject("Operation identity conflicts with its recorded request", code="worker_receipt_conflict")
             return json.loads(row["response"]), request_hash
         return None, request_hash
 
     def _receipt(self, db, jid, data, request_hash, **extra):
         job = self._job(db, jid)
         runtime = self._runtime(db, job["uid"])
-        result = {"receipt_status": "recorded", "protocol_version": 2, "job_id": jid,
+        result = {"receipt_status": "recorded", "protocol_version": 2, "job_id": jid, "request_hash": request_hash,
                   "attempt": data["attempt"], "operation_id": data["operation_id"],
                   "job_status_after_commit": job["status"], "phase_after_commit": job["phase"],
                   "state_version": runtime["state_version"], "gate_epoch": runtime["gate_epoch"],
@@ -205,13 +209,21 @@ class Orchestration:
 
     def _observation(self, db, runtime, jid, attempt, observation_id):
         row = db.execute("SELECT * FROM runtime_observations WHERE observation_id=?", (opaque(observation_id, "observation"),)).fetchone()
-        if (row is None or row["runtime_id"] != runtime["id"] or row["job_id"] != jid or row["attempt"] != attempt
-                or row["state_version"] != runtime["state_version"] or row["expires_at"] <= self.clock()
-                or row["gate_epoch"] != runtime["gate_epoch"] or not row["complete"]):
-            reject("Runtime observation is incomplete, expired or belongs to old responsibility")
+        if row is None:
+            reject("Runtime observation is missing", code="worker_observation_missing")
+        if row["runtime_id"] != runtime["id"] or row["job_id"] != jid or row["attempt"] != attempt:
+            reject("Runtime observation belongs to old responsibility", code="worker_observation_responsibility")
+        if row["state_version"] != runtime["state_version"]:
+            reject("Runtime observation state has changed", code="worker_state_changed")
+        if row["gate_epoch"] != runtime["gate_epoch"]:
+            reject("Runtime observation gate has changed", code="worker_gate_changed")
+        if row["expires_at"] <= self.clock():
+            reject("Runtime observation has expired", code="worker_observation_expired")
+        if not row["complete"]:
+            reject("Runtime observation is incomplete", code="worker_observation_incomplete")
         latest = db.execute("SELECT observation_id FROM runtime_observations WHERE runtime_id=? ORDER BY observed_at DESC,rowid DESC LIMIT 1", (runtime["id"],)).fetchone()
         if latest is None or latest[0] != observation_id:
-            reject("Runtime observation has been superseded")
+            reject("Runtime observation has been superseded", code="worker_observation_superseded")
         return row
 
     def phase(self, jid, data):
@@ -224,21 +236,21 @@ class Orchestration:
             job, attempt, runtime = self._active(db, jid, data)
             target = data["phase"]
             if data["expected_phase"] != job["phase"] or (job["phase"], target) not in (("claimed", "draining"), ("draining", "closing"), ("reconciling", "closing"), ("closing", "applying")):
-                reject("Invalid or stale attempt phase transition")
+                reject("Invalid or stale attempt phase transition", code="worker_phase_conflict")
             if target in ("closing", "applying"):
                 observed = self._observation(db, runtime, jid, data["attempt"], data.get("observation_id"))
                 if observed["accepting"] or observed["activity_count"] != 0 or observed["mutation_state"] != "idle" or observed["classification"] == "unknown":
-                    reject("Runtime is not confirmed closed and idle")
+                    reject("Runtime is not confirmed closed and idle", code="worker_gate_unverified")
                 if self.clock() - observed["observed_at"] > self.config["gate_observation_seconds"]:
-                    reject("Gate close observation is no longer fresh")
+                    reject("Gate close observation is no longer fresh", code="worker_observation_expired")
                 if target == "applying" and not observed["egress_closed"]:
-                    reject("Relay egress close has not been confirmed")
+                    reject("Relay egress close has not been confirmed", code="worker_gate_unverified")
                 mode = self.store.maintenance_status(db)["maintenance_mode"]
                 if target == "applying" and job["action"] != "pause" and mode != "normal" and not (mode == "repair_only" and job["recovery_required"]):
-                    reject("Maintenance forbids new ordinary host mutation")
+                    reject("Maintenance forbids new ordinary host mutation", code="worker_maintenance_blocked")
                 security_repair = (runtime["cancellation_confirmed"] and runtime["stop_reason"] != "account_disabled" and attempt["authorization_version"] == runtime["authorization_version"])
                 if job["action"] != "pause" and ((runtime["security_blocked"] and not security_repair) or job["cancel_requested"]):
-                    reject("Security or stop intent prevents this mutation")
+                    reject("Security or stop intent prevents this mutation", code="worker_security_blocked")
             current = self.clock()
             db.execute("UPDATE jobs SET phase=?,drain_started_at=COALESCE(drain_started_at,?),observation_deadline=COALESCE(observation_deadline,?),updated=? WHERE id=?", (target, current, current + self.config["drain_alert_seconds"], current, jid))
             db.execute("UPDATE job_attempts SET phase=?,updated=? WHERE job_id=? AND attempt=?", (target, current, jid, data["attempt"]))
@@ -264,19 +276,19 @@ class Orchestration:
         if data["spec_digest"] is not None and (not isinstance(data["spec_digest"], str) or not re.fullmatch("[0-9a-f]{64}", data["spec_digest"])):
             reject("Invalid spec digest", 422)
         if abs(self.clock() - data["observed_at"]) > 5:
-            reject("Observation clock is stale or ahead")
+            reject("Observation clock is stale or ahead", code="worker_observation_expired")
         request_hash = hashed({key: value for key, value in data.items() if key != "lease"})
         with self.store.tx() as db:
             job, attempt, runtime = self._active(db, data["job_id"], data)
             if runtime["id"] != data["runtime_id"] or runtime["state_version"] != data["state_version"] or runtime["gate_epoch"] != data["gate_epoch"]:
-                reject("Observation belongs to stale runtime state")
+                reject("Observation belongs to stale runtime state", code="worker_state_changed")
             if (data["components"]["gateway"] == "running" and runtime["gateway_boot_id"] is not None
                     and runtime["gateway_boot_id"] != data["gateway_boot_id"]):
-                reject("Gateway boot must be registered before observing a running runtime")
+                reject("Gateway boot must be registered before observing a running runtime", code="worker_boot_unregistered")
             old = db.execute("SELECT * FROM runtime_observations WHERE observation_id=?", (data["observation_id"],)).fetchone()
             if old:
                 if old["request_hash"] != request_hash:
-                    reject("Observation ID conflicts")
+                    reject("Observation ID conflicts", code="worker_observation_conflict")
                 return {"observation_id": old["observation_id"], "state_version": old["state_version"], "expires_at": old["expires_at"], "classification": old["classification"]}
             statuses = tuple(data["components"].values())
             classification = "unknown"
@@ -306,7 +318,7 @@ class Orchestration:
                 return existing
             job, attempt, runtime = self._active(db, jid, data)
             if job["phase"] not in ("applying", "reconciling") or runtime["id"] != data["runtime_id"]:
-                reject("Boot registration is outside current mutation responsibility")
+                reject("Boot registration is outside current mutation responsibility", code="worker_phase_conflict")
             changed = runtime["gateway_boot_id"] != data["gateway_boot_id"] or runtime["relay_boot_id"] != data["relay_boot_id"]
             if changed:
                 db.execute("UPDATE runtimes SET gateway_boot_id=?,relay_boot_id=?,gate_policy='closed',gate_epoch=gate_epoch+1,state_version=state_version+1,updated=? WHERE uid=?",
@@ -353,11 +365,11 @@ class Orchestration:
             ok = data["ok"]
             recovery = False
             if ok and job["phase"] not in ("applying", "reconciling"):
-                reject("Applying was not acknowledged")
+                reject("Applying was not acknowledged", code="worker_phase_conflict")
             if ok and observed is None:
-                reject("Completion requires verified runtime evidence")
+                reject("Completion requires verified runtime evidence", code="worker_observation_missing")
             if ok and (observed["accepting"] or not observed["egress_closed"] or observed["activity_count"] != 0):
-                reject("Completion requires closed and quiescent runtime gates")
+                reject("Completion requires closed and quiescent runtime gates", code="worker_gate_unverified")
             if ok and job["action"] == "pause":
                 if observed["classification"] != "stopped" or observed["mutation_state"] != "idle":
                     reject("Pause has not confirmed all resources stopped")
@@ -376,7 +388,7 @@ class Orchestration:
                                (ident(), job["uid"], runtime["desired"], current, current))
             elif ok:
                 if observed["classification"] != "running" or observed["applied_revision"] != attempt["revision"] or observed["spec_digest"] != attempt["spec_digest"]:
-                    reject("Applied version or configuration digest is not verified")
+                    reject("Applied version or configuration digest is not verified", code="worker_applied_unverified")
                 active = db.execute("SELECT active FROM users WHERE id=?", (job["uid"],)).fetchone()[0]
                 if (runtime["security_blocked"] and runtime["cancellation_confirmed"] and active
                         and runtime["stop_reason"] != "account_disabled" and not job["cancel_requested"]
@@ -429,7 +441,7 @@ class Orchestration:
     def _outcome(self, db, jid, attempt, value):
         if db.execute("UPDATE job_attempts SET outcome=?,outcome_hash=?,phase='finished',updated=? WHERE job_id=? AND attempt=? AND outcome IS NULL",
                       (canonical(value), hashed(value), self.clock(), jid, attempt)).rowcount != 1:
-            reject("Attempt already has a different final outcome")
+            reject("Attempt already has a different final outcome", code="worker_receipt_conflict")
 
     def query(self, jid, attempt=None, operation_id=None):
         if operation_id is not None and attempt is None:
@@ -457,7 +469,7 @@ class Orchestration:
                 reject("Capacity release operation conflicts")
             return json.loads(previous["response"])
         if runtime["state_version"] != expected_state_version:
-            reject("Capacity release state has changed")
+            reject("Capacity release state has changed", code="worker_state_changed")
         observed = self._observation(db, runtime, job_id, attempt, observation_id)
         if observed["classification"] != "stopped" or observed["mutation_state"] != "idle":
             reject("Capacity is not confirmed stopped")
@@ -537,15 +549,15 @@ class Orchestration:
                 or data["mutation_state"] not in ("idle", "running", "unknown")):
             reject("Reconciliation must cover every runtime component", 422)
         if abs(self.clock() - data["observed_at"]) > 5:
-            reject("Reconciliation observation is stale")
+            reject("Reconciliation observation is stale", code="worker_observation_expired")
         with self.store.tx() as db:
             runtime = db.execute("SELECT * FROM runtimes WHERE id=?", (data["runtime_id"],)).fetchone()
             if not runtime or runtime["state_version"] != data["state_version"]:
-                reject("Reconciliation runtime state changed")
+                reject("Reconciliation runtime state changed", code="worker_state_changed")
             previous = db.execute("SELECT request_hash FROM runtime_observations WHERE observation_id=?", (data["observation_id"],)).fetchone()
             if previous:
                 if previous[0] != hashed(data):
-                    reject("Observation identity conflicts")
+                    reject("Observation identity conflicts", code="worker_observation_conflict")
                 return {"observation_id": data["observation_id"], "recorded": True}
             statuses = tuple(data["components"].values())
             complete = data["complete"] and not data.get("orphan_resources", False)

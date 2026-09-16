@@ -28,7 +28,8 @@ def extend(s, obj, ref, array, ID, STRING, BOOL, INTEGER):
     s["ReconcileBody"] = obj({**observation, "orphan_resources": BOOL}, observation)
     s["WorkerReceipt"] = obj({"protocol_version": {**INTEGER, "const": 2}, "job_id": ID,
         "attempt": INTEGER, "phase": phases, "state_version": INTEGER, "gate_epoch": INTEGER,
-        "operation_id": ID, "gate_action": STRING}, extra=True,
+        "operation_id": ID, "gate_action": STRING,
+        "request_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}, extra=True,
         description="脱敏的当前责任或历史操作结果；查询不返回明文租约、配置快照或服务凭据。")
     s["Maintenance"] = obj({"mode": {**STRING, "enum": ["normal", "frozen", "repair_only"]}, "maintenance_mode": STRING,
         "state_version": INTEGER, "capacity_healthy": BOOL, "recovery_required": INTEGER, "security_pending": INTEGER,

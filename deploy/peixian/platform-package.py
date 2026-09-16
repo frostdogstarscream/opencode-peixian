@@ -30,6 +30,7 @@ ALLOWED_FILES = (
     "deploy/peixian/examples/records-plugin/SKILL.md", "services/peixian-control/docs/openapi.json",
     "services/peixian-control/requirements.lock",
     "services/peixian-control/shared/orchestration_config.py",
+    "services/peixian-control/shared/worker_errors.py",
     "services/peixian-control/shared/eventhub_config.py",
     "deploy/peixian/constrained-test.py",
     "deploy/peixian/r2-acceptance.py", "deploy/peixian/R2_ACCEPTANCE.md",

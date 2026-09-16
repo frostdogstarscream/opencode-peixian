@@ -114,6 +114,7 @@ def register_connections(app):
     @app.patch(PREFIX + "/admin/connections/{cid}")
     @blocking_endpoint(app, json_body=True)
     def connection_edit(cid: str, request: Request, user=Depends(permission)):
+        from .runtime_security import block_runtime
         s = app.state.store
         raw = request.state.json_body
         with s.tx() as db:
@@ -122,7 +123,15 @@ def register_connections(app):
                 fail("服务连接不存在", 404)
             config, secret = data(raw, old)
             users = affected(db, cid=cid)
+            previous = json.loads(old["config"])
+            restricted = (previous["enabled"] and not config["enabled"]
+                          or any(previous[k] != config[k] for k in ("base_url", "auth_type", "header_name"))
+                          or bool(set(previous["allowed_methods"]) - set(config["allowed_methods"]))
+                          or bool(set(previous["allowed_paths"]) - set(config["allowed_paths"])))
             db.execute("UPDATE connections SET config=?,secret=?,revision=revision+1 WHERE id=?", (encode(config), secret, cid))
+            if restricted:
+                for uid in users:
+                    block_runtime(s, db, uid, reason="connection_restricted")
             jobs = queue(db, users)
         return {"connection": connection_public(s, s.one("SELECT * FROM connections WHERE id=?", (cid,))), "jobs": jobs}
 
@@ -169,6 +178,7 @@ def register_connections(app):
     @app.put(PREFIX + "/admin/plugins/{pid}/{version}/connections")
     @blocking_endpoint(app, json_body=True)
     def plugin_connections_put(pid: str, version: str, request: Request, user=Depends(permission)):
+        from .runtime_security import block_runtime
         raw = body_fields(request.state.json_body, ("bindings",))
         values = raw.get("bindings")
         if not isinstance(values, dict) or any(not isinstance(v, str) for v in values.values()):
@@ -184,6 +194,11 @@ def register_connections(app):
                     fail("绑定目标不存在或已停用")
             # Snapshot affected users before replacing bindings, including first-time binding.
             users = [row[0] for row in db.execute("SELECT i.uid FROM installs i JOIN grants g ON g.uid=i.uid AND g.kind='plugin' AND g.resource=i.plugin WHERE i.plugin=? AND i.version=? AND i.enabled=1", (pid, version))]
+            old_bindings = {row["alias"]: row["connection_id"] for row in db.execute(
+                "SELECT alias,connection_id FROM plugin_connections WHERE plugin=? AND version=?", (pid, version))}
+            if any(values.get(alias) != cid for alias, cid in old_bindings.items()):
+                for uid in users:
+                    block_runtime(s, db, uid, reason="connection_restricted")
             db.execute("DELETE FROM plugin_connections WHERE plugin=? AND version=?", (pid, version))
             db.executemany("INSERT INTO plugin_connections VALUES(?,?,?,?)", [(pid, version, alias, cid) for alias, cid in values.items()])
             jobs = queue(db, users)

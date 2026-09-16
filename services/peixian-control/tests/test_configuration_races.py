@@ -13,7 +13,7 @@ def together_at_transaction(store, monkeypatch, operations):
     Reading old state before tx would therefore make both handlers read the same
     stale row; reading inside tx sees the predecessor's committed update.
     """
-    original = store.tx
+    original = store.atomic_request
     barrier = threading.Barrier(2)
     lock = threading.Lock()
     entrants = 0
@@ -30,7 +30,8 @@ def together_at_transaction(store, monkeypatch, operations):
             yield db
 
     with monkeypatch.context() as patch:
-        patch.setattr(store, "tx", synchronized)
+        # Synchronize before the outer BEGIN that also commits the request receipt.
+        patch.setattr(store, "atomic_request", synchronized)
         with ThreadPoolExecutor(max_workers=2) as callers:
             pending = [callers.submit(operation) for operation in operations]
             return [future.result(timeout=10) for future in pending]

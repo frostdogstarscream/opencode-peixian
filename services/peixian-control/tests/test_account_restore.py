@@ -11,9 +11,8 @@ def complete_next(client, store, uid, action):
     assert response.status_code == 200
     job = response.json()["job"]
     assert job["uid"] == uid and job["action"] == action
-    response = client.post("/internal/worker/jobs/" + job["id"] + "/complete",
-                           json={"lease": job["lease"], "ok": True}, headers=headers)
-    assert response.status_code == 200
+    from r2_helpers import finish
+    assert finish(store, job)["job_status_after_commit"] == "succeeded"
     return job
 
 

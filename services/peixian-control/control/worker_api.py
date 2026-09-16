@@ -71,71 +71,77 @@ def register_worker(app):
             fail("无权访问", 403)
         return True
 
+    def protocol_worker(request: Request, authorized=Depends(worker)):
+        if request.headers.get("x-peixian-protocol") != "2":
+            fail("执行器协议不匹配，必须使用内部协议 2", 409)
+        return True
+
+    def orchestration():
+        from .orchestration import Orchestration
+        return Orchestration(app.state.store)
+
     @app.get("/internal/worker/busy")
     @blocking_endpoint(app)
     def busy(request: Request, authorized=Depends(worker)):
-        return {"busy": bool(app.state.store.one("SELECT 1 FROM jobs WHERE status='running' LIMIT 1"))}
+        return {"busy": bool(app.state.store.one("SELECT 1 FROM jobs WHERE status='running' LIMIT 1")),
+                "protocol_version": 2, "maintenance": app.state.store.maintenance_status()}
 
     @app.post("/internal/worker/claim")
     @blocking_endpoint(app)
-    def claim(request: Request, authorized=Depends(worker)):
-        s = app.state.store
-        with s.tx() as db:
-            # A dead worker's lease can be taken over without creating a new job.
-            db.execute("UPDATE jobs SET status='queued',lease=NULL WHERE status='running' AND heartbeat<?", (now() - 90,))
-            row = db.execute("SELECT j.* FROM jobs j WHERE j.status='queued' AND NOT EXISTS(SELECT 1 FROM jobs active WHERE active.uid=j.uid AND active.status='running') ORDER BY j.created,j.rowid LIMIT 1").fetchone()
-            if not row:
-                return {"job": None}
-            r = db.execute("SELECT desired FROM runtimes WHERE uid=?", (row["uid"],)).fetchone()
-            lease = secrets.token_urlsafe(32)
-            db.execute("UPDATE jobs SET status='running',lease=?,heartbeat=?,attempts=attempts+1,revision=?,updated=? WHERE id=?", (lease, now(), r["desired"], now(), row["id"]))
-            job = dict(row)
-            job.update(lease=lease, revision=r["desired"])
-            spec = runtime_spec(s, job["uid"], job["revision"], db=db)
-        return {"job": {k: job[k] for k in ("id", "uid", "action", "lease", "revision")}, "spec": spec}
-
-    def leased(db, jid, lease):
-        job = db.execute("SELECT * FROM jobs WHERE id=? AND status='running'", (own_id(jid),)).fetchone()
-        if not job or not hmac.compare_digest(job["lease"] or "", str(lease)):
-            fail("工作租约已失效", 409)
-        return job
+    def claim(request: Request, authorized=Depends(protocol_worker)):
+        return orchestration().claim(runtime_spec)
 
     @app.post("/internal/worker/jobs/{jid}/heartbeat")
     @blocking_endpoint(app, json_body=True)
-    def heartbeat(jid: str, request: Request, authorized=Depends(worker)):
-        data = body_fields(request.state.json_body, ("lease",))
-        with app.state.store.tx() as db:
-            leased(db, jid, data.get("lease"))
-            db.execute("UPDATE jobs SET heartbeat=?,updated=? WHERE id=?", (now(), now(), jid))
-        return {"ok": True}
+    def heartbeat(jid: str, request: Request, authorized=Depends(protocol_worker)):
+        return orchestration().heartbeat(jid, request.state.json_body)
+
+    @app.post("/internal/worker/jobs/{jid}/phase")
+    @blocking_endpoint(app, json_body=True)
+    def phase(jid: str, request: Request, authorized=Depends(protocol_worker)):
+        return orchestration().phase(jid, request.state.json_body)
+
+    @app.post("/internal/worker/jobs/{jid}/boot")
+    @blocking_endpoint(app, json_body=True)
+    def boot(jid: str, request: Request, authorized=Depends(protocol_worker)):
+        return orchestration().boot(jid, request.state.json_body)
 
     @app.post("/internal/worker/jobs/{jid}/complete")
     @blocking_endpoint(app, json_body=True)
-    def complete(jid: str, request: Request, authorized=Depends(worker)):
-        data = body_fields(request.state.json_body, ("lease", "ok", "deferred", "error", "rolled_back", "cleanup_confirmed"))
-        s = app.state.store
-        ok = data.get("ok") is True
-        deferred = data.get("deferred") is True
-        next_job = False
-        with s.tx() as db:
-            job = leased(db, jid, data.get("lease"))
-            r = db.execute("SELECT * FROM runtimes WHERE uid=?", (job["uid"],)).fetchone()
-            if deferred:
-                db.execute("UPDATE jobs SET status='queued',lease=NULL,heartbeat=NULL,updated=? WHERE id=?", (now(), jid))
-                return {"ok": True}
-            error = None if ok else "环境操作未完成，请查看管理员操作记录后重试"
-            db.execute("UPDATE jobs SET status=?,error=?,lease=NULL,updated=? WHERE id=?", ("succeeded" if ok else "failed", error, now(), jid))
-            if ok:
-                status = "paused" if job["action"] == "pause" else "ready"
-                revision = r["revision"] if job["action"] == "pause" else job["revision"]
-                db.execute("UPDATE runtimes SET status=?,revision=?,reserved=?,error=NULL,updated=? WHERE uid=?", (status, revision, status != "paused", now(), job["uid"]))
-                next_job = status == "ready" and r["desired"] > job["revision"]
-            else:
-                rolled_back = data.get("rolled_back") is True and r["revision"] > 0
-                db.execute("UPDATE runtimes SET status=?,reserved=?,error=?,updated=? WHERE uid=?", ("ready" if rolled_back else "failed", bool(rolled_back or data.get("cleanup_confirmed") is not True), error, now(), job["uid"]))
-        if next_job:
-            s.queue(job["uid"])
-        return {"ok": True}
+    def complete(jid: str, request: Request, authorized=Depends(protocol_worker)):
+        return orchestration().complete(jid, request.state.json_body)
+
+    @app.get("/internal/worker/jobs/{jid}")
+    @blocking_endpoint(app)
+    def job_query(jid: str, request: Request, attempt: int | None = None, operation_id: str | None = None,
+                  authorized=Depends(protocol_worker)):
+        return orchestration().query(jid, attempt, operation_id)
+
+    @app.post("/internal/worker/observations")
+    @blocking_endpoint(app, json_body=True)
+    def observations(request: Request, authorized=Depends(protocol_worker)):
+        return orchestration().observe(request.state.json_body)
+
+    @app.get("/internal/worker/maintenance")
+    @blocking_endpoint(app)
+    def maintenance_status(request: Request, authorized=Depends(protocol_worker)):
+        return app.state.store.maintenance_status()
+
+    @app.post("/internal/worker/maintenance")
+    @blocking_endpoint(app, json_body=True)
+    def maintenance_update(request: Request, authorized=Depends(protocol_worker)):
+        data = body_fields(request.state.json_body, ("maintenance_mode", "expected_state_version"))
+        return app.state.store.set_maintenance(data.get("maintenance_mode"), data.get("expected_state_version"), "worker")
+
+    @app.get("/internal/worker/reconcile")
+    @blocking_endpoint(app)
+    def reconcile_candidates(request: Request, limit: int | None = None, authorized=Depends(protocol_worker)):
+        return orchestration().reconcile_candidates(limit)
+
+    @app.post("/internal/worker/reconcile")
+    @blocking_endpoint(app, json_body=True)
+    def reconcile_observation(request: Request, authorized=Depends(protocol_worker)):
+        return orchestration().reconcile(request.state.json_body)
 
 
     legacy_volumes = {
@@ -162,7 +168,7 @@ def register_worker(app):
 
     @app.post("/internal/worker/legacy-import", status_code=202)
     @blocking_endpoint(app, json_body=True, hash_password=True)
-    def legacy_import(request: Request, authorized=Depends(worker)):
+    def legacy_import(request: Request, authorized=Depends(protocol_worker)):
         import re
         from .app import password_valid
         data = body_fields(request.state.json_body, ("username", "password", "model_ids", "legacy", "snapshot"))
@@ -213,12 +219,13 @@ def register_worker(app):
             row = legacy_account(db, own_id(uid))
             import_record(db, uid)
             return {"uid": uid, "runtime_id": row["id"], "status": row["status"],
-                    "revision": row["revision"], "desired": row["desired"], "reserved": bool(row["reserved"])}
+                    "revision": row["revision"], "desired": row["desired"], "reserved": bool(row["reserved"]),
+                    "state_version": row["state_version"], "gate_epoch": row["gate_epoch"]}
 
     @app.post("/internal/worker/legacy-rollback")
     @blocking_endpoint(app, json_body=True)
-    def legacy_rollback(request: Request, authorized=Depends(worker)):
-        data = body_fields(request.state.json_body, ("uid", "snapshot_id", "cleanup_confirmed"))
+    def legacy_rollback(request: Request, authorized=Depends(protocol_worker)):
+        data = body_fields(request.state.json_body, ("uid", "snapshot_id", "cleanup_confirmed", "observation_id", "expected_state_version", "operation_id"))
         if data.get("cleanup_confirmed") is not True:
             fail("执行器必须确认新环境已全部停止", 409)
         uid, snapshot_id = data.get("uid"), data.get("snapshot_id")
@@ -228,11 +235,21 @@ def register_worker(app):
         with s.tx() as db:
             row = legacy_account(db, own_id(uid))
             record = import_record(db, uid, snapshot_id)
+            if (type(data.get("expected_state_version")) is not int or not data.get("observation_id") or not data.get("operation_id")):
+                fail("v4 回退必须提供当前核对证据和幂等操作标识", 409)
+            if db.execute("SELECT 1 FROM jobs WHERE uid=? AND (status='running' OR recovery_required=1)", (uid,)).fetchone():
+                fail("已有执行或恢复责任尚未结束，不能通过旧迁移接口释放", 409)
+            if db.execute("SELECT 1 FROM capacity_release_receipts WHERE operation_id=?", (data["operation_id"],)).fetchone():
+                s.release_capacity_and_promote(db, uid, expected_state_version=data["expected_state_version"], job_id=None, attempt=None,
+                                              observation_id=data["observation_id"], operation_id=data["operation_id"])
+                return {"ok": True, "uid": uid, "runtime_id": row["id"], "status": row["status"]}
             db.execute("UPDATE users SET active=0,auth_version=auth_version+1 WHERE id=?", (uid,))
             db.execute("DELETE FROM auth WHERE uid=?", (uid,))
             db.execute("UPDATE jobs SET status='failed',lease=NULL,heartbeat=NULL,error=?,updated=? WHERE uid=? AND status IN ('queued','running')",
                        ("迁移已由执行器回退", now(), uid))
-            db.execute("UPDATE runtimes SET status='failed',reserved=0,error=?,updated=? WHERE uid=?",
+            s.release_capacity_and_promote(db, uid, expected_state_version=data["expected_state_version"], job_id=None, attempt=None,
+                                          observation_id=data["observation_id"], operation_id=data["operation_id"])
+            db.execute("UPDATE runtimes SET status='failed',gate_policy='closed',error=?,updated=? WHERE uid=?",
                        ("迁移未完成，旧数据保留，请检查后重试", now(), uid))
             db.execute("INSERT INTO audit(id,actor,action,target,created,actor_role) VALUES(?,?,?,?,?,'worker')",
                        (ident(), "worker", "legacy.rollback",
@@ -241,7 +258,7 @@ def register_worker(app):
 
     @app.post("/internal/worker/legacy-retry", status_code=202)
     @blocking_endpoint(app, json_body=True)
-    def legacy_retry(request: Request, authorized=Depends(worker)):
+    def legacy_retry(request: Request, authorized=Depends(protocol_worker)):
         data = body_fields(request.state.json_body, ("uid", "snapshot_id", "legacy_stopped"))
         if data.get("legacy_stopped") is not True:
             fail("执行器必须确认旧服务和所有数据卷写入者均已停止", 409)

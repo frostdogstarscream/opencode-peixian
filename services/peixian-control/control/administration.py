@@ -45,7 +45,8 @@ def register_admin(app):
 
     def queue(uid, action="apply"):
         try:
-            return app.state.store.queue(uid, action)
+            return app.state.store.queue(uid, action, bump_desired=False,
+                                         reason="admin" if action == "pause" else "normal")
         except ValueError as exc:
             fail(str(exc), 409)
 
@@ -69,7 +70,10 @@ def register_admin(app):
 
     @app.post(PREFIX + "/admin/users", status_code=202)
     async def user_create(request: Request, user=Depends(admin)):
-        data = body_fields(await request.json(), ("username", "password", "role", "model_ids", "plugin_ids"))
+        from .idempotency import key, execute
+        key(request)
+        request.state.json_body = await request.json()
+        data = body_fields(request.state.json_body, ("username", "password", "role", "model_ids", "plugin_ids"))
         role = data.get("role", "user")
         if role not in ("user", "admin"):
             fail("仅可创建普通用户或管理员", 403)
@@ -79,16 +83,18 @@ def register_admin(app):
             fail("账号需为 3 至 40 位字母、数字、点、横线或下划线")
         password = password_valid(data.get("password") or secrets.token_urlsafe(20))
         s = app.state.store
-        if await app.state.db_work.run(s.one, "SELECT 1 FROM users WHERE username=?", (username,)):
-            fail("账号已存在", 409)
         hashed = await app.state.crypto_work.run(s.passwords.hash, password)
-        try:
-            created, job = await app.state.db_work.run(s.create_user_prehashed, username, hashed, role=role, model_ids=data.get("model_ids"),
-                                         plugin_ids=data.get("plugin_ids"), authorize=lambda db: current_authority(db, user))
-        except ValueError as exc:
-            fail(str(exc), 409)
-        request.state.management_target = created["id"]
-        return {"user": public_user(created, user), "job": public_job(job, user), "password": password}
+        def create():
+            if s.one("SELECT 1 FROM users WHERE username=?", (username,)):
+                fail("账号已存在", 409)
+            try:
+                created, job = s.create_user_prehashed(username, hashed, role=role, model_ids=data.get("model_ids"),
+                                             plugin_ids=data.get("plugin_ids"), authorize=lambda db: current_authority(db, user))
+            except ValueError as exc:
+                fail(str(exc), 409)
+            request.state.management_target = created["id"]
+            return {"user": public_user(created, user), "job": public_job(job, user), "password": password}
+        return await app.state.db_work.run(execute, request, user, create)
 
     @app.patch(PREFIX + "/admin/users/{uid}")
     @blocking_endpoint(app, json_body=True)
@@ -110,7 +116,10 @@ def register_admin(app):
 
     @app.post(PREFIX + "/admin/users/{uid}/reset-password")
     async def user_reset(uid: str, request: Request, user=Depends(admin)):
-        data = body_fields(await request.json(), ("password",))
+        from .idempotency import key, execute
+        key(request)
+        request.state.json_body = await request.json()
+        data = body_fields(request.state.json_body, ("password",))
         s = app.state.store
         await app.state.db_work.run(target_user, uid, user)
         password = password_valid(data.get("password") or secrets.token_urlsafe(20))
@@ -124,8 +133,8 @@ def register_admin(app):
                     fail("可管理的账号不存在", 404)
                 db.execute("UPDATE users SET password=?,must_change=1,auth_version=auth_version+1 WHERE id=?", (hashed, uid))
                 db.execute("DELETE FROM auth WHERE uid=?", (uid,))
-        await app.state.db_work.run(reset)
-        return {"password": password}
+            return {"password": password}
+        return await app.state.db_work.run(execute, request, user, reset)
 
     @app.post(PREFIX + "/admin/users/{uid}/runtime/{action}")
     @blocking_endpoint(app)
@@ -142,7 +151,34 @@ def register_admin(app):
     @app.get(PREFIX + "/admin/jobs")
     @blocking_endpoint(app)
     def jobs(request: Request, user=Depends(require_capability("jobs.read"))):
-        return {"items": app.state.store.rows("SELECT id,uid,action,status,revision,error,created,updated FROM jobs ORDER BY created DESC LIMIT 200")}
+        return {"items": app.state.store.rows("SELECT id,uid,action,status,revision,error,created,updated,phase,not_before,defer_count,recovery_required FROM jobs ORDER BY enqueue_seq DESC LIMIT 200")}
+
+    @app.get(PREFIX + "/admin/maintenance")
+    @blocking_endpoint(app)
+    def maintenance_state(request: Request, user=Depends(require_capability("runtimes.manage"))):
+        s = app.state.store
+        state = s.maintenance_status()
+        return {"mode": state["maintenance_mode"], "state_version": state["state_version"],
+                "capacity_healthy": bool(state["capacity_healthy"]),
+                "recovery_required": s.one("SELECT COUNT(*) AS n FROM runtimes WHERE recovery_required=1")["n"],
+                "security_pending": s.one("SELECT COUNT(*) AS n FROM runtimes WHERE security_blocked=1 AND cancellation_confirmed=0")["n"],
+                "safety_sync_failures": app.state.safety.failures}
+
+    @app.post(PREFIX + "/admin/maintenance")
+    @blocking_endpoint(app, json_body=True)
+    def maintenance_set(request: Request, user=Depends(require_capability("runtimes.manage"))):
+        data = body_fields(request.state.json_body, ("mode", "state_version"))
+        state = app.state.store.set_maintenance(data.get("mode"), data.get("state_version"), user["uid"])
+        return {"mode": state["maintenance_mode"], "state_version": state["state_version"]}
+
+    @app.post(PREFIX + "/admin/recovery/{uid}")
+    @blocking_endpoint(app, json_body=True)
+    def recovery_action(uid: str, request: Request, user=Depends(require_capability("runtimes.manage"))):
+        data = body_fields(request.state.json_body, ("action",))
+        if data.get("action") not in ("continue", "cancel"):
+            fail("请选择继续等待或取消活动后更新")
+        from .orchestration import Orchestration
+        return Orchestration(app.state.store).resolve_drain(own_id(uid), data["action"], user["uid"])
 
     @app.get(PREFIX + "/admin/audit")
     @blocking_endpoint(app)
@@ -212,6 +248,7 @@ def register_admin(app):
     @app.patch(PREFIX + "/admin/models/{mid}")
     @blocking_endpoint(app, json_body=True)
     def model_edit(mid: str, request: Request, user=Depends(require_capability("models.manage"))):
+        from .runtime_security import block_runtime
         s = app.state.store
         with s.tx() as db:
             row = db.execute("SELECT * FROM models WHERE id=?", (own_id(mid),)).fetchone()
@@ -222,6 +259,9 @@ def register_admin(app):
             if data["is_default"]:
                 db.execute("UPDATE models SET is_default=0")
             db.execute("UPDATE models SET name=?,description=?,base_url=?,model_id=?,secret=?,enabled=?,is_default=? WHERE id=?", (data["name"], data["description"], data["base_url"], data["model_id"], data["secret"], data["enabled"], data["is_default"], mid))
+            if old["enabled"] and not data["enabled"]:
+                for row in db.execute("SELECT uid FROM grants WHERE kind='model' AND resource=?", (mid,)).fetchall():
+                    block_runtime(s, db, row["uid"], reason="model_disabled")
         queued = []
         for row in s.rows("SELECT uid FROM grants WHERE kind='model' AND resource=?", (mid,)):
             try:
@@ -287,26 +327,35 @@ def register_admin(app):
         except (zipfile.BadZipFile, KeyError, ValueError, jsonschema.SchemaError):
             fail("插件包无效，需要 manifest.json 和打包好的入口文件")
         s = app.state.store
-        if s.one("SELECT 1 FROM plugins WHERE id=? AND version=?", (manifest["id"], manifest["version"])):
-            fail("该版本已经发布，不能覆盖；请使用新版本号", 409)
         sha = hashlib.sha256(data).hexdigest()
         folder = s.root / "packages"
         folder.mkdir(exist_ok=True)
         path = folder / (sha + ".zip")
-        path.write_bytes(data)
-        with s.tx() as db:
-            db.execute("INSERT INTO plugins VALUES(?,?,?,?,?,?,?,1)", (manifest["id"], manifest["version"], str(manifest.get("name", manifest["id"]))[:100], str(manifest.get("description", ""))[:1000], encode(manifest), str(path), sha))
-        request.state.management_target = manifest["id"] + "@" + manifest["version"]
-        return {"id": manifest["id"], "version": manifest["version"], "digest": sha}
+        if not path.exists():
+            path.write_bytes(data)
+        def publish_prepared():
+            with s.tx() as db:
+                if db.execute("SELECT 1 FROM plugins WHERE id=? AND version=?", (manifest["id"], manifest["version"])).fetchone():
+                    fail("该版本已经发布，不能覆盖；请使用新版本号", 409)
+                db.execute("INSERT INTO plugins VALUES(?,?,?,?,?,?,?,1)", (manifest["id"], manifest["version"], str(manifest.get("name", manifest["id"]))[:100], str(manifest.get("description", ""))[:1000], encode(manifest), str(path), sha))
+            request.state.management_target = manifest["id"] + "@" + manifest["version"]
+            return {"id": manifest["id"], "version": manifest["version"], "digest": sha}
+        from .idempotency import execute
+        return execute(request, user, publish_prepared)
 
     @app.patch(PREFIX + "/admin/plugins/{pid}/{version}")
     @blocking_endpoint(app, json_body=True)
     def plugin_state(pid: str, version: str, request: Request, user=Depends(require_capability("plugins.manage"))):
+        from .runtime_security import block_runtime
         data = body_fields(request.state.json_body, ("enabled",))
         s = app.state.store
         with s.tx() as db:
+            old = db.execute("SELECT enabled FROM plugins WHERE id=? AND version=?", (own_id(pid), version)).fetchone()
             if not db.execute("UPDATE plugins SET enabled=? WHERE id=? AND version=?", (bool(data.get("enabled")), own_id(pid), version)).rowcount:
                 fail("插件版本不存在", 404)
+            if old and old["enabled"] and not bool(data.get("enabled")):
+                for row in db.execute("SELECT uid FROM installs WHERE plugin=? AND version=?", (pid, version)).fetchall():
+                    block_runtime(s, db, row["uid"], reason="plugin_disabled")
         jobs = []
         for row in s.rows("SELECT uid FROM installs WHERE plugin=? AND version=?", (pid, version)):
             try:

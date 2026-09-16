@@ -136,9 +136,12 @@ def test_bindings_are_version_scoped_and_specs_split_credentials(context):
         user.__exit__(None, None, None)
 
 
-def test_schema_two_upgrade_never_promotes_new_admin_or_revokes_auth(context):
+def test_schema_two_upgrade_never_promotes_new_admin_or_revokes_auth(context, monkeypatch):
     s, _, admin = context
     manager = admin.post(P + "/admin/users", json={"username": "v2-manager", "password": PASSWORD, "role": "admin"}).json()["user"]
+    from r2_helpers import strip_v4
+    strip_v4(s)
+    monkeypatch.setenv("PX_ALLOW_V4_MIGRATION", "1")
     with s.tx() as db:
         db.execute("INSERT INTO auth VALUES(?,?,?,?,?,?,?,?)", (digest("synthetic-manager-token"), manager["id"], "token", "fixture", None, now()+600, 1, now()))
         db.execute("DROP TABLE plugin_connections")
@@ -148,7 +151,7 @@ def test_schema_two_upgrade_never_promotes_new_admin_or_revokes_auth(context):
     args = (s.root, s.root.parent / "key", s.root.parent / "worker", s.root.parent / "admin")
     for _ in range(2):
         reopened = Store(*args)
-        assert reopened.schema_version() == 3
+        assert reopened.schema_version() == 4
         assert reopened.user(manager["id"])["role"] == "admin"
         assert reopened.one("SELECT * FROM auth WHERE hash=?", (digest("synthetic-manager-token"),))
         assert reopened.one("SELECT count(*) AS n FROM audit WHERE target='control.connections.v3'")["n"] == 1

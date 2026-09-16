@@ -63,7 +63,7 @@ def _principal(request: Request):
     s = request.app.state.store
     bearer = request.headers.get("authorization", "")
     token = bearer[7:] if bearer.startswith("Bearer ") else request.cookies.get("px_session", "")
-    record = s.one("SELECT a.*,u.role,u.username,u.active,u.must_change,u.auth_version,r.id AS runtime_id,r.status AS runtime_status,r.spec AS runtime_spec FROM auth a JOIN users u ON u.id=a.uid LEFT JOIN runtimes r ON r.uid=u.id WHERE a.hash=?", (digest(token),)) if token else None
+    record = s.one("SELECT a.*,u.role,u.username,u.active,u.must_change,u.auth_version,r.id AS runtime_id,r.status AS runtime_status,r.spec AS runtime_spec,r.security_blocked,r.recovery_required,r.gate_policy FROM auth a JOIN users u ON u.id=a.uid LEFT JOIN runtimes r ON r.uid=u.id WHERE a.hash=?", (digest(token),)) if token else None
     if not record or not record["active"] or record["expires"] < now() or record["version"] != record["auth_version"]:
         fail("登录已失效，请重新登录", 401)
     from .roles import CAPABILITIES
@@ -76,11 +76,18 @@ def _principal(request: Request):
             fail("页面验证已过期，请刷新后重试", 403)
     if record["must_change"] and request.url.path not in (PREFIX + "/me", PREFIX + "/me/password", PREFIX + "/auth/logout"):
         fail("请先修改初始密码", 403)
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        permitted_maintenance = (request.url.path in (PREFIX + "/auth/logout", PREFIX + "/me/password", PREFIX + "/admin/maintenance")
+                                or request.url.path.startswith(PREFIX + "/admin/recovery/")
+                                or re.fullmatch(PREFIX + r"/sessions/[^/]+/abort|" + PREFIX + r"/(permissions|questions)/[^/]+/(reply|reject)", request.url.path))
+        if not permitted_maintenance and s.maintenance_status()["maintenance_mode"] != "normal":
+            fail("平台正在维护，请稍后再提交新操作", 503)
     rid, status, encrypted = (record.pop(name) for name in ("runtime_id", "runtime_status", "runtime_spec"))
     # This is a request-local view from the authentication read, never an account
     # cache. Every new HTTP request and every SSE identity check reads SQLite.
     request.state.runtime_binding = {"uid": record["uid"], "id": rid, "status": status,
-                                     "key": s.decrypt(encrypted)["gateway_key"] if encrypted else None}
+                                     "key": s.decrypt(encrypted)["gateway_key"] if encrypted else None,
+                                     **{name: record.pop(name) for name in ("security_blocked", "recovery_required", "gate_policy")}}
     return record
 
 
@@ -119,12 +126,20 @@ async def normal(request: Request):
 def runtime(request, user, write=False):
     cached = getattr(request.state, "runtime_binding", None)
     if cached and cached["uid"] == user["uid"]:
-        if not cached["id"] or cached["status"] not in (("ready",) if write else ("ready", "updating")):
+        if write and cached.get("security_blocked"):
+            fail("此工作空间已限制新调用，正在确认相关任务停止状态", 409)
+        if write and (cached.get("recovery_required") or cached.get("gate_policy") != "open"):
+            fail("工作空间入口尚未就绪，输入内容已保留，请稍后刷新状态", 409)
+        if not cached["id"] or cached["status"] not in (("ready",) if write else ("ready", "updating", "draining")):
             fail("你的环境尚未就绪，请稍后重试或联系管理员", 409)
         return f"http://px-{cached['id']}-gateway:8080", {"X-Peixian-Key": cached["key"]}
     s = request.app.state.store
     r = s.one("SELECT * FROM runtimes WHERE uid=?", (user["uid"],))
-    if not r or r["status"] not in (("ready",) if write else ("ready", "updating")):
+    if write and r and r["security_blocked"]:
+        fail("此工作空间已限制新调用，正在确认相关任务停止状态", 409)
+    if write and r and (r["recovery_required"] or r["gate_policy"] != "open"):
+        fail("工作空间入口尚未就绪，输入内容已保留，请稍后刷新状态", 409)
+    if not r or r["status"] not in (("ready",) if write else ("ready", "updating", "draining")):
         fail("你的环境尚未就绪，请稍后重试或联系管理员", 409)
     spec = s.decrypt(r["spec"])
     return f"http://px-{r['id']}-gateway:8080", {"X-Peixian-Key": spec["gateway_key"]}
@@ -190,13 +205,41 @@ def public_session(value):
 def tool_displays(store, uid):
     result = {}
     from .plugin_schema import secret_values
-    rows = store.rows("SELECT p.manifest,i.config FROM installs i JOIN plugins p ON p.id=i.plugin AND p.version=i.version JOIN grants g ON g.uid=i.uid AND g.kind='plugin' AND g.resource=i.plugin WHERE i.uid=? AND i.enabled=1 AND p.enabled=1", (uid,))
-    for row in rows:
-        manifest = json.loads(row["manifest"])
+    with store.read(snapshot=True) as db:
+        runtime = db.execute("SELECT applied_spec_ciphertext FROM runtimes WHERE uid=?", (uid,)).fetchone()
+        applied = store.decrypt(runtime["applied_spec_ciphertext"]) if runtime and runtime["applied_spec_ciphertext"] else {}
+        grants = {row[0] for row in db.execute("SELECT resource FROM grants WHERE uid=? AND kind='plugin'", (uid,))}
+        snapshots = [applied]
+        snapshots.extend(store.decrypt(row[0]) for row in db.execute(
+            "SELECT spec_ciphertext FROM job_attempts WHERE job_id IN (SELECT id FROM jobs WHERE uid=?) AND outcome IS NULL", (uid,)))
+        current = list(db.execute("SELECT p.manifest,i.config FROM installs i JOIN plugins p ON p.id=i.plugin AND p.version=i.version WHERE i.uid=?", (uid,)))
+    secrets_to_hide = set()
+    for row in current:
+        secrets_to_hide.update(secret_values(json.loads(row["manifest"]).get("config_schema", {}), store.decrypt(row["config"])))
+    for snapshot in snapshots:
+        for plugin in snapshot.get("plugins", []):
+            secrets_to_hide.update(secret_values(plugin.get("manifest", {}).get("config_schema", {}), plugin.get("options", {})))
+        secrets_to_hide.update(str(value) for value in snapshot.get("private", {}).values() if isinstance(value, str))
+        secrets_to_hide.update(m["api_key"] for m in snapshot.get("models", []) if m.get("api_key"))
+        for connection in snapshot.get("connections", []):
+            if connection.get("token"):
+                secrets_to_hide.add(connection["token"])
+            for value in connection.get("headers", {}).values():
+                if isinstance(value, str) and value:
+                    secrets_to_hide.add(value)
+                    if value.startswith("Bearer "):
+                        secrets_to_hide.add(value[7:])
+    # This synthetic entry carries only the redaction union; no tool can use it
+    # to acquire a display allowlist or privileges.
+    result["_redaction"] = {"_secrets": sorted(secrets_to_hide)}
+    for plugin in applied.get("plugins", []):
+        if plugin["id"] not in grants:
+            continue
+        manifest = plugin["manifest"]
         display = manifest.get("display", {})
         if not isinstance(display, dict):
             continue
-        display = {**display, "_secrets": secret_values(manifest.get("config_schema", {}), store.decrypt(row["config"]))}
+        display = {**display, "_secrets": sorted(secrets_to_hide)}
         for name in manifest.get("tools", []):
             if isinstance(name, str):
                 result[name] = display
@@ -336,10 +379,16 @@ async def download_stream(request, user, path):
 def create_app(store=None):
     @asynccontextmanager
     async def lifespan(app):
+        from shared.orchestration_config import from_environment
+        from .runtime_security import SafetyCoordinator
+        app.state.orchestration_settings = from_environment()
         config = app.state.limits = settings()
         app.state.db_work = WorkPool(config["db_workers"], config["db_queue"], config["db_queue_seconds"], "database")
         app.state.crypto_work = WorkPool(config["crypto_workers"], config["crypto_queue"], config["crypto_queue_seconds"], "password")
         app.state.store = store or await app.state.db_work.run(configured_store)
+        if store is None:
+            from .runtime_security import control_started
+            await app.state.db_work.run(control_started, app.state.store)
         app.state.http = httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10, pool=2), trust_env=False,
             limits=httpx.Limits(max_connections=config["http_connections"], max_keepalive_connections=config["http_keepalive"]))
         app.state.stream_http = httpx.AsyncClient(timeout=httpx.Timeout(None, connect=5, pool=2, write=10), trust_env=False,
@@ -353,9 +402,12 @@ def create_app(store=None):
         app.state.live_text = LiveTextCache(max_owners=config["sse_owners"], owner_ttl_seconds=config["sse_owner_ttl_seconds"],
             max_total_bytes=32 * 1024 * 1024, max_parts=1024, max_messages=1024)
         await initialize_streams(app)
+        app.state.safety = SafetyCoordinator(app)
+        app.state.safety.start()
         try:
             yield
         finally:
+            await app.state.safety.close()
             await close_streams(app)
             await app.state.http.aclose()
             await app.state.stream_http.aclose()
@@ -363,7 +415,7 @@ def create_app(store=None):
             await app.state.crypto_work.close()
             await app.state.db_work.close()
 
-    app = FastAPI(title="Agent 工作台", version="1.2.0", lifespan=lifespan, docs_url=None, redoc_url=None)
+    app = FastAPI(title="Agent 工作台", version="1.3.0", lifespan=lifespan, docs_url=None, redoc_url=None)
 
     app.add_middleware(RequestLimits)
 
@@ -421,7 +473,7 @@ def create_app(store=None):
     @app.get("/health")
     @blocking_endpoint(app)
     def health():
-        return {"status": "ok", "version": "1.2.0", "schema_version": app.state.store.schema_version()}
+        return {"status": "ok", "version": "1.3.0", "schema_version": app.state.store.schema_version(), "runtime_protocol_version": 2}
 
     @app.get(PREFIX + "/platform")
     async def platform():
@@ -560,6 +612,10 @@ def create_app(store=None):
         model = next((m for m in available if m["id"] == data.get("model_id")), None) if data.get("model_id") else next(iter(available), None)
         if not model:
             fail("请联系管理员配置并授权模型", 403)
+        applied_row = await app.state.db_work.run(s.one, "SELECT applied_spec_ciphertext FROM runtimes WHERE uid=?", (user["uid"],))
+        applied = s.decrypt(applied_row["applied_spec_ciphertext"]) if applied_row and applied_row["applied_spec_ciphertext"] else {}
+        if model["id"] not in {item["id"] for item in applied.get("models", [])}:
+            fail("所选模型配置尚未生效，请等待工作空间更新；问题内容已保留", 409)
         text = data.get("text", "")
         if not isinstance(text, str) or not text.strip() or len(text) > 32000:
             fail("请输入问题，且单次文字不超过 32000 个字符")
@@ -570,9 +626,12 @@ def create_app(store=None):
         prelude = []
         input_bytes = len(text.encode("utf-8"))
         for skill_id in skills:
-            skill = await app.state.db_work.run(s.one, "SELECT name,content FROM skills WHERE id=? AND uid=? AND enabled=1", (own_id(skill_id), user["uid"]))
-            if not skill:
+            current_skill = await app.state.db_work.run(s.one, "SELECT id FROM skills WHERE id=? AND uid=? AND enabled=1", (own_id(skill_id), user["uid"]))
+            if not current_skill:
                 fail("所选技能不存在或未启用", 404)
+            skill = next((item for item in applied.get("skills", []) if item["id"] == skill_id), None)
+            if not skill:
+                fail("所选技能尚未生效，请等待工作空间更新", 409)
             input_bytes += len(skill["content"].encode("utf-8"))
             prelude.append("请使用已启用的技能：" + skill["name"])
         budget = 24000
@@ -611,6 +670,8 @@ def create_app(store=None):
     from .connections import register_connections
     register_connections(app)
     register_worker(app)
+    from .runtime_security import register_runtime_security
+    register_runtime_security(app)
     register_files(app)
     static = Path(os.getenv("CONSOLE_STATIC", "/app/static"))
     if static.is_dir():

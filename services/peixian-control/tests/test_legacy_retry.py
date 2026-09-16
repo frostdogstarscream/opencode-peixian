@@ -6,6 +6,7 @@ import pytest
 
 from control.openapi import build_openapi
 from control.store import digest, now
+from r2_helpers import legacy_cleanup
 from test_control import context, P
 from test_worker_snapshot import legacy_payload
 
@@ -22,7 +23,7 @@ def imported(context, *, rollback=True):
     body = {"uid": record["uid"], "snapshot_id": payload["snapshot"]["id"], "legacy_stopped": True}
     if rollback:
         response = client.post("/internal/worker/legacy-rollback", headers=headers,
-                               json={"uid": body["uid"], "snapshot_id": body["snapshot_id"], "cleanup_confirmed": True})
+                               json={"uid": body["uid"], "snapshot_id": body["snapshot_id"], "cleanup_confirmed": True, **legacy_cleanup(store, body["uid"])})
         assert response.status_code == 200, response.text
     return store, client, headers, body, record
 
@@ -177,7 +178,7 @@ def test_retry_cannot_replay_after_revocation_or_superseded_attempt(context, mut
     uid = body["uid"]
     if mutation == "later_rollback":
         response = client.post("/internal/worker/legacy-rollback", headers=headers,
-                               json={"uid": uid, "snapshot_id": body["snapshot_id"], "cleanup_confirmed": True})
+                               json={"uid": uid, "snapshot_id": body["snapshot_id"], "cleanup_confirmed": True, **legacy_cleanup(store, uid)})
         assert response.status_code == 200, response.text
     else:
         with store.tx() as db:

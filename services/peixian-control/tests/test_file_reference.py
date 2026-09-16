@@ -23,8 +23,11 @@ def test_incomplete_file_is_rejected_before_model_submission(context, monkeypatc
     assert model_response.status_code == 200
     mid = model_response.json()["id"]
     assert administrator.patch(P + "/admin/users/" + account["id"], json={"model_ids": [mid]}).status_code == 200
+    from control.worker_api import runtime_spec
     with store.tx() as database:
-        database.execute("UPDATE runtimes SET status='ready',revision=desired WHERE uid=?", (account["id"],))
+        desired = database.execute("SELECT desired FROM runtimes WHERE uid=?", (account["id"],)).fetchone()[0]
+        applied = runtime_spec(store, account["id"], desired, db=database)
+        database.execute("UPDATE runtimes SET status='ready',revision=desired,gate_policy='open',applied_spec_ciphertext=? WHERE uid=?", (store.encrypt(applied), account["id"]))
     prompt_requests = []
 
     async def fake_upstream(request, user, method, path, **kwargs):

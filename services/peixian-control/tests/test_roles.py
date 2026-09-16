@@ -39,7 +39,8 @@ def legacy_database(tmp_path):
     return root, tmp_path / "key", tmp_path / "worker", tmp_path / "admin"
 
 
-def test_legacy_migration_revokes_only_old_admin_and_is_once(tmp_path):
+def test_legacy_migration_revokes_only_old_admin_and_is_once(tmp_path, monkeypatch):
+    monkeypatch.setenv("PX_ALLOW_V4_MIGRATION", "1")
     args = legacy_database(tmp_path)
     s = Store(*args)
     assert s.schema_version() == SCHEMA_VERSION
@@ -66,7 +67,8 @@ def test_legacy_migration_revokes_only_old_admin_and_is_once(tmp_path):
     assert len(reopened.rows("SELECT * FROM audit WHERE action='schema.migrate' AND target='control.roles.v2'")) == 1
 
 
-def test_migration_ddl_roles_auth_and_version_rollback_together(tmp_path):
+def test_migration_ddl_roles_auth_and_version_rollback_together(tmp_path, monkeypatch):
+    monkeypatch.setenv("PX_ALLOW_V4_MIGRATION", "1")
     args = legacy_database(tmp_path)
 
     class InterruptedStore(Store):
@@ -88,11 +90,11 @@ def test_migration_ddl_roles_auth_and_version_rollback_together(tmp_path):
 def test_unknown_newer_schema_is_rejected_without_downgrade(tmp_path):
     args = legacy_database(tmp_path)
     with sqlite3.connect(args[0] / "control.sqlite3") as db:
-        db.execute("PRAGMA user_version=4")
+        db.execute("PRAGMA user_version=5")
     with pytest.raises(ValueError, match="newer"):
         Store(*args)
     with sqlite3.connect(args[0] / "control.sqlite3") as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
         assert db.execute("SELECT role FROM users WHERE id='old-administrator'").fetchone()[0] == "admin"
 
 
@@ -112,7 +114,7 @@ def manager(context):
 def test_bootstrap_capabilities_role_matrix_and_admin_has_no_runtime(context, manager):
     s, app, superuser = context
     managed, administrator = manager
-    assert superuser.get("/health").json() == {"status": "ok", "version": "1.2.0", "schema_version": SCHEMA_VERSION}
+    assert superuser.get("/health").json() == {"status": "ok", "version": "1.3.0", "schema_version": SCHEMA_VERSION, "runtime_protocol_version": 2}
     assert superuser.get(P + "/me").json()["user"]["role"] == "super_admin"
     assert s.rows("SELECT * FROM runtimes") == [] and s.rows("SELECT * FROM jobs") == []
     assert s.rows("SELECT * FROM grants WHERE uid=?", (managed["id"],)) == []

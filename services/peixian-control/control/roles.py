@@ -26,4 +26,6 @@ MANAGEMENT_ACTIONS = {
     "connection_edit": "connection.update", "connection_delete": "connection.delete",
     "connection_test": "connection.test", "plugin_connections_get": "plugin.connections_read",
     "plugin_connections_put": "plugin.connections_update",
+    "maintenance_state": "maintenance.read", "maintenance_set": "maintenance.update",
+    "recovery_action": "runtime.recovery",
 }

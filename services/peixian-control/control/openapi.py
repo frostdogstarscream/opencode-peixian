@@ -253,12 +253,16 @@ def schemas():
     installed = result["Plugin"]["properties"]["installed"]["anyOf"][0]["properties"]
     installed["missing_connections"] = array(STRING)
     installed["state"]["enum"].append("unconfigured")
-    return result
+    from .openapi_r2 import extend
+    return extend(result, obj, ref, array, ID, STRING, BOOL, INTEGER)
 
 
 # Keys are actual route suffixes (or the explicit expansion of an actual route).
 # Response status comes from FastAPI's registered route, not a duplicate table.
 CONTRACTS = {
+    ("get", "/admin/maintenance"): (None, ref("Maintenance"), "查看维护与恢复状态", "管理：环境", "仅超级管理员；不包含用户正文或内部凭据。"),
+    ("post", "/admin/maintenance"): ("MaintenanceBody", ref("Maintenance"), "调整持久维护状态", "管理：环境", "要求当前状态版本；冻结跨重启保留。解除冻结不跳过实际运行状态核对。"),
+    ("post", "/admin/recovery/{uid}"): ("RecoveryBody", ref("Queued"), "处理等待排空的环境", "管理：环境", "仅超管选择继续等待或取消已准入活动后更新；取消不保证撤销外部副作用。"),
     ("get", "/platform"): (None, ref("Platform"), "获取公开产品信息", "平台", "仅产品名称、简称与介绍，不包含部署标识、内部地址或任何凭据。"),
     ("get", "/admin/connections"): (None, items(ref("ServiceConnection")), "列出服务连接", "管理：连接", "仅超级管理员；凭据只返回 secret_configured。"),
     ("post", "/admin/connections"): ("ServiceConnectionCreate", ref("ServiceConnection"), "创建固定服务连接", "管理：连接", "配置鉴权、固定地址、方法及路径范围。"),
@@ -329,10 +333,18 @@ CONTRACTS = {
 }
 
 WORKER_CONTRACTS = {
+    ("post", "/internal/worker/jobs/{jid}/phase"): ("PhaseBody", ref("WorkerReceipt")),
+    ("post", "/internal/worker/jobs/{jid}/boot"): ("BootBody", ref("WorkerReceipt")),
+    ("get", "/internal/worker/jobs/{jid}"): (None, ref("WorkerReceipt")),
+    ("post", "/internal/worker/observations"): ("ObservationBody", ref("WorkerReceipt")),
+    ("get", "/internal/worker/reconcile"): (None, obj({"items": array(obj({}, extra=True)), "generation": INTEGER}, extra=True)),
+    ("post", "/internal/worker/reconcile"): ("ReconcileBody", ref("WorkerReceipt")),
+    ("get", "/internal/worker/maintenance"): (None, ref("Maintenance")),
+    ("post", "/internal/worker/maintenance"): ("WorkerMaintenanceBody", ref("Maintenance")),
     ("get", "/internal/worker/busy"): (None, obj({"busy": BOOL}, ("busy",))),
     ("post", "/internal/worker/claim"): (None, ref("WorkerClaim")),
-    ("post", "/internal/worker/jobs/{jid}/heartbeat"): ("LeaseBody", ref("Ok")),
-    ("post", "/internal/worker/jobs/{jid}/complete"): ("CompleteBody", ref("Ok")),
+    ("post", "/internal/worker/jobs/{jid}/heartbeat"): ("LeaseBody", ref("WorkerReceipt")),
+    ("post", "/internal/worker/jobs/{jid}/complete"): ("CompleteBody", ref("WorkerReceipt")),
     ("post", "/internal/worker/legacy-import"): ("LegacyImportBody", ref("LegacyStatus")),
     ("get", "/internal/worker/legacy-status/{uid}"): (None, ref("LegacyStatus")),
     ("post", "/internal/worker/legacy-rollback"): ("LegacyRollbackBody", ref("LegacyStatus")),
@@ -430,6 +442,8 @@ def build_openapi(app):
                     raise ValueError("Undocumented internal API route: " + method + " " + path)
                 operation.update(tags=["内部：Worker"], security=[{"WorkerKey": []}], **{"x-internal": True, "x-role": "worker"})
                 operation["description"] = "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。"
+                operation.setdefault("parameters", []).append({"name": "X-Peixian-Protocol", "in": "header", "required": True, "schema": {"type": "string", "const": "2"}})
+                operation["description"] += "内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。"
                 if path == "/internal/worker/legacy-retry":
                     operation["summary"] = "重试已回退的固定旧环境迁移"
                     operation["description"] += (
@@ -452,17 +466,22 @@ def build_openapi(app):
                 anonymous = path in (P + "/auth/login", P + "/platform")
                 common = path in (P + "/me", P + "/me/password", P + "/auth/logout") or path.startswith(P + "/tokens")
                 management = path.startswith(P + "/admin/")
-                super_only = management and (path.startswith((P + "/admin/plugins", P + "/admin/templates", P + "/admin/jobs", P + "/admin/connections")) or "/runtime/" in path)
+                super_only = management and (path.startswith((P + "/admin/plugins", P + "/admin/templates", P + "/admin/jobs", P + "/admin/connections", P + "/admin/maintenance", P + "/admin/recovery/")) or "/runtime/" in path)
                 operation["x-role"] = "anonymous" if anonymous else "super_admin" if super_only else "super_admin|admin" if management else "authenticated" if common else "user"
                 if management:
                     operation["x-roles"] = ["super_admin"] if super_only else ["super_admin", "admin"]
                     capability = ("connections.manage" if "/admin/connections" in path or path.endswith("/connections") else "plugins.manage" if "/admin/plugins" in path else "templates.manage" if "/admin/templates" in path
-                                  else "jobs.read" if "/admin/jobs" in path else "runtimes.manage" if "/runtime/" in path
+                                  else "jobs.read" if "/admin/jobs" in path else "runtimes.manage" if "/runtime/" in path or "/admin/maintenance" in path or "/admin/recovery/" in path
                                   else "models.manage" if "/admin/models" in path else "audit.read" if "/admin/audit" in path else "users.manage")
                     operation["x-capability"] = capability
                 operation["security"] = [] if anonymous else [{"BearerToken": []}, {"SessionCookie": [], **({"CsrfToken": []} if method not in ("get", "head", "options") else {})}]
                 annotate_body(operation, body)
                 annotate_response(operation, output)
+                from .idempotency import MUTATIONS
+                if method not in ("get", "head", "options") and MUTATIONS.fullmatch(path):
+                    operation.setdefault("parameters", []).append({"name": "Idempotency-Key", "in": "header", "required": True,
+                        "schema": {"type": "string", "pattern": "^[A-Za-z0-9_-]{8,100}$"},
+                        "description": "同账号、同接口、同键与同内容返回首次提交结果；内容冲突返回409。已闭合记录保留至少7天。消息生成与外部工具执行不属于自动重试保证。"})
                 if path == P + "/events":
                     operation["responses"] = {"200": response(STRING, "持续的 SSE 变更通知流", "text/event-stream")}
                     operation["x-sse-event"] = {"event": "change", "data": obj({"type": {"type": "string", "enum": ["connected", "updated"]},

@@ -24,7 +24,7 @@ def context(tmp_path, monkeypatch):
     with TestClient(app) as client:
         r = client.post(P + "/auth/login", json={"username": "admin", "password": PASSWORD})
         assert r.status_code == 200
-        client.headers.update({"X-CSRF-Token": r.json()["csrf_token"], "Origin": "http://testserver"})
+        client.headers.update({"X-CSRF-Token": r.json()["csrf_token"], "Origin": "http://testserver", "X-Peixian-Protocol": "2"})
         assert client.post(P + "/me/password", json={"current_password": PASSWORD, "password": PASSWORD + "-changed"}).status_code == 200
         yield store, app, client
 
@@ -156,12 +156,14 @@ def test_worker_lease_takeover(context):
     assert first.status_code == 200, first.text
     job = first.json()["job"]
     assert admin.post("/internal/worker/claim", headers=headers, json={}).json()["job"] is None
-    assert admin.post("/internal/worker/jobs/" + job["id"] + "/complete", headers=headers, json={"lease": "wrong", "ok": True}).status_code == 409
+    assert admin.post("/internal/worker/jobs/" + job["id"] + "/complete", headers=headers, json={"lease": "wrong", "attempt": job["attempt"], "operation_id": "wrong-lease", "ok": True}).status_code == 409
     with s.tx() as db:
         db.execute("UPDATE jobs SET heartbeat=?", (now() - 100,))
     again = admin.post("/internal/worker/claim", headers=headers, json={}).json()["job"]
     assert again["id"] == job["id"] and again["lease"] != job["lease"]
-    assert admin.post("/internal/worker/jobs/" + again["id"] + "/complete", headers=headers, json={"lease": again["lease"], "ok": False, "cleanup_confirmed": True}).status_code == 200
+    from r2_helpers import observe
+    observation_id = observe(s, again, stopped=True)
+    assert admin.post("/internal/worker/jobs/" + again["id"] + "/complete", headers=headers, json={"lease": again["lease"], "attempt": again["attempt"], "operation_id": "cleaned-failure", "ok": False, "observation_id": observation_id}).status_code == 200
     assert s.one("SELECT reserved FROM runtimes")["reserved"] == 0
     assert "gateway_key" not in admin.get(P + "/admin/users").text
 

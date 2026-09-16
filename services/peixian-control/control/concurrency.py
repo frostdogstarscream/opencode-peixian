@@ -105,8 +105,13 @@ def blocking_endpoint(app, *, json_body=False, upload=False, hash_password=False
         signature = inspect.signature(fn)
         @wraps(fn)
         async def endpoint(*args, **kwargs):
+            from .idempotency import required, key, execute
+            values = signature.bind(*args, **kwargs).arguments
+            request = values.get("request")
+            mutation = request is not None and required(request)
+            if mutation:
+                key(request)
             if json_body or upload:
-                values = signature.bind(*args, **kwargs).arguments
                 request = values["request"]
                 if json_body:
                     request.state.json_body = await request.json()
@@ -119,6 +124,8 @@ def blocking_endpoint(app, *, json_body=False, upload=False, hash_password=False
                     request.state.password_hash = await app.state.crypto_work.run(app.state.store.passwords.hash, password)
                 if upload:
                     request.state.upload_body = await values["file"].read(20 * 1024 * 1024 + 1)
+            if mutation and not upload:
+                return await app.state.db_work.run(execute, request, values["user"], partial(fn, *args, **kwargs))
             return await app.state.db_work.run(fn, *args, **kwargs)
         return endpoint
     return decorate

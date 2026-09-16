@@ -8,6 +8,7 @@ import pytest
 
 from control.worker_api import runtime_spec
 from control.store import encode, now
+from r2_helpers import legacy_cleanup
 from test_control import context, create_user, PASSWORD, P, plugin_zip
 
 
@@ -80,8 +81,8 @@ def test_false_like_cleanup_value_cannot_release_capacity(context):
     headers = {"X-Worker-Key": store.worker_key}
     job = admin.post("/internal/worker/claim", headers=headers, json={}).json()["job"]
     response = admin.post("/internal/worker/jobs/" + job["id"] + "/complete", headers=headers,
-                          json={"lease": job["lease"], "ok": False, "cleanup_confirmed": "false"})
-    assert response.status_code == 200
+                          json={"lease": job["lease"], "attempt": job["attempt"], "operation_id": "invalid-cleanup", "ok": False, "cleanup_confirmed": "false"})
+    assert response.status_code == 422
     assert store.one("SELECT reserved FROM runtimes")["reserved"] == 1
 
 
@@ -137,7 +138,7 @@ def test_legacy_import_fixed_volumes_idempotency_and_rollback(context):
     assert admin.post("/internal/worker/legacy-rollback", headers=headers,
                       json={**rollback, "snapshot_id": "other", "cleanup_confirmed": True}).status_code == 404
     response = admin.post("/internal/worker/legacy-rollback", headers=headers,
-                          json={**rollback, "cleanup_confirmed": True})
+                          json={**rollback, "cleanup_confirmed": True, **legacy_cleanup(store, uid)})
     assert response.status_code == 200
     assert not store.user(uid)["active"]
     assert store.one("SELECT status,reserved FROM runtimes WHERE uid=?", (uid,)) == {"status": "failed", "reserved": 0}

@@ -5,11 +5,22 @@ app.state pools. The outer client owns startup/shutdown; sibling clients reuse
 its blocking portal, exactly as browsers share one running Control process.
 """
 from fastapi.testclient import TestClient as BaseTestClient
+import uuid
 
 
 class TestClient(BaseTestClient):
     __test__ = False
     _owner_attribute = "_peixian_test_lifespan_owner"
+
+    def request(self, method, url, **kwargs):
+        # Simulate the upgraded browser/Python client. Tests of missing keys use
+        # an explicit empty header or BaseTestClient; no server check is bypassed.
+        if method.upper() not in ("GET", "HEAD", "OPTIONS"):
+            headers = dict(kwargs.pop("headers", None) or {})
+            if not any(name.lower() == "idempotency-key" for name in headers):
+                headers["Idempotency-Key"] = uuid.uuid4().hex
+            kwargs["headers"] = headers
+        return super().request(method, url, **kwargs)
 
     def __init__(self, app, *args, **kwargs):
         super().__init__(app, *args, **kwargs)

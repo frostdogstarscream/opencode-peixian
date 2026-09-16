@@ -1,4 +1,4 @@
-"""Real temporary SQLite files exercise the v3 read/write and auth boundaries."""
+"""Real temporary SQLite files exercise the read/write and auth boundaries."""
 from concurrent.futures import ThreadPoolExecutor
 import sqlite3
 import threading
@@ -50,7 +50,7 @@ def test_normal_reads_are_readonly_and_do_not_request_write_transactions(store, 
     connections, statements = track_connections(store, monkeypatch)
     assert store.one("SELECT count(*) AS n FROM users")["n"] == 1
     assert len(store.rows("SELECT role FROM users")) == 1
-    assert store.schema_version() == SCHEMA_VERSION == 3
+    assert store.schema_version() == SCHEMA_VERSION == 4
     uid = store.one("SELECT id FROM users")["id"]
     assert store.user(uid)["runtime"] is None
     assert "BEGIN IMMEDIATE" not in statements
@@ -97,13 +97,14 @@ def test_snapshot_keeps_one_view_but_normal_reads_see_new_commits(store):
         assert plain.execute("SELECT active FROM users").fetchone()[0] == 1
 
 
-def test_busy_begin_is_bounded_and_failed_connection_closed(store, monkeypatch):
-    store.busy_timeout_ms = 75
-    connections, _ = track_connections(store, monkeypatch)
+def test_busy_begin_is_bounded_and_failed_connection_closed(store, store_args, monkeypatch):
+    second = Store(*store_args)
+    second.busy_timeout_ms = 75
+    connections, _ = track_connections(second, monkeypatch)
     with store.tx():
         started = time.monotonic()
         with pytest.raises(sqlite3.OperationalError, match="locked"):
-            with store.tx():
+            with second.tx():
                 pytest.fail("A second writer must not acquire the existing write lock")
         elapsed = time.monotonic() - started
         assert elapsed < 0.8
@@ -174,7 +175,7 @@ def test_wal_and_schema_are_preserved_across_reopen(store, store_args):
     with store.read() as db:
         assert db.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     reopened = Store(*store_args)
-    assert reopened.schema_version() == 3
+    assert reopened.schema_version() == 4
     assert reopened.one("SELECT count(*) AS n FROM users")["n"] == 1
     assert len(reopened.rows("SELECT * FROM audit WHERE action='schema.migrate'")) == 2
 

@@ -1,2 +1,4 @@
 packages/core/migration/**/snapshot.json linguist-generated
 packages/core/src/database/migration.gen.ts linguist-generated
+# Migration identity must be identical in Windows working trees and release archives.
+services/peixian-control/control/migrations_v4.py text eol=lf

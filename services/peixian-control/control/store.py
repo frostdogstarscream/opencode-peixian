@@ -6,12 +6,13 @@ import os
 import secrets
 import sqlite3
 import time
+import threading
 import uuid
 
 from argon2 import PasswordHasher, extract_parameters
 from cryptography.fernet import Fernet
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def ident():
@@ -44,11 +45,16 @@ class Store:
         if len(self.worker_key) < 32:
             raise ValueError("Worker credential is invalid")
         self.passwords = PasswordHasher()
+        self._transaction_local = threading.local()
         self._initialize_wal()
         with self.tx() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
+            fresh = version == 0 and not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'").fetchone()
             if version > SCHEMA_VERSION:
                 raise ValueError("Control database schema is newer than this application")
+            if version == 4:
+                from .migrations_v4 import validate
+                validate(db)
             schema = """
                 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,username TEXT UNIQUE NOT NULL,password TEXT NOT NULL,role TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,must_change INTEGER NOT NULL DEFAULT 1,auth_version INTEGER NOT NULL DEFAULT 1,created INTEGER NOT NULL);
                 CREATE TABLE IF NOT EXISTS auth(hash TEXT PRIMARY KEY,uid TEXT NOT NULL,kind TEXT NOT NULL,name TEXT,csrf TEXT,expires INTEGER NOT NULL,version INTEGER NOT NULL,created INTEGER NOT NULL);
@@ -77,6 +83,11 @@ class Store:
                 raise ValueError("Control database has no super administrator")
             if db.execute("SELECT 1 FROM users WHERE role NOT IN ('super_admin','admin','user')").fetchone():
                 raise ValueError("Control database contains an unsupported role")
+            from .migrations_v4 import migrate, validate
+            if version < 4:
+                migrate(self, db, fresh=fresh, timestamp=now())
+            else:
+                validate(db)
 
     def migrate_roles(self, db, admin_password_file):
         columns = {row["name"] for row in db.execute("PRAGMA table_info(audit)")}
@@ -153,6 +164,10 @@ class Store:
 
     @contextmanager
     def read(self, *, snapshot=False):
+        active = getattr(self._transaction_local, "db", None)
+        if active is not None:
+            yield active
+            return
         db = self._connect(readonly=True)
         try:
             if snapshot:
@@ -168,10 +183,15 @@ class Store:
 
     @contextmanager
     def tx(self):
+        active = getattr(self._transaction_local, "db", None)
+        if active is not None:
+            yield active
+            return
         db = self._connect()
         try:
             # Keep BEGIN inside the cleanup scope: busy can fail before yielding.
             db.execute("BEGIN IMMEDIATE")
+            self._transaction_local.db = db
             yield db
             db.execute("COMMIT")
         except BaseException:
@@ -179,6 +199,10 @@ class Store:
             raise
         else:
             db.close()
+        finally:
+            self._transaction_local.db = None
+
+    atomic_request = tx
 
     def rows(self, query, args=()):
         with self.read() as db:
@@ -210,26 +234,35 @@ class Store:
         for value in set(values):
             if not db.execute(f"SELECT 1 FROM {table} WHERE id=? AND enabled=1", (value,)).fetchone():
                 raise ValueError("授权目标不存在或不可用")
+        previous = {row[0] for row in db.execute("SELECT resource FROM grants WHERE uid=? AND kind=?", (uid, kind))}
+        if previous - set(values):
+            from .runtime_security import block_runtime
+            block_runtime(self, db, uid, reason="authorization_revoked")
         db.execute("DELETE FROM grants WHERE uid=? AND kind=?", (uid, kind))
         db.executemany("INSERT INTO grants VALUES(?,?,?)", [(uid, kind, value) for value in set(values)])
 
-    def queue(self, uid, action="apply"):
+    def queue(self, uid, action="apply", **kwargs):
         with self.tx() as db:
-            return self.queue_in_transaction(db, uid, action)
+            return self.queue_in_transaction(db, uid, action, **kwargs)
 
-    def queue_in_transaction(self, db, uid, action="apply"):
+    def queue_in_transaction(self, db, uid, action="apply", *, reason="normal", bump_desired=True):
         if action not in ("apply", "pause", "resume", "provision"):
             raise ValueError("环境操作不支持")
         runtime = db.execute("SELECT * FROM runtimes WHERE uid=?", (uid,)).fetchone()
         if not runtime:
             raise ValueError("Environment is not registered")
-        desired = runtime["desired"] + (action == "apply")
+        platform = self.maintenance_status(db)
+        if action != "pause" and (platform["maintenance_mode"] != "normal" or not platform["capacity_healthy"]):
+            raise ValueError("平台维护或容量核对中，暂不接受新环境操作")
+        desired = runtime["desired"] + (action == "apply" and bump_desired)
         existing = db.execute("SELECT * FROM jobs WHERE uid=? AND status IN ('queued','running') ORDER BY created,rowid", (uid,)).fetchall()
         pause = next((job for job in existing if job["action"] == "pause"), None)
         if action == "pause" and pause:
             return dict(pause)
+        if action == "pause":
+            db.execute("UPDATE jobs SET status='cancelled',phase='finished',cancel_requested=1,updated=? WHERE uid=? AND action<>'pause' AND status='queued' AND recovery_required=0", (now(), uid))
         if action == "apply":
-            db.execute("UPDATE runtimes SET desired=?,updated=? WHERE uid=?", (desired, now(), uid))
+            db.execute("UPDATE runtimes SET desired=?,updated=?,state_version=state_version+1 WHERE uid=?", (desired, now(), uid))
             if pause:
                 return dict(pause)
             # Configuration editing must not silently start an unreserved runtime.
@@ -245,11 +278,60 @@ class Store:
                 raise ValueError("运行环境名额已满，请先暂停其他环境")
             db.execute("UPDATE runtimes SET reserved=1 WHERE uid=?", (uid,))
         job_id = ident()
-        state = {"apply": "updating", "provision": "provisioning", "resume": "provisioning", "pause": "updating"}[action]
-        db.execute("UPDATE runtimes SET desired=?,status=?,error=NULL,updated=? WHERE uid=?", (desired, state, now(), uid))
-        db.execute("INSERT INTO jobs(id,uid,action,status,revision,created,updated) VALUES(?,?,?,'queued',?,?,?)",
-                   (job_id, uid, action, desired, now(), now()))
+        state = runtime["status"] if action == "apply" else "draining" if action == "pause" else "provisioning"
+        db.execute("UPDATE runtimes SET desired=?,status=?,error=NULL,updated=?,state_version=state_version+1 WHERE uid=?", (desired, state, now(), uid))
+        if action == "pause":
+            db.execute("UPDATE runtimes SET gate_policy='closed',stop_reason=CASE WHEN security_blocked=1 THEN stop_reason ELSE ? END WHERE uid=?", ("admin" if reason == "normal" else reason, uid))
+        db.execute("INSERT INTO jobs(id,uid,action,status,revision,reason,created,updated) VALUES(?,?,?,'queued',?,?,?,?)",
+                   (job_id, uid, action, desired, reason, now(), now()))
         return {"id": job_id, "uid": uid, "action": action, "status": "queued", "revision": desired}
+
+    def ensure_apply_job(self, db, uid):
+        runtime = db.execute("SELECT * FROM runtimes WHERE uid=?", (uid,)).fetchone()
+        if not runtime or not runtime["reserved"] or runtime["desired"] <= runtime["revision"]:
+            return None
+        existing = db.execute("SELECT * FROM jobs WHERE uid=? AND status IN ('queued','running') ORDER BY enqueue_seq", (uid,)).fetchall()
+        if existing:
+            return dict(existing[-1])
+        job_id = ident()
+        db.execute("INSERT INTO jobs(id,uid,action,status,revision,created,updated) VALUES(?,?,'apply','queued',?,?,?)", (job_id, uid, runtime["desired"], now(), now()))
+        return {"id": job_id, "uid": uid, "action": "apply", "status": "queued", "revision": runtime["desired"]}
+
+    def ensure_recovery_job(self, db, uid):
+        """Recover unexpected restarts from verified applied state, never desired state."""
+        runtime = db.execute("SELECT * FROM runtimes WHERE uid=?", (uid,)).fetchone()
+        if (not runtime or not runtime["recovery_required"] or not runtime["reserved"]
+                or not runtime["applied_spec_ciphertext"] or not runtime["applied_spec_digest"]):
+            return None
+        existing = db.execute("SELECT * FROM jobs WHERE uid=? AND (status='running' OR recovery_required=1 OR (status='queued' AND action='pause')) ORDER BY enqueue_seq LIMIT 1", (uid,)).fetchone()
+        if existing:
+            return dict(existing)
+        job_id = ident()
+        db.execute("INSERT INTO jobs(id,uid,action,status,phase,revision,reason,recovery_required,created,updated) VALUES(?,?,'apply','queued','reconciling',?,'runtime_reconcile',1,?,?)",
+                   (job_id, uid, runtime["revision"], now(), now()))
+        return {"id": job_id, "uid": uid, "action": "apply", "status": "queued", "revision": runtime["revision"]}
+
+    def maintenance_status(self, db=None):
+        if db is None:
+            with self.read() as db:
+                return self.maintenance_status(db)
+        row = db.execute("SELECT * FROM platform_state WHERE id=1").fetchone()
+        if row is None:
+            raise ValueError("平台维护状态缺失")
+        return dict(row)
+
+    def set_maintenance(self, mode, expected_state_version, actor):
+        from .orchestration import Orchestration
+        return Orchestration(self).maintenance(mode, expected_state_version, actor)
+
+    def release_capacity_and_promote(self, db, uid, *, expected_state_version, job_id, attempt, observation_id, operation_id):
+        from .orchestration import Orchestration
+        return Orchestration(self).release(db, uid, expected_state_version=expected_state_version,
+                                           job_id=job_id, attempt=attempt, observation_id=observation_id, operation_id=operation_id)
+
+    def resolve_drain(self, uid, action, actor):
+        from .orchestration import Orchestration
+        return Orchestration(self).resolve_drain(uid, action, actor)
 
     def update_user(self, uid, data, *, allow_admin=False):
         with self.tx() as db:
@@ -268,6 +350,9 @@ class Store:
                 active = data["active"]
                 db.execute("UPDATE users SET active=?,auth_version=auth_version+1 WHERE id=?", (active, uid))
                 db.execute("DELETE FROM auth WHERE uid=?", (uid,))
+                if not active and target["role"] == "user":
+                    from .runtime_security import block_runtime
+                    block_runtime(self, db, uid, reason="account_disabled")
             if target["role"] == "admin":
                 job = None
             elif active and not target["active"]:
@@ -276,6 +361,7 @@ class Store:
                 # Resuming with new grants requires a new immutable config revision.
                 if "model_ids" in data or "plugin_ids" in data:
                     db.execute("UPDATE runtimes SET desired=desired+1,updated=? WHERE uid=?", (now(), uid))
+                db.execute("UPDATE runtimes SET stop_reason='none',security_blocked=0,security_intent_id=NULL,cancellation_confirmed=0,state_version=state_version+1,gate_policy='closed' WHERE uid=? AND status IN ('paused','failed') AND reserved=0", (uid,))
                 # Account activation, capacity reservation and resume are atomic.
                 # A full host or an in-flight job rolls all of them back.
                 job = self.queue_in_transaction(db, uid, "resume")
@@ -294,8 +380,13 @@ class Store:
             user = dict(row)
             user["active"] = bool(user["active"])
             user["must_change_password"] = bool(user["must_change_password"])
-            runtime = db.execute("SELECT id,status,revision,desired,error FROM runtimes WHERE uid=?", (uid,)).fetchone()
+            runtime = db.execute("SELECT id,status,revision,desired,error,security_blocked,recovery_required,gate_policy,cancellation_confirmed FROM runtimes WHERE uid=?", (uid,)).fetchone()
             user["runtime"] = dict(runtime) if runtime is not None else None
+            if user["runtime"]:
+                for name in ("security_blocked", "recovery_required", "cancellation_confirmed"):
+                    user["runtime"][name] = bool(user["runtime"][name])
+                job = db.execute("SELECT phase FROM jobs WHERE uid=? AND status IN ('queued','running') ORDER BY CASE WHEN status='running' THEN 0 ELSE 1 END,enqueue_seq LIMIT 1", (uid,)).fetchone()
+                user["runtime"]["phase"] = job["phase"] if job else None
             return user
 
     def create_browser_auth(self, uid, *, expected_password, expected_auth_version,
@@ -349,10 +440,14 @@ class Store:
                            (uid, username, password_hash, role, now()))
             return self.user(uid), None
         uid, rid = ident(), ident()
-        spec = {"gateway_key": secrets.token_urlsafe(48), "agent_password": secrets.token_urlsafe(48), "legacy": legacy}
+        spec = {"gateway_key": secrets.token_urlsafe(48), "agent_password": secrets.token_urlsafe(48),
+                "runtime_key": secrets.token_urlsafe(48), "relay_management_key": secrets.token_urlsafe(48), "legacy": legacy}
         with self.tx() as db:
             if authorize is not None:
                 authorize(db)
+            platform = self.maintenance_status(db)
+            if platform["maintenance_mode"] != "normal" or not platform["capacity_healthy"]:
+                raise ValueError("平台维护或容量核对中，暂不接受新环境操作")
             count = db.execute("SELECT count(*) FROM runtimes WHERE reserved=1").fetchone()[0]
             if count >= int(os.getenv("MAX_RUNTIMES", "4")):
                 raise ValueError("运行环境名额已满，请先暂停其他环境")

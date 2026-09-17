@@ -620,6 +620,8 @@ class RuntimeManager:
                  "applied_revision": revision, "spec_digest": None, "evidence_ref": uuid.uuid4().hex}
         if job.get('reason')=='idle_timeout':
             value['idle_proof']=gate.get('idle_proof') if gate else None
+            if gate and (gate.get('needs_reconcile') is not False or (gate.get('relay') or {}).get('needs_reconcile') is not False):
+                value['complete']=False
         local = self.state(spec["runtime_id"])
         if local and local.get("revision") == revision:
             try:

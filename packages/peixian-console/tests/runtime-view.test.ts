@@ -2,6 +2,9 @@ import { describe, expect, test } from "bun:test"
 import { canSend, runtimeNotice } from "../src/runtime-view"
 
 describe("runtime status does not bypass admission", () => {
+  test("automatic idle pause preserves manual restart guidance", () => {
+    expect(runtimeNotice({ status: "paused", runtime_mode: "on_demand", manual_stop_reason: "none", stop_reason: "idle_timeout" })).toContain("因空闲已暂停")
+  })
   test("waiting capacity is not described as an administrator pause", () => {
     const runtime = { status: "paused", runtime_mode: "on_demand", ready: false, manual_stop_reason: "none", waiting: { expires_at: 1000, approximate_position: 1 } }
     expect(runtimeNotice(runtime)).toContain("正在等待运行名额")

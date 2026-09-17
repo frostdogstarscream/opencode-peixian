@@ -314,7 +314,10 @@ class Worker:
                     'uid':candidate['uid'],'state_version':candidate['state_version'],'gateway_boot_id':state['boot_id'],
                     'observed_at':started,'idle_proof':state.get('idle_proof'),
                     'activity_count':state.get('activity',{}).get('total'),
-                    'complete':state.get('activity',{}).get('complete') is True and self.manager.mutation_state(candidate['runtime_id'])=='idle'},allow_state_conflict=True)
+                    'complete':state.get('activity',{}).get('complete') is True and state.get('gate')=='open'
+                        and state.get('permit_scopes',{}).get('intake') is True
+                        and state.get('needs_reconcile') is False and (state.get('relay') or {}).get('needs_reconcile') is False
+                        and self.manager.mutation_state(candidate['runtime_id'])=='idle'},allow_state_conflict=True)
             except (runtime.RuntimeFailure,httpx.HTTPError,ValueError,KeyError):
                 report('idle_observation_unavailable')
 

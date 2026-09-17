@@ -19,7 +19,7 @@ spec.loader.exec_module(worker)
 runtime = worker.runtime
 
 
-def fixture(tmp_path, *, busy=False, reject_applying=False, lose_complete=False):
+def fixture(tmp_path, *, busy=False, reject_applying=False, lose_complete=False, idle=False):
     uid, rid, jid = "1" * 32, "2" * 32, "3" * 32
     snapshot = {"uid": uid, "runtime_id": rid, "revision": 1,
                 "private": {"runtime_key": "synthetic-runtime-key", "gateway_key": "synthetic-gateway-key"}}
@@ -27,6 +27,8 @@ def fixture(tmp_path, *, busy=False, reject_applying=False, lose_complete=False)
     job = {"id": jid, "uid": uid, "runtime_id": rid, "action": "provision", "lease": "synthetic-lease",
            "revision": 1, "attempt": 1, "phase": "claimed", "recovery_required": False,
            "state_version": 1, "gate_epoch": 0, "spec_digest": digest, "reason": "normal"}
+    if idle:
+        job.update(action='pause',reason='idle_timeout',idle_activity_version=1,idle_gateway_boot_id='boot-before')
     records, receipts, observations = [], {}, {}
     state = {"protocol_version": 2, "runtime_id": rid, "boot_id": "boot-before", "gate_epoch": 0,
              "state_version": 1, "owner": "runtime:" + rid, "revision": 1, "gate": "open",
@@ -98,7 +100,7 @@ def fixture(tmp_path, *, busy=False, reject_applying=False, lose_complete=False)
             job["state_version"] += 1
             job["gate_epoch"] += 1
             records.append((kind, body["gateway_boot_id"]))
-        elif kind == "complete":
+        elif kind in ("complete", "cancel-idle"):
             records.append((kind, body))
             job["state_version"] += 1
             job["phase"] = "finished"
@@ -112,6 +114,31 @@ def fixture(tmp_path, *, busy=False, reject_applying=False, lose_complete=False)
 
     client = httpx.Client(transport=httpx.MockTransport(dispatch), base_url="http://127.0.0.1")
     return worker.Worker(client, Manager()), records, client
+
+
+def test_idle_unknown_proof_cancels_without_mutation_or_failure_loop(tmp_path):
+    runner,records,client=fixture(tmp_path,busy=True,idle=True)
+    with client:
+        assert runner.once()
+    assert not [item for item in records if item[0] in ('mutation','complete')]
+    assert len([item for item in records if item[0]=='cancel-idle'])==1
+
+
+@pytest.mark.parametrize('component',['gateway','relay'])
+def test_idle_tick_never_submits_recovery_as_complete(tmp_path,component):
+    values=[]
+    state={'boot_id':'boot','activity':{'complete':True,'total':0},'gate':'open',
+           'permit_scopes':{'intake':True},'needs_reconcile':component=='gateway',
+           'relay':{'needs_reconcile':component=='relay'},'idle_proof':{'complete':True,'sequence':1,'idle_seconds':600}}
+    def dispatch(request):
+        if request.url.path.endswith('/tick'):
+            return httpx.Response(200,json={'protocol_version':2,'items':[{'uid':'user','runtime_id':'runtime','state_version':1,'spec':{}}]})
+        values.append(json.loads(request.content));return httpx.Response(200,json={'accepted':False})
+    manager=SimpleNamespace(root=tmp_path,runtime_request=lambda *args:state,mutation_state=lambda _: 'idle')
+    with httpx.Client(transport=httpx.MockTransport(dispatch),base_url='http://127.0.0.1') as api:
+        runner=worker.Worker(api,manager,idle_policy={'scheduler_batch':8})
+        runner.idle_tick()
+    assert len(values)==1 and values[0]['complete'] is False
 
 
 def test_applying_ack_boot_registration_and_one_mutation_on_lost_complete(tmp_path):

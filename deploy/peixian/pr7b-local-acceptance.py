@@ -47,6 +47,14 @@ async def run(args):
             clients=[]
             for u in data['users']:
                 c=await client();await c.login(u['username'],u['password']);clients.append(c)
+            if args.stage=='queue':
+                for i,client in enumerate(clients):
+                    result=await client.start_runtime()
+                    assert result['job']['status']==('queued' if i<2 else 'waiting_capacity')
+                    data['users'][i]['job_id']=result['job']['id']
+                state.write_text(json.dumps(data))
+                record('existing_synthetic_accounts_requeued_without_new_data')
+                report['status']='passed';args.output.write_text(json.dumps(report,indent=2));return
             a,b,c=clients
             async def until(client,status):
                 async with asyncio.timeout(240):
@@ -86,5 +94,5 @@ async def run(args):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
-    p.add_argument('--stage',choices=('prepare','exercise'),required=True)
+    p.add_argument('--stage',choices=('prepare','queue','exercise'),required=True)
     asyncio.run(run(p.parse_args()))

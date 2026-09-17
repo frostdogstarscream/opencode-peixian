@@ -131,7 +131,8 @@ def test_bootstrap_capabilities_role_matrix_and_admin_has_no_runtime(context, ma
                 expected = 200 if role == "super_admin" or role == "admin" and route in ("users", "models", "audit") else 403
                 assert actor.get(P + "/admin/" + route).status_code == expected, (role, route)
         diagnostic = superuser.get(P + "/admin/diagnostics/events").json()
-        assert set(diagnostic) == {"hub", "streams", "cache", "work"}
+        assert set(diagnostic) == {"hub", "streams", "cache", "work", "runtime_pool"}
+        assert diagnostic["runtime_pool"] == {"retryable_failures": 0}
         assert set(diagnostic["work"]) == {"database", "password"}
         assert diagnostic["cache"]["text_bytes"] == 0
         listed = administrator.get(P + "/admin/users").json()["items"]

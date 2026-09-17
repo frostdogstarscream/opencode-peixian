@@ -8,6 +8,7 @@ from pathlib import Path
 import time
 
 import httpx
+from evidence_contract import tracked_run
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location("console_sdk", ROOT / "services/peixian-control/examples/console_client.py")
@@ -133,6 +134,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--run-manifest", type=Path)
     args = parser.parse_args()
     assert not args.output.exists(), "New report path required"
-    raise SystemExit(asyncio.run(run(args)))
+    raise SystemExit(asyncio.run(tracked_run(run, args, "event_subscriptions")))

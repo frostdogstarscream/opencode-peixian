@@ -1,0 +1,6 @@
+{
+  "kind": "production",
+  "approval_reference": null,
+  "required_cases": ["N3-E", "N4", "N5-load", "N5-fault", "historical-disposition"],
+  "results": {}
+}

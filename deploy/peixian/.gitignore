@@ -12,3 +12,5 @@ output/
 .pytest-r2-*/
 .pytest-r3-*/
 .pytest-r4-*/
+.pytest-evidence-*/
+.pytest-pr6-*/

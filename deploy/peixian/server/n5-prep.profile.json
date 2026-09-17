@@ -1,0 +1,16 @@
+{
+  "kind": "N5",
+  "execution_enabled": false,
+  "approval_reference": null,
+  "load": {
+    "registered_accounts": null,
+    "viewers": null,
+    "upstreams": null,
+    "active_runtimes": null,
+    "generations": null,
+    "api_rps": null,
+    "lifecycle_rate": null,
+    "duration_seconds": null,
+    "sample_seconds": null
+  }
+}

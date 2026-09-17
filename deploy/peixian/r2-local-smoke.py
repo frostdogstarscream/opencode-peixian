@@ -14,6 +14,7 @@ import time
 import uuid
 
 import httpx
+from evidence_contract import Run, tracked_run
 
 ROOT = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("local_sdk", ROOT.parents[1] / "services/peixian-control/examples/console_client.py")
@@ -104,6 +105,8 @@ async def run(args):
             skill = await clients[0].request("POST", "/skills", json={"name": "local-r2-" + uuid.uuid4().hex[:8],
                 "description": "Synthetic local smoke", "content": "Summarize synthetic input only.", "enabled": False})
             check(skill.get("job"), "skill_publish_job")
+            if getattr(args, "run_manifest", None):
+                Run(args.run_manifest).own(skill["job"]["id"], "busy_update", "recorded")
             # Pending desired alone does not prove the Worker observed busy.
             # Wait for the persisted defer receipt before releasing the fixture.
             try:
@@ -145,6 +148,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--run-manifest", type=Path)
     args = parser.parse_args()
     check(not args.output.exists(), "report_must_be_new")
-    raise SystemExit(asyncio.run(run(args)))
+    raise SystemExit(asyncio.run(tracked_run(run, args, "busy_update")))

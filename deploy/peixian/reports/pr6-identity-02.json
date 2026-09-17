@@ -1,0 +1,454 @@
+{
+  "evidence_format": 2,
+  "status": "passed",
+  "run_id": "8fde77fa8b28402b83e68fca1a33dbf8",
+  "collected_at": "2026-09-17T00:38:45.578571+00:00",
+  "correction_of": "deploy/peixian/reports/n3-local-evidence.json",
+  "correction_reason": "inspect_fields_are_not_archive_config_objects",
+  "runtime_source_commit": "95896a843f2bd83dc0ee695713cf5dccbebbaad1",
+  "tool_source_commit": "49064b49a1fdc7e1dcfaf6a2f036fdca9bf6ac73",
+  "package_source_commit": "1b3fff97ecc7a90f1620df1527117b5ab0daa5ea",
+  "platform": {
+    "os": "linux",
+    "architecture": "amd64"
+  },
+  "image": {
+    "container_image_reference": {
+      "object_kind": "docker_container_Image",
+      "digest": "sha256:4d9d03022f03747df90bda78a203751ff224b5d8f68a68350638ac787b5a5b2f",
+      "algorithm": "sha256",
+      "source": "container_inspect",
+      "platform": {
+        "os": "linux",
+        "architecture": "amd64"
+      }
+    },
+    "docker_image_inspect_id": {
+      "object_kind": "docker_image_Id",
+      "digest": "sha256:4d9d03022f03747df90bda78a203751ff224b5d8f68a68350638ac787b5a5b2f",
+      "algorithm": "sha256",
+      "source": "image_inspect",
+      "platform": {
+        "os": "linux",
+        "architecture": "amd64"
+      }
+    },
+    "image_revision_label": "95896a843f2bd83dc0ee695713cf5dccbebbaad1",
+    "archive_config_digest": {
+      "object_kind": "image_config",
+      "digest": "sha256:77c12e51c3d9303782452662d6a2cdfa44c74ce6645e8138e8c070fb782fd442",
+      "algorithm": "sha256",
+      "source": "docker_save_config",
+      "media_type": null,
+      "platform": {
+        "os": "linux",
+        "architecture": "amd64"
+      }
+    },
+    "archive_manifest_digest": {
+      "object_kind": "image_manifest",
+      "digest": "sha256:8fe115ab5227d0b07b21ec85399276ca4538ab53db503b351d43d601671dcb5e",
+      "algorithm": "sha256",
+      "source": "platform_manifest_descriptor",
+      "media_type": "application/vnd.oci.image.manifest.v1+json",
+      "platform": {
+        "os": "linux",
+        "architecture": "amd64"
+      }
+    },
+    "archive_index_digest": {
+      "object_kind": "image_index",
+      "digest": "sha256:4d9d03022f03747df90bda78a203751ff224b5d8f68a68350638ac787b5a5b2f",
+      "algorithm": "sha256",
+      "source": "selected_tag_descriptor",
+      "media_type": "application/vnd.oci.image.index.v1+json",
+      "platform": {
+        "os": "linux",
+        "architecture": "amd64"
+      }
+    },
+    "archive_catalog_digest": {
+      "object_kind": "archive_catalog_index",
+      "digest": "sha256:c0323cf67d2e8d8f1a134cb1cb27ecf2373501988848a2f1fb4bcd389c5763f0",
+      "algorithm": "sha256",
+      "source": "index.json",
+      "media_type": "application/vnd.oci.image.index.v1+json",
+      "platform": {
+        "os": "linux",
+        "architecture": "amd64"
+      }
+    }
+  },
+  "python_source_set_verified": {
+    "status": "passed",
+    "missing": [],
+    "unexpected": [],
+    "changed": [],
+    "comparison": "python_source_lf_equivalence_only",
+    "expected": {
+      "control/__init__.py": {
+        "raw_sha256": "c6a11fb8e195155f029dfc98d254b29be43462ba2bb3c9965b007aeb280da936",
+        "lf_sha256": "c6a11fb8e195155f029dfc98d254b29be43462ba2bb3c9965b007aeb280da936"
+      },
+      "control/administration.py": {
+        "raw_sha256": "5e913fd103a066cdd2e5ef8e432f5a91dda40205c56439cb0cfcb3126f976f85",
+        "lf_sha256": "5e913fd103a066cdd2e5ef8e432f5a91dda40205c56439cb0cfcb3126f976f85"
+      },
+      "control/app.py": {
+        "raw_sha256": "666496a0f27caf18aeb1bf9349618db698aef6408f38bec5e596ac429596f6b8",
+        "lf_sha256": "666496a0f27caf18aeb1bf9349618db698aef6408f38bec5e596ac429596f6b8"
+      },
+      "control/catalog.py": {
+        "raw_sha256": "352799db7272c45ea874ba39c16d052440b0c7d11178064f63af6afad6e529ab",
+        "lf_sha256": "352799db7272c45ea874ba39c16d052440b0c7d11178064f63af6afad6e529ab"
+      },
+      "control/concurrency.py": {
+        "raw_sha256": "2a0f89da8260929416b64a0e00357678c5509f5becf542a7bd38ca86a4e86afc",
+        "lf_sha256": "2a0f89da8260929416b64a0e00357678c5509f5becf542a7bd38ca86a4e86afc"
+      },
+      "control/connections.py": {
+        "raw_sha256": "89813a5fb8b59b040fe0825c0a247d5811121f6f1d18f57852ca81d8286009c0",
+        "lf_sha256": "89813a5fb8b59b040fe0825c0a247d5811121f6f1d18f57852ca81d8286009c0"
+      },
+      "control/event_hub.py": {
+        "raw_sha256": "ee099c52792a24930d0fd48455c94b3037ef26c7347dad5dc40d5b744b00514c",
+        "lf_sha256": "ee099c52792a24930d0fd48455c94b3037ef26c7347dad5dc40d5b744b00514c"
+      },
+      "control/idempotency.py": {
+        "raw_sha256": "78c289aeb3d6a77a74190f92d047ac59c4ccdd5377cfb784a70b8c1b5de13c8b",
+        "lf_sha256": "78c289aeb3d6a77a74190f92d047ac59c4ccdd5377cfb784a70b8c1b5de13c8b"
+      },
+      "control/live_text.py": {
+        "raw_sha256": "0a6dcdde457bd96001856ad24cafc64855aa038761bf36ae364239f894cb2237",
+        "lf_sha256": "0a6dcdde457bd96001856ad24cafc64855aa038761bf36ae364239f894cb2237"
+      },
+      "control/migrations_v4.py": {
+        "raw_sha256": "6c4151a48cb3b012c65ef1a54899b784f9e12a07a95fa77dd6074c62c3c8df70",
+        "lf_sha256": "6c4151a48cb3b012c65ef1a54899b784f9e12a07a95fa77dd6074c62c3c8df70"
+      },
+      "control/openapi.py": {
+        "raw_sha256": "e8bca185e0e83781df6a2394685675e1bcd7e4f9b634512436f2688a19f9e7fd",
+        "lf_sha256": "e8bca185e0e83781df6a2394685675e1bcd7e4f9b634512436f2688a19f9e7fd"
+      },
+      "control/openapi_r2.py": {
+        "raw_sha256": "1af017089cff722d359a114afea608923ab8a1402c1b72bd42b1f3a63e74ca71",
+        "lf_sha256": "1af017089cff722d359a114afea608923ab8a1402c1b72bd42b1f3a63e74ca71"
+      },
+      "control/orchestration.py": {
+        "raw_sha256": "76022f683fe3fbe3ebaba2696c197d720fa35ec756b8effef8247fae236533b0",
+        "lf_sha256": "76022f683fe3fbe3ebaba2696c197d720fa35ec756b8effef8247fae236533b0"
+      },
+      "control/plugin_schema.py": {
+        "raw_sha256": "51dd9410db6a1782837908338c8f632efbd62a31be3898477e2fab32070d5b37",
+        "lf_sha256": "51dd9410db6a1782837908338c8f632efbd62a31be3898477e2fab32070d5b37"
+      },
+      "control/roles.py": {
+        "raw_sha256": "dab6b001f783fa182eeef2205fc11b0de6d0b638805625744d549967114104c3",
+        "lf_sha256": "dab6b001f783fa182eeef2205fc11b0de6d0b638805625744d549967114104c3"
+      },
+      "control/runtime_security.py": {
+        "raw_sha256": "614eaf62190f7c4b020b4ab89da8e6f4098d82e4f9eb3aa722be0422c9c9e9d9",
+        "lf_sha256": "614eaf62190f7c4b020b4ab89da8e6f4098d82e4f9eb3aa722be0422c9c9e9d9"
+      },
+      "control/settings.py": {
+        "raw_sha256": "fa2cf0f2e147cbd1410c9dfd60abb7ba0a37818ff7812ee52c1cb058913a328f",
+        "lf_sha256": "fa2cf0f2e147cbd1410c9dfd60abb7ba0a37818ff7812ee52c1cb058913a328f"
+      },
+      "control/shutdown.py": {
+        "raw_sha256": "2d90a75b5db3bf3667da327354e5d4edcfb18d39dff644e0a406deda6953e51b",
+        "lf_sha256": "2d90a75b5db3bf3667da327354e5d4edcfb18d39dff644e0a406deda6953e51b"
+      },
+      "control/store.py": {
+        "raw_sha256": "132817de41188e619ba6b017fd43f21f644a6a9582a9f3dd1b403149f07522fd",
+        "lf_sha256": "132817de41188e619ba6b017fd43f21f644a6a9582a9f3dd1b403149f07522fd"
+      },
+      "control/streams.py": {
+        "raw_sha256": "7cd3258d95aaf7d18307e49a73980162a6dacb694715dd333905fef2050a8c04",
+        "lf_sha256": "7cd3258d95aaf7d18307e49a73980162a6dacb694715dd333905fef2050a8c04"
+      },
+      "control/worker_api.py": {
+        "raw_sha256": "2d83365e4eab20f545cede466fd2b158c1353e277ca9a399532d6e1dd3a1f089",
+        "lf_sha256": "2d83365e4eab20f545cede466fd2b158c1353e277ca9a399532d6e1dd3a1f089"
+      },
+      "shared/__init__.py": {
+        "raw_sha256": "0fa72025001e0efa0d25188d0fb59460c3f8c06f460277bee99c234e1e993942",
+        "lf_sha256": "0fa72025001e0efa0d25188d0fb59460c3f8c06f460277bee99c234e1e993942"
+      },
+      "shared/connection_policy.py": {
+        "raw_sha256": "94a7afca415e1e1c711a81bed41607e2aed424de06f1e58a7d9522aa177b51bf",
+        "lf_sha256": "94a7afca415e1e1c711a81bed41607e2aed424de06f1e58a7d9522aa177b51bf"
+      },
+      "shared/eventhub_config.py": {
+        "raw_sha256": "8ec28908fd1419189ed272021b1bb725afc81d7026599339d3fd3d3e72938c5a",
+        "lf_sha256": "8ec28908fd1419189ed272021b1bb725afc81d7026599339d3fd3d3e72938c5a"
+      },
+      "shared/orchestration_config.py": {
+        "raw_sha256": "ad72bca15f45a83179e2759879b27b46c3b675b699f56c3ce4bcec79bb26ce1c",
+        "lf_sha256": "ad72bca15f45a83179e2759879b27b46c3b675b699f56c3ce4bcec79bb26ce1c"
+      },
+      "shared/worker_errors.py": {
+        "raw_sha256": "24779f19c3e18cb13ec5efd2da5410975760322c55d2d5e2ad15ebfbd0de8e3a",
+        "lf_sha256": "24779f19c3e18cb13ec5efd2da5410975760322c55d2d5e2ad15ebfbd0de8e3a"
+      }
+    },
+    "actual": {
+      "control/concurrency.py": {
+        "raw_sha256": "2a0f89da8260929416b64a0e00357678c5509f5becf542a7bd38ca86a4e86afc",
+        "lf_sha256": "2a0f89da8260929416b64a0e00357678c5509f5becf542a7bd38ca86a4e86afc"
+      },
+      "control/catalog.py": {
+        "raw_sha256": "bc339e9e297a1b7e2bd09eb43c399678c4ee749a9cca58212b8aff05dec39e30",
+        "lf_sha256": "352799db7272c45ea874ba39c16d052440b0c7d11178064f63af6afad6e529ab"
+      },
+      "control/openapi_r2.py": {
+        "raw_sha256": "1af017089cff722d359a114afea608923ab8a1402c1b72bd42b1f3a63e74ca71",
+        "lf_sha256": "1af017089cff722d359a114afea608923ab8a1402c1b72bd42b1f3a63e74ca71"
+      },
+      "control/streams.py": {
+        "raw_sha256": "44001dbe3453066319b6fd8e45fd57965daf35081f1d2341adad38f93cecd1ff",
+        "lf_sha256": "7cd3258d95aaf7d18307e49a73980162a6dacb694715dd333905fef2050a8c04"
+      },
+      "control/idempotency.py": {
+        "raw_sha256": "78c289aeb3d6a77a74190f92d047ac59c4ccdd5377cfb784a70b8c1b5de13c8b",
+        "lf_sha256": "78c289aeb3d6a77a74190f92d047ac59c4ccdd5377cfb784a70b8c1b5de13c8b"
+      },
+      "control/store.py": {
+        "raw_sha256": "132817de41188e619ba6b017fd43f21f644a6a9582a9f3dd1b403149f07522fd",
+        "lf_sha256": "132817de41188e619ba6b017fd43f21f644a6a9582a9f3dd1b403149f07522fd"
+      },
+      "control/plugin_schema.py": {
+        "raw_sha256": "51dd9410db6a1782837908338c8f632efbd62a31be3898477e2fab32070d5b37",
+        "lf_sha256": "51dd9410db6a1782837908338c8f632efbd62a31be3898477e2fab32070d5b37"
+      },
+      "control/connections.py": {
+        "raw_sha256": "0d0d085a64274ef6495d86a9c06905777dafa89e9513a6dfcf6cb0c6951d739e",
+        "lf_sha256": "89813a5fb8b59b040fe0825c0a247d5811121f6f1d18f57852ca81d8286009c0"
+      },
+      "control/__init__.py": {
+        "raw_sha256": "c6a11fb8e195155f029dfc98d254b29be43462ba2bb3c9965b007aeb280da936",
+        "lf_sha256": "c6a11fb8e195155f029dfc98d254b29be43462ba2bb3c9965b007aeb280da936"
+      },
+      "control/settings.py": {
+        "raw_sha256": "fa2cf0f2e147cbd1410c9dfd60abb7ba0a37818ff7812ee52c1cb058913a328f",
+        "lf_sha256": "fa2cf0f2e147cbd1410c9dfd60abb7ba0a37818ff7812ee52c1cb058913a328f"
+      },
+      "control/migrations_v4.py": {
+        "raw_sha256": "6c4151a48cb3b012c65ef1a54899b784f9e12a07a95fa77dd6074c62c3c8df70",
+        "lf_sha256": "6c4151a48cb3b012c65ef1a54899b784f9e12a07a95fa77dd6074c62c3c8df70"
+      },
+      "control/roles.py": {
+        "raw_sha256": "dab6b001f783fa182eeef2205fc11b0de6d0b638805625744d549967114104c3",
+        "lf_sha256": "dab6b001f783fa182eeef2205fc11b0de6d0b638805625744d549967114104c3"
+      },
+      "control/orchestration.py": {
+        "raw_sha256": "27f935e082c3a9276e48145e5769bfe5bb715b7c2a9250bf6849db6792a01a18",
+        "lf_sha256": "76022f683fe3fbe3ebaba2696c197d720fa35ec756b8effef8247fae236533b0"
+      },
+      "control/openapi.py": {
+        "raw_sha256": "071a645529d76a539f6eda2b10c132b1851d2e0f632f2ee24d789068e219889e",
+        "lf_sha256": "e8bca185e0e83781df6a2394685675e1bcd7e4f9b634512436f2688a19f9e7fd"
+      },
+      "control/app.py": {
+        "raw_sha256": "2c1076d0287d0ebb10548b9d7ea7d46def9e0964ed32282d833eb33f7c40d975",
+        "lf_sha256": "666496a0f27caf18aeb1bf9349618db698aef6408f38bec5e596ac429596f6b8"
+      },
+      "control/event_hub.py": {
+        "raw_sha256": "bff1b7368b2f5488c01347e8be06ec6d0fa84edefb52032506e513a441d9d103",
+        "lf_sha256": "ee099c52792a24930d0fd48455c94b3037ef26c7347dad5dc40d5b744b00514c"
+      },
+      "control/live_text.py": {
+        "raw_sha256": "0a6dcdde457bd96001856ad24cafc64855aa038761bf36ae364239f894cb2237",
+        "lf_sha256": "0a6dcdde457bd96001856ad24cafc64855aa038761bf36ae364239f894cb2237"
+      },
+      "control/runtime_security.py": {
+        "raw_sha256": "614eaf62190f7c4b020b4ab89da8e6f4098d82e4f9eb3aa722be0422c9c9e9d9",
+        "lf_sha256": "614eaf62190f7c4b020b4ab89da8e6f4098d82e4f9eb3aa722be0422c9c9e9d9"
+      },
+      "control/shutdown.py": {
+        "raw_sha256": "2d90a75b5db3bf3667da327354e5d4edcfb18d39dff644e0a406deda6953e51b",
+        "lf_sha256": "2d90a75b5db3bf3667da327354e5d4edcfb18d39dff644e0a406deda6953e51b"
+      },
+      "control/administration.py": {
+        "raw_sha256": "975b49ea1bff8faf3f12b19f2838b65697b148e33465f8fd2cc139ff329b03f7",
+        "lf_sha256": "5e913fd103a066cdd2e5ef8e432f5a91dda40205c56439cb0cfcb3126f976f85"
+      },
+      "control/worker_api.py": {
+        "raw_sha256": "222049be12120eafa2be625027ce0c34f6fe3b665872bae46bf53c186c379e51",
+        "lf_sha256": "2d83365e4eab20f545cede466fd2b158c1353e277ca9a399532d6e1dd3a1f089"
+      },
+      "shared/worker_errors.py": {
+        "raw_sha256": "24779f19c3e18cb13ec5efd2da5410975760322c55d2d5e2ad15ebfbd0de8e3a",
+        "lf_sha256": "24779f19c3e18cb13ec5efd2da5410975760322c55d2d5e2ad15ebfbd0de8e3a"
+      },
+      "shared/__init__.py": {
+        "raw_sha256": "0fa72025001e0efa0d25188d0fb59460c3f8c06f460277bee99c234e1e993942",
+        "lf_sha256": "0fa72025001e0efa0d25188d0fb59460c3f8c06f460277bee99c234e1e993942"
+      },
+      "shared/connection_policy.py": {
+        "raw_sha256": "94a7afca415e1e1c711a81bed41607e2aed424de06f1e58a7d9522aa177b51bf",
+        "lf_sha256": "94a7afca415e1e1c711a81bed41607e2aed424de06f1e58a7d9522aa177b51bf"
+      },
+      "shared/orchestration_config.py": {
+        "raw_sha256": "ad72bca15f45a83179e2759879b27b46c3b675b699f56c3ce4bcec79bb26ce1c",
+        "lf_sha256": "ad72bca15f45a83179e2759879b27b46c3b675b699f56c3ce4bcec79bb26ce1c"
+      },
+      "shared/eventhub_config.py": {
+        "raw_sha256": "8ec28908fd1419189ed272021b1bb725afc81d7026599339d3fd3d3e72938c5a",
+        "lf_sha256": "8ec28908fd1419189ed272021b1bb725afc81d7026599339d3fd3d3e72938c5a"
+      }
+    }
+  },
+  "host_disk_source_verified": {
+    "status": "passed",
+    "missing": [],
+    "unexpected": [],
+    "changed": [],
+    "comparison": "python_source_lf_equivalence_only",
+    "expected": {
+      "deploy/peixian/console-worker.py": {
+        "raw_sha256": "cdf3ce5a25216cef38bff7365904ffd8002254f7fcef417e0baaf2680699bae5",
+        "lf_sha256": "cdf3ce5a25216cef38bff7365904ffd8002254f7fcef417e0baaf2680699bae5"
+      },
+      "deploy/peixian/console-runtime.py": {
+        "raw_sha256": "131f4fd545f6b85589ce5a0610b35ae9d56e980086b5ad57cb87ce6101ed114f",
+        "lf_sha256": "131f4fd545f6b85589ce5a0610b35ae9d56e980086b5ad57cb87ce6101ed114f"
+      },
+      "deploy/peixian/platform-config.py": {
+        "raw_sha256": "5a8e8037f684aaf54a0a9c0eabbf966fd43aa0fa9a662e35110880313cdfd938",
+        "lf_sha256": "5a8e8037f684aaf54a0a9c0eabbf966fd43aa0fa9a662e35110880313cdfd938"
+      },
+      "deploy/peixian/platform-capacity.py": {
+        "raw_sha256": "8486bed274fb73b6df13674a0048acd60b76a6e7f4e8362cf1127829f419ee61",
+        "lf_sha256": "8486bed274fb73b6df13674a0048acd60b76a6e7f4e8362cf1127829f419ee61"
+      },
+      "services/peixian-control/shared/orchestration_config.py": {
+        "raw_sha256": "ad72bca15f45a83179e2759879b27b46c3b675b699f56c3ce4bcec79bb26ce1c",
+        "lf_sha256": "ad72bca15f45a83179e2759879b27b46c3b675b699f56c3ce4bcec79bb26ce1c"
+      },
+      "services/peixian-control/shared/eventhub_config.py": {
+        "raw_sha256": "8ec28908fd1419189ed272021b1bb725afc81d7026599339d3fd3d3e72938c5a",
+        "lf_sha256": "8ec28908fd1419189ed272021b1bb725afc81d7026599339d3fd3d3e72938c5a"
+      },
+      "services/peixian-control/shared/worker_errors.py": {
+        "raw_sha256": "24779f19c3e18cb13ec5efd2da5410975760322c55d2d5e2ad15ebfbd0de8e3a",
+        "lf_sha256": "24779f19c3e18cb13ec5efd2da5410975760322c55d2d5e2ad15ebfbd0de8e3a"
+      }
+    },
+    "actual": {
+      "deploy/peixian/console-worker.py": {
+        "raw_sha256": "b8857e87038c60261163f5b438d9a82f03fb3662e045d451265ea2778ea79b49",
+        "lf_sha256": "cdf3ce5a25216cef38bff7365904ffd8002254f7fcef417e0baaf2680699bae5"
+      },
+      "deploy/peixian/console-runtime.py": {
+        "raw_sha256": "131f4fd545f6b85589ce5a0610b35ae9d56e980086b5ad57cb87ce6101ed114f",
+        "lf_sha256": "131f4fd545f6b85589ce5a0610b35ae9d56e980086b5ad57cb87ce6101ed114f"
+      },
+      "deploy/peixian/platform-config.py": {
+        "raw_sha256": "5a8e8037f684aaf54a0a9c0eabbf966fd43aa0fa9a662e35110880313cdfd938",
+        "lf_sha256": "5a8e8037f684aaf54a0a9c0eabbf966fd43aa0fa9a662e35110880313cdfd938"
+      },
+      "deploy/peixian/platform-capacity.py": {
+        "raw_sha256": "8486bed274fb73b6df13674a0048acd60b76a6e7f4e8362cf1127829f419ee61",
+        "lf_sha256": "8486bed274fb73b6df13674a0048acd60b76a6e7f4e8362cf1127829f419ee61"
+      },
+      "services/peixian-control/shared/orchestration_config.py": {
+        "raw_sha256": "ad72bca15f45a83179e2759879b27b46c3b675b699f56c3ce4bcec79bb26ce1c",
+        "lf_sha256": "ad72bca15f45a83179e2759879b27b46c3b675b699f56c3ce4bcec79bb26ce1c"
+      },
+      "services/peixian-control/shared/eventhub_config.py": {
+        "raw_sha256": "8ec28908fd1419189ed272021b1bb725afc81d7026599339d3fd3d3e72938c5a",
+        "lf_sha256": "8ec28908fd1419189ed272021b1bb725afc81d7026599339d3fd3d3e72938c5a"
+      },
+      "services/peixian-control/shared/worker_errors.py": {
+        "raw_sha256": "24779f19c3e18cb13ec5efd2da5410975760322c55d2d5e2ad15ebfbd0de8e3a",
+        "lf_sha256": "24779f19c3e18cb13ec5efd2da5410975760322c55d2d5e2ad15ebfbd0de8e3a"
+      }
+    }
+  },
+  "worker_loaded_version": "not_proven_no_startup_digest_attestation",
+  "build_input_subset": {
+    "services/peixian-control/Dockerfile": {
+      "candidate": {
+        "raw_sha256": "a66638ddc717d811930b1fa97725d23a6f5f98598f550cdddf5d039753f63ed2",
+        "lf_sha256": "a66638ddc717d811930b1fa97725d23a6f5f98598f550cdddf5d039753f63ed2"
+      },
+      "package_source": {
+        "raw_sha256": "a66638ddc717d811930b1fa97725d23a6f5f98598f550cdddf5d039753f63ed2",
+        "lf_sha256": "a66638ddc717d811930b1fa97725d23a6f5f98598f550cdddf5d039753f63ed2"
+      }
+    },
+    "services/peixian-control/requirements.lock": {
+      "candidate": {
+        "raw_sha256": "beec9c923697deb2edf646ed35d7449255ea86fc689550d3056b1a3e557a6537",
+        "lf_sha256": "beec9c923697deb2edf646ed35d7449255ea86fc689550d3056b1a3e557a6537"
+      },
+      "package_source": {
+        "raw_sha256": "beec9c923697deb2edf646ed35d7449255ea86fc689550d3056b1a3e557a6537",
+        "lf_sha256": "beec9c923697deb2edf646ed35d7449255ea86fc689550d3056b1a3e557a6537"
+      }
+    },
+    "deploy/peixian/platform.ps1": {
+      "candidate": {
+        "raw_sha256": "d8bf4563903ea8ecc8a59138f461a07f7f6fa1f44568c96e26e2161f6635eedc",
+        "lf_sha256": "d8bf4563903ea8ecc8a59138f461a07f7f6fa1f44568c96e26e2161f6635eedc"
+      },
+      "package_source": {
+        "raw_sha256": "d8bf4563903ea8ecc8a59138f461a07f7f6fa1f44568c96e26e2161f6635eedc",
+        "lf_sha256": "d8bf4563903ea8ecc8a59138f461a07f7f6fa1f44568c96e26e2161f6635eedc"
+      }
+    },
+    "deploy/peixian/platform-manage.py": {
+      "candidate": {
+        "raw_sha256": "11a29bb3652d81ba9ebca90378587ad5e296d8f75741139ca355f4c8d8634437",
+        "lf_sha256": "11a29bb3652d81ba9ebca90378587ad5e296d8f75741139ca355f4c8d8634437"
+      },
+      "package_source": {
+        "raw_sha256": "11a29bb3652d81ba9ebca90378587ad5e296d8f75741139ca355f4c8d8634437",
+        "lf_sha256": "11a29bb3652d81ba9ebca90378587ad5e296d8f75741139ca355f4c8d8634437"
+      }
+    },
+    "packages/peixian-console/package.json": {
+      "candidate": {
+        "raw_sha256": "3e08955ec6a6fcf3155e2706cdfc690ef254b4d7626e2f4b6e4b5793bb2c5ec4",
+        "lf_sha256": "3e08955ec6a6fcf3155e2706cdfc690ef254b4d7626e2f4b6e4b5793bb2c5ec4"
+      },
+      "package_source": {
+        "raw_sha256": "3e08955ec6a6fcf3155e2706cdfc690ef254b4d7626e2f4b6e4b5793bb2c5ec4",
+        "lf_sha256": "3e08955ec6a6fcf3155e2706cdfc690ef254b4d7626e2f4b6e4b5793bb2c5ec4"
+      }
+    },
+    "bun.lock": {
+      "candidate": {
+        "raw_sha256": "4ef59ecd25dc3b4c78d4dd0d795d35449630f3c1aa264a5cda1e45c9d8e10227",
+        "lf_sha256": "4ef59ecd25dc3b4c78d4dd0d795d35449630f3c1aa264a5cda1e45c9d8e10227"
+      },
+      "package_source": {
+        "raw_sha256": "4ef59ecd25dc3b4c78d4dd0d795d35449630f3c1aa264a5cda1e45c9d8e10227",
+        "lf_sha256": "4ef59ecd25dc3b4c78d4dd0d795d35449630f3c1aa264a5cda1e45c9d8e10227"
+      }
+    }
+  },
+  "static_resources": "not_verified_by_python_source_check",
+  "receipt_counts": {
+    "batch": 0,
+    "historical": 169,
+    "other_batch": 0,
+    "unattributed": 0
+  },
+  "historical_unconfirmed": 2,
+  "maintenance": {
+    "maintenance_mode": "normal",
+    "capacity_healthy": 1,
+    "recovery_required": null,
+    "security_pending": null
+  },
+  "resource_state": "control_observation_only_not_fresh_full_docker_reconciliation",
+  "release_status": "blocked",
+  "blocked": [
+    "historical_owner_decision",
+    "runtime_loaded_attestation",
+    "N4",
+    "N5"
+  ],
+  "scope": "local_read_only_no_fault_or_load"
+}

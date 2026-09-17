@@ -1,0 +1,29 @@
+{
+  "status": "blocked",
+  "missing": [
+    "execution_not_authorized",
+    "approval_reference_missing",
+    "run_id_missing",
+    "candidate",
+    "hardware",
+    "component_identities",
+    "quotas",
+    "dependencies",
+    "thresholds",
+    "stop_conditions",
+    "load_registered_accounts",
+    "load_viewers",
+    "load_upstreams",
+    "load_active_runtimes",
+    "load_generations",
+    "load_api_rps",
+    "load_lifecycle_rate",
+    "load_duration_seconds",
+    "load_sample_seconds",
+    "resource_budget_unverified",
+    "separate_fault_batch_required"
+  ],
+  "execution_performed": false,
+  "target_verified": false,
+  "note": "profile_validation_only_use_existing_tools_after_independent_environment_verification"
+}

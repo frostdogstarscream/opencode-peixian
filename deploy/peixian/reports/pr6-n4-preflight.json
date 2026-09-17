@@ -1,0 +1,26 @@
+{
+  "status": "blocked",
+  "missing": [
+    "execution_not_authorized",
+    "approval_reference_missing",
+    "run_id_missing",
+    "distinct_verified_engines_required",
+    "new_namespace_required",
+    "target_not_verified_empty",
+    "full_backup_verified",
+    "matching_key_verified",
+    "schema4_protocol2_verified",
+    "disk_budget_verified",
+    "source_writers_stopped",
+    "synthetic_egress_only",
+    "host_paths_isolated",
+    "allowed_operations_recorded",
+    "backup_manifest_sha256",
+    "baseline_sha256",
+    "rpo_policy",
+    "rto_target"
+  ],
+  "execution_performed": false,
+  "target_verified": false,
+  "note": "profile_validation_only_use_existing_tools_after_independent_environment_verification"
+}

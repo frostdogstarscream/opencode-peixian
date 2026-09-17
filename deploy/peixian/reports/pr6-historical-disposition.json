@@ -1,0 +1,32 @@
+{
+  "status": "blocked",
+  "collection": "local_journals_only",
+  "records": [
+    {
+      "reference": "H01",
+      "journal_sha256": "fc986a289a8f11bd80942ff1ae7d51e7700bdc7e36aa69cf53e69671ea4c76e3",
+      "original_status": "pending",
+      "classification": "historical_unconfirmed",
+      "server_receipt": "not_collected_engine_unavailable",
+      "current_runtime": "not_verified",
+      "recovery_responsibility": "not_verified",
+      "root_cause": "undetermined",
+      "original_success": "not_proven",
+      "owner_decision": "required"
+    },
+    {
+      "reference": "H02",
+      "journal_sha256": "83077e3985d4c35af91897328ca9e5f9a9d36eb065253d27c3003f3293b8c3e4",
+      "original_status": "pending",
+      "classification": "historical_unconfirmed",
+      "server_receipt": "not_collected_engine_unavailable",
+      "current_runtime": "not_verified",
+      "recovery_responsibility": "not_verified",
+      "root_cause": "undetermined",
+      "original_success": "not_proven",
+      "owner_decision": "required"
+    }
+  ],
+  "journals_modified": false,
+  "production_approved": false
+}

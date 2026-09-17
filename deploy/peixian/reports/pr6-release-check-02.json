@@ -1,0 +1,23 @@
+{
+  "status": "blocked",
+  "blocked": [
+    "N3-E",
+    "N4",
+    "N5",
+    "N5-fault",
+    "N5-load",
+    "complete_build_inputs",
+    "fresh_resource_state",
+    "historical-disposition",
+    "historical_owner_decision",
+    "profile_not_approved",
+    "runtime_loaded_attestation",
+    "worker_loaded_version"
+  ],
+  "package_manifest_sha256": "c9797efa0b2d0045732abbca73e41316f40132ca5ae337c81d9ebb39814eb49f",
+  "source_commit": "1b3fff97ecc7a90f1620df1527117b5ab0daa5ea",
+  "run_id": "8fde77fa8b28402b83e68fca1a33dbf8",
+  "evidence_sha256": "04a939a0ae54740c6038ac9812804fd862618980c413251e8dd36c2ff2ba5dda",
+  "checksums_verified": 124,
+  "production_approved": false
+}

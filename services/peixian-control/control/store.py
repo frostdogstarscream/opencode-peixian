@@ -440,6 +440,9 @@ class Store:
                     user["runtime"][name] = bool(user["runtime"][name])
                 job = db.execute("SELECT phase FROM jobs WHERE uid=? AND status IN ('queued','running') ORDER BY CASE WHEN status='running' THEN 0 ELSE 1 END,enqueue_seq LIMIT 1", (uid,)).fetchone()
                 user["runtime"]["phase"] = job["phase"] if job else None
+                from .runtime_view import interaction_view
+                user['runtime'].update(interaction_view(user['runtime'], user['active'],
+                    self.maintenance_status(db)['maintenance_mode'], user['runtime']['phase']))
                 if self.on_demand(db):
                     from .runtime_pool import public_status
                     user["runtime"].update(public_status(self, db, uid))

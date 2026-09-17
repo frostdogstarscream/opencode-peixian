@@ -86,6 +86,31 @@ def host_lock(root):
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
+def can_cancel_idle(job):
+    return (job.get('reason') == 'idle_timeout' and job.get('phase') in ('claimed', 'draining', 'closing')
+            and not job.get('recovery_required') and not job.get('recovery_of_attempt')
+            and not job.get('recovery_attempt') and not job.get('mutation_authorized'))
+
+
+def recovery_decision(job, observation):
+    """Classify the target only; current lease/Gate/observation authority stays server-side."""
+    states = observation.get('components', {})
+    if (job.get('action') not in ('pause', 'apply', 'provision', 'resume')
+            or observation.get('complete') is not True or observation.get('mutation_state') != 'idle'
+            or observation.get('accepting') is not False or observation.get('egress_closed') is not True
+            or observation.get('activity_count') != 0 or set(states) != {'agent', 'gateway', 'relay'}):
+        return 'needs_review'
+    values = set(states.values())
+    if values not in ({'running'}, {'stopped'}):
+        return 'needs_review'
+    if job['action'] == 'pause':
+        return 'already_satisfied' if values == {'stopped'} else 'needs_mutation'
+    if (values == {'running'} and observation.get('applied_revision') == job['revision']
+            and observation.get('spec_digest') == job['spec_digest']):
+        return 'already_satisfied'
+    return 'needs_mutation'
+
+
 class Worker:
     def __init__(self, api, manager, *, orchestration=None, clock=time.monotonic, runtime_pool=False, idle_policy=None):
         self.api, self.manager = api, manager
@@ -375,93 +400,111 @@ class Worker:
 
         thread = threading.Thread(target=keepalive, daemon=True, name="peixian-worker-lease")
         thread.start()
-        result, observation = {"ok": False}, None
-        report("claimed", job)
+        # Keep recovery provenance after phase receipts change reconciling to closing.
+        job['recovery_attempt'] = bool(job['phase'] == 'reconciling' or job['recovery_required'] or job.get('recovery_of_attempt'))
         try:
-            if job["phase"] == "claimed":
-                receipt = self.operation(job, "phase", {"expected_phase": "claimed", "phase": "draining"})
-                _, state = self.manager.observe(job, spec, self.boot_id)
-                if state is not None:
-                    self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
-            elif job["phase"] == "reconciling":
-                # Recovered attempts have a new authority epoch. Register the
-                # actual boot before collecting evidence under that authority.
-                raw, state = self.manager.observe(job, spec, self.boot_id)
-                if state is not None and raw["mutation_state"] == "idle":
-                    receipt = self.operation(job, "boot", {"runtime_id": spec["runtime_id"],
-                        "gateway_boot_id": state["boot_id"], "relay_boot_id": (state.get("relay") or {}).get("boot_id")})
-                    self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
-            observation, _ = self.observe(job, spec)
-            if self.idle_changed(job, observation):
-                self.operation(job,'cancel-idle',{})
-                report('idle_cancelled',job)
-                return True
-            if not observation["complete"] or observation["mutation_state"] != "idle":
-                raise runtime.RuntimeFailure("runtime_observation_unknown")
-            if observation["accepting"]:
-                raise runtime.RuntimeFailure("runtime_gate_not_closed")
-            if observation["activity_count"] != 0:
-                if job["phase"] != "draining":
-                    raise runtime.RuntimeFailure("runtime_recovery_requires_review")
-                receipt = self.operation(job, "complete", {"deferred": True, "defer_reason": "runtime_busy",
-                                                           "observation_id": observation["observation_id"]})
-                report("deferred", job)
-                return True
-            if (job["phase"] == "reconciling" and observation["applied_revision"] == job["revision"]
-                    and observation["spec_digest"] == job["spec_digest"]):
-                result = {"ok": True}
-            else:
-                receipt = self.operation(job, "phase", {"expected_phase": job["phase"], "phase": "closing",
-                                                         "observation_id": observation["observation_id"]})
-                _, state = self.manager.observe(job, spec, self.boot_id)
-                if state is not None:
-                    self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
+            result, observation = {"ok": False}, None
+            report("claimed", job)
+            try:
+                if job["phase"] == "claimed":
+                    receipt = self.operation(job, "phase", {"expected_phase": "claimed", "phase": "draining"})
+                    _, state = self.manager.observe(job, spec, self.boot_id)
+                    if state is not None:
+                        self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
+                elif job["phase"] == "reconciling":
+                    # Recovered attempts have a new authority epoch. Register the
+                    # actual boot before collecting evidence under that authority.
+                    raw, state = self.manager.observe(job, spec, self.boot_id)
+                    if state is not None and raw["mutation_state"] == "idle":
+                        receipt = self.operation(job, "boot", {"runtime_id": spec["runtime_id"],
+                            "gateway_boot_id": state["boot_id"], "relay_boot_id": (state.get("relay") or {}).get("boot_id")})
+                        self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
                 observation, _ = self.observe(job, spec)
-                if self.idle_changed(job, observation):
+                decision = recovery_decision(job, observation) if job['recovery_attempt'] else None
+                if decision == 'needs_review':
+                    raise runtime.RuntimeFailure('runtime_recovery_requires_review')
+                if decision != 'already_satisfied' and self.idle_changed(job, observation):
+                    if not can_cancel_idle(job):
+                        raise runtime.RuntimeFailure('runtime_recovery_requires_review')
                     self.operation(job,'cancel-idle',{})
                     report('idle_cancelled',job)
                     return True
-                if (not observation["complete"] or observation["activity_count"] != 0
-                        or not observation["egress_closed"] or observation["accepting"]):
-                    raise runtime.RuntimeFailure("runtime_egress_close_unconfirmed")
-                self.operation(job, "phase", {"expected_phase": "closing", "phase": "applying",
-                                               "observation_id": observation["observation_id"]})
-                job["mutation_authorized"] = True
-                result = self.manager.apply(job, spec, self.download, heartbeat)
-            heartbeat()
-        except runtime.RuntimeFailure as error:
-            if job.get('reason')=='idle_timeout' and job['phase'] in ('claimed','draining','closing'):
-                self.operation(job,'cancel-idle',{})
-                report('idle_cancelled',job)
-                return True
-            result = {"ok": False, "error": error.code, "rolled_back": error.rolled_back,
-                      }
-            report("failed", job, error.code)
-        except Exception:
-            result = {"ok": False, "error": "worker_operation_failed"}
-            report("failed", job, "worker_operation_failed")
+                if not observation["complete"] or observation["mutation_state"] != "idle":
+                    raise runtime.RuntimeFailure("runtime_observation_unknown")
+                if observation["accepting"]:
+                    raise runtime.RuntimeFailure("runtime_gate_not_closed")
+                if observation["activity_count"] != 0:
+                    if job["phase"] != "draining":
+                        raise runtime.RuntimeFailure("runtime_recovery_requires_review")
+                    receipt = self.operation(job, "complete", {"deferred": True, "defer_reason": "runtime_busy",
+                                                               "observation_id": observation["observation_id"]})
+                    report("deferred", job)
+                    return True
+                if decision == 'already_satisfied':
+                    result = {"ok": True}
+                else:
+                    receipt = self.operation(job, "phase", {"expected_phase": job["phase"], "phase": "closing",
+                                                             "observation_id": observation["observation_id"]})
+                    _, state = self.manager.observe(job, spec, self.boot_id)
+                    if state is not None:
+                        self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
+                    observation, _ = self.observe(job, spec)
+                    if self.idle_changed(job, observation):
+                        if not can_cancel_idle(job):
+                            raise runtime.RuntimeFailure('runtime_recovery_requires_review')
+                        self.operation(job,'cancel-idle',{})
+                        report('idle_cancelled',job)
+                        return True
+                    if (not observation["complete"] or observation["activity_count"] != 0
+                            or not observation["egress_closed"] or observation["accepting"]):
+                        raise runtime.RuntimeFailure("runtime_egress_close_unconfirmed")
+                    self.operation(job, "phase", {"expected_phase": "closing", "phase": "applying",
+                                                   "observation_id": observation["observation_id"]})
+                    job["mutation_authorized"] = True
+                    result = self.manager.apply(job, spec, self.download, heartbeat)
+                heartbeat()
+            except runtime.RuntimeFailure as error:
+                if error.code in ('worker_operation_outcome_unknown', 'invalid_worker_receipt', 'runtime_gate_outcome_unknown'):
+                    # A committed phase/defer may have lost its response. Preserve
+                    # the journal and lease responsibility; do not invent a second outcome.
+                    raise
+                if can_cancel_idle(job) and error.code in (
+                        'runtime_observation_unknown', 'runtime_gate_not_closed', 'runtime_egress_close_unconfirmed'):
+                    self.operation(job,'cancel-idle',{})
+                    report('idle_cancelled',job)
+                    return True
+                result = {"ok": False, "error": error.code, "rolled_back": error.rolled_back,
+                          }
+                report("failed", job, error.code)
+            except Exception:
+                result = {"ok": False, "error": "worker_operation_failed"}
+                report("failed", job, "worker_operation_failed")
+            if failed.is_set():
+                raise runtime.RuntimeFailure("worker_heartbeat_failed")
+            try:
+                raw, state = self.manager.observe(job, spec, self.boot_id)
+                if state is not None and raw["mutation_state"] == "idle":
+                    if job["phase"] in ("applying", "reconciling"):
+                        receipt = self.operation(job, "boot", {"runtime_id": spec["runtime_id"],
+                            "gateway_boot_id": state["boot_id"], "relay_boot_id": (state.get("relay") or {}).get("boot_id")})
+                        self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
+                observation, _ = self.observe(job, spec)
+            except runtime.RuntimeFailure as error:
+                if error.code in ('worker_operation_outcome_unknown', 'invalid_worker_receipt', 'runtime_gate_outcome_unknown'):
+                    raise
+                observation = None
+            except (httpx.HTTPError, ValueError):
+                observation = None
+            if observation and observation.get("complete"):
+                result["observation_id"] = observation["observation_id"]
+            result.pop("cleanup_confirmed", None)
+            self.operation(job, "complete", result)
+            if result.get("ok"):
+                report("succeeded", job)
+            return True
         finally:
             stop.set()
             thread.join(timeout=self.config["worker_heartbeat_timeout_seconds"] + 1)
-        if failed.is_set():
-            raise runtime.RuntimeFailure("worker_heartbeat_failed")
-        try:
-            raw, state = self.manager.observe(job, spec, self.boot_id)
-            if state is not None and raw["mutation_state"] == "idle":
-                if job["phase"] in ("applying", "reconciling"):
-                    receipt = self.operation(job, "boot", {"runtime_id": spec["runtime_id"],
-                        "gateway_boot_id": state["boot_id"], "relay_boot_id": (state.get("relay") or {}).get("boot_id")})
-                    self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
-            observation, _ = self.observe(job, spec)
-        except (runtime.RuntimeFailure, httpx.HTTPError, ValueError):
-            observation = None
-        if observation and observation.get("complete"):
-            result["observation_id"] = observation["observation_id"]
-        result.pop("cleanup_confirmed", None)
-        self.operation(job, "complete", result)
-        if result.get("ok"):
-            report("succeeded", job)
-        return True
 
 
 def control_client(url, key):

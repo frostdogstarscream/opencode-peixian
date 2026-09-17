@@ -478,7 +478,9 @@ class Orchestration:
             if not ok and recovery:
                 if job["action"] != "pause" and (job["cancel_requested"] or runtime["security_blocked"]):
                     self.store.queue_in_transaction(db, job["uid"], "pause", reason="security", bump_desired=False)
-                elif job["phase"] == "reconciling" or (job["action"] == "pause" and job["reason"] == "security"):
+                elif (job["phase"] == "reconciling" or job["recovery_required"]
+                      or attempt["recovery_of_attempt"] is not None
+                      or (job["action"] == "pause" and job["reason"] == "security")):
                     # One inconclusive recovery is retained for operator repair, never a blind retry loop.
                     db.execute("UPDATE jobs SET status='failed',phase='finished' WHERE id=?", (jid,))
             if not ok and job["cancel_requested"] and job["action"] != "pause" and job["phase"] in ("claimed", "draining"):

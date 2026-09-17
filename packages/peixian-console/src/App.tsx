@@ -1,3 +1,4 @@
+import { canObserve } from "./runtime-view"
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, Switch, Match } from "solid-js"
 import { api, ApiError, BASE, expireAuth, onUnauthorized, post, safeMessage, setAuth } from "./api"
 import type { Auth, Capability, User } from "./types"
@@ -110,7 +111,7 @@ export default function App() {
     return user &&
       can("business.use") &&
       !user.must_change_password &&
-      (user.runtime?.runtime_mode === "on_demand" ? user.runtime.ready === true : ["ready", "running", "healthy", "updating", "applying", "draining"].includes(user.runtime?.status ?? ""))
+      canObserve(user.runtime) && (!user.runtime?.maintenance_mode || user.runtime.maintenance_mode === "normal")
       ? user.id
       : undefined
   })

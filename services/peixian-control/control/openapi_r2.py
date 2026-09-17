@@ -21,6 +21,11 @@ def extend(s, obj, ref, array, ID, STRING, BOOL, INTEGER):
     s['SelfRuntime']['properties'].update(waiting={'anyOf': [obj({'expires_at':INTEGER,'approximate_position':INTEGER}), {'type':'null'}]}, wait_result={'type':['string','null']})
     s["Runtime"]["properties"].update(status=STRING, phase=phases, gate_policy=STRING,
         security_blocked=BOOL, recovery_required=BOOL, cancellation_confirmed=BOOL)
+    interaction = obj({key: BOOL for key in ('can_submit_new','can_observe','can_continue')},
+                      ('can_submit_new','can_observe','can_continue'))
+    for name in ('Runtime', 'SelfRuntime'):
+        s[name]['properties'].update(interaction=interaction,
+            maintenance_mode={**STRING, 'enum':['normal','frozen','repair_only']})
     s["Runtime"]["description"] += " revision 是实际验证的 applied；desired 是期望版本，可能尚未生效。安全阻断不证明外部操作已撤销。"
     s["Job"]["properties"].update(phase=phases, not_before=INTEGER, defer_count=INTEGER, recovery_required=BOOL)
     s["LeaseBody"] = obj(identity, identity)

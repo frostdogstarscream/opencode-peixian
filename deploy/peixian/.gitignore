@@ -14,3 +14,4 @@ output/
 .pytest-r4-*/
 .pytest-evidence-*/
 .pytest-pr6-*/
+.pytest-review-*/

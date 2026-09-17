@@ -1,3 +1,4 @@
+import { canSend } from "../runtime-view"
 import { createEffect, createSignal, For, Show } from "solid-js"
 import { api, list, post } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, JobNote, Modal, PageHead, Spinner, Status, Toggle } from "../components"
@@ -96,6 +97,7 @@ export default function Plugins() {
     }
   }
   async function action(item: Plugin, operation: "toggle" | "test" | "rollback") {
+    if (operation === "test" && !canSend(app.user().runtime)) return
     if (locked()) {
       app.notify("配置正在更新，完成后可提交修改。", "error")
       return
@@ -190,7 +192,7 @@ export default function Plugins() {
                   <Show when={item.installed}>
                     <Button
                       variant="ghost"
-                      disabled={locked() || (app.user().runtime?.runtime_mode === "on_demand" && !app.user().runtime?.ready) || !pluginConnectionReady(item, item.installed?.version ?? item.version)}
+                      disabled={locked() || !canSend(app.user().runtime) || !pluginConnectionReady(item, item.installed?.version ?? item.version)}
                       busy={working() === item.id}
                       onClick={() => void action(item, "test")}
                     >

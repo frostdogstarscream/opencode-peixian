@@ -228,7 +228,7 @@ def test_config_v3_limits_and_runtime_secrets_do_not_reach_agent(tmp_path):
 
 
 @pytest.mark.parametrize("lost_action", ["phase:draining", "phase:closing", "phase:applying", "boot", "complete"])
-def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, monkeypatch, lost_action):
+def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, monkeypatch, lost_action, recovery=None):
     backend = ROOT.parents[1] / "services/peixian-control"
     monkeypatch.syspath_prepend(str(backend))
     from cryptography.fernet import Fernet
@@ -239,8 +239,17 @@ def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, mon
     for name, data in (("key", Fernet.generate_key()), ("worker", b"synthetic-worker-key-12345678901234567890"),
                        ("admin", b"synthetic-admin-password-12345678")):
         (tmp_path / name).write_bytes(data)
-    store = Store(tmp_path / "db", tmp_path / "key", tmp_path / "worker", tmp_path / "admin")
+    idle_recovery = recovery is not None and recovery.startswith('idle_')
+    store = Store(tmp_path / "db", tmp_path / "key", tmp_path / "worker", tmp_path / "admin",
+                  runtime_mode='on_demand' if idle_recovery else 'eager')
+    if idle_recovery:
+        store.pool_settings.update(idle_pause_enabled=True,idle_timeout_seconds=60,min_ready_seconds=0,resume_cooldown_seconds=0)
+        with store.tx() as db:
+            db.execute('UPDATE platform_state SET pool_policy_version=3,idle_pause_enabled=1')
     user, requested = store.create_user("synthetic-round2", "synthetic-user-password-12345678")
+    if idle_recovery:
+        from control.runtime_pool import start
+        with store.tx() as db: requested = start(store, db, user['id'])['job']
     orchestration = Orchestration(store)
 
     class Manager(runtime.RuntimeManager):
@@ -257,6 +266,8 @@ def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, mon
             if method == "POST":
                 self.current.update({key: body[key] for key in ("gate_epoch", "state_version", "owner")})
                 self.current["gate"] = "draining" if body["action"] == "drain" else "closed"
+                if recovery == 'idle_closing_changed' and body['action'] == 'close' and store.one('SELECT phase FROM jobs WHERE id=?',(requested['id'],))['phase'] == 'closing':
+                    self.current['idle_proof']['sequence'] += 1
                 if body["action"] == "close":
                     self.current["relay"]["gate"] = "closed"
             return json.loads(json.dumps(self.current))
@@ -265,6 +276,9 @@ def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, mon
             assert store.one("SELECT phase FROM jobs WHERE id=?", (job["id"],))["phase"] == "applying"
             self.count += 1
             heartbeat()
+            if job['action'] == 'pause':
+                self.active = False
+                return {'ok': True}
             release = self.directory(snapshot["runtime_id"]) / "releases/1"
             runtime.write_json(release / "publication.json", {"digest": job["spec_digest"]})
             runtime.write_json(self.directory(snapshot["runtime_id"]) / "state.json", {
@@ -274,7 +288,9 @@ def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, mon
             self.current = {"protocol_version": 2, "runtime_id": snapshot["runtime_id"], "boot_id": "gateway-boot-new",
                 "gate_epoch": 0, "state_version": 0, "owner": "bootstrap", "gate": "closed", "revision": 1,
                 "relay": {"boot_id": "relay-boot-new", "gate": "closed"},
-                "activity": {"complete": True, "unknown": False, "idle": True, "total": 0}}
+                "activity": {"complete": True, "unknown": False, "idle": True, "total": 0},
+                'needs_reconcile':False,'idle_proof':{'complete':True,'sequence':4,'idle_seconds':61}}
+            self.current['relay']['needs_reconcile'] = False
             return {"ok": True}
 
     lost = False
@@ -309,6 +325,57 @@ def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, mon
     assert row["gate_policy"] == "reopen_check"  # Only Control's authenticated reopen loop may open it.
     assert row["reserved"] == 1 and manager.count == 1
     assert store.one("SELECT status FROM jobs WHERE id=?", (requested["id"],))["status"] == "succeeded"
+    if recovery is not None:
+        import time
+        current_time = int(time.time())
+        orchestration.clock = lambda: current_time
+        action = 'apply' if recovery == 'apply_running' else 'pause'
+        if idle_recovery:
+            from control.idle_pool import submit
+            with store.tx() as db:
+                db.execute("UPDATE runtimes SET gate_policy='open' WHERE uid=?",(user['id'],))
+            row = store.one('SELECT * FROM runtimes WHERE uid=?',(user['id'],))
+            result = submit(store, {'uid':user['id'],'state_version':row['state_version'],
+                'gateway_boot_id':manager.current['boot_id'],'observed_at':current_time,
+                'idle_proof':manager.current['idle_proof'],'activity_count':0,'complete':True})
+            assert result['accepted']
+            requested = store.one("SELECT * FROM jobs WHERE uid=? AND reason='idle_timeout'",(user['id'],))
+        else:
+            requested = store.queue(user['id'], action, bump_desired=False)
+        claimed = orchestration.claim(runtime_spec)
+        assert claimed['job']['phase'] == 'claimed'
+        recovering = claimed['job']
+        frozen = claimed['spec']
+        with httpx.Client(transport=httpx.MockTransport(dispatch), base_url='http://127.0.0.1') as client:
+            runner = worker.Worker(client, manager, idle_policy=store.pool_settings if idle_recovery else None)
+            runner.next_idle = float('inf')
+            receipt = runner.operation(recovering, 'phase', {'expected_phase':'claimed','phase':'draining'})
+            runner.gate(recovering, frozen, receipt['gate_action'], manager.current, receipt['operation_id'])
+            observation, _ = runner.observe(recovering, frozen)
+            runner.operation(recovering, 'phase', {'expected_phase':'draining','phase':'closing','observation_id':observation['observation_id']})
+            if recovery in ('stopped', 'idle_stopped'):
+                manager.active = False
+            if recovery in ('mixed', 'unknown'):
+                original_components = manager.components
+                manager.components = lambda snapshot: ({'agent':'stopped','gateway':'running','relay':'running'}, recovery != 'unknown')
+            if recovery == 'idle_changed': manager.current['idle_proof']['sequence'] += 1
+            current_time += 91
+            # Time advances both leases and fresh observations; no state/lease is edited.
+            monkeypatch.setattr(runtime.time, 'time', lambda: current_time)
+            lost = False
+            runner.next_reconcile = float('inf')
+            assert runner.once()
+        row = store.one('SELECT * FROM runtimes WHERE uid=?',(user['id'],))
+        finished = store.one('SELECT * FROM jobs WHERE id=?',(requested['id'],))
+        assert finished['attempts'] == 2
+        if recovery in ('mixed','unknown','idle_changed','idle_closing_changed'):
+            assert row['reserved'] == 1 and row['recovery_required'] == 1
+            assert finished['status'] == 'failed' and manager.count == 1
+        else:
+            assert finished['status'] == 'succeeded'
+            assert manager.count == (2 if recovery in ('running','idle_running') else 1)
+            assert row['reserved'] == (1 if action == 'apply' else 0)
+        return
     module_spec = importlib.util.spec_from_file_location("backup_r2_test", ROOT / "platform-backup.py")
     backup = importlib.util.module_from_spec(module_spec)
     module_spec.loader.exec_module(backup)

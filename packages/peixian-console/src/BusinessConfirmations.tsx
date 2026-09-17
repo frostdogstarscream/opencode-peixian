@@ -148,6 +148,7 @@ function QuestionForm(props: { request: () => Pending; busy: boolean; answer: (a
 export default function BusinessConfirmations(props: {
   sessionID?: string
   available: boolean
+  canContinue?: boolean
   onAnswered: () => void
 }) {
   const app = useConsole()
@@ -156,17 +157,19 @@ export default function BusinessConfirmations(props: {
   const [working, setWorking] = createSignal("")
   const [error, setError] = createSignal("")
   let generation = 0
+  let identity = ""
   async function refresh() {
     const sessionID = props.sessionID
     const current = ++generation
-    if (!sessionID || !props.available) {
+    if (!sessionID) {
       setQuestions([])
       setPermissions([])
       setError("")
       return
     }
+    if (!props.available) return
     const result = await Promise.allSettled([list<Pending>("/questions"), list<Pending>("/permissions")])
-    if (current !== generation || props.sessionID !== sessionID) return
+    if (current !== generation || props.sessionID !== sessionID || !props.available) return
     const matching = (items: Pending[]) => items.filter((item) => item.sessionID === sessionID)
     if (result[0].status === "fulfilled") setQuestions(matching(result[0].value))
     if (result[1].status === "fulfilled") setPermissions(matching(result[1].value))
@@ -174,14 +177,23 @@ export default function BusinessConfirmations(props: {
   }
   const requestRefresh = useResourceRefresh(["permissions", "questions"], refresh, 4000)
   createEffect(() => {
-    props.sessionID
+    const next = app.user().id + ":" + (props.sessionID ?? "")
+    if (identity !== next || app.user().runtime?.security_blocked || app.user().runtime?.recovery_required) {
+      setQuestions([])
+      setPermissions([])
+      setError("")
+      identity = next
+    }
     props.available
+    generation++
     void requestRefresh()
   })
   onCleanup(() => {
     generation++
   })
   async function reply(id: string, kind: "questions" | "permissions", value?: string[][] | "once" | "reject") {
+    if (!props.available || props.canContinue === false) return
+    const replyIdentity = identity
     setWorking(id)
     setError("")
     try {
@@ -193,12 +205,14 @@ export default function BusinessConfirmations(props: {
           (kind === "questions" && value === undefined ? "/reject" : "/reply"),
         kind === "questions" ? (value === undefined ? {} : { answers: value }) : { reply: value },
       )
+      if (replyIdentity !== identity) return
       if (kind === "questions") setQuestions((current) => current.filter((item) => item.id !== id))
       else setPermissions((current) => current.filter((item) => item.id !== id))
       app.notify(value === undefined || value === "reject" ? "已取消这项请求。" : "已提交，助手将继续处理。")
       props.onAnswered()
       await refresh()
     } catch (error) {
+      if (replyIdentity !== identity) return
       setError(safeMessage((error as Error).message))
     } finally {
       setWorking("")
@@ -212,7 +226,7 @@ export default function BusinessConfirmations(props: {
           {(id) => (
             <QuestionForm
               request={() => questions().find((item) => item.id === id)!}
-              busy={working() === id}
+              busy={working() === id || props.canContinue === false}
               answer={(answers) => void reply(id, "questions", answers)}
             />
           )}
@@ -226,13 +240,13 @@ export default function BusinessConfirmations(props: {
               </div>
               <p>{safeMessage(item.description, "模型需要你的确认才能继续。")}</p>
               <div class="confirmation-actions">
-                <Button disabled={!!working()} onClick={() => void reply(item.id, "permissions", "reject")}>
+                <Button disabled={!!working() || props.canContinue === false} onClick={() => void reply(item.id, "permissions", "reject")}>
                   拒绝
                 </Button>
                 <Button
                   variant="primary"
                   busy={working() === item.id}
-                  disabled={!!working()}
+                  disabled={!!working() || props.canContinue === false}
                   onClick={() => void reply(item.id, "permissions", "once")}
                 >
                   仅允许本次

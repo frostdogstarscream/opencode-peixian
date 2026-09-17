@@ -22,6 +22,8 @@ export type User = {
   runtime?: { id?: string; status: string; revision?: number; desired?: number; error?: string; phase?: string;
     security_blocked?: boolean; cancellation_confirmed?: boolean; recovery_required?: boolean; gate_policy?: string;
     runtime_mode?: "on_demand"; ready?: boolean; state_version?: number; stop_reason?: string; manual_stop_reason?: string;
+    maintenance_mode?: "normal" | "frozen" | "repair_only";
+    interaction?: { can_submit_new: boolean; can_observe: boolean; can_continue: boolean };
     waiting?: { expires_at: number; approximate_position: number } | null;
     wait_result?: string | null;
     allowed_actions?: string[]; job?: { id: string; action: string; status: string } | null }

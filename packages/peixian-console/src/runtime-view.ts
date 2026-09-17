@@ -2,13 +2,29 @@ import type { User } from "./types"
 
 type Runtime = User["runtime"]
 
+function restricted(runtime: Runtime) {
+  return !runtime || runtime.security_blocked || runtime.recovery_required || runtime.maintenance_mode === "repair_only"
+}
+export function canObserve(runtime: Runtime) {
+  if (restricted(runtime)) return false
+  if (runtime?.interaction) return runtime.interaction.can_observe === true
+  if (runtime?.runtime_mode === "on_demand") return false
+  return !!runtime && ["ready", "draining"].includes(runtime.status)
+    && !["closing", "applying", "reconciling"].includes(runtime.phase ?? "")
+}
+export function canContinue(runtime: Runtime) {
+  return canObserve(runtime) && (runtime?.interaction ? runtime.interaction.can_continue === true : true)
+}
 export function canSend(runtime: Runtime) {
+  if (restricted(runtime) || (runtime?.maintenance_mode && runtime.maintenance_mode !== "normal")) return false
+  if (runtime?.interaction) return runtime.interaction.can_submit_new === true
   if (runtime?.runtime_mode === "on_demand" && runtime.ready !== true) return false
   return !!runtime && runtime.status === "ready" && runtime.gate_policy === "open"
     && !runtime.security_blocked && !runtime.recovery_required
 }
 
 export function runtimeNotice(runtime: Runtime): string {
+  if (runtime?.maintenance_mode && runtime.maintenance_mode !== "normal") return "平台正在维护，暂不可启停助手或提交新任务。有效等待申请仍按原到期时间处理。"
   if (!runtime) return "正在准备你的工作空间，完成后即可开始对话。"
   if (runtime.runtime_mode === "on_demand" && !runtime.ready) {
     if (runtime.manual_stop_reason && runtime.manual_stop_reason !== "none") return "管理员已暂停助手，请联系管理员恢复。"

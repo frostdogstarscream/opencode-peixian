@@ -9,7 +9,7 @@ export default function RuntimeStatus() {
   const [error, setError] = createSignal("")
   const runtime = () => app.user().runtime
   async function change(action: "start" | "stop") {
-    if (pending()) return
+    if (pending() || !runtime()?.allowed_actions?.includes(action)) return
     setPending(true)
     setError("")
     try {
@@ -31,7 +31,7 @@ export default function RuntimeStatus() {
     <section class="runtime-banner runtime-controls" aria-label="我的助手" aria-live="polite">
       <div>
         <strong>我的助手</strong>
-        <p>{runtime()?.ready ? "助手已就绪，可以开始对话。" : runtime()?.manual_stop_reason !== "none"
+        <p>{runtime()?.maintenance_mode && runtime()?.maintenance_mode !== "normal" ? "平台维护中，暂不可启停或取消等待。有效申请仍按原到期时间处理。" : runtime()?.ready ? "助手已就绪，可以开始对话。" : runtime()?.manual_stop_reason !== "none"
           ? "管理员已暂停助手，请联系管理员恢复。" : runtime()?.waiting
             ? `正在等待运行名额，约第 ${runtime()!.waiting!.approximate_position} 位。申请在 ${new Date(runtime()!.waiting!.expires_at * 1000).toLocaleTimeString()} 到期，可取消；就绪后请自行发送问题。` : runtime()?.job
             ? "正在处理启停操作，输入内容已保留。" : runtime()?.wait_result === "capacity_wait_expired"

@@ -5,7 +5,7 @@ import { useConsole } from "../context"
 import BusinessConfirmations from "../BusinessConfirmations"
 import type { FileItem, Message, Model, Session, Skill } from "../types"
 import { createRefreshScheduler, createResponseGuard } from "../refresh"
-import { canSend, runtimeNotice } from "../runtime-view"
+import { canSend, canObserve, canContinue, runtimeNotice } from "../runtime-view"
 export default function Chat() {
   const app = useConsole()
   const [sessions, setSessions] = createSignal<Session[]>([])
@@ -34,31 +34,33 @@ export default function Chat() {
   let disposed = false
   const active = createMemo(() => sessions().find((s) => s.id === selected()))
   const ready = createMemo(() => canSend(app.user().runtime))
-  const available = createMemo(() => app.user().runtime?.runtime_mode === "on_demand" ? app.user().runtime?.ready === true : ["ready", "draining", "updating", "applying"].includes(app.user().runtime?.status ?? ""))
+  const available = createMemo(() => canObserve(app.user().runtime))
+  const continuing = createMemo(() => canContinue(app.user().runtime))
+  let observationGeneration = 0
+  createEffect(() => { app.user().id; available(); observationGeneration++; selection.invalidate() })
   const notice = createMemo(() => runtimeNotice(app.user().runtime))
   const interval = () => (document.hidden ? 15000 : 500)
   const messageRefresh = createRefreshScheduler(
     async (signal) => {
       const id = selected(),
         current = selection.capture()
+      const generation = observationGeneration
       if (!available() || !id) return
       try {
         const data = await list<Message>("/sessions/" + id + "/messages", { signal })
-        if (!disposed && current()) setMessages(data)
+        if (!disposed && current() && available() && generation === observationGeneration) setMessages(data)
       } catch (error) {
-        if (!disposed && current()) setError((error as Error).message)
+        if (!disposed && current() && available() && generation === observationGeneration) setError((error as Error).message)
       }
     },
     { interval },
   )
   const sessionRefresh = createRefreshScheduler(
     async (signal) => {
-      if (!available()) {
-        setBusy(false)
-        return
-      }
+      if (!available()) return
+      const generation = observationGeneration
       const values = await list<Session>("/sessions", { signal })
-      if (disposed) return
+      if (disposed || !available() || generation !== observationGeneration) return
       setSessions(values)
       if (selected())
         setBusy(["busy", "retry"].includes(values.find((item) => item.id === selected())?.status ?? "idle"))
@@ -197,13 +199,15 @@ export default function Chat() {
     }
   }
   async function abort() {
-    if (!selected()) return
+    if (!continuing() || !selected()) return
+    const id = selected(), current = selection.capture(), uid = app.user().id
     try {
-      await post("/sessions/" + selected() + "/abort")
-      setBusy(false)
+      await post("/sessions/" + id + "/abort")
+      if (disposed || !current() || app.user().id !== uid) return
       await refresh()
-      app.notify("已停止本次生成。")
+      app.notify("已提交停止请求，正在核对任务状态。")
     } catch (error) {
+      if (disposed || !current() || app.user().id !== uid) return
       setError((error as Error).message)
     }
   }
@@ -477,14 +481,15 @@ export default function Chat() {
                 <div class="thinking">
                   <Spinner />
                   <span>正在整理思路与资料…</span>
-                  <button onClick={abort}>停止</button>
+                  <button disabled={!continuing()} onClick={abort}>停止</button>
                 </div>
               </Show>
             </div>
           </Show>
         </div>
         <div class="composer-area">
-          <BusinessConfirmations sessionID={selected()} available={available()} onAnswered={() => void refresh()} />
+          <Show when={!available() && selected()}><p role="status">状态暂不可更新，最后已知任务状态和历史内容已保留。</p></Show>
+          <BusinessConfirmations sessionID={selected()} available={available()} canContinue={continuing()} onAnswered={() => void refresh()} />
           <ErrorLine message={error()} />
           <Show when={selectedFiles().length || selectedSkills().length}>
             <div class="selection-chips">
@@ -549,7 +554,7 @@ export default function Chat() {
                   </Button>
                 }
               >
-                <Button icon="stop" onClick={abort}>
+                <Button icon="stop" disabled={!continuing()} onClick={abort}>
                   停止生成
                 </Button>
               </Show>

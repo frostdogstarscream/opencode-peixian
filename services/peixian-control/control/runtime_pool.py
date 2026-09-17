@@ -184,6 +184,7 @@ async def scheduler_loop(app):
 
 
 def public_status(store, db, uid):
+    from .runtime_view import interaction_view
     row = current(db, uid)
     job = active_job(db, uid)
     policy = store.maintenance_status(db)
@@ -192,14 +193,15 @@ def public_status(store, db, uid):
     actions = []
     if eligible and not job and not row["reserved"] and policy["maintenance_mode"] == "normal" and policy["capacity_healthy"]:
         actions.append("start")
-    if row["active"] and (row["reserved"] or job) and not row["security_blocked"] and not row["recovery_required"]:
+    if policy['maintenance_mode'] == 'normal' and row["active"] and (row["reserved"] or job) and not row["security_blocked"] and not row["recovery_required"]:
         actions.append("stop")
     waiting = None
     if job and job['status'] == 'waiting_capacity':
         queued = db.execute('SELECT enqueue_seq,capacity_expires_at FROM jobs WHERE id=?', (job['id'],)).fetchone()
         waiting = {'expires_at': queued['capacity_expires_at'], 'approximate_position': db.execute("SELECT count(*) FROM jobs WHERE status='waiting_capacity' AND enqueue_seq<=?", (queued['enqueue_seq'],)).fetchone()[0]}
     last = db.execute("SELECT error FROM jobs WHERE uid=? AND reason='explicit_start' ORDER BY enqueue_seq DESC LIMIT 1", (uid,)).fetchone()
-    return {"runtime_mode": "on_demand", "status": row["status"], "ready": bool(ready), "waiting": waiting,
+    return {**interaction_view(dict(row), row['active'], policy['maintenance_mode'], job['phase'] if job else None),
+            "runtime_mode": "on_demand", "status": row["status"], "ready": bool(ready), "waiting": waiting,
             "wait_result": last['error'] if last and last['error'] in ('capacity_wait_expired','capacity_wait_cancelled','capacity_wait_restricted','capacity_wait_recovery_required') else None,
             "state_version": row["state_version"], "desired": row["desired"], "revision": row["revision"],
             "stop_reason": row["stop_reason"], "manual_stop_reason": row["manual_stop_reason"],

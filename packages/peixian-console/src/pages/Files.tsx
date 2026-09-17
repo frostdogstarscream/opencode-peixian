@@ -1,3 +1,4 @@
+import { canSend } from "../runtime-view"
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js"
 import { api, download, list, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, formatDate, formatSize, Icon, Modal, PageHead, Spinner, Status } from "../components"
@@ -92,7 +93,7 @@ export default function Files() {
     ),
   )
   async function upload(files: FileList | File[] | null) {
-    if (!files?.length) return
+    if (!files?.length || !canSend(app.user().runtime)) return
     setUploading(true)
     setError("")
     let completed = 0
@@ -146,7 +147,7 @@ export default function Files() {
   return (
     <div class="content-page">
       <PageHead eyebrow="个人文件空间" title="我的文件" text="上传文件、查看解析内容，随时将文件用于对话。">
-        <Button variant="primary" icon="upload" busy={uploading()} onClick={() => input.click()}>
+        <Button variant="primary" icon="upload" busy={uploading()} disabled={!canSend(app.user().runtime)} onClick={() => input.click()}>
           上传文件
         </Button>
       </PageHead>
@@ -179,7 +180,7 @@ export default function Files() {
           <strong>{uploading() ? "正在上传，请稍候…" : "拖拽文件到这里，或点击上传"}</strong>
           <p>支持 Excel、PDF、Word 和文本资料 · 扫描版文档暂不识别图片文字</p>
         </div>
-        <Button onClick={() => input.click()} disabled={uploading()}>
+        <Button onClick={() => input.click()} disabled={uploading() || !canSend(app.user().runtime)}>
           选择文件
         </Button>
       </div>

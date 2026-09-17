@@ -2229,6 +2229,34 @@
             "pattern": "^[A-Za-z0-9_-]+$",
             "type": "string"
           },
+          "interaction": {
+            "additionalProperties": false,
+            "properties": {
+              "can_continue": {
+                "type": "boolean"
+              },
+              "can_observe": {
+                "type": "boolean"
+              },
+              "can_submit_new": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "can_submit_new",
+              "can_observe",
+              "can_continue"
+            ],
+            "type": "object"
+          },
+          "maintenance_mode": {
+            "enum": [
+              "normal",
+              "frozen",
+              "repair_only"
+            ],
+            "type": "string"
+          },
           "phase": {
             "enum": [
               "claimed",
@@ -2321,6 +2349,26 @@
           "desired": {
             "type": "integer"
           },
+          "interaction": {
+            "additionalProperties": false,
+            "properties": {
+              "can_continue": {
+                "type": "boolean"
+              },
+              "can_observe": {
+                "type": "boolean"
+              },
+              "can_submit_new": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "can_submit_new",
+              "can_observe",
+              "can_continue"
+            ],
+            "type": "object"
+          },
           "job": {
             "anyOf": [
               {
@@ -2330,6 +2378,14 @@
                 "type": "null"
               }
             ]
+          },
+          "maintenance_mode": {
+            "enum": [
+              "normal",
+              "frozen",
+              "repair_only"
+            ],
+            "type": "string"
           },
           "manual_stop_reason": {
             "type": "string"

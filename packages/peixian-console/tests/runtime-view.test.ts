@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { canSend, runtimeNotice } from "../src/runtime-view"
+import { canSend, canObserve, canContinue, runtimeNotice } from "../src/runtime-view"
 
 describe("runtime status does not bypass admission", () => {
   test("automatic idle pause preserves manual restart guidance", () => {
@@ -31,4 +31,17 @@ describe("runtime status does not bypass admission", () => {
     expect(runtimeNotice({ status: "draining", security_blocked: true })).toContain("停止待确认")
     expect(runtimeNotice({ status: "draining", phase: "awaiting_action" })).toContain("超级管理员")
   })
+})
+
+
+test("draining keeps observation and continuation but not submission", () => {
+  const runtime = { status: "draining", runtime_mode: "on_demand" as const, ready: false,
+    interaction: { can_submit_new: false, can_observe: true, can_continue: true } }
+  expect(canSend(runtime)).toBe(false)
+  expect(canObserve(runtime)).toBe(true)
+  expect(canContinue(runtime)).toBe(true)
+  expect(canContinue({ ...runtime, security_blocked: true })).toBe(false)
+  expect(canObserve({ ...runtime, recovery_required: true })).toBe(false)
+  expect(canObserve({ ...runtime, interaction: undefined })).toBe(false)
+  expect(canContinue({ ...runtime, maintenance_mode: "repair_only" })).toBe(false)
 })

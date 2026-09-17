@@ -3,9 +3,13 @@ import { api, ApiError, list, patch, post, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, Markdown, Modal, Spinner, Status } from "../components"
 import { useConsole } from "../context"
 import BusinessConfirmations from "../BusinessConfirmations"
-import type { FileItem, Message, Model, Session, Skill } from "../types"
+import type { FileItem, Message, Model, Session, Skill, Plugin } from "../types"
 import { createRefreshScheduler, createResponseGuard } from "../refresh"
 import { canSend, canObserve, canContinue, runtimeNotice } from "../runtime-view"
+import Skills from "./Skills"
+import Plugins from "./Plugins"
+import Files from "./Files"
+import { capabilityCatalog, type CapabilityEntry } from "../capability-catalog"
 export default function Chat() {
   const app = useConsole()
   const [sessions, setSessions] = createSignal<Session[]>([])
@@ -13,6 +17,8 @@ export default function Chat() {
   const [expandedTools, setExpandedTools] = createSignal<Record<string, boolean>>({})
   const [models, setModels] = createSignal<Model[]>([])
   const [files, setFiles] = createSignal<FileItem[]>([])
+  const [plugins, setPlugins] = createSignal<Plugin[]>([])
+  const [manager, setManager] = createSignal<"skills" | "plugins" | "files">()
   const [skills, setSkills] = createSignal<Skill[]>([])
   const [selected, setSelected] = createSignal<string>()
   const [model, setModel] = createSignal("")
@@ -36,10 +42,7 @@ export default function Chat() {
   const [capabilityKind, setCapabilityKind] = createSignal<"all" | "skill" | "plugin">("all")
   const shownSessions = sessions
   const shownModels = models
-  const shownCapabilities = createMemo<{ id: string; name: string; description?: string; kind: "skill" | "plugin"; version: string; owned: boolean }[]>(() => skills().filter((item) => item.enabled).map((item) => ({
-    id: item.id, name: item.name, description: item.description, kind: "skill" as const,
-    version: String(item.version ?? 1), owned: true,
-  })))
+  const shownCapabilities = createMemo(() => capabilityCatalog(skills(), plugins()))
   const slashQuery = createMemo(() => draft().match(/^\s*\/([^\s]*)$/)?.[1]?.toLowerCase())
   const slashCapabilities = createMemo(() => slashQuery() === undefined ? [] : shownCapabilities().filter((item) =>
     !slashQuery() || (item.name + (item.description ?? "")).toLowerCase().includes(slashQuery()!)).slice(0, 7))
@@ -48,7 +51,8 @@ export default function Chat() {
   const available = createMemo(() => canObserve(app.user().runtime))
   const continuing = createMemo(() => canContinue(app.user().runtime))
   let observationGeneration = 0
-  createEffect(() => { app.user().id; available(); observationGeneration++; selection.invalidate() })
+  const account = createMemo(() => app.user().id)
+  createEffect(() => { account(); available(); observationGeneration++; selection.invalidate() })
   const notice = createMemo(() => runtimeNotice(app.user().runtime))
   const interval = () => (document.hidden ? 15000 : 500)
   const messageRefresh = createRefreshScheduler(
@@ -91,23 +95,34 @@ export default function Chat() {
   const fileRefresh = createRefreshScheduler(
     async (signal) => {
       if (!available()) return
+      const generation = observationGeneration
       const values = await list<FileItem>("/files", { signal })
-      if (!disposed) setFiles(values)
+      if (!disposed && available() && generation === observationGeneration) {
+        setFiles(values)
+        setSelectedFiles((current) => current.filter((id) => values.some((item) => item.id === id && item.status === "ready")))
+      }
     },
     { interval },
   )
   const skillRefresh = createRefreshScheduler(
     async (signal) => {
       const values = await list<Skill>("/skills", { signal })
-      if (!disposed) setSkills(values)
+      if (!disposed) {
+        setSkills(values)
+        setSelectedSkills((current) => current.filter((id) => values.some((item) => item.id === id && item.enabled)))
+      }
     },
     { interval },
   )
+  const pluginRefresh = createRefreshScheduler(async (signal) => {
+    const values = await list<Plugin>("/plugins", { signal })
+    if (!disposed) setPlugins(values)
+  }, { interval, onError: (error) => setError((error as Error).message) })
   const refresh = async () => {
     await Promise.all([sessionRefresh.request(), messageRefresh.request()])
   }
   const calibrate = async () => {
-    await Promise.all([refresh(), modelRefresh.request(), fileRefresh.request(), skillRefresh.request()])
+    await Promise.all([refresh(), modelRefresh.request(), fileRefresh.request(), skillRefresh.request(), pluginRefresh.request()])
     if (!disposed) setLoading(false)
   }
   const subscriptions = [
@@ -126,6 +141,7 @@ export default function Chat() {
     app.subscribe("skills", () => {
       void skillRefresh.request()
     }),
+    app.subscribe("plugins", () => { void pluginRefresh.request() }),
     app.subscribe("runtime", () => {
       void calibrate()
     }),
@@ -146,7 +162,7 @@ export default function Chat() {
     clearInterval(poll)
     clearInterval(calibration)
     subscriptions.forEach((dispose) => dispose())
-    ;[messageRefresh, sessionRefresh, modelRefresh, fileRefresh, skillRefresh].forEach((scheduler) =>
+    ;[messageRefresh, sessionRefresh, modelRefresh, fileRefresh, skillRefresh, pluginRefresh].forEach((scheduler) =>
       scheduler.dispose(),
     )
   })
@@ -267,8 +283,15 @@ export default function Chat() {
     }
     setter(current.includes(id) ? current.filter((value) => value !== id) : [...current, id])
   }
-  function toggleCapability(item: { id: string }) { toggle(item.id, "skills") }
-  function chooseSlashCapability(item: { id: string }) {
+  function manage(value: "files" | "skills" | "plugins") {
+    setPicker(undefined)
+    setManager(value)
+  }
+  function toggleCapability(item: CapabilityEntry) {
+    if (item.kind === "plugin") return manage("plugins")
+    toggle(item.id, "skills")
+  }
+  function chooseSlashCapability(item: CapabilityEntry) {
     toggleCapability(item)
     setDraft("")
     queueMicrotask(() => textarea?.focus())
@@ -561,10 +584,11 @@ export default function Chat() {
         </div>
       </section>
 <aside class="related-capabilities">
-        <div class="related-capabilities-head"><div><strong>已启用技能</strong><small>当前账号已启用技能</small></div><span>{shownCapabilities().length}</span></div>
+        <div class="related-capabilities-head"><div><strong>技能与插件</strong><small>个人技能与已获授权插件</small></div><span>{shownCapabilities().length}</span></div>
+        <div class="capability-management-actions"><Button onClick={() => manage("skills")}>管理技能</Button><Button onClick={() => manage("plugins")}>管理插件</Button></div>
         <div class="related-capabilities-list">
           <For each={shownCapabilities()}>
-            {(item, index) => <button class={selectedSkills().includes(item.id) ? "selected" : ""} onClick={() => toggleCapability(item)}><span class={"capability-icon tone-" + (index() % 5)}><Icon name={item.kind === "skill" ? "skill" : "plugin"} size={18} /></span><span><strong>{item.name}<em>v{item.version}</em></strong><small>{item.description}</small><i>{item.kind === "skill" ? (item.owned ? "个人 Skill" : "官方 Skill") : "插件工具"}</i></span><b>{selectedSkills().includes(item.id) ? "已选" : "使用"}</b></button>}
+            {(item, index) => <button class={selectedSkills().includes(item.id) ? "selected" : ""} onClick={() => toggleCapability(item)}><span class={"capability-icon tone-" + (index() % 5)}><Icon name={item.kind === "skill" ? "skill" : "plugin"} size={18} /></span><span><strong>{item.name}<em>v{item.version}</em></strong><small>{item.description}</small><i>{item.kind === "skill" ? "个人 Skill" : item.state}</i></span><b>{item.kind === "plugin" ? "配置" : selectedSkills().includes(item.id) ? "已选" : "使用"}</b></button>}
           </For>
         </div>
       </aside>
@@ -572,7 +596,7 @@ export default function Chat() {
         {(type) => (
           <Modal
             title={type() === "files" ? "关联文件" : "能力选择"}
-            text={type() === "files" ? "仅可选择已完成解析的个人文件。" : "本阶段展示已启用个人技能；平台插件管理将在下一步接入。"}
+            text={type() === "files" ? "仅可选择已完成解析的个人文件。" : "Skill 可随消息选用。插件在个人环境应用后由助手按需调用，配置不代表已经生效。"}
             onClose={() => setPicker(undefined)}
           >
             <Show when={type() === "capabilities"}>
@@ -594,13 +618,16 @@ export default function Chat() {
               >
                 {(item) => (
                   <div class="pick-row capability-row">
+                    <Show when={!("kind" in item && item.kind === "plugin")} fallback={<Button onClick={() => manage("plugins")}>配置</Button>}>
                     <input
                       type="checkbox"
+                      aria-label={"选择 " + item.name}
                       disabled={type() === "files" && "status" in item && item.status === "partial"}
                       checked={(type() === "files" ? selectedFiles() : selectedSkills()).includes(item.id)}
                       onChange={() => type() === "files" ? toggle(item.id, "files") : "kind" in item && toggleCapability(item)}
                     />
-                    <Icon name={type() === "files" ? "file" : "skill"} />
+                    </Show>
+                    <Icon name={type() === "files" ? "file" : "kind" in item && item.kind === "plugin" ? "plugin" : "skill"} />
                     <span>
                       {item.name}
                       <Show when={type() === "capabilities" && "description" in item}><small>{("description" in item ? item.description : "") || "可用于当前研判任务"}</small></Show>
@@ -615,13 +642,26 @@ export default function Chat() {
               </For>
             </div>
             <div class="modal-actions">
-              <Show when={type() === "capabilities"}><span class="quiet">本阶段支持选择已启用的个人技能；插件配置与 AI 草稿将在后续接入。</span></Show>
+              <Show when={type() === "files"} fallback={<><Button onClick={() => manage("skills")}>管理技能</Button><Button onClick={() => manage("plugins")}>管理插件</Button></>}>
+                <Button onClick={() => manage("files")}>上传与管理文件</Button>
+              </Show>
               <Button variant="primary" onClick={() => setPicker(undefined)}>
                 完成选择
               </Button>
             </div>
           </Modal>
         )}
+      </Show>
+      <Show when={manager()}>
+        <Modal wide title={manager() === "skills" ? "个人技能管理" : manager() === "plugins" ? "授权插件管理" : "文件管理"} onClose={() => setManager(undefined)}>
+          <Show when={manager() === "skills"}><Skills /></Show>
+          <Show when={manager() === "plugins"}><Plugins /></Show>
+          <Show when={manager() === "files"}><Files onUse={(item) => {
+            if (!selectedFiles().includes(item.id)) toggle(item.id, "files")
+            setManager(undefined)
+            void fileRefresh.request()
+          }} /></Show>
+        </Modal>
       </Show>
       <Show when={rename()}>
         <Modal title="重命名对话" onClose={() => setRename(undefined)}>

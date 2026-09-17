@@ -1,0 +1,127 @@
+{
+  "scope": "frontend alignment step 2, isolated server development; no production cutover",
+  "generated_at": "2026-09-17T07:40:18.085152+00:00",
+  "baseline": "d2d538c2769b8aafa43c761e48926a4a8d263aba",
+  "branch": "frontend-alignment",
+  "source_sha256": {
+    "packages/peixian-console/src/App.tsx": "5d828994b661ee80fca116a872196b80ece9d3a001c3e295e3c5189189623ea7",
+    "packages/peixian-console/src/components.tsx": "8bdae77d3600e4258cba6b876847668355af8dbf5b02d336160fbe993c7674cb",
+    "packages/peixian-console/src/context.tsx": "7135efe00e48d12c766d0988d2e82b73aab18b14de7bede97393d96be0b8b8d9",
+    "packages/peixian-console/src/capability-catalog.ts": "1a902e5a08f0434095ad5d863218982262768ec38e450c77f9a543398c8e6977",
+    "packages/peixian-console/src/styles.css": "90611992c8ea11be7a8987dacc89eaded83fbb0f77fa63b54760a8d72d88faee",
+    "packages/peixian-console/src/pages/Admin.tsx": "d724c06c1dfc1700617f8774a2ef5ef29bcc3a9c86bf632a2f280c4bbab82270",
+    "packages/peixian-console/src/pages/Chat.tsx": "100c477cbe2c0429031f46a6b8656f290e6a82a0ed20dd3cb71d0b7a5fe6e18c",
+    "packages/peixian-console/src/pages/Files.tsx": "ed8276a0072def61b22da70c3b5aa319685400dbe95931c0773abc4bbd26a200",
+    "packages/peixian-console/src/pages/Plugins.tsx": "9ec4e2b59bdd89785bb2d1ae986fb65bcdb1361ca1d60f0fa06495a987b556f2",
+    "packages/peixian-console/src/pages/Skills.tsx": "7497772a87c5a78baaa7828ce3dc13ebdc8923d2ad287eae93b9a418c4d1be48",
+    "packages/peixian-console/tests/alignment-capabilities-browser.mjs": "a63d114e68ee16490d57e9771daaa33a105954deb030af375a12bf55c61ba2ca",
+    "packages/peixian-console/tests/alignment-files-browser.mjs": "e1d241b1cc8eeb9d7977265f95a2ecf93252bd60441322745ff9cde4ac4cf4b3",
+    "packages/peixian-console/tests/capability-catalog.test.ts": "77ca9f432eaa1050c1f70e2efab997a93d909dd4c55329e2ae790dd02c06b575",
+    "services/peixian-control/tests/alignment_server.py": "670b14dd0d1457332fba1c67fe96d4bdf041275d106ffbbe7a4379e6e5355d00"
+  },
+  "build_sha256": {
+    "packages/peixian-console/dist/assets/index-B_wQ8lTu.css": "9813c24c91a77bbeab72ed873475c035e7f87c4283b86ec15ab38d88583f4863",
+    "packages/peixian-console/dist/assets/index-nqd6qkVs.js": "2735fddaf061fe4865d4fa8b3cd2ec18d6e352371a240f71d7ff8ce0121bf11d",
+    "packages/peixian-console/dist/assets/peixian-login-prototype-D2qTzBuR.png": "dddf7068fe9f5345dfda26368b49d16b1ddf9c3e8bd8036c9375f57923710212",
+    "packages/peixian-console/dist/index.html": "3547733cbf40b6181610df9e744adfcf3cde359a67e69cde91fb33057de16c1d"
+  },
+  "frontend": {
+    "unit_passed": 57,
+    "unit_failed": 0,
+    "typecheck": "passed",
+    "build": "passed",
+    "warnings": [
+      "package-local tool install cannot resolve root @tsconfig/bun/tsconfig.json; package typecheck succeeds"
+    ]
+  },
+  "backend": {
+    "passed": 462,
+    "skipped": 4,
+    "warnings": 2,
+    "seconds": 156.57,
+    "test_image": "agent-platform-control:orchestration-r2",
+    "current_repository_mounted_readonly": true
+  },
+  "browser": {
+    "capabilities": {
+      "passed": true,
+      "cases": [
+        "real model/plugin publication and grants; mixed admin request rejected; other account catalog isolated",
+        "real skill edit/rollback and template copy are versioned and independent of later template edits",
+        "real skill creation and account isolation; offline catalog invalidation; nested Escape preserves draft",
+        "real plugin configuration rollback restores previous personal values without returning secrets",
+        "real administrator model and normal-user creation forms; no plugin authorization field",
+        "real plugin installation, schema config and redacted secret; pending is not applied and offline test disabled"
+      ],
+      "limitations": [
+        "No Worker or Agent: configuration remains pending; no tool execution or model response claimed"
+      ]
+    },
+    "files": {
+      "passed": true,
+      "cases": [
+        "multipart upload, parser status polling, slow source preview across identity refresh, draft preservation, exact file/skill message IDs; no invented plugin_ids",
+        "failed upload remains visible after list refresh; file manager layouts at 1366/1920/390"
+      ],
+      "evidence": "synthetic HTTP contract, not real Agent/model"
+    },
+    "alignment": {
+      "passed": true,
+      "scenarios": [
+        "empty catalogs have no demo data; on-demand start uses csrf/idempotency and preserves draft",
+        "message accepted; no automatic replay, no Run query",
+        "message network; no automatic replay, no Run query",
+        "message server; no automatic replay, no Run query",
+        "message overload; no automatic replay, no Run query",
+        "admin menu and resource permissions",
+        "super_admin menu and resource permissions",
+        "first-password gate blocks business reads"
+      ]
+    },
+    "review": {
+      "passed": true,
+      "scenarios": [
+        "question",
+        "permission",
+        "abort",
+        "new_prompt_denied",
+        "maintenance",
+        "late_read",
+        "draft",
+        "1366",
+        "1920",
+        "390"
+      ],
+      "writes": [
+        "/questions/q/reply",
+        "/permissions/p/reply",
+        "/sessions/session-a/abort"
+      ]
+    },
+    "auth": {
+      "passed": true,
+      "scenarios": [
+        "super_admin: real login, initial password, cookie, csrf, origin, menu, logout/revocation",
+        "admin: real login, initial password, cookie, csrf, origin, menu, logout/revocation",
+        "real runtime start/cancel with state version and no Worker",
+        "user: real login, initial password, cookie, csrf, origin, menu, logout/revocation"
+      ]
+    }
+  },
+  "screenshots": {
+    "step2-files-1366.png": "e04460ea39e1e8a945eba0683446e9d9badc44dc82071227caadc322fe9e2900",
+    "step2-files-1920.png": "44ee1420aa7d865c328d1ecdf9af09c560509ef6ad1ef7736269e4fae8d62d1a",
+    "step2-files-390.png": "c6f003ab6cd0bca92aa48e03b7e63ce9125ac5911843a42613ea9ec927c631d7",
+    "step2-real-1366.png": "a0d79ada7979eb050040fa3b3e0843262296851d9a1d9429ed8dcfb7187c2f85",
+    "step2-real-1920.png": "74c775122f3f795c1484a249f1c855fbb3d882a5b05bf16f0263c48a89682024",
+    "step2-real-390.png": "9e3422c27f182b56dae52b55703bd188c0191a73e7f7dd77a153696f88bb6a75"
+  },
+  "not_executed": [
+    "production deployment",
+    "Worker/Agent applied configuration",
+    "live plugin tool or model execution",
+    "browser-to-real-account-Gateway-to-model file reference",
+    "load testing",
+    "real private-network model/business API"
+  ]
+}

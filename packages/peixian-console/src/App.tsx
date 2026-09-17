@@ -194,6 +194,7 @@ export default function App() {
                 refreshUser,
                 changed,
                 subscribe: changes.subscribe,
+                invalidate: (resources) => changes.publish({ resources }),
               }}
             >
               <div class={"app-shell " + (can("business.use") ? "business-shell" : "admin-shell") }>

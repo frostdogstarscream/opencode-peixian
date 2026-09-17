@@ -1,3 +1,4 @@
+import { canObserve } from "../runtime-view"
 import { createEffect, createSignal, For, Show } from "solid-js"
 import { api, list, patch, post, remove } from "../api"
 import {
@@ -18,7 +19,7 @@ import { useResourceRefresh } from "../resource-refresh"
 import type { Skill } from "../types"
 export default function Skills() {
   const app = useConsole()
-  const locked = () => ["updating", "applying"].includes(app.user().runtime?.status ?? "")
+  const locked = () => (app.user().runtime?.maintenance_mode ?? "normal") !== "normal" || ["updating", "applying"].includes(app.user().runtime?.status ?? "")
   const [skills, setSkills] = createSignal<Skill[]>([])
   const [templates, setTemplates] = createSignal<Skill[]>([])
   const [tab, setTab] = createSignal("mine")
@@ -46,7 +47,7 @@ export default function Skills() {
       setLoading(false)
     }
   }
-  useResourceRefresh(["skills"], refresh)
+  const requestRefresh = useResourceRefresh(["skills"], refresh)
   function edit(item: Partial<Skill> = {}) {
     setEditor(item)
     setName(item.name ?? "")
@@ -73,8 +74,9 @@ export default function Skills() {
       if (editor()?.id) await patch("/skills/" + editor()!.id, body)
       else await post("/skills", body)
       setEditor(undefined)
-      app.notify("技能已保存，正在更新你的工作空间。")
-      await refresh()
+      app.notify("技能已保存，等待环境应用；未启动时将在下次启动后生效。")
+      app.invalidate(["skills", "runtime"])
+      await requestRefresh()
     } catch (error) {
       setError((error as Error).message)
     } finally {
@@ -84,6 +86,10 @@ export default function Skills() {
   async function action(item: Skill, operation: "toggle" | "test" | "rollback" | "delete" | "copy") {
     if (locked()) {
       app.notify("配置正在更新，完成后可提交修改。", "error")
+      return
+    }
+    if (operation === "test" && !canObserve(app.user().runtime)) {
+      app.notify("请先启动工作空间，再检查技能是否加载。", "error")
       return
     }
     if (operation === "delete" && !window.confirm("确定删除这个个人技能吗？")) return
@@ -98,7 +104,8 @@ export default function Skills() {
         setTab("mine")
         app.notify("模板已复制到我的技能，可以继续编辑。")
       }
-      await refresh()
+      if (operation !== "test") app.invalidate(["skills", "runtime"])
+      await requestRefresh()
     } catch (error) {
       app.notify((error as Error).message, "error")
     } finally {
@@ -210,16 +217,24 @@ export default function Skills() {
                       </Button>
                     }
                   >
+                    <Button icon="download" onClick={() => {
+                      const url = URL.createObjectURL(new Blob([item.content ?? ""], { type: "text/markdown;charset=utf-8" }))
+                      const link = document.createElement("a")
+                      link.href = url
+                      link.download = item.name.replace(/[^a-zA-Z0-9_\u4e00-\u9fff-]/g, "_") + ".md"
+                      link.click()
+                      setTimeout(() => URL.revokeObjectURL(url), 1000)
+                    }}>导出文本</Button>
                     <Button icon="edit" onClick={() => edit(item)}>
                       编辑
                     </Button>
                     <Button
                       variant="ghost"
-                      disabled={locked()}
+                      disabled={locked() || !canObserve(app.user().runtime)}
                       busy={working() === item.id}
                       onClick={() => void action(item, "test")}
                     >
-                      测试
+                      生效检查
                     </Button>
                     <button
                       class="icon-button"

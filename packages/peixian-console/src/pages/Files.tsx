@@ -1,5 +1,5 @@
-import { canSend } from "../runtime-view"
-import { createEffect, createMemo, createSignal, For, Show } from "solid-js"
+import { canSend, canObserve } from "../runtime-view"
+import { createEffect, createMemo, createSignal, For, Show, onCleanup } from "solid-js"
 import { api, download, list, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, formatDate, formatSize, Icon, Modal, PageHead, Spinner, Status } from "../components"
 import { useConsole } from "../context"
@@ -53,7 +53,7 @@ function sourceLabel(chunk: PreviewChunk, index: number) {
   if (start !== undefined) values.push(`第 ${start}${end !== undefined && end !== start ? "–" + end : ""} 行`)
   return values.length ? values.join(" · ") : `内容片段 ${index + 1}`
 }
-export default function Files() {
+export default function Files(props: { onUse?: (item: FileItem) => void } = {}) {
   const app = useConsole()
   const [items, setItems] = createSignal<FileItem[]>([])
   const [results, setResults] = createSignal<FileItem[]>([])
@@ -68,53 +68,85 @@ export default function Files() {
   const [truncated, setTruncated] = createSignal(false)
   const [previewBusy, setPreviewBusy] = createSignal(false)
   const [drag, setDrag] = createSignal(false)
+  let disposed = false
+  let generation = 0
+  let previewGeneration = 0
+  const account = createMemo(() => app.user().id)
+  const observable = createMemo(() => canObserve(app.user().runtime))
+  createEffect(() => {
+    account()
+    const allowed = observable()
+    generation++
+    previewGeneration++
+    if (!allowed) {
+      setItems([])
+      setResults([])
+      setPreview(undefined)
+    }
+  })
+  onCleanup(() => { disposed = true; generation++; previewGeneration++ })
+  const [mutationError, setMutationError] = createSignal("")
   let input!: HTMLInputElement
   async function refresh() {
-    if (app.user().runtime?.runtime_mode === "on_demand" ? !app.user().runtime?.ready : !["ready", "running", "healthy"].includes(app.user().runtime?.status ?? "")) {
+    const current = generation
+    if (!canObserve(app.user().runtime)) {
       setLoading(false)
       setError("个人工作空间尚不可用，恢复后可查看文件。")
       return
     }
     try {
       const [files, outputs] = await Promise.all([list<FileItem>("/files"), list<FileItem>("/results")])
+      if (disposed || current !== generation) return
       setItems(files)
       setResults(outputs)
       setError("")
     } catch (error) {
-      setError((error as Error).message)
+      if (!disposed && current === generation) setError((error as Error).message)
     } finally {
-      setLoading(false)
+      if (!disposed && current === generation) setLoading(false)
     }
   }
-  useResourceRefresh(["files"], refresh)
+  const requestRefresh = useResourceRefresh(["files"], refresh)
+  const parsePoll = setInterval(() => {
+    if (!document.hidden && items().some((item) => ["uploaded", "queued", "pending", "parsing", "processing"].includes(item.status ?? ""))) void requestRefresh()
+  }, 2000)
+  onCleanup(() => clearInterval(parsePoll))
   const visible = createMemo(() =>
     (tab() === "files" ? items() : results()).filter((item) =>
       item.name?.toLowerCase().includes(search().toLowerCase()),
     ),
   )
   async function upload(files: FileList | File[] | null) {
-    if (!files?.length || !canSend(app.user().runtime)) return
+    if (!files?.length || uploading() || !canSend(app.user().runtime)) return
+    setMutationError("")
     setUploading(true)
     setError("")
     let completed = 0
     try {
       for (const file of Array.from(files)) {
+        if (disposed || !canSend(app.user().runtime)) throw new Error("工作空间暂不可上传，已完成的文件保持保留。")
+        if (file.size > 20 * 1024 * 1024) throw new Error("单个文件不能超过 20 MiB，请拆分后上传。")
+        if (!/\.(xlsx|pdf|docx|txt|md|csv)$/i.test(file.name)) throw new Error("暂不支持该文件格式，请上传 XLSX、PDF、DOCX 或文本资料。")
         const body = new FormData()
         body.append("file", file)
         await api("/files", { method: "POST", body })
         completed++
       }
+      app.invalidate(["files"])
       app.notify(`已上传 ${completed} 个文件，正在准备解析结果。`)
-      await refresh()
+      await requestRefresh()
     } catch (error) {
-      setError((error as Error).message)
-      await refresh()
+      setMutationError(`已上传 ${completed} 个文件。${(error as Error).message}`)
+      app.invalidate(["files"])
+      await requestRefresh()
     } finally {
       setUploading(false)
       input.value = ""
     }
   }
   async function open(item: FileItem) {
+    if (!canObserve(app.user().runtime)) return
+    const current = ++previewGeneration
     setPreview(item)
     setText("")
     setChunks([])
@@ -123,23 +155,25 @@ export default function Files() {
     try {
       const response = await api<string | PreviewData>("/files/" + item.id + "/preview")
       const value: PreviewData = typeof response === "string" ? { text: response } : response
-      if (preview()?.id !== item.id) return
+      if (disposed || current !== previewGeneration || !canObserve(app.user().runtime)) return
       setText(value.text || value.content || "此文件暂无可预览的文字，请查看解析状态或下载原文件。")
       setChunks(value.chunks ?? [])
       setTruncated(!!value.truncated)
       setPreview({ ...item, status: value.status ?? item.status, error: value.error ?? item.error })
     } catch (error) {
-      if (preview()?.id === item.id) setText(safeMessage((error as Error).message))
+      if (!disposed && current === previewGeneration) setText(safeMessage((error as Error).message))
     } finally {
-      if (preview()?.id === item.id) setPreviewBusy(false)
+      if (!disposed && current === previewGeneration) setPreviewBusy(false)
     }
   }
   async function erase(item: FileItem) {
+    if (!canSend(app.user().runtime)) return
     if (!window.confirm("确定删除这个文件吗？已有对话中的引用可能无法再次使用。")) return
     try {
       await remove("/files/" + item.id)
+      app.invalidate(["files"])
       app.notify("文件已删除。")
-      await refresh()
+      await requestRefresh()
     } catch (error) {
       app.notify((error as Error).message, "error")
     }
@@ -178,13 +212,14 @@ export default function Files() {
         </span>
         <div>
           <strong>{uploading() ? "正在上传，请稍候…" : "拖拽文件到这里，或点击上传"}</strong>
-          <p>支持 Excel、PDF、Word 和文本资料 · 扫描版文档暂不识别图片文字</p>
+          <p>单文件上限 20 MiB · 支持 XLSX、PDF、DOCX 和文本资料 · 扫描版文档暂不识别图片文字</p>
         </div>
         <Button onClick={() => input.click()} disabled={uploading() || !canSend(app.user().runtime)}>
           选择文件
         </Button>
       </div>
       <ErrorLine message={error()} />
+      <ErrorLine message={mutationError()} />
       <div class="section-toolbar">
         <div class="tabs">
           <button class={tab() === "files" ? "active" : ""} onClick={() => setTab("files")}>
@@ -257,16 +292,19 @@ export default function Files() {
                       <td>
                         <Status value={item.status ?? "ready"} />
                       </td>
-                      <td class="nowrap muted">{formatDate(item.created_at)}</td>
+                      <td class="nowrap muted">{formatDate(item.created_at ?? item.created)}</td>
                       <td>
                         <div class="table-actions">
                           <Show when={tab() === "files"}>
-                            <Button variant="ghost" onClick={() => void open(item)}>
+                            <Show when={props.onUse}><Button disabled={item.status !== "ready" || !canSend(app.user().runtime)} onClick={() => props.onUse?.(item)}>用于对话</Button></Show>
+                            <Button variant="ghost" disabled={!canObserve(app.user().runtime)} onClick={() => void open(item)}>
                               预览
                             </Button>
                           </Show>
                           <a
                             class="button ghost"
+                            aria-disabled={!canSend(app.user().runtime)}
+                            onClick={(event) => { if (!canSend(app.user().runtime)) event.preventDefault() }}
                             href={download((tab() === "files" ? "/files/" : "/results/") + item.id + "/download")}
                             download=""
                             aria-label={"下载 " + item.name}
@@ -278,6 +316,7 @@ export default function Files() {
                             <button
                               class="icon-button"
                               aria-label={"删除 " + item.name}
+                              disabled={!canSend(app.user().runtime)}
                               onClick={() => void erase(item)}
                             >
                               <Icon name="trash" size={17} />
@@ -299,11 +338,11 @@ export default function Files() {
       </div>
       <Show when={preview()}>
         {(item) => (
-          <Modal title={item().name} text="解析内容预览 · 请结合原文件核验" wide onClose={() => setPreview(undefined)}>
+          <Modal title={item().name} text="解析内容预览 · 请结合原文件核验" wide onClose={() => { previewGeneration++; setPreview(undefined) }}>
             <div class="preview-meta">
               <Status value={item().status} />
               <span>{formatSize(item().size)}</span>
-              <a href={download("/files/" + item().id + "/download")} download="">
+              <a aria-disabled={!canSend(app.user().runtime)} onClick={(event) => { if (!canSend(app.user().runtime)) event.preventDefault() }} href={download("/files/" + item().id + "/download")} download="">
                 下载原文件
               </a>
             </div>

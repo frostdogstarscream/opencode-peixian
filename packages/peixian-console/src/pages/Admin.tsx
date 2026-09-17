@@ -62,11 +62,12 @@ const auditActions: Record<string, string> = {
 }
 export default function Admin(props: { section?: string } = {}) {
   const app = useConsole()
+  const [search, setSearch] = createSignal("")
   const [tab, setTab] = createSignal<ManagementTab>("users")
   const tabs = () => visibleManagementTabs(app.capabilities())
   createEffect(() => {
     const next = tabs().find((item) => item.id === props.section)
-    if (next) setTab(next.id)
+    if (next) { setTab(next.id); setSearch("") }
   })
   const [users, setUsers] = createSignal<User[]>([])
   const [models, setModels] = createSignal<Model[]>([])
@@ -410,7 +411,7 @@ export default function Admin(props: { section?: string } = {}) {
     <div class="content-page admin-page">
       <PageHead
         eyebrow={roleNames[app.user().role]}
-        title="管理中心"
+        title={tabs().find((item) => item.id === tab())?.label ?? "管理中心"}
         text={
           app.can("runtimes.manage")
             ? "管理账号、平台能力和普通用户的独立工作空间。"
@@ -421,7 +422,7 @@ export default function Admin(props: { section?: string } = {}) {
           刷新状态
         </Button>
       </PageHead>
-      <Show when={app.can("runtimes.manage")}><RuntimeMaintenance /></Show>
+      <Show when={app.can("runtimes.manage") && tab() === "users"}><RuntimeMaintenance /></Show>
       <Show when={tab() === "users"}>
         <div class="stats-grid">
           <div>
@@ -456,7 +457,7 @@ export default function Admin(props: { section?: string } = {}) {
       </Show>
       <ErrorLine message={error()} />
       <div class="section-toolbar">
-        <div class="tabs scroll-tabs">
+        <Show when={!props.section}><div class="tabs scroll-tabs">
           <For each={tabs()}>
             {(item) => (
               <button class={tab() === item.id ? "active" : ""} onClick={() => setTab(item.id)}>
@@ -464,7 +465,8 @@ export default function Admin(props: { section?: string } = {}) {
               </button>
             )}
           </For>
-        </div>
+        </div></Show>
+        <Show when={["users", "models"].includes(tab())}><label class="search-box"><Icon name="search" size={16} /><input aria-label={tab() === "users" ? "搜索账号" : "搜索模型"} placeholder={tab() === "users" ? "搜索账号" : "搜索模型名称"} value={search()} onInput={(event) => setSearch(event.currentTarget.value)} /></label></Show>
         <Switch>
           <Match when={tab() === "users"}>
             <Button variant="primary" icon="plus" onClick={() => editUser()}>
@@ -520,7 +522,7 @@ export default function Admin(props: { section?: string } = {}) {
                   </tr>
                 </thead>
                 <tbody>
-                  <For each={users()}>
+                  <For each={users().filter((item) => item.username.toLowerCase().includes(search().toLowerCase()))}>
                     {(user) => (
                       <tr>
                         <td>
@@ -690,7 +692,7 @@ export default function Admin(props: { section?: string } = {}) {
           <Match when={tab() === "models"}>
             <div class="card-grid">
               <For
-                each={models()}
+                each={models().filter((item) => (item.name + (item.description ?? "")).toLowerCase().includes(search().toLowerCase()))}
                 fallback={<Empty icon="skill" title="尚未配置模型" text="添加模型并按账号授权后，用户即可选择使用。" />}
               >
                 {(item) => (

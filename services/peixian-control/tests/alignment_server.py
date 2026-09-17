@@ -21,5 +21,6 @@ if __name__ == "__main__":
         store = Store(root / "db", root / "key", root / "worker", root / "admin", runtime_mode="on_demand")
         store.create_user("alignment-manager", PASSWORD, role="admin")
         store.create_user("alignment-user", PASSWORD)
+        store.create_user("alignment-other", PASSWORD)
         app = create_app(store)
         uvicorn.run(app, host="0.0.0.0", port=8080, access_log=False)

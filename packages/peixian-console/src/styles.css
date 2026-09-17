@@ -4912,3 +4912,6 @@ tr:hover td {
 
 .app-shell .main-area { min-height: 0; }
 .chat-preserved[hidden] { display: none !important; }
+
+/* Management actions belong next to the capability catalog, not at the card footer. */
+.capability-management-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px 0; }

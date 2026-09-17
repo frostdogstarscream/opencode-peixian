@@ -37,7 +37,7 @@ function schemaFor(item: Plugin, version: string): Schema {
 }
 export default function Plugins() {
   const app = useConsole()
-  const locked = () => ["updating", "applying"].includes(app.user().runtime?.status ?? "")
+  const locked = () => (app.user().runtime?.maintenance_mode ?? "normal") !== "normal" || ["updating", "applying"].includes(app.user().runtime?.status ?? "")
   const [items, setItems] = createSignal<Plugin[]>([])
   const [loading, setLoading] = createSignal(true)
   const [error, setError] = createSignal("")
@@ -58,7 +58,7 @@ export default function Plugins() {
       setLoading(false)
     }
   }
-  useResourceRefresh(["plugins"], refresh)
+  const requestRefresh = useResourceRefresh(["plugins"], refresh)
   function configure(item: Plugin) {
     const version =
       item.installed?.version && (!item.schemas || item.schemas[item.installed.version])
@@ -88,8 +88,9 @@ export default function Plugins() {
         body: JSON.stringify({ version: version(), enabled: enabled(), config: cleaned }),
       })
       setSelected(undefined)
-      app.notify("插件配置已保存，正在应用到你的工作空间。")
-      await refresh()
+      app.notify("插件配置已保存。请以生效状态为准；未启动的环境会在下次启动时应用。")
+      app.invalidate(["plugins", "runtime"])
+      await requestRefresh()
     } catch (error) {
       setError((error as Error).message)
     } finally {
@@ -118,7 +119,8 @@ export default function Plugins() {
         if (operation === "test") setTest(result)
         else app.notify("已提交插件版本回退。")
       }
-      await refresh()
+      if (operation !== "test") app.invalidate(["plugins", "runtime"])
+      await requestRefresh()
     } catch (error) {
       app.notify((error as Error).message, "error")
     } finally {

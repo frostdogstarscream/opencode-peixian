@@ -8,6 +8,7 @@ export type ConsoleContext = {
   can: (capability: Capability) => boolean
   notify: (message: string, kind?: "success" | "error") => void
   refreshUser: () => Promise<void>
+  invalidate: (resources: Resource[]) => void
   changed: Accessor<number>
   subscribe: (resource: Resource, callback: (change: Change) => void) => () => void
 }

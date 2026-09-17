@@ -35,7 +35,8 @@ export default function RuntimeStatus() {
           ? "管理员已暂停助手，请联系管理员恢复。" : runtime()?.waiting
             ? `正在等待运行名额，约第 ${runtime()!.waiting!.approximate_position} 位。申请在 ${new Date(runtime()!.waiting!.expires_at * 1000).toLocaleTimeString()} 到期，可取消；就绪后请自行发送问题。` : runtime()?.job
             ? "正在处理启停操作，输入内容已保留。" : runtime()?.wait_result === "capacity_wait_expired"
-              ? "启动申请已到期，请重新申请；输入内容已保留。" : "按需启动助手后即可对话和使用文件；技能和个人配置仍可编辑。"}</p>
+              ? "启动申请已到期，请重新申请；输入内容已保留。" : runtime()?.stop_reason === "idle_timeout"
+                ? "助手因空闲已暂停，数据仍然保留。点击启动后继续使用。" : "按需启动助手后即可对话和使用文件；技能和个人配置仍可编辑。"}</p>
         <ErrorLine message={error()} />
       </div>
       <Show when={runtime()?.allowed_actions?.includes("start")}>

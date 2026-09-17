@@ -57,6 +57,7 @@ RUN bun run script/build.ts --single --skip-install --skip-embed-web-ui \
 
 FROM oven/bun:1.3.14-slim@sha256:d56a2534ffd262e92c12fd3249d3924d296d97086da773f821d7d0477435ea04
 LABEL org.peixian.runtime.protocol="2"
+LABEL org.peixian.runtime.capabilities="idle_activity_v1"
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git python3 ripgrep \
     && rm -rf /var/lib/apt/lists/* \

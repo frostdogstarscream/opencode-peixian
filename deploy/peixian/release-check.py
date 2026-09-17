@@ -63,15 +63,19 @@ def runtime_pool_blockers(manifest, profile):
     blocked = []
     pool = manifest.get('effective_config', {}).get('runtime_pool', {})
     waiting = pool.get('capacity_wait_enabled') is True
+    idle = pool.get('idle_pause_enabled') is True
+    required_capabilities = {'runtime_pool_v1'} | ({'runtime_pool_wait_v1'} if waiting or idle else set()) | ({'idle_activity_v1'} if idle else set())
     if (manifest.get('control_schema_version') != 5 or manifest.get('platform_config_version') != 4
-            or manifest.get('worker_capabilities') != (['runtime_pool_v1', 'runtime_pool_wait_v1'] if waiting else ['runtime_pool_v1'])
+            or not required_capabilities <= set(manifest.get('worker_capabilities', []))
             or pool.get('runtime_mode') != 'on_demand'
             or type(pool.get('capacity_wait_enabled')) is not bool
-            or pool.get('idle_pause_enabled') is not False):
+            or type(pool.get('idle_pause_enabled')) is not bool):
         blocked.append('pr7_runtime_pool_contract_mismatch')
     required = {'PR7A-2slot-5account', 'PR7A-v5-restore', 'PR7A-component-compatibility'}
     if waiting:
         required |= {'PR7B-fifo-cancel-expiry', 'PR7B-real-slot-transfer', 'PR7B-waiting-restore'}
+    if idle:
+        required |= {'PR7C-activity-contract', 'PR7C-idle-cancel-race', 'PR7C-real-idle-release'}
     if not required <= set(profile.get('required_cases', [])):
         blocked.append('pr7_required_profile_cases_missing')
     return blocked

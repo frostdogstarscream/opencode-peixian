@@ -6,17 +6,22 @@ export type Entry = { id: string; session_id: string; state: "running" | "finish
 export class Registry {
   readonly boot_id = crypto.randomUUID()
   private readonly entries = new Map<string, Entry>()
+  private sequence = 0
 
   begin(sessionID: string, identity?: string) {
     const id = identity && /^[a-f0-9]{32}$/.test(identity) ? identity : crypto.randomUUID().replaceAll("-", "")
     if (this.entries.has(id)) throw new Error("Managed activity identity was already admitted")
     this.entries.set(id, { id, session_id: sessionID, state: "running" })
+    this.sequence++
     return id
   }
 
   finish(id: string) {
     const entry = this.entries.get(id)
-    if (entry) entry.state = "finished"
+    if (entry?.state === "running") {
+      entry.state = "finished"
+      this.sequence++
+    }
     // Keep terminal metadata long enough for the gateway's normal polling gap.
     if (this.entries.size > 4096) {
       for (const [key, value] of this.entries) {
@@ -27,7 +32,7 @@ export class Registry {
   }
 
   snapshot() {
-    return { boot_id: this.boot_id, entries: Array.from(this.entries.values(), (entry) => ({ ...entry })) }
+    return { boot_id: this.boot_id, activity_sequence: this.sequence, entries: Array.from(this.entries.values(), (entry) => ({ ...entry })) }
   }
 
   running(id: string) {

@@ -94,6 +94,8 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       return {
         protocol_version: 2,
         boot_id: snapshot.boot_id,
+        activity_sequence: snapshot.activity_sequence,
+        capabilities: ["idle_activity_v1"],
         complete: true,
         counts: {
           native_running: Math.max(native.size, running.length),

@@ -266,6 +266,10 @@ def stop(store, db, uid, *, reason="user", expected_state_version=None, start_jo
         return {'accepted': False, 'job': None, 'runtime': public_status(store, db, uid)}
     pause = db.execute("SELECT id,action,status FROM jobs WHERE uid=? AND action='pause' AND status IN ('queued','running')", (uid,)).fetchone()
     if pause:
+        existing=db.execute('SELECT reason FROM jobs WHERE id=?',(pause['id'],)).fetchone()
+        if existing['reason']=='idle_timeout' and reason!='idle_timeout':
+            db.execute('UPDATE jobs SET reason=? WHERE id=?',(reason,pause['id']))
+            db.execute("UPDATE runtimes SET stop_reason=CASE WHEN security_blocked=1 THEN stop_reason ELSE ? END,state_version=state_version+1 WHERE uid=?",(reason,uid))
         return {"accepted": True, "job": dict(pause), "runtime": public_status(store, db, uid)}
     if never_executed(db, row):
         if reason == "user" and not row["reserved"] and active_job(db, uid) is None:

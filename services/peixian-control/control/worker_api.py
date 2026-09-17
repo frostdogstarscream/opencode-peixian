@@ -77,6 +77,9 @@ def register_worker(app):
             reject("执行器协议不匹配，必须使用内部协议 2", code="worker_protocol_mismatch")
         from shared.runtime_pool_config import CAPABILITY
         from shared.runtime_pool_config import WAIT_CAPABILITY
+        if app.state.store.maintenance_status().get('pool_policy_version',1)>=3 and 'idle_activity_v1' not in request.headers.get('x-peixian-capabilities','').split(','):
+            from .orchestration import reject
+            reject('执行器缺少空闲活动能力', code='worker_capability_mismatch')
         if app.state.store.maintenance_status().get('pool_policy_version', 1) >= 2 and WAIT_CAPABILITY not in request.headers.get('x-peixian-capabilities', '').split(','):
             from .orchestration import reject
             reject('执行器缺少容量等待能力', code='worker_capability_mismatch')
@@ -123,6 +126,23 @@ def register_worker(app):
     @blocking_endpoint(app, json_body=True)
     def heartbeat(jid: str, request: Request, authorized=Depends(protocol_worker)):
         return orchestration().heartbeat(jid, request.state.json_body)
+
+    @app.post('/internal/worker/scheduler/tick')
+    @blocking_endpoint(app)
+    def idle_tick(request: Request, authorized=Depends(protocol_worker)):
+        from .idle_pool import candidates
+        return candidates(app.state.store)
+
+    @app.post('/internal/worker/scheduler/observe')
+    @blocking_endpoint(app, json_body=True)
+    def idle_observe(request: Request, authorized=Depends(protocol_worker)):
+        from .idle_pool import submit
+        return submit(app.state.store, request.state.json_body)
+
+    @app.post('/internal/worker/jobs/{jid}/cancel-idle')
+    @blocking_endpoint(app, json_body=True)
+    def idle_cancel(jid: str, request: Request, authorized=Depends(protocol_worker)):
+        return orchestration().cancel_idle(jid, request.state.json_body)
 
     @app.post("/internal/worker/jobs/{jid}/phase")
     @blocking_endpoint(app, json_body=True)

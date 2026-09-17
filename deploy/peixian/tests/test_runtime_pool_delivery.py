@@ -78,8 +78,10 @@ def test_v4_configuration_and_image_capability(tmp_path):
         changed["runtime_pool"][name] = True
         path = tmp_path / "config.json"
         path.write_text(json.dumps(changed), encoding="utf-8")
+        configured=platform.config.load_config(path)
+        assert configured.runtime_pool[name] is True
         with pytest.raises(ValueError):
-            platform.config.load_config(path)
+            configured.verify_control_image(labels)
 
 
 def test_metadata_backup_and_restore_does_not_fabricate_volumes(tmp_path):

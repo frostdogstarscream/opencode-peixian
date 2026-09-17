@@ -566,6 +566,79 @@
         ],
         "type": "object"
       },
+      "IdleObservationBody": {
+        "additionalProperties": false,
+        "properties": {
+          "activity_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "gateway_boot_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "idle_proof": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IdleProof"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observed_at": {
+            "type": "integer"
+          },
+          "state_version": {
+            "type": "integer"
+          },
+          "uid": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uid",
+          "state_version",
+          "gateway_boot_id",
+          "observed_at",
+          "idle_proof",
+          "activity_count",
+          "complete"
+        ],
+        "type": "object"
+      },
+      "IdleProof": {
+        "additionalProperties": false,
+        "properties": {
+          "complete": {
+            "type": "boolean"
+          },
+          "idle_seconds": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "sequence": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "complete",
+          "sequence",
+          "idle_seconds"
+        ],
+        "type": "object"
+      },
       "Job": {
         "additionalProperties": true,
         "description": "普通管理员由账号或模型变更触发的后台任务仅返回 status，不授予独立任务管理权限。",
@@ -1363,6 +1436,16 @@
             "minLength": 1,
             "pattern": "^[A-Za-z0-9_-]+$",
             "type": "string"
+          },
+          "idle_proof": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IdleProof"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "job_id": {
             "maxLength": 100,
@@ -19070,6 +19153,237 @@
         "x-runtime-route": "/internal/worker/jobs/{jid}/boot"
       }
     },
+    "/internal/worker/jobs/{jid}/cancel-idle": {
+      "post": {
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
+        "operationId": "idle_cancel_internal_worker_jobs__jid__cancel_idle_post",
+        "parameters": [
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "jid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Peixian-Protocol",
+            "required": true,
+            "schema": {
+              "const": "2",
+              "type": "string"
+            }
+          },
+          {
+            "description": "按需部署必须声明 runtime_pool_v1；7B另需runtime_pool_wait_v1。缺失时不能领取或修改执行责任。",
+            "in": "header",
+            "name": "X-Peixian-Capabilities",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "按需控制库要求执行器使用同一 on_demand 配置。",
+            "in": "header",
+            "name": "X-Peixian-Runtime-Mode",
+            "required": false,
+            "schema": {
+              "enum": [
+                "eager",
+                "on_demand"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaseBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkerReceipt"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
+          }
+        },
+        "security": [
+          {
+            "WorkerKey": []
+          }
+        ],
+        "summary": "Idle Cancel",
+        "tags": [
+          "内部：Worker"
+        ],
+        "x-internal": true,
+        "x-role": "worker",
+        "x-runtime-route": "/internal/worker/jobs/{jid}/cancel-idle"
+      }
+    },
     "/internal/worker/jobs/{jid}/complete": {
       "post": {
         "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
@@ -22422,6 +22736,460 @@
         "x-internal": true,
         "x-role": "worker",
         "x-runtime-route": "/internal/worker/reconcile"
+      }
+    },
+    "/internal/worker/scheduler/observe": {
+      "post": {
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
+        "operationId": "idle_observe_internal_worker_scheduler_observe_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Peixian-Protocol",
+            "required": true,
+            "schema": {
+              "const": "2",
+              "type": "string"
+            }
+          },
+          {
+            "description": "按需部署必须声明 runtime_pool_v1；7B另需runtime_pool_wait_v1。缺失时不能领取或修改执行责任。",
+            "in": "header",
+            "name": "X-Peixian-Capabilities",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "按需控制库要求执行器使用同一 on_demand 配置。",
+            "in": "header",
+            "name": "X-Peixian-Runtime-Mode",
+            "required": false,
+            "schema": {
+              "enum": [
+                "eager",
+                "on_demand"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdleObservationBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    },
+                    "job_id": {
+                      "maxLength": 100,
+                      "minLength": 1,
+                      "pattern": "^[A-Za-z0-9_-]+$",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
+          }
+        },
+        "security": [
+          {
+            "WorkerKey": []
+          }
+        ],
+        "summary": "Idle Observe",
+        "tags": [
+          "内部：Worker"
+        ],
+        "x-internal": true,
+        "x-role": "worker",
+        "x-runtime-route": "/internal/worker/scheduler/observe"
+      }
+    },
+    "/internal/worker/scheduler/tick": {
+      "post": {
+        "description": "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。",
+        "operationId": "idle_tick_internal_worker_scheduler_tick_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Peixian-Protocol",
+            "required": true,
+            "schema": {
+              "const": "2",
+              "type": "string"
+            }
+          },
+          {
+            "description": "按需部署必须声明 runtime_pool_v1；7B另需runtime_pool_wait_v1。缺失时不能领取或修改执行责任。",
+            "in": "header",
+            "name": "X-Peixian-Capabilities",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "按需控制库要求执行器使用同一 on_demand 配置。",
+            "in": "header",
+            "name": "X-Peixian-Runtime-Mode",
+            "required": false,
+            "schema": {
+              "enum": [
+                "eager",
+                "on_demand"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "additionalProperties": true,
+                        "properties": {},
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "protocol_version": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
+          }
+        },
+        "security": [
+          {
+            "WorkerKey": []
+          }
+        ],
+        "summary": "Idle Tick",
+        "tags": [
+          "内部：Worker"
+        ],
+        "x-internal": true,
+        "x-role": "worker",
+        "x-runtime-route": "/internal/worker/scheduler/tick"
       }
     }
   },

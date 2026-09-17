@@ -87,7 +87,7 @@ def host_lock(root):
 
 
 class Worker:
-    def __init__(self, api, manager, *, orchestration=None, clock=time.monotonic, runtime_pool=False):
+    def __init__(self, api, manager, *, orchestration=None, clock=time.monotonic, runtime_pool=False, idle_policy=None):
         self.api, self.manager = api, manager
         self.config = settings.validate(orchestration or {})
         self.clock = clock
@@ -95,10 +95,12 @@ class Worker:
         self.runtime_pool = runtime_pool
         self.next_inventory = 0
         self.boot_id = host_boot_id()
+        self.idle_policy = idle_policy
+        self.next_idle = 0
 
     def request(self, method, path, **kwargs):
         allow_state_conflict = kwargs.pop("allow_state_conflict", False)
-        kwargs["headers"] = {**kwargs.pop("headers", {}), "X-Peixian-Protocol": "2", "X-Peixian-Capabilities": "runtime_pool_v1,runtime_pool_wait_v1", "X-Peixian-Runtime-Mode": "on_demand" if self.runtime_pool else "eager"}
+        kwargs["headers"] = {**kwargs.pop("headers", {}), "X-Peixian-Protocol": "2", "X-Peixian-Capabilities": "runtime_pool_v1,runtime_pool_wait_v1,idle_activity_v1", "X-Peixian-Runtime-Mode": "on_demand" if self.runtime_pool else "eager"}
         kwargs.setdefault("timeout", self.config["worker_heartbeat_timeout_seconds"])
         started = self.clock()
         transport = {"new_connection": False}
@@ -289,7 +291,7 @@ class Worker:
             raise runtime.RuntimeFailure("invalid_plugin_digest")
         output = bytearray()
         with self.api.stream("GET", "/internal/worker/packages/" + digest,
-                             headers={"X-Peixian-Protocol": "2", "X-Peixian-Capabilities": "runtime_pool_v1,runtime_pool_wait_v1", "X-Peixian-Runtime-Mode": "on_demand" if self.runtime_pool else "eager"}) as response:
+                             headers={"X-Peixian-Protocol": "2", "X-Peixian-Capabilities": "runtime_pool_v1,runtime_pool_wait_v1,idle_activity_v1", "X-Peixian-Runtime-Mode": "on_demand" if self.runtime_pool else "eager"}) as response:
             if response.status_code != 200:
                 raise runtime.RuntimeFailure("plugin_download_unavailable")
             for chunk in response.iter_bytes():
@@ -298,10 +300,40 @@ class Worker:
                     raise runtime.RuntimeFailure("plugin_download_limit")
         return bytes(output)
 
+    def idle_tick(self):
+        selected=self.request('POST','/internal/worker/scheduler/tick').json()
+        if selected.get('protocol_version')!=2 or not isinstance(selected.get('items'),list) or len(selected['items'])>self.idle_policy['scheduler_batch']:
+            raise runtime.RuntimeFailure('worker_protocol_mismatch')
+        deadline=self.clock()+2
+        for candidate in selected['items']:
+            if self.clock()>=deadline: break
+            started=int(time.time())
+            try:
+                state=self.manager.runtime_request(candidate['spec'],'GET','/internal/runtime/state')
+                self.request('POST','/internal/worker/scheduler/observe',json={
+                    'uid':candidate['uid'],'state_version':candidate['state_version'],'gateway_boot_id':state['boot_id'],
+                    'observed_at':started,'idle_proof':state.get('idle_proof'),
+                    'activity_count':state.get('activity',{}).get('total'),
+                    'complete':state.get('activity',{}).get('complete') is True and self.manager.mutation_state(candidate['runtime_id'])=='idle'},allow_state_conflict=True)
+            except (runtime.RuntimeFailure,httpx.HTTPError,ValueError,KeyError):
+                report('idle_observation_unavailable')
+
+    def idle_changed(self, job, observation):
+        proof=observation.get('idle_proof')
+        return (job.get('reason')=='idle_timeout' and (not observation.get('complete') or observation.get('activity_count')!=0
+            or not isinstance(proof,dict) or proof.get('complete') is not True
+            or proof.get('sequence')!=job.get('idle_activity_version')
+            or observation.get('gateway_boot_id')!=job.get('idle_gateway_boot_id')
+            or type(proof.get('idle_seconds')) not in (int,float)
+            or proof['idle_seconds']< (self.idle_policy or {}).get('idle_timeout_seconds',600)))
+
     def once(self):
         if self.clock() >= self.next_reconcile:
             self.next_reconcile = self.clock() + self.config["reconcile_seconds"]
             self.reconcile()
+        if self.idle_policy and self.clock()>=self.next_idle:
+            self.next_idle=self.clock()+self.idle_policy['scheduler_tick_seconds']
+            self.idle_tick()
         payload = self.request("POST", "/internal/worker/claim").json()
         if payload.get("protocol_version") != 2:
             raise runtime.RuntimeFailure("worker_protocol_mismatch")
@@ -357,6 +389,10 @@ class Worker:
                         "gateway_boot_id": state["boot_id"], "relay_boot_id": (state.get("relay") or {}).get("boot_id")})
                     self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
             observation, _ = self.observe(job, spec)
+            if self.idle_changed(job, observation):
+                self.operation(job,'cancel-idle',{})
+                report('idle_cancelled',job)
+                return True
             if not observation["complete"] or observation["mutation_state"] != "idle":
                 raise runtime.RuntimeFailure("runtime_observation_unknown")
             if observation["accepting"]:
@@ -378,6 +414,10 @@ class Worker:
                 if state is not None:
                     self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
                 observation, _ = self.observe(job, spec)
+                if self.idle_changed(job, observation):
+                    self.operation(job,'cancel-idle',{})
+                    report('idle_cancelled',job)
+                    return True
                 if (not observation["complete"] or observation["activity_count"] != 0
                         or not observation["egress_closed"] or observation["accepting"]):
                     raise runtime.RuntimeFailure("runtime_egress_close_unconfirmed")
@@ -387,6 +427,10 @@ class Worker:
                 result = self.manager.apply(job, spec, self.download, heartbeat)
             heartbeat()
         except runtime.RuntimeFailure as error:
+            if job.get('reason')=='idle_timeout' and job['phase'] in ('claimed','draining','closing'):
+                self.operation(job,'cancel-idle',{})
+                report('idle_cancelled',job)
+                return True
             result = {"ok": False, "error": error.code, "rolled_back": error.rolled_back,
                       }
             report("failed", job, error.code)
@@ -471,7 +515,8 @@ def main():
                                      agent_image=args.agent_image, gateway_image=args.gateway_image,
                                      maximum=args.max_runtimes, **manager_options)
     with host_lock(manager.root), control_client(args.control_url, key) as client:
-        worker = Worker(client, manager, orchestration=manager_options.get("orchestration"), runtime_pool=bool(args.config and cfg.version == 4))
+        worker = Worker(client, manager, orchestration=manager_options.get("orchestration"), runtime_pool=bool(args.config and cfg.version == 4),
+                        idle_policy=cfg.runtime_pool if args.config and cfg.version==4 else None)
         while True:
             try:
                 found = worker.once()

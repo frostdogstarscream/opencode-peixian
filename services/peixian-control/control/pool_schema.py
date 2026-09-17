@@ -26,7 +26,8 @@ def validate(db):
             raise ValueError("v5 schema fingerprint mismatch")
         policy = db.execute("SELECT * FROM platform_state WHERE id=1").fetchone()
         if (not policy or policy["runtime_mode"] not in ("eager", "on_demand")
-                or (policy["pool_policy_version"], policy["capacity_wait_enabled"]) not in ((1, 0), (2, 0), (2, 1)) or policy["idle_pause_enabled"]):
+                or (policy["pool_policy_version"], policy["capacity_wait_enabled"]) not in ((1, 0), (2, 0), (2, 1), (3, 0), (3, 1))
+                or policy['idle_pause_enabled'] not in (0,1) or (policy['idle_pause_enabled'] and policy['pool_policy_version']<3)):
             raise ValueError("Unsupported runtime pool policy (idle scheduling disabled)")
     except (KeyError, TypeError, sqlite3.Error) as exc:
         raise ValueError("v5 migration metadata unavailable") from exc

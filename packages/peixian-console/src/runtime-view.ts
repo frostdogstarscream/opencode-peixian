@@ -12,6 +12,7 @@ export function runtimeNotice(runtime: Runtime): string {
   if (!runtime) return "正在准备你的工作空间，完成后即可开始对话。"
   if (runtime.runtime_mode === "on_demand" && !runtime.ready) {
     if (runtime.manual_stop_reason && runtime.manual_stop_reason !== "none") return "管理员已暂停助手，请联系管理员恢复。"
+    if (runtime.stop_reason === "idle_timeout" && runtime.status === "paused") return "助手因空闲已暂停，文件和对话仍然保留。点击“启动助手”继续使用。"
     if (runtime.waiting) return "正在等待运行名额，可取消启动申请。输入内容已保留，助手就绪后请自行发送。"
     if (runtime.job && ["provision", "resume"].includes(runtime.job.action)) return "正在启动助手，完成核对后即可发送消息。"
     if (runtime.allowed_actions?.includes("start")) return "点击“启动助手”后开始对话，输入内容将保持保留。"

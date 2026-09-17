@@ -45,6 +45,8 @@ class AdmissionGate:
         self.activities = {}
         self.receipts = {}
         self.sources = {}
+        self.activity_sequence = 0
+        self.activity_at = self.clock()
         self.observation_seconds = observation_seconds
         self.journal = Path(journal) if journal else None
         if self.journal and self.journal.exists():
@@ -173,12 +175,16 @@ class AdmissionGate:
     def register(self, kind, *, resource="", task=None, identity=None):
         identity = identity or uuid.uuid4().hex
         self.activities[identity] = Activity(kind, task, resource)
+        if not kind.startswith("passive_"):
+            self.touch()
         if kind == "pending_start":
             self.save_pending()
         return identity
 
     def finish(self, identity):
         previous = self.activities.pop(identity, None)
+        if previous and not previous.kind.startswith("passive_"):
+            self.touch()
         if previous and previous.kind == "pending_start":
             self.save_pending()
 
@@ -187,8 +193,17 @@ class AdmissionGate:
             self.activities[identity].unknown = True
             self.activities[identity].task = None
 
-    def source(self, name, counts, *, complete=True):
-        self.sources[name] = {"counts": counts, "complete": complete, "at": self.clock()}
+    def touch(self):
+        self.activity_sequence += 1
+        self.activity_at = self.clock()
+
+    def source(self, name, counts, *, complete=True, token=None):
+        previous = self.sources.get(name)
+        if (not complete or not previous or not previous['complete']
+                or self.clock() - previous['at'] > self.observation_seconds
+                or previous.get('token') != token or previous['counts'] != counts):
+            self.touch()
+        self.sources[name] = {"counts": counts, "complete": complete, "at": self.clock(), "token": token}
 
     def snapshot(self):
         counts = Counter(item.kind for item in self.activities.values() if not item.kind.startswith("passive_"))
@@ -197,7 +212,14 @@ class AdmissionGate:
             unknown |= not source["complete"] or self.clock() - source["at"] > self.observation_seconds
             counts.update(source["counts"])
         total = sum(counts.values())
+        idle_complete = not unknown and all(s.get('token') is not None for s in self.sources.values())
+        if self.clock() < self.activity_at:
+            self.touch()
+            idle_complete = False
         return {"protocol_version": PROTOCOL, "runtime_id": self.runtime_id, "boot_id": self.boot_id,
+                "capabilities": ["idle_activity_v1"],
+                "idle_proof": {"complete": idle_complete, "sequence": self.activity_sequence,
+                               "idle_seconds": max(0, self.clock() - self.activity_at) if idle_complete and total == 0 else 0},
                 "gate_epoch": self.epoch, "state_version": self.state_version, "owner": self.owner,
                 "gate": self.mode, "permit_valid": self.valid("intake") or self.valid("egress"),
                 "permit_scopes": {key: self.valid(key) for key in ("intake", "egress")},

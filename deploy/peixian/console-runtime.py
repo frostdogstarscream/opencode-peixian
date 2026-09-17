@@ -618,6 +618,8 @@ class RuntimeManager:
                                                       and gate["relay"].get("gate") == "closed")),
                  "activity_count": activity.get("total") if gate else (0 if stopped else None),
                  "applied_revision": revision, "spec_digest": None, "evidence_ref": uuid.uuid4().hex}
+        if job.get('reason')=='idle_timeout':
+            value['idle_proof']=gate.get('idle_proof') if gate else None
         local = self.state(spec["runtime_id"])
         if local and local.get("revision") == revision:
             try:

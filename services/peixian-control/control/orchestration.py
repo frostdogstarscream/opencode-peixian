@@ -131,6 +131,12 @@ class Orchestration:
             jobs = db.execute("SELECT j.* FROM jobs j JOIN runtimes r ON r.uid=j.uid WHERE j.status='queued' AND j.not_before<=? AND NOT EXISTS(SELECT 1 FROM jobs a WHERE a.uid=j.uid AND a.status='running') ORDER BY CASE WHEN j.action='pause' AND (j.reason='security' OR r.security_blocked=1) THEN 0 WHEN j.action='pause' THEN 1 ELSE 2 END,j.enqueue_seq", (self.clock(),)).fetchall()
             for job in jobs:
                 runtime = self._runtime(db, job["uid"])
+                if job['reason']=='idle_timeout' and not job['recovery_required'] and not platform.get('idle_pause_enabled'):
+                    db.execute("UPDATE jobs SET status='cancelled',phase='finished',error='idle_policy_disabled',updated=? WHERE id=?",(self.clock(),job['id']))
+                    db.execute("UPDATE runtimes SET stop_reason=CASE WHEN stop_reason='idle_timeout' THEN 'none' ELSE stop_reason END,state_version=state_version+1 WHERE uid=?",(job['uid'],))
+                    continue
+                if job['reason']=='idle_timeout' and not job['recovery_required'] and platform['maintenance_mode']!='normal':
+                    continue
                 user = db.execute("SELECT active FROM users WHERE id=?", (job["uid"],)).fetchone()
                 stopping = job["action"] == "pause"
                 if not stopping and self.store.on_demand(db) and runtime["manual_stop_reason"] != "none":
@@ -195,7 +201,8 @@ class Orchestration:
     def _public_job(self, db, job):
         runtime = self._runtime(db, job["uid"])
         fields = ("id", "uid", "action", "status", "phase", "revision", "reason", "not_before", "defer_count", "cancel_requested", "recovery_required", "observation_deadline")
-        return {**{key: job[key] for key in fields}, "attempt": job["attempts"], "runtime_id": runtime["id"],
+        idle = {key: job[key] for key in ('idle_activity_version','idle_gateway_boot_id','idle_observed_at')} if 'idle_activity_version' in job.keys() else {}
+        return {**idle, **{key: job[key] for key in fields}, "attempt": job["attempts"], "runtime_id": runtime["id"],
                 "state_version": runtime["state_version"], "gate_epoch": runtime["gate_epoch"],
                 "authorization_version": runtime["authorization_version"],
                 "gate_policy": runtime["gate_policy"], "security_blocked": bool(runtime["security_blocked"]),
@@ -240,6 +247,13 @@ class Orchestration:
             if data["expected_phase"] != job["phase"] or (job["phase"], target) not in (("claimed", "draining"), ("draining", "closing"), ("reconciling", "closing"), ("closing", "applying")):
                 reject("Invalid or stale attempt phase transition", code="worker_phase_conflict")
             if target in ("closing", "applying"):
+                if job['reason']=='idle_timeout' and (runtime['activity_boot_id']!=job['idle_gateway_boot_id']
+                        or runtime['activity_version']!=job['idle_activity_version']
+                        or runtime['last_activity'] is None or self.clock()-runtime['last_activity']<self.store.pool_settings['idle_timeout_seconds']
+                        or runtime['security_blocked'] or runtime['manual_stop_reason']!='none'
+                        or runtime['stop_reason']!='idle_timeout' or runtime['desired']!=runtime['revision']
+                        or self.store.maintenance_status(db)['maintenance_mode']!='normal'):
+                    reject('Idle candidate changed', code='worker_gate_unverified')
                 observed = self._observation(db, runtime, jid, data["attempt"], data.get("observation_id"))
                 if observed["accepting"] or observed["activity_count"] != 0 or observed["mutation_state"] != "idle" or observed["classification"] == "unknown":
                     reject("Runtime is not confirmed closed and idle", code="worker_gate_unverified")
@@ -262,7 +276,7 @@ class Orchestration:
 
     def observe(self, data):
         required = ("observation_id", "runtime_id", "job_id", "attempt", "lease", "state_version", "host_boot_id", "gateway_boot_id", "gate_epoch", "observed_at", "components", "mutation_state", "complete", "accepting", "egress_closed", "activity_count", "applied_revision", "spec_digest", "evidence_ref")
-        request_fields(data, required, required)
+        request_fields(data, (*required, 'idle_proof'), required)
         for key in ("observation_id", "runtime_id", "host_boot_id", "gateway_boot_id", "evidence_ref"):
             opaque(data[key], key)
         for key in ("state_version", "gate_epoch", "observed_at", "applied_revision"):
@@ -293,6 +307,13 @@ class Orchestration:
                     reject("Observation ID conflicts", code="worker_observation_conflict")
                 return {"observation_id": old["observation_id"], "state_version": old["state_version"], "expires_at": old["expires_at"], "classification": old["classification"]}
             statuses = tuple(data["components"].values())
+            if job['reason']=='idle_timeout':
+                from .idle_pool import final_valid
+                proof=data.get('idle_proof')
+                valid=final_valid(self.store,job,runtime,proof,data['gateway_boot_id'],data['complete'],data['activity_count'])
+                db.execute('UPDATE runtimes SET activity_boot_id=?,activity_version=?,last_activity=? WHERE uid=?',
+                           (data['gateway_boot_id'] if valid else None, proof['sequence'] if valid else runtime['activity_version'],
+                            self.clock()-int(proof['idle_seconds']) if valid else self.clock(),job['uid']))
             classification = "unknown"
             if data["complete"] and data["mutation_state"] == "idle" and "unknown" not in statuses:
                 if all(value == "stopped" for value in statuses):
@@ -326,6 +347,23 @@ class Orchestration:
                 db.execute("UPDATE runtimes SET gateway_boot_id=?,relay_boot_id=?,gate_policy='closed',gate_epoch=gate_epoch+1,state_version=state_version+1,updated=? WHERE uid=?",
                            (data["gateway_boot_id"], data["relay_boot_id"], self.clock(), job["uid"]))
             return self._receipt(db, jid, data, request_hash, gateway_boot_id=data["gateway_boot_id"], relay_boot_id=data["relay_boot_id"], gate_action="close")
+
+    def cancel_idle(self, jid, data):
+        request_fields(data, ('lease','attempt','operation_id'), ('lease','attempt','operation_id'))
+        with self.store.tx() as db:
+            old, signature=self._existing(db,jid,data,'cancel-idle')
+            if old is not None: return old
+            job,attempt,runtime=self._active(db,jid,data)
+            if job['reason']!='idle_timeout' or job['phase'] not in ('claimed','draining','closing') or job['recovery_required']:
+                reject('Idle cancellation is not allowed after mutation or recovery')
+            active=db.execute('SELECT active FROM users WHERE id=?',(job['uid'],)).fetchone()['active']
+            safe=active and not runtime['security_blocked'] and runtime['manual_stop_reason']=='none' and runtime['stop_reason']=='idle_timeout'
+            self._outcome(db,jid,data['attempt'],{'result':'cancelled','reason':'idle_candidate_changed'})
+            db.execute("UPDATE jobs SET status='cancelled',phase='finished',lease=NULL,heartbeat=NULL,error='idle_candidate_changed',updated=? WHERE id=?",(self.clock(),jid))
+            db.execute("UPDATE runtimes SET status=?,gate_policy=?,drain_job_id=NULL,stop_reason=CASE WHEN stop_reason='idle_timeout' THEN 'none' ELSE stop_reason END,state_version=state_version+1,last_activity=?,activity_boot_id=NULL WHERE uid=?",
+                       ('ready' if safe else 'draining','reopen_check' if safe else 'closed',self.clock(),job['uid']))
+            self.store.ensure_apply_job(db,job['uid'])
+            return self._receipt(db,jid,data,signature)
 
     def complete(self, jid, data):
         allowed = ("lease", "attempt", "operation_id", "ok", "deferred", "defer_reason", "error", "rolled_back", "observation_id", "cleanup_confirmed")

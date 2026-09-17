@@ -135,6 +135,8 @@ export const SessionApi = HttpApi.make("session")
           success: Schema.Struct({
             protocol_version: Schema.Number,
             boot_id: Schema.String,
+            activity_sequence: Schema.Number,
+            capabilities: Schema.Array(Schema.String),
             complete: Schema.Boolean,
             counts: Schema.Record(Schema.String, Schema.Number),
             sessions: Schema.Array(Schema.String),

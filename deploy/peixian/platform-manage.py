@@ -169,6 +169,8 @@ def inspect_images(cfg):
                 raise PlatformError(str(error)) from None
         try:
             config.image_supports_orchestration(info.get("Config", {}).get("Labels"), name, cfg.version)
+            if cfg.runtime_pool.get('idle_pause_enabled') and name in ('gateway','agent') and 'idle_activity_v1' not in (info.get('Config',{}).get('Labels') or {}).get('org.peixian.runtime.capabilities','').split(','):
+                raise config.ConfigError('runtime_image_idle_activity_incompatible')
         except config.ConfigError as error:
             raise PlatformError(str(error)) from None
         result[name] = info["Id"]

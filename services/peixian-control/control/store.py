@@ -36,6 +36,7 @@ class Store:
     def __init__(self, root, key_file, worker_key_file, admin_password_file, *, runtime_mode=None, runtime_pool=None):
         from shared.runtime_pool_config import validate as pool_config
         self.pool_settings = pool_config(runtime_pool or {})
+        self._idle_started = now()
         if runtime_mode not in (None, "eager", "on_demand"):
             raise ValueError("Unsupported runtime mode")
         self.root = Path(root)
@@ -114,8 +115,15 @@ class Store:
                         raise ValueError('Waiting policy change requires frozen offline approval')
                     # Disabling admission retains the newer policy identity and
                     # existing waiters for status, cancellation and expiry cleanup.
-                    db.execute("UPDATE platform_state SET capacity_wait_enabled=?,pool_policy_version=2 WHERE id=1", (int(wanted),))
-                    validate(db)
+                    db.execute("UPDATE platform_state SET capacity_wait_enabled=?,pool_policy_version=MAX(pool_policy_version,2) WHERE id=1", (int(wanted),))
+                idle = self.pool_settings['idle_pause_enabled']
+                if idle != bool(policy.get('idle_pause_enabled', False)):
+                    if actual_mode != 'on_demand' or (not fresh and (os.getenv('PX_ALLOW_POOL_POLICY_CHANGE') != '1'
+                            or policy['maintenance_mode'] != 'frozen'
+                            or db.execute("SELECT 1 FROM jobs WHERE (status IN ('queued','running') AND reason<>'idle_timeout') OR recovery_required=1").fetchone())):
+                        raise ValueError('Idle policy change requires frozen offline approval')
+                    db.execute('UPDATE platform_state SET idle_pause_enabled=?,pool_policy_version=3 WHERE id=1',(int(idle),))
+                validate(db)
 
     def on_demand(self, db=None):
         return self.maintenance_status(db).get("runtime_mode", "eager") == "on_demand"

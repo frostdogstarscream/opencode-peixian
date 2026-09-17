@@ -120,14 +120,18 @@ class RuntimeManagement:
             for entry in entries:
                 if isinstance(entry, dict) and entry.get("state") in ("running", "finished"):
                     self.gate.finish(entry.get("id"))
-            self.gate.source("native", counts)
+            sequence = native.get('activity_sequence')
+            token = (native['boot_id'], sequence) if 'idle_activity_v1' in native.get('capabilities', []) and type(sequence) is int and sequence >= 0 else None
+            self.gate.source("native", counts, token=token)
         except (httpx.HTTPError, ValueError, KeyError):
             self.gate.source("native", {}, complete=False)
         try:
             relay = await self.relay_request("GET", "/internal/runtime/state")
             self.relay_state = relay
             activity = relay["activity"]
-            self.gate.source("relay", activity["counts"], complete=activity.get("complete") is True)
+            proof = relay.get('idle_proof', {})
+            token = (relay['boot_id'], proof['sequence']) if proof.get('complete') is True and type(proof.get('sequence')) is int else None
+            self.gate.source("relay", activity["counts"], complete=activity.get("complete") is True, token=token)
         except (httpx.HTTPError, ValueError, KeyError):
             self.gate.source("relay", {}, complete=False)
 
@@ -204,7 +208,9 @@ class RuntimeManagement:
             relay = await self.relay_request("GET", "/internal/runtime/state")
             self.relay_state = await self.relay_request("POST", "/internal/runtime/gate", body={**data, "boot_id": relay["boot_id"]})
             activity = self.relay_state["activity"]
-            self.gate.source("relay", activity["counts"], complete=activity.get("complete") is True)
+            proof = self.relay_state.get('idle_proof', {})
+            token = (self.relay_state['boot_id'], proof['sequence']) if proof.get('complete') is True and type(proof.get('sequence')) is int else None
+            self.gate.source("relay", activity["counts"], complete=activity.get("complete") is True, token=token)
         if data.get("action") == "open":
             await self.gate.command(data)
         return self.state()
@@ -223,7 +229,10 @@ def register_management(app, *, relay=False):
 
     @app.get("/internal/runtime/state")
     async def state(request: Request):
-        return manager(request).state()
+        value = manager(request)
+        if not value.relay:
+            await value.observe_once()
+        return value.state()
 
     @app.post("/internal/runtime/gate")
     async def command(request: Request):

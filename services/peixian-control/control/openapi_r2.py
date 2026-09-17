@@ -24,6 +24,10 @@ def extend(s, obj, ref, array, ID, STRING, BOOL, INTEGER):
     s["Runtime"]["description"] += " revision 是实际验证的 applied；desired 是期望版本，可能尚未生效。安全阻断不证明外部操作已撤销。"
     s["Job"]["properties"].update(phase=phases, not_before=INTEGER, defer_count=INTEGER, recovery_required=BOOL)
     s["LeaseBody"] = obj(identity, identity)
+    s['IdleProof'] = obj({'complete':BOOL,'sequence':INTEGER,'idle_seconds':{'type':'number','minimum':0}},('complete','sequence','idle_seconds'))
+    s['IdleObservationBody'] = obj({'uid':ID,'state_version':INTEGER,'gateway_boot_id':ID,'observed_at':INTEGER,
+        'idle_proof':{'anyOf':[ref('IdleProof'),{'type':'null'}]},'activity_count':{'type':['integer','null']},'complete':BOOL},
+        ('uid','state_version','gateway_boot_id','observed_at','idle_proof','activity_count','complete'))
     s["PhaseBody"] = obj({**identity, "expected_phase": phases, "phase": phases, "observation_id": ID}, (*identity, "expected_phase", "phase"))
     s["BootBody"] = obj({**identity, "runtime_id": ID, "gateway_boot_id": ID, "relay_boot_id": ID}, (*identity, "runtime_id", "gateway_boot_id", "relay_boot_id"))
     s["CompleteBody"] = obj({**identity, "ok": BOOL, "deferred": BOOL,
@@ -36,6 +40,7 @@ def extend(s, obj, ref, array, ID, STRING, BOOL, INTEGER):
         "applied_revision": INTEGER, "spec_digest": {"type": ["string", "null"]}},
         (*observation, "job_id", "attempt", "lease", "gateway_boot_id", "gate_epoch", "accepting", "egress_closed", "activity_count", "applied_revision", "spec_digest"))
     s["ReconcileBody"] = obj({**observation, "orphan_resources": BOOL}, observation)
+    s['ObservationBody']['properties']['idle_proof']={'anyOf':[ref('IdleProof'),{'type':'null'}]}
     s["WorkerReceipt"] = obj({"protocol_version": {**INTEGER, "const": 2}, "job_id": ID,
         "attempt": INTEGER, "phase": phases, "state_version": INTEGER, "gate_epoch": INTEGER,
         "operation_id": ID, "gate_action": STRING,

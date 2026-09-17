@@ -29,7 +29,10 @@ def block_runtime(store, db, uid, *, reason="authorization_revoked"):
                (ident(), reason, now(), now(), uid))
     db.execute("UPDATE jobs SET cancel_requested=1 WHERE uid=? AND status='running'", (uid,))
     if store.on_demand(db):
-        from .runtime_pool import current, never_executed, confirmed_stopped, stop
+        from .runtime_pool import current, never_executed, confirmed_stopped, stop, cancel_waiter
+        waiting = db.execute("SELECT id,uid FROM jobs WHERE uid=? AND status='waiting_capacity'", (uid,)).fetchone()
+        if waiting:
+            cancel_waiter(db, waiting, 'capacity_wait_restricted', now())
         runtime = current(db, uid)
         if never_executed(db, runtime):
             stop(store, db, uid, reason="security")

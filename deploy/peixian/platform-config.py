@@ -129,6 +129,8 @@ class PlatformConfig:
 
     def verify_control_image(self, labels):
         image_supports_config(labels, self.version)
+        if self.runtime_pool.get('capacity_wait_enabled') and pool_settings.WAIT_CAPABILITY not in labels.get('org.peixian.worker.capabilities', '').split(','):
+            raise ConfigError('control_image_capacity_wait_incompatible')
 
     @property
     def worker_root(self):

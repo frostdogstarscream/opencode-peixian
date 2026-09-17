@@ -381,7 +381,7 @@ class Orchestration:
                            (canonical({"result": "stopped_by_repair"}), hashed({"result": "stopped_by_repair"}), current, job["uid"], jid))
                 active = db.execute("SELECT active FROM users WHERE id=?", (job["uid"],)).fetchone()[0]
                 repair = (runtime["security_blocked"] and runtime["stop_reason"] != "account_disabled"
-                          and active and runtime["applied_spec_ciphertext"] and job["reason"] == "security"
+                          and active and runtime["reserved"] and runtime["applied_spec_ciphertext"] and job["reason"] == "security"
                           and (not self.store.on_demand(db) or runtime["manual_stop_reason"] == "none"))
                 if not repair:
                     self.release(db, job["uid"], expected_state_version=runtime["state_version"], job_id=jid,
@@ -451,6 +451,8 @@ class Orchestration:
                            (canonical({"result": "reconciled", "by_attempt": data["attempt"]}), hashed({"result": "reconciled", "by_attempt": data["attempt"]}), current, jid, data["attempt"]))
             if ok and job["action"] != "pause":
                 self.store.ensure_apply_job(db, job["uid"])
+            from .runtime_pool import promote_waiters
+            promote_waiters(self.store, db, timestamp=current)
             return self._receipt(db, jid, data, request_hash, applied_revision=self._runtime(db, job["uid"])["revision"])
 
     def _outcome(self, db, jid, attempt, value):
@@ -605,5 +607,7 @@ class Orchestration:
                 unknown = db.execute("SELECT 1 FROM runtimes r WHERE r.recovery_required=1 OR NOT EXISTS(SELECT 1 FROM runtime_observations o WHERE o.runtime_id=r.id AND o.observation_id=(SELECT n.observation_id FROM runtime_observations n WHERE n.runtime_id=r.id ORDER BY n.observed_at DESC,n.rowid DESC LIMIT 1) AND o.complete=1 AND o.classification<>'unknown' AND o.expires_at>? AND o.host_boot_id=?) LIMIT 1", (self.clock(), data["host_boot_id"])).fetchone()
                 if not unknown:
                     db.execute("UPDATE platform_state SET capacity_healthy=1,freeze_reason=NULL WHERE id=1 AND freeze_reason IS NOT 'orphan_resources'")
+            from .runtime_pool import promote_waiters
+            promote_waiters(self.store, db, timestamp=self.clock())
             return {"observation_id": data["observation_id"], "classification": classification, "released": released,
                     "capacity_healthy": bool(self.store.maintenance_status(db)["capacity_healthy"])}

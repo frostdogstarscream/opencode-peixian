@@ -217,7 +217,9 @@ class ConsoleClient:
         return await self.request("GET", "/me/runtime")
 
     async def start_runtime(self, *, idempotency_key=None):
-        """Explicit admission only: never automatically sends a saved message."""
+        """Explicit admission; job may be waiting_capacity. Poll runtime_status
+        for waiting.expires_at/approximate_position. Never auto-send saved text.
+        """
         return await self.request("POST", "/me/runtime/start", json={}, idempotency_key=idempotency_key)
 
     async def stop_runtime(self, expected_state_version, *, start_job_id=None, idempotency_key=None):

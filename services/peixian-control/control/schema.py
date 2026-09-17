@@ -4,7 +4,7 @@ def validate(db):
     if version == 4:
         from .migrations_v4 import validate as check
     elif version == 5:
-        from .migrations_v5 import validate as check
+        from .pool_schema import validate as check
     else:
         raise ValueError("Unsupported Control database schema")
     check(db)

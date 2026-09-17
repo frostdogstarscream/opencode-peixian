@@ -57,7 +57,7 @@ def test_release_cannot_reuse_old_profile_for_on_demand():
     profile = {"required_cases": ['PR7A-2slot-5account', 'PR7A-v5-restore', 'PR7A-component-compatibility']}
     assert release.runtime_pool_blockers(manifest, profile) == []
     manifest['effective_config']['runtime_pool']['capacity_wait_enabled'] = True
-    assert release.runtime_pool_blockers(manifest, profile) == ['pr7_runtime_pool_contract_mismatch']
+    assert 'pr7_runtime_pool_contract_mismatch' in release.runtime_pool_blockers(manifest, profile)
     assert release.runtime_pool_blockers({"control_schema_version": 4, "platform_config_version": 3}, {}) == []
 
 
@@ -73,7 +73,7 @@ def test_v4_configuration_and_image_capability(tmp_path):
     labels.update({"org.peixian.control.schema.max": "5", "org.peixian.worker.capabilities": "runtime_pool_v1"})
     platform.config.image_supports_orchestration(labels, "control", 4)
     data = json.loads(source.read_text(encoding="utf-8"))
-    for name in ("capacity_wait_enabled", "idle_pause_enabled"):
+    for name in ("idle_pause_enabled",):
         changed = json.loads(json.dumps(data))
         changed["runtime_pool"][name] = True
         path = tmp_path / "config.json"
@@ -99,6 +99,14 @@ def test_metadata_backup_and_restore_does_not_fabricate_volumes(tmp_path):
     assert s.maintenance_status()["maintenance_mode"] == "frozen"
     with s.read() as db:
         validate(db)
+    with s.tx() as db:
+        db.execute("UPDATE platform_state SET capacity_wait_enabled=1,pool_policy_version=2 WHERE id=1")
+        db.execute("INSERT INTO jobs(id,uid,action,status,revision,created,updated,capacity_expires_at) VALUES('synthetic-wait',?,'provision','waiting_capacity',1,1,1,9999999999)", (user['id'],))
+    meta = backup.database_meta(s.root)
+    assert meta['runtime_policy']['capacity_wait_enabled'] == 1
+    assert s.one("SELECT status FROM jobs WHERE id='synthetic-wait'")['status']=='waiting_capacity'
+    backup.pause_database(s.path)
+    assert s.one("SELECT status,error FROM jobs WHERE id='synthetic-wait'")=={'status':'cancelled','error':'recovery_reconfirmation_required'}
 
 
 def test_host_inventory_retained_resources_and_orphans(tmp_path):

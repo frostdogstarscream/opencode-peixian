@@ -117,6 +117,7 @@ def compose_config(cfg, pinned=None):
         console["environment"].update(cfg.orchestration_environment)
     if cfg.version == 4:
         console["environment"]["PX_RUNTIME_MODE"] = cfg.runtime_pool["runtime_mode"]
+        console["environment"]["PX_RUNTIME_POOL_CONFIG"] = json.dumps(cfg.runtime_pool, separators=(',', ':'))
     # This applies to v1 upgrades too: browser users must not share the proxy IP
     # in source-based login limits. No account management network is trusted.
     console["environment"]["FORWARDED_ALLOW_IPS"] = str(next(ipaddress.ip_network(cfg.network_pool).subnets(new_prefix=28)))
@@ -163,7 +164,7 @@ def inspect_images(cfg):
             raise PlatformError("linux_amd64_image_required")
         if name == "control":
             try:
-                config.image_supports_config(info.get("Config", {}).get("Labels"), cfg.version)
+                cfg.verify_control_image(info.get("Config", {}).get("Labels"))
             except config.ConfigError as error:
                 raise PlatformError(str(error)) from None
         try:

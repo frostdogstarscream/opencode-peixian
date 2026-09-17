@@ -388,6 +388,10 @@ async def shutdown_app(app):
             budget = app.state.limits["hub_shutdown_seconds"]
             shutdown = app.state.shutdown = Shutdown(budget * 4)
             try:
+                pool_task = getattr(app.state, 'pool_task', None)
+                if pool_task is not None:
+                    app.state.pool_stop.set()
+                    await shutdown.stage('runtime_pool', [pool_task], budget)
                 await shutdown.stage("safety", [asyncio.create_task(app.state.safety.close())], budget)
                 await shutdown.stage("streams", [asyncio.create_task(close_streams(app))], budget)
                 # Producers have been stopped and observed before closing dependencies.
@@ -439,6 +443,12 @@ def create_app(store=None):
         await initialize_streams(app)
         app.state.safety = SafetyCoordinator(app)
         app.state.safety.start()
+        app.state.pool_task = None
+        app.state.pool_stop = asyncio.Event()
+        policy = await app.state.db_work.run(app.state.store.maintenance_status)
+        if policy.get('capacity_wait_enabled'):
+            from .runtime_pool import scheduler_loop
+            app.state.pool_task = asyncio.create_task(scheduler_loop(app))
         try:
             yield
         finally:

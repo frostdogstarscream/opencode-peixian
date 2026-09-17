@@ -261,7 +261,7 @@ def schemas():
 # Response status comes from FastAPI's registered route, not a duplicate table.
 CONTRACTS = {
     ("get", "/me/runtime"): (None, ref("SelfRuntime"), "查询本人助手状态", "助手", "仅按需模式；不访问 Agent；只返回本人公开状态和允许动作。"),
-    ("post", "/me/runtime/start"): ("RuntimeStartBody", ref("SelfRuntimeResult"), "显式启动本人助手", "助手", "空对象，不接受账号或宿主参数。202表示启动已受理，200表示已就绪；幂等重放保持原状态码。名额不足返回409 runtime_capacity_full，不自动等待或重试。"),
+    ("post", "/me/runtime/start"): ("RuntimeStartBody", ref("SelfRuntimeResult"), "显式启动本人助手", "助手", "空对象，不接受账号或宿主参数。202表示申请已受理，200表示已就绪；幂等重放保持原状态码。7A满额返回409；显式启用7B时进入waiting_capacity，返回本人近似位置和到期时间。重试不续期、就绪不自动发送问题；等待队列满返回429。"),
     ("post", "/me/runtime/stop"): ("RuntimeStopBody", ref("SelfRuntimeResult"), "显式停止或取消本人助手启动", "助手", "状态版本必须匹配；取消启动另传start_job_id。202表示排空停止已受理，200表示无需宿主操作。保留文件和历史，不取消管理员禁止。"),
     ("get", "/admin/maintenance"): (None, ref("Maintenance"), "查看维护与恢复状态", "管理：环境", "仅超级管理员；不包含用户正文或内部凭据。"),
     ("post", "/admin/maintenance"): ("MaintenanceBody", ref("Maintenance"), "调整持久维护状态", "管理：环境", "要求当前状态版本；冻结跨重启保留。解除冻结不跳过实际运行状态核对。"),
@@ -450,7 +450,7 @@ def build_openapi(app):
                 operation["description"] = "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。"
                 operation.setdefault("parameters", []).append({"name": "X-Peixian-Protocol", "in": "header", "required": True, "schema": {"type": "string", "const": "2"}})
                 operation["parameters"].extend([
-                    {"name": "X-Peixian-Capabilities", "in": "header", "required": False, "schema": STRING, "description": "按需部署必须声明 runtime_pool_v1；缺失时不能领取或修改执行责任。"},
+                    {"name": "X-Peixian-Capabilities", "in": "header", "required": False, "schema": STRING, "description": "按需部署必须声明 runtime_pool_v1；7B另需runtime_pool_wait_v1。缺失时不能领取或修改执行责任。"},
                     {"name": "X-Peixian-Runtime-Mode", "in": "header", "required": False, "schema": {**STRING, "enum": ["eager", "on_demand"]}, "description": "按需控制库要求执行器使用同一 on_demand 配置。"},
                 ])
                 operation["description"] += "内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。"

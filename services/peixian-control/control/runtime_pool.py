@@ -109,6 +109,73 @@ def active_job(db, uid):
     return db.execute("SELECT id,action,status,phase,revision FROM jobs WHERE uid=? AND status IN ('waiting_capacity','queued','running') ORDER BY CASE WHEN status='running' THEN 0 ELSE 1 END,enqueue_seq LIMIT 1", (uid,)).fetchone()
 
 
+def cancel_waiter(db, job, reason, timestamp):
+    changed = db.execute("UPDATE jobs SET status='cancelled',phase='finished',error=?,cancel_requested=1,updated=? WHERE id=? AND status='waiting_capacity'", (reason, timestamp, job['id'])).rowcount
+    if changed:
+        db.execute("UPDATE runtimes SET state_version=state_version+1,updated=? WHERE uid=?", (timestamp, job['uid']))
+    return changed
+
+
+def promote_waiters(store, db, *, timestamp=None):
+    """Bounded FIFO allocation; callers hold the same short write transaction."""
+    timestamp = now() if timestamp is None else timestamp
+    policy = store.maintenance_status(db)
+    if not policy.get('capacity_wait_enabled'):
+        return []
+    batch = store.pool_settings['scheduler_batch']
+    expired = db.execute("SELECT id,uid FROM jobs WHERE status='waiting_capacity' AND capacity_expires_at<=? ORDER BY enqueue_seq LIMIT ?", (timestamp, batch)).fetchall()
+    for job in expired:
+        cancel_waiter(db, job, 'capacity_wait_expired', timestamp)
+    if policy['maintenance_mode'] != 'normal' or not policy['capacity_healthy']:
+        return []
+    available = max(0, int(os.getenv('MAX_RUNTIMES', '4')) - db.execute('SELECT count(*) FROM runtimes WHERE reserved=1').fetchone()[0])
+    selected = db.execute("SELECT * FROM jobs WHERE status='waiting_capacity' AND not_before<=? ORDER BY enqueue_seq LIMIT ?", (timestamp, batch)).fetchall()
+    promoted = []
+    for job in selected:
+        if job['capacity_expires_at'] <= timestamp:
+            cancel_waiter(db, job, 'capacity_wait_expired', timestamp)
+            continue
+        r = current(db, job['uid'])
+        if job['cancel_requested'] or not r['active'] or r['manual_stop_reason'] != 'none' or r['security_blocked']:
+            cancel_waiter(db, job, 'capacity_wait_restricted', timestamp)
+            continue
+        conflict = (r['reserved'] or r['recovery_required'] or db.execute(
+            "SELECT 1 FROM jobs WHERE uid=? AND id<>? AND (status IN ('queued','running') OR recovery_required=1) UNION ALL SELECT 1 FROM job_attempts a JOIN jobs j ON j.id=a.job_id WHERE j.uid=? AND a.outcome IS NULL",
+            (job['uid'], job['id'], job['uid'])).fetchone())
+        if conflict:
+            cancel_waiter(db, job, 'capacity_wait_recovery_required', timestamp)
+            continue
+        if not available:
+            break
+        db.execute("UPDATE jobs SET status='queued',phase='queued',revision=?,capacity_reserved_at=?,updated=? WHERE id=? AND status='waiting_capacity'", (r['desired'], timestamp, timestamp, job['id']))
+        db.execute("UPDATE runtimes SET reserved=1,status='provisioning',stop_reason='none',gate_policy='closed',error=NULL,state_version=state_version+1,updated=? WHERE uid=?", (timestamp, job['uid']))
+        available -= 1
+        promoted.append(job['id'])
+    return promoted
+
+
+def scheduler_tick(store):
+    with store.tx() as db:
+        return promote_waiters(store, db)
+
+
+async def scheduler_loop(app):
+    import asyncio
+    while not app.state.pool_stop.is_set():
+        try:
+            await asyncio.wait_for(app.state.pool_stop.wait(), app.state.store.pool_settings['scheduler_tick_seconds'])
+            return
+        except TimeoutError:
+            pass
+        try:
+            await app.state.db_work.run(scheduler_tick, app.state.store)
+        except HTTPException as error:
+            # No request is lost: its durable state is retried on the next tick.
+            if error.status_code not in (429, 503):
+                raise
+            continue
+
+
 def public_status(store, db, uid):
     row = current(db, uid)
     job = active_job(db, uid)
@@ -120,7 +187,13 @@ def public_status(store, db, uid):
         actions.append("start")
     if row["active"] and (row["reserved"] or job) and not row["security_blocked"] and not row["recovery_required"]:
         actions.append("stop")
-    return {"runtime_mode": "on_demand", "status": row["status"], "ready": bool(ready),
+    waiting = None
+    if job and job['status'] == 'waiting_capacity':
+        queued = db.execute('SELECT enqueue_seq,capacity_expires_at FROM jobs WHERE id=?', (job['id'],)).fetchone()
+        waiting = {'expires_at': queued['capacity_expires_at'], 'approximate_position': db.execute("SELECT count(*) FROM jobs WHERE status='waiting_capacity' AND enqueue_seq<=?", (queued['enqueue_seq'],)).fetchone()[0]}
+    last = db.execute("SELECT error FROM jobs WHERE uid=? AND reason='explicit_start' ORDER BY enqueue_seq DESC LIMIT 1", (uid,)).fetchone()
+    return {"runtime_mode": "on_demand", "status": row["status"], "ready": bool(ready), "waiting": waiting,
+            "wait_result": last['error'] if last and last['error'] in ('capacity_wait_expired','capacity_wait_cancelled','capacity_wait_restricted','capacity_wait_recovery_required') else None,
             "state_version": row["state_version"], "desired": row["desired"], "revision": row["revision"],
             "stop_reason": row["stop_reason"], "manual_stop_reason": row["manual_stop_reason"],
             "allowed_actions": actions, "job": dict(job) if job else None}
@@ -148,6 +221,18 @@ def start(store, db, uid, *, admin=False):
         reject("runtime_recovery_required", "已有运行责任尚未完成核对")
     if db.execute("SELECT 1 FROM jobs WHERE uid=? AND recovery_required=1 UNION ALL SELECT 1 FROM job_attempts a JOIN jobs j ON j.id=a.job_id WHERE j.uid=? AND a.outcome IS NULL", (uid, uid)).fetchone():
         reject("runtime_recovery_required", "已有运行责任尚未完成核对")
+    if platform.get('capacity_wait_enabled'):
+        promote_waiters(store, db)
+        if db.execute("SELECT count(*) FROM jobs WHERE status='waiting_capacity'").fetchone()[0] >= store.pool_settings['max_waiting_requests']:
+            reject('runtime_wait_queue_full', '启动等待人数已达上限，请稍后重试', 429)
+        jid = ident()
+        action = 'provision' if never_executed(db, row) else 'resume'
+        if admin:
+            db.execute("UPDATE runtimes SET manual_stop_reason='none' WHERE uid=?", (uid,))
+        db.execute("INSERT INTO jobs(id,uid,action,status,revision,reason,capacity_expires_at,created,updated) VALUES(?,?,?,'waiting_capacity',?,'explicit_start',?,?,?)", (jid,uid,action,row['desired'],now()+store.pool_settings['capacity_wait_ttl_seconds'],now(),now()))
+        db.execute('UPDATE runtimes SET state_version=state_version+1,updated=? WHERE uid=?', (now(),uid))
+        promote_waiters(store, db)
+        return {'accepted': True, 'job': dict(active_job(db,uid)), 'runtime':public_status(store,db,uid)}
     if db.execute("SELECT count(*) FROM runtimes WHERE reserved=1").fetchone()[0] >= int(os.getenv("MAX_RUNTIMES", "4")):
         reject("runtime_capacity_full", "当前运行名额已满，请稍后手动启动")
     action = "provision" if never_executed(db, row) else "resume"
@@ -165,6 +250,11 @@ def stop(store, db, uid, *, reason="user", expected_state_version=None, start_jo
         reject("runtime_start_changed", "启动申请已变化，请刷新后重试")
     if reason in ("normal", "admin"):
         db.execute("UPDATE runtimes SET manual_stop_reason='admin',state_version=state_version+1 WHERE uid=?", (uid,))
+    waiting = db.execute("SELECT id,uid FROM jobs WHERE uid=? AND status='waiting_capacity'", (uid,)).fetchone()
+    if waiting:
+        cancel_waiter(db, waiting, 'capacity_wait_cancelled', now())
+        promote_waiters(store, db)
+        return {'accepted': False, 'job': None, 'runtime': public_status(store, db, uid)}
     pause = db.execute("SELECT id,action,status FROM jobs WHERE uid=? AND action='pause' AND status IN ('queued','running')", (uid,)).fetchone()
     if pause:
         return {"accepted": True, "job": dict(pause), "runtime": public_status(store, db, uid)}
@@ -173,6 +263,7 @@ def stop(store, db, uid, *, reason="user", expected_state_version=None, start_jo
             return {"accepted": False, "job": None, "runtime": public_status(store, db, uid)}
         db.execute("UPDATE jobs SET status='cancelled',phase='finished',cancel_requested=1,updated=? WHERE uid=? AND status IN ('waiting_capacity','queued')", (now(), uid))
         db.execute("UPDATE runtimes SET reserved=0,status='unprovisioned',gate_policy='closed',stop_reason=CASE WHEN security_blocked=1 THEN stop_reason ELSE ? END,state_version=state_version+1,updated=? WHERE uid=?", ("admin" if reason in ("normal", "admin") else "user", now(), uid))
+        promote_waiters(store, db)
         return {"accepted": False, "job": None, "runtime": public_status(store, db, uid)}
     if not row["reserved"] and row["status"] == "paused" and not row["recovery_required"]:
         return {"accepted": False, "job": None, "runtime": public_status(store, db, uid)}

@@ -33,7 +33,9 @@ def digest(value):
 
 
 class Store:
-    def __init__(self, root, key_file, worker_key_file, admin_password_file, *, runtime_mode=None):
+    def __init__(self, root, key_file, worker_key_file, admin_password_file, *, runtime_mode=None, runtime_pool=None):
+        from shared.runtime_pool_config import validate as pool_config
+        self.pool_settings = pool_config(runtime_pool or {})
         if runtime_mode not in (None, "eager", "on_demand"):
             raise ValueError("Unsupported runtime mode")
         self.root = Path(root)
@@ -99,6 +101,19 @@ class Store:
             actual_mode = policy.get("runtime_mode", "eager")
             if runtime_mode is not None and runtime_mode != actual_mode:
                 raise ValueError("Runtime policy differs from the initialized database")
+            if runtime_pool is not None:
+                wanted = self.pool_settings['capacity_wait_enabled']
+                actual = bool(policy.get('capacity_wait_enabled', False))
+                if wanted != actual:
+                    if not wanted or actual_mode != 'on_demand':
+                        raise ValueError('Runtime waiting policy cannot be silently disabled')
+                    if not fresh and (os.getenv('PX_ALLOW_POOL_POLICY_CHANGE') != '1'
+                            or policy['maintenance_mode'] != 'frozen'
+                            or db.execute("SELECT 1 FROM jobs WHERE status IN ('waiting_capacity','queued','running') OR recovery_required=1").fetchone()
+                            or db.execute("SELECT 1 FROM job_attempts WHERE outcome IS NULL").fetchone()):
+                        raise ValueError('Waiting policy change requires frozen offline approval')
+                    db.execute("UPDATE platform_state SET capacity_wait_enabled=1,pool_policy_version=2 WHERE id=1")
+                    validate(db)
 
     def on_demand(self, db=None):
         return self.maintenance_status(db).get("runtime_mode", "eager") == "on_demand"

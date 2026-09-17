@@ -18,6 +18,7 @@ def extend(s, obj, ref, array, ID, STRING, BOOL, INTEGER):
         "manual_stop_reason": STRING, "allowed_actions": array({**STRING, "enum": ["start", "stop"]}),
         "job": {"anyOf": [ref("Job"), {"type": "null"}]}}, extra=True)
     s["SelfRuntimeResult"] = obj({"accepted": BOOL, "runtime": ref("SelfRuntime"), "job": {"anyOf": [ref("Job"), {"type": "null"}]}}, ("accepted", "runtime", "job"))
+    s['SelfRuntime']['properties'].update(waiting={'anyOf': [obj({'expires_at':INTEGER,'approximate_position':INTEGER}), {'type':'null'}]}, wait_result={'type':['string','null']})
     s["Runtime"]["properties"].update(status=STRING, phase=phases, gate_policy=STRING,
         security_blocked=BOOL, recovery_required=BOOL, cancellation_confirmed=BOOL)
     s["Runtime"]["description"] += " revision 是实际验证的 applied；desired 是期望版本，可能尚未生效。安全阻断不证明外部操作已撤销。"

@@ -1,5 +1,6 @@
 """PR7 policy contract; future schedulers are deliberately unavailable."""
 CAPABILITY = "runtime_pool_v1"
+WAIT_CAPABILITY = "runtime_pool_wait_v1"
 BOUNDS = {
     "max_waiting_requests": (1000, 1, 10000),
     "capacity_wait_ttl_seconds": (1800, 30, 86400),
@@ -17,9 +18,12 @@ def validate(value):
         raise ValueError("invalid_runtime_pool_policy")
     for key, expected in fixed.items():
         actual = value.get(key, expected)
+        if key == "capacity_wait_enabled" and type(actual) is bool:
+            continue
         if type(actual) is not type(expected) or actual != expected:
             raise ValueError("unsupported_runtime_pool_policy")
     result = dict(fixed)
+    result['capacity_wait_enabled'] = value.get('capacity_wait_enabled', False)
     for name, (default, low, high) in BOUNDS.items():
         actual = value.get(name, default)
         if type(actual) is not int or not low <= actual <= high:

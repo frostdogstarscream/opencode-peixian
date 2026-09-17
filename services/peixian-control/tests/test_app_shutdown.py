@@ -72,7 +72,7 @@ def test_lifespan_preserves_original_error_and_attempts_cleanup(monkeypatch):
     from control.runtime_security import SafetyCoordinator
     monkeypatch.setattr(SafetyCoordinator, "start", lambda self: None)
     async def run():
-        app = create_app(object())
+        app = create_app(SimpleNamespace(maintenance_status=lambda: {}))
         original = LookupError("original application error")
         with pytest.raises(LookupError) as caught:
             async with app.router.lifespan_context(app):

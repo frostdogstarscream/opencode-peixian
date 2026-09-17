@@ -98,7 +98,7 @@ class Worker:
 
     def request(self, method, path, **kwargs):
         allow_state_conflict = kwargs.pop("allow_state_conflict", False)
-        kwargs["headers"] = {**kwargs.pop("headers", {}), "X-Peixian-Protocol": "2", "X-Peixian-Capabilities": "runtime_pool_v1", "X-Peixian-Runtime-Mode": "on_demand" if self.runtime_pool else "eager"}
+        kwargs["headers"] = {**kwargs.pop("headers", {}), "X-Peixian-Protocol": "2", "X-Peixian-Capabilities": "runtime_pool_v1,runtime_pool_wait_v1", "X-Peixian-Runtime-Mode": "on_demand" if self.runtime_pool else "eager"}
         kwargs.setdefault("timeout", self.config["worker_heartbeat_timeout_seconds"])
         started = self.clock()
         transport = {"new_connection": False}
@@ -289,7 +289,7 @@ class Worker:
             raise runtime.RuntimeFailure("invalid_plugin_digest")
         output = bytearray()
         with self.api.stream("GET", "/internal/worker/packages/" + digest,
-                             headers={"X-Peixian-Protocol": "2", "X-Peixian-Capabilities": "runtime_pool_v1", "X-Peixian-Runtime-Mode": "on_demand" if self.runtime_pool else "eager"}) as response:
+                             headers={"X-Peixian-Protocol": "2", "X-Peixian-Capabilities": "runtime_pool_v1,runtime_pool_wait_v1", "X-Peixian-Runtime-Mode": "on_demand" if self.runtime_pool else "eager"}) as response:
             if response.status_code != 200:
                 raise runtime.RuntimeFailure("plugin_download_unavailable")
             for chunk in response.iter_bytes():

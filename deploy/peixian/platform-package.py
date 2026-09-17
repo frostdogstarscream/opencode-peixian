@@ -191,7 +191,7 @@ def assemble(destination, wheels, commit, *, export_images=False, config_path=No
     effective_config = ({"version": cfg.version, "profile": cfg.profile, "max_runtimes": cfg.max_runtimes,
                          "control_resources": cfg.control_resources, "resource_limits": cfg.resource_limits,
                          "capacity_policy": cfg.capacity_policy, "concurrency": cfg.concurrency,
-                         "orchestration": cfg.orchestration,
+                         "orchestration": cfg.orchestration, "runtime_pool": cfg.runtime_pool,
                          "resource_budget": cfg.resource_budget} if cfg else {"version": 1})
     archive = destination / "images.tar"
     if source_only and archive.exists():

@@ -57,10 +57,28 @@ def verify_package(folder):
     return manifest, sums
 
 
+def runtime_pool_blockers(manifest, profile):
+    if manifest.get('control_schema_version') != 5 and manifest.get('platform_config_version') != 4:
+        return []
+    blocked = []
+    pool = manifest.get('effective_config', {}).get('runtime_pool', {})
+    if (manifest.get('control_schema_version') != 5 or manifest.get('platform_config_version') != 4
+            or manifest.get('worker_capabilities') != ['runtime_pool_v1']
+            or pool.get('runtime_mode') != 'on_demand'
+            or pool.get('capacity_wait_enabled') is not False
+            or pool.get('idle_pause_enabled') is not False):
+        blocked.append('pr7_runtime_pool_contract_mismatch')
+    required = {'PR7A-2slot-5account', 'PR7A-v5-restore', 'PR7A-component-compatibility'}
+    if not required <= set(profile.get('required_cases', [])):
+        blocked.append('pr7_required_profile_cases_missing')
+    return blocked
+
+
 def check(folder, evidence, profile):
     manifest, sums = verify_package(folder)
+    pool_blocked = runtime_pool_blockers(manifest, profile)
     if evidence.get('status') in ('incomplete', 'archive_verified'):
-        return {'status': 'blocked', 'blocked': ['complete_runtime_evidence_required', 'N4', 'N5'],
+        return {'status': 'blocked', 'blocked': ['complete_runtime_evidence_required', 'N4', 'N5'] + pool_blocked,
                 'source_commit': manifest['source_commit'], 'checksums_verified': len(sums),
                 'package_manifest_sha256': sums['release-manifest.json'], 'production_approved': False}
     validate_public(evidence)
@@ -75,7 +93,7 @@ def check(folder, evidence, profile):
         require(len(recorded) == 1 and recorded[0]['config_id'] == objects['archive_config_digest']['digest'], 'package_component_identity_mismatch')
     require(profile.get('kind') == 'production' and profile.get('required_cases'), 'release_profile_required')
     missing = sorted(k for k in profile['required_cases'] if profile.get('results', {}).get(k, {}).get('status') != 'passed')
-    blocked = list(evidence['blocked']) + missing
+    blocked = list(evidence['blocked']) + missing + pool_blocked
     for key in ('python_source_set_verified', 'host_disk_source_verified'):
         if evidence[key].get('status') != 'passed':
             blocked.append(key)

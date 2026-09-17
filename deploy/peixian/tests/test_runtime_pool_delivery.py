@@ -13,6 +13,19 @@ backup = load("platform-backup")
 runtime = load("console-runtime")
 
 
+def test_release_cannot_reuse_old_profile_for_on_demand():
+    release = load("release-check")
+    manifest = {"control_schema_version": 5, "platform_config_version": 4,
+                "worker_capabilities": ["runtime_pool_v1"], "effective_config": {"runtime_pool": {
+                    "runtime_mode": "on_demand", "capacity_wait_enabled": False, "idle_pause_enabled": False}}}
+    assert release.runtime_pool_blockers(manifest, {}) == ['pr7_required_profile_cases_missing']
+    profile = {"required_cases": ['PR7A-2slot-5account', 'PR7A-v5-restore', 'PR7A-component-compatibility']}
+    assert release.runtime_pool_blockers(manifest, profile) == []
+    manifest['effective_config']['runtime_pool']['capacity_wait_enabled'] = True
+    assert release.runtime_pool_blockers(manifest, profile) == ['pr7_runtime_pool_contract_mismatch']
+    assert release.runtime_pool_blockers({"control_schema_version": 4, "platform_config_version": 3}, {}) == []
+
+
 def test_v4_configuration_and_image_capability(tmp_path):
     source = Path(__file__).resolve().parents[1] / "server/platform.on-demand.example.json"
     cfg = platform.config.load_config(source)

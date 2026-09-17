@@ -87,9 +87,34 @@ print(json.dumps(result))'''
                 continue
             response = api.get('/internal/worker/jobs/' + record['job_id'], params={'attempt': record['attempt'], 'operation_id': record['operation_id']})
             response.raise_for_status(); remote = response.json()
+            job = remote['job']
+            rid = job['runtime_id']
+            import re
+            require(re.fullmatch('[0-9a-f]{32}', rid) is not None, 'invalid_runtime_identity')
+            ids = command('docker', 'ps', '-a', '--filter', 'label=com.docker.compose.project=px-' + rid, '--format', '{{.ID}}').decode().split()
+            require(ids, 'runtime_components_missing')
+            components = json.loads(command('docker', 'inspect', *ids))
+            states = {}
+            for component in components:
+                labels = component['Config']['Labels']
+                role = labels.get('com.docker.compose.service')
+                require(role in ('agent', 'gateway', 'model-relay') and role not in states, 'runtime_component_ambiguous')
+                require(labels.get('peixian.deployment') == cfg.deployment_id and labels.get('peixian.runtime_id') == rid,
+                        'runtime_component_foreign')
+                states[role] = 'running' if component['State']['Running'] else 'stopped'
+            require(set(states) == {'agent', 'gateway', 'model-relay'}, 'runtime_components_incomplete')
+            mutation = cfg.worker_root / 'runtimes' / rid / 'mutation.json'
+            mutation_state = 'unknown'
+            if mutation.exists():
+                observed = json.loads(regular(mutation).read_text(encoding='utf-8'))
+                if observed.get('runtime_id') == rid and observed.get('state') == 'idle':
+                    mutation_state = 'recorded_idle_not_process_attestation'
             private_history.append({**record, 'classification': 'historical_unconfirmed',
                 'server_receipt_present': remote.get('receipt') is not None,
                 'job_status_now': remote['job'].get('status'), 'attempt_phase_now': (remote.get('attempt') or {}).get('phase'),
+                'current_control_observation': {k: job.get(k) for k in ('gate_policy', 'security_blocked', 'recovery_required', 'applied_revision', 'desired', 'stop_reason')},
+                'current_components': states, 'host_mutation_record': mutation_state,
+                'gateway_activity_and_mutation_processes': 'not_attested',
                 'root_cause': 'undetermined', 'original_operation_success': 'not_proven',
                 'disposition': 'owner_decision_required'})
     require(after == journal_snapshot(cfg.worker_root / 'receipts'), 'journals_changed_during_collection')

@@ -172,6 +172,7 @@ def register_admin(app):
     async def event_diagnostics(request: Request, user=Depends(require_capability("runtimes.manage"))):
         # Loop-owned counters must not be read by a database worker thread.
         return {"hub": app.state.event_hubs.stats(), "streams": app.state.stream_registry.stats(),
+                "runtime_pool": {"retryable_failures": getattr(app.state, 'pool_failures', 0)},
                 "cache": app.state.live_text.stats(),
                 "work": {"database": app.state.db_work.stats(), "password": app.state.crypto_work.stats()}}
 

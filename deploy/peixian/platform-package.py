@@ -35,6 +35,7 @@ ALLOWED_FILES = (
     "deploy/peixian/PR7A_CONTRACT.md",
     "deploy/peixian/PR7A_OPERATIONS.md",
     "deploy/peixian/PR7B_CONTRACT.md", "deploy/peixian/PR7B_OPERATIONS.md",
+    "deploy/peixian/pr7-local-acceptance.py", "deploy/peixian/pr7b-local-acceptance.py",
     "deploy/peixian/server/platform.runtime-pool.example.json",
     "services/peixian-control/shared/worker_errors.py",
     "deploy/peixian/N3_WORKER_DIAGNOSTICS.md", "deploy/peixian/N3_LOCAL_INTEGRATION.md",

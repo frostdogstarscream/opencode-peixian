@@ -161,6 +161,8 @@ def scheduler_tick(store):
 
 async def scheduler_loop(app):
     import asyncio
+    import sqlite3
+    app.state.pool_failures = 0
     while not app.state.pool_stop.is_set():
         try:
             await asyncio.wait_for(app.state.pool_stop.wait(), app.state.store.pool_settings['scheduler_tick_seconds'])
@@ -173,7 +175,12 @@ async def scheduler_loop(app):
             # No request is lost: its durable state is retried on the next tick.
             if error.status_code not in (429, 503):
                 raise
+            app.state.pool_failures += 1
             continue
+        except sqlite3.OperationalError as error:
+            if getattr(error, 'sqlite_errorcode', None) not in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+                raise
+            app.state.pool_failures += 1
 
 
 def public_status(store, db, uid):

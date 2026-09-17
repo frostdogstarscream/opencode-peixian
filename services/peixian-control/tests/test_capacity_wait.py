@@ -168,3 +168,48 @@ def test_security_repair_keeps_slot_with_waiter_and_duplicate_receipt(waiting, m
     assert s.one('SELECT reserved FROM runtimes WHERE uid=?',(a,))['reserved']==1
     assert s.one('SELECT status FROM jobs WHERE id=?',(waiter,))['status']=='waiting_capacity'
     assert not s.rows('SELECT * FROM capacity_release_receipts')
+
+
+def test_scheduler_recovers_after_real_sqlite_lock(waiting):
+    import asyncio
+    import sqlite3
+    from types import SimpleNamespace
+    from control.concurrency import WorkPool
+    from control.runtime_pool import scheduler_loop
+    s,_=waiting
+    users=[account(s,str(i)) for i in range(3)]
+    jobs=[begin(s,u)['job']['id'] for u in users]
+    s.busy_timeout_ms=5
+    s.pool_settings['scheduler_tick_seconds']=.01
+    async def run():
+        external=sqlite3.connect(s.path,isolation_level=None)
+        external.execute('BEGIN IMMEDIATE')
+        external.execute('UPDATE runtimes SET reserved=0 WHERE uid=?',(users[0],))
+        external.execute("UPDATE jobs SET status='cancelled' WHERE id=?",(jobs[0],))
+        app=SimpleNamespace(state=SimpleNamespace(store=s,pool_stop=asyncio.Event(),db_work=WorkPool(1,1,1,'test-pool')))
+        task=asyncio.create_task(scheduler_loop(app))
+        try:
+            async with asyncio.timeout(3):
+                while not getattr(app.state,'pool_failures',0): await asyncio.sleep(.005)
+            external.commit()
+            async with asyncio.timeout(3):
+                while s.one('SELECT status FROM jobs WHERE id=?',(jobs[2],))['status']!='queued': await asyncio.sleep(.005)
+            assert not task.done()
+        finally:
+            external.close();app.state.pool_stop.set();await task;await app.state.db_work.close()
+    asyncio.run(run())
+
+
+def test_thousand_metadata_accounts_do_not_require_gateway_observations(waiting):
+    from control.orchestration import Orchestration
+    from control.runtime_pool import inventory_targets, record_inventory
+    from control.store import now
+    s,_=waiting
+    password=s.passwords.hash('synthetic-only-password')
+    for i in range(1000): s.create_user_prehashed('metadata-'+str(i),password)
+    assert Orchestration(s).reconcile_candidates()['items']==[]
+    with s.tx() as db:
+        db.execute("UPDATE platform_state SET capacity_healthy=0,freeze_reason='runtime_observation_unknown'")
+        targets=inventory_targets(db)
+    assert len(targets['items'])==1000
+    assert record_inventory(s,{'host_boot_id':'synthetic-host','observed_at':now(),'registry_digest':targets['registry_digest'],'complete':True,'resources':[]})['capacity_healthy']

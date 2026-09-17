@@ -1,0 +1,398 @@
+{
+  "status": "passed",
+  "scope": "local_real_container_idle_smoke",
+  "checks": [
+    {
+      "name": "A_ready_with_file_B_waiting",
+      "status": "passed"
+    },
+    {
+      "name": "A_automatic_idle_pause_after_threshold",
+      "status": "passed",
+      "elapsed_seconds": 70.03
+    },
+    {
+      "name": "B_promoted_after_real_idle_release_without_oversell",
+      "status": "passed"
+    },
+    {
+      "name": "explicit_resume_preserves_history_and_file",
+      "status": "passed"
+    },
+    {
+      "name": "all_synthetic_runtimes_stopped_data_retained",
+      "status": "passed"
+    }
+  ],
+  "run_id": "pr7c-local-20260917-2bc822594",
+  "build_source_commit": "3642936f57eadf258453841108f8195b931dbd81",
+  "tool_source_commit": "2bc8225947eeb2c81e58ae2a50ead02b0e7838d0",
+  "profile": "local_synthetic_2accounts_1slot",
+  "configuration": {
+    "schema": 5,
+    "config": 4,
+    "pool_policy": 3,
+    "idle_timeout_seconds": 60,
+    "min_ready_seconds": 60,
+    "resume_cooldown_seconds": 60,
+    "capacity_wait_enabled": true,
+    "idle_pause_enabled": true
+  },
+  "production_release": "blocked",
+  "not_run": [
+    "long_generation_real_runtime",
+    "pending_confirmation_real_runtime",
+    "long_parser_slow_download_plugin_mixed_faults",
+    "PR7C_full_physical_restore",
+    "linux_host",
+    "large_concurrency",
+    "paid_model"
+  ],
+  "images": {
+    "agent-platform-control:pr7c-candidate": {
+      "object_type": "docker_local_image_identity",
+      "id": "sha256:66d289d842e203f2f493cd043df4abc478dc2bb2ac45a95f5c23cf47a953dab9"
+    },
+    "agent-platform-gateway:pr7c-candidate": {
+      "object_type": "docker_local_image_identity",
+      "id": "sha256:888169f493aeaad3f366fe21017b5c715e8b9f22edcc99110764d219e4f31b01"
+    },
+    "peixian-opencode:pr7c-candidate": {
+      "object_type": "docker_local_image_identity",
+      "id": "sha256:db3f4e329d077e15e4ea25357afe0adf6f6fc998df5f5cf119a6db5185719ccc"
+    },
+    "agent-platform-proxy:nginx-1.28.0": {
+      "object_type": "docker_local_image_identity",
+      "id": "sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284"
+    }
+  },
+  "worker_receipts": [
+    {
+      "job_id": "bd77d9a6c80647cea1ce323efab682df",
+      "attempt": 1,
+      "operation_id": "07b5c19a58e14fdf90adad4651b1df94",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "claimed",
+      "state_version": 28,
+      "gate_epoch": 12,
+      "failure_code": null
+    },
+    {
+      "job_id": "bd77d9a6c80647cea1ce323efab682df",
+      "attempt": 1,
+      "operation_id": "e43a8680454d4fc8a4b8078dae27e906",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "draining",
+      "state_version": 29,
+      "gate_epoch": 13,
+      "failure_code": null
+    },
+    {
+      "job_id": "bd77d9a6c80647cea1ce323efab682df",
+      "attempt": 1,
+      "operation_id": "595592bdd846479db3010a4ed67cda17",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "closing",
+      "state_version": 30,
+      "gate_epoch": 14,
+      "failure_code": null
+    },
+    {
+      "job_id": "bd77d9a6c80647cea1ce323efab682df",
+      "attempt": 1,
+      "operation_id": "98a50f7dfa79485c915a4c90db0bdc53",
+      "kind": "boot",
+      "status": "recorded",
+      "phase": "applying",
+      "state_version": 31,
+      "gate_epoch": 14,
+      "failure_code": null
+    },
+    {
+      "job_id": "bd77d9a6c80647cea1ce323efab682df",
+      "attempt": 1,
+      "operation_id": "183ec7ea3f1c4996b426eaaf078ece39",
+      "kind": "complete",
+      "status": "recorded",
+      "phase": "applying",
+      "state_version": 32,
+      "gate_epoch": 15,
+      "failure_code": null
+    },
+    {
+      "job_id": "6475368541ea42fd8cc01fea7cd45fe6",
+      "attempt": 1,
+      "operation_id": "9c35651e617b4d0fac8324636a458d39",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "claimed",
+      "state_version": 35,
+      "gate_epoch": 16,
+      "failure_code": null
+    },
+    {
+      "job_id": "6475368541ea42fd8cc01fea7cd45fe6",
+      "attempt": 1,
+      "operation_id": "244ed1a06eae429c8d2e24dea5c3e180",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "draining",
+      "state_version": 36,
+      "gate_epoch": 17,
+      "failure_code": null
+    },
+    {
+      "job_id": "6475368541ea42fd8cc01fea7cd45fe6",
+      "attempt": 1,
+      "operation_id": "881074c851594b338b710972dcfac3d7",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "closing",
+      "state_version": 37,
+      "gate_epoch": 18,
+      "failure_code": null
+    },
+    {
+      "job_id": "6475368541ea42fd8cc01fea7cd45fe6",
+      "attempt": 1,
+      "operation_id": "38ec9b1d35994a3b8ca83acfdd8ab68a",
+      "kind": "complete",
+      "status": "recorded",
+      "phase": "applying",
+      "state_version": 38,
+      "gate_epoch": 18,
+      "failure_code": null
+    },
+    {
+      "job_id": "16f4f149505a4bb9b57221b9b1ab5e3d",
+      "attempt": 1,
+      "operation_id": "1afc17d6ed9a4679bb0dc5957bf3cee3",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "claimed",
+      "state_version": 15,
+      "gate_epoch": 6,
+      "failure_code": null
+    },
+    {
+      "job_id": "16f4f149505a4bb9b57221b9b1ab5e3d",
+      "attempt": 1,
+      "operation_id": "3a3099b15082490da75e291142069fe3",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "draining",
+      "state_version": 16,
+      "gate_epoch": 7,
+      "failure_code": null
+    },
+    {
+      "job_id": "16f4f149505a4bb9b57221b9b1ab5e3d",
+      "attempt": 1,
+      "operation_id": "8a5cba2886524ef0a34dececcca449dc",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "closing",
+      "state_version": 17,
+      "gate_epoch": 8,
+      "failure_code": null
+    },
+    {
+      "job_id": "16f4f149505a4bb9b57221b9b1ab5e3d",
+      "attempt": 1,
+      "operation_id": "95f1cf334a77477a8520f01f5bd8389e",
+      "kind": "boot",
+      "status": "recorded",
+      "phase": "applying",
+      "state_version": 18,
+      "gate_epoch": 8,
+      "failure_code": null
+    },
+    {
+      "job_id": "16f4f149505a4bb9b57221b9b1ab5e3d",
+      "attempt": 1,
+      "operation_id": "af28696574bc48d7b1dd08eae4ef765e",
+      "kind": "complete",
+      "status": "recorded",
+      "phase": "applying",
+      "state_version": 19,
+      "gate_epoch": 9,
+      "failure_code": null
+    },
+    {
+      "job_id": "5d5c34f8ecb34f81a015aa6634f9ec8f",
+      "attempt": 1,
+      "operation_id": "e76a04a6ad154f91899c5b9f6415114a",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "claimed",
+      "state_version": 22,
+      "gate_epoch": 10,
+      "failure_code": null
+    },
+    {
+      "job_id": "5d5c34f8ecb34f81a015aa6634f9ec8f",
+      "attempt": 1,
+      "operation_id": "e3850542cc454283bcb2f7ed1a06442f",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "draining",
+      "state_version": 23,
+      "gate_epoch": 11,
+      "failure_code": null
+    },
+    {
+      "job_id": "5d5c34f8ecb34f81a015aa6634f9ec8f",
+      "attempt": 1,
+      "operation_id": "b98b1cfa43264f19b02ec773b7c123d6",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "closing",
+      "state_version": 24,
+      "gate_epoch": 12,
+      "failure_code": null
+    },
+    {
+      "job_id": "5d5c34f8ecb34f81a015aa6634f9ec8f",
+      "attempt": 1,
+      "operation_id": "aa768d6886fd406889158735d7af205f",
+      "kind": "complete",
+      "status": "recorded",
+      "phase": "applying",
+      "state_version": 25,
+      "gate_epoch": 12,
+      "failure_code": null
+    },
+    {
+      "job_id": "0cf0e5e68f0d4d20839f8df4f4bd8e63",
+      "attempt": 1,
+      "operation_id": "6acb73c1672d4253a194fc5461bbece1",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "claimed",
+      "state_version": 41,
+      "gate_epoch": 18,
+      "failure_code": null
+    },
+    {
+      "job_id": "0cf0e5e68f0d4d20839f8df4f4bd8e63",
+      "attempt": 1,
+      "operation_id": "6454e5b0fa684f6ab3ea2b77d5616639",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "draining",
+      "state_version": 42,
+      "gate_epoch": 19,
+      "failure_code": null
+    },
+    {
+      "job_id": "0cf0e5e68f0d4d20839f8df4f4bd8e63",
+      "attempt": 1,
+      "operation_id": "9c4d167e42f746389f932ccb336deedb",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "closing",
+      "state_version": 43,
+      "gate_epoch": 20,
+      "failure_code": null
+    },
+    {
+      "job_id": "0cf0e5e68f0d4d20839f8df4f4bd8e63",
+      "attempt": 1,
+      "operation_id": "9efa2444491145329de92532b5af330e",
+      "kind": "boot",
+      "status": "recorded",
+      "phase": "applying",
+      "state_version": 44,
+      "gate_epoch": 20,
+      "failure_code": null
+    },
+    {
+      "job_id": "0cf0e5e68f0d4d20839f8df4f4bd8e63",
+      "attempt": 1,
+      "operation_id": "9a21db0238254861a3fabdb9a39226e8",
+      "kind": "complete",
+      "status": "recorded",
+      "phase": "applying",
+      "state_version": 45,
+      "gate_epoch": 21,
+      "failure_code": null
+    },
+    {
+      "job_id": "d4ca1dd07e7f4b698236e14686c2a18d",
+      "attempt": 1,
+      "operation_id": "cd04ccc477f34bd0ada9dd15f6a9edfb",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "claimed",
+      "state_version": 48,
+      "gate_epoch": 22,
+      "failure_code": null
+    },
+    {
+      "job_id": "d4ca1dd07e7f4b698236e14686c2a18d",
+      "attempt": 1,
+      "operation_id": "5aea018d9ab340d5aafcff91b08729eb",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "draining",
+      "state_version": 49,
+      "gate_epoch": 23,
+      "failure_code": null
+    },
+    {
+      "job_id": "d4ca1dd07e7f4b698236e14686c2a18d",
+      "attempt": 1,
+      "operation_id": "ab62144fe5904c64b1a40c86053fec6d",
+      "kind": "phase",
+      "status": "recorded",
+      "phase": "closing",
+      "state_version": 50,
+      "gate_epoch": 24,
+      "failure_code": null
+    },
+    {
+      "job_id": "d4ca1dd07e7f4b698236e14686c2a18d",
+      "attempt": 1,
+      "operation_id": "d6a13373d2ad4b4cb7348dd3468226bc",
+      "kind": "complete",
+      "status": "recorded",
+      "phase": "applying",
+      "state_version": 51,
+      "gate_epoch": 24,
+      "failure_code": null
+    }
+  ],
+  "automated": {
+    "control": {
+      "passed": 350,
+      "warnings": 2
+    },
+    "gateway_relay": {
+      "passed": 85,
+      "skipped": 8,
+      "warnings": 2
+    },
+    "deployment": {
+      "passed": 231,
+      "skipped": 2,
+      "subtests": 163
+    },
+    "frontend": {
+      "passed": 54,
+      "typecheck": "passed",
+      "build": "passed"
+    },
+    "agent": {
+      "targeted_passed": 4,
+      "typecheck": "passed",
+      "client_generation": "passed"
+    }
+  },
+  "migration_sha256": {
+    "migrations_v4.py": "6c4151a48cb3b012c65ef1a54899b784f9e12a07a95fa77dd6074c62c3c8df70",
+    "migrations_v5.py": "0126b0ba8a20812019741cd07488c0594383d1bb604ed53b2b7815cc9340d8cd"
+  }
+}

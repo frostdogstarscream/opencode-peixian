@@ -35,6 +35,8 @@ ALLOWED_FILES = (
     "deploy/peixian/n3-local-evidence.py", "deploy/peixian/reports/n3-local-evidence.json",
     "deploy/peixian/evidence_contract.py", "deploy/peixian/evidence-run.py",
     "deploy/peixian/render-evidence-report.py", "deploy/peixian/release-check.py",
+    "deploy/peixian/archive-evidence.py",
+    "deploy/peixian/historical-review.py",
     "deploy/peixian/acceptance-preflight.py", "deploy/peixian/PR6_EVIDENCE_OPERATIONS.md",
     "deploy/peixian/server/pr6-release.profile.json", "deploy/peixian/server/n4-prep.profile.json",
     "deploy/peixian/server/n5-prep.profile.json",

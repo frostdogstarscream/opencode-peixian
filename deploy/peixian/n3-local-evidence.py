@@ -7,7 +7,7 @@ import subprocess
 import sys
 import httpx
 from evidence_contract import (EvidenceError, Run, archive_identity, classify_receipts, compare_sets,
-    journal_snapshot, regular, require, sha, source_digest, utc, validate_public, write_new)
+    journal_snapshot, regular, require, sha, source_digest, unchanged, utc, validate_public, write_new)
 
 ROOT = Path(__file__).resolve().parents[2]
 HOST = ('deploy/peixian/console-worker.py', 'deploy/peixian/console-runtime.py',
@@ -93,7 +93,7 @@ print(json.dumps(result))'''
                 'root_cause': 'undetermined', 'original_operation_success': 'not_proven',
                 'disposition': 'owner_decision_required'})
     require(after == journal_snapshot(cfg.worker_root / 'receipts'), 'journals_changed_during_collection')
-    require(snapshot() == before, 'container_changed_during_collection')
+    unchanged(before, snapshot(), 'container_changed_during_collection')
     require(host_before == {p: source_digest(regular(ROOT / p).read_bytes()) for p in HOST}, 'host_source_changed_during_collection')
     require(actual == json.loads(command('docker', 'exec', container, 'python', '-c', source)), 'container_source_changed_during_collection')
     now = regular(args.archive).stat()

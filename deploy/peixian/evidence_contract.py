@@ -23,6 +23,10 @@ def sha(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
+def unchanged(before, after, code):
+    require(before == after, code)
+
+
 def utc():
     return datetime.now(timezone.utc).isoformat()
 

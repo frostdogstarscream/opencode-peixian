@@ -43,6 +43,10 @@ def verify_package(folder):
 
 def check(folder, evidence, profile):
     manifest, sums = verify_package(folder)
+    if evidence.get('status') in ('incomplete', 'archive_verified'):
+        return {'status': 'blocked', 'blocked': ['complete_runtime_evidence_required', 'N4', 'N5'],
+                'source_commit': manifest['source_commit'], 'checksums_verified': len(sums),
+                'package_manifest_sha256': sums['release-manifest.json'], 'production_approved': False}
     validate_public(evidence)
     require(manifest['source_commit'] == evidence['package_source_commit'], 'evidence_package_commit_mismatch')
     images = manifest['requested_images']

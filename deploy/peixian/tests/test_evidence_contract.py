@@ -205,3 +205,34 @@ def test_source_false_refused(tmp_path):
     (tmp_path/'SHA256SUMS').write_text(e.sha((tmp_path/'release-manifest.json').read_bytes())+'  release-manifest.json\n')
     with pytest.raises(e.EvidenceError, match='source_mismatch'):
         module('release-check').verify_package(tmp_path)
+
+
+def test_mid_collection_replacement():
+    with pytest.raises(e.EvidenceError, match='container_changed'):
+        e.unchanged({'Id': 'one', 'Image': 'same'}, {'Id': 'two', 'Image': 'same'}, 'container_changed')
+
+
+def test_early_failure_finishes_batch(tmp_path, monkeypatch):
+    monkeypatch.setattr(e, '__file__', str(tmp_path/'evidence_contract.py'))
+    root = tmp_path/'.runtime'; root.mkdir()
+    journals = root/'receipts'; journals.mkdir()
+    path = root/'run.json'
+    run = e.Run.create(path, 'a'*40, 'b'*40, 'c'*40, ['busy_update'], {})
+    run.value['journal_root'] = str(journals); run.save()
+    async def broken(args):
+        raise RuntimeError('secret response must not escape')
+    result = asyncio.run(e.tracked_run(broken, SimpleNamespace(run_manifest=path), 'busy_update'))
+    assert result == 1
+    value = e.read_json(path)
+    assert value['status'] == 'failed' and value['failure_code'] == 'acceptance_incomplete'
+    assert 'secret' not in path.read_text()
+
+
+def test_archive_only_report_has_no_runtime_claim(tmp_path):
+    path, *_ = image(tmp_path)
+    path.rename(tmp_path/'images.tar')
+    e.write_new(tmp_path/'release-manifest.json', {'requested_images': {'control': 'test:1'}, 'source_commit': 'a'*40})
+    tool = module('archive-evidence')
+    result = tool.collect(tmp_path)
+    assert result['runtime_collection'] == 'not_collected_archive_only'
+    assert result['identities']['control']['archive_config_digest']['digest'] in tool.render(result)

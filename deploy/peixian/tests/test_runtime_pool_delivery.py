@@ -13,6 +13,41 @@ backup = load("platform-backup")
 runtime = load("console-runtime")
 
 
+def test_new_volume_labels_and_legacy_inventory(tmp_path):
+    manager = object.__new__(runtime.RuntimeManager)
+    manager.root, manager.deployment_id, manager.agent_image = tmp_path, 'synthetic-pool', 'test-agent'
+    rid, uid = '1'*32, '2'*32
+    calls = []
+    def docker(*args, **kwargs):
+        calls.append(args)
+        return ''
+    manager.docker_run = docker
+    manager.ensure_volumes({'runtime_id': rid, 'uid': uid}, {'volumes': {'home': {'name': 'px-'+rid+'-home'}}})
+    created = next(c for c in calls if c[:2] == ('volume', 'create'))
+    assert 'peixian.deployment=synthetic-pool' in created and 'peixian.uid='+uid in created
+    def inventory(*args, **kwargs):
+        if args[:2] == ('volume', 'ls'):
+            return 'legacy-owned-home'
+        if args[:2] == ('volume', 'inspect'):
+            return json.dumps([{'Labels': {runtime.MANAGED: 'true', 'peixian.runtime_id': rid}}])
+        return ''
+    manager.docker_run = inventory
+    records, complete = manager.pool_inventory([{'runtime_id': rid, 'uid': uid}])
+    assert complete and records == [{'runtime_id': rid, 'uid': uid, 'running': False, 'mutation_state': 'idle'}]
+
+
+def test_restore_rewrites_gateway_permit_endpoint(tmp_path):
+    rid = '1'*32
+    file = tmp_path/'worker'/'runtimes'/rid/'releases'/'000001'/'compose.json'
+    file.parent.mkdir(parents=True)
+    file.write_text(json.dumps({'services': {'gateway': {'environment': {
+        'PX_CONTROL_URL': 'http://source-console:8080', 'PX_RELAY_URL': 'http://model-relay:8081'}}}}))
+    backup.rewrite_host(tmp_path, '/source', 'restored')
+    env = json.loads(file.read_text())['services']['gateway']['environment']
+    assert env['PX_CONTROL_URL'] == 'http://restored-console:8080'
+    assert env['PX_RELAY_URL'] == 'http://model-relay:8081'
+
+
 def test_release_cannot_reuse_old_profile_for_on_demand():
     release = load("release-check")
     manifest = {"control_schema_version": 5, "platform_config_version": 4,

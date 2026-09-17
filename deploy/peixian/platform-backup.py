@@ -344,7 +344,9 @@ def rewrite_host(root, source_root, deployment_id):
 
         def rewrite(value):
             if isinstance(value, dict):
-                return {k: deployment_id if k == "peixian.deployment" else rewrite(v) for k, v in value.items()}
+                return {k: deployment_id if k == "peixian.deployment" else
+                        "http://" + deployment_id + "-console:8080" if k == "PX_CONTROL_URL" else rewrite(v)
+                        for k, v in value.items()}
             if isinstance(value, list):
                 return [rewrite(v) for v in value]
             if isinstance(value, str) and (value == source_worker or value.startswith(source_worker + separator)):

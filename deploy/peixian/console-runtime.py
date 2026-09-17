@@ -524,7 +524,10 @@ class RuntimeManager:
                 raise ValueError()
             filters = ["--filter", "label=peixian.runtime_id", "--filter", "label=peixian.deployment=" + self.deployment_id]
             for kind, listing in (("container", ("ps", "-a")), ("volume", ("volume", "ls")), ("network", ("network", "ls"))):
-                names = self.docker_run(*listing, *filters, "--format", "{{.Name}}" if kind == "volume" else "{{.ID}}", timeout=2).split()
+                # Older owned volumes predate deployment/uid labels. Include them
+                # by registered runtime identity; never attribute another deployment.
+                selected = ["--filter", "label=" + MANAGED + "=true"] if kind == "volume" else filters
+                names = self.docker_run(*listing, *selected, "--format", "{{.Name}}" if kind == "volume" else "{{.ID}}", timeout=2).split()
                 if len(names) > 10000:
                     raise ValueError()
                 for offset in range(0, len(names), 40):
@@ -534,6 +537,15 @@ class RuntimeManager:
                     for record in json.loads(self.docker_run(*prefix, "inspect", *names[offset:offset+40], timeout=2)):
                         labels = (record.get("Config", {}).get("Labels") if kind == "container" else record.get("Labels")) or {}
                         rid, uid = labels.get("peixian.runtime_id"), labels.get("peixian.uid")
+                        if kind == "volume":
+                            owner = labels.get("peixian.deployment")
+                            if owner not in (None, self.deployment_id):
+                                continue
+                            if owner is None:
+                                if rid not in known:
+                                    continue
+                                labels = {**labels, "peixian.deployment": self.deployment_id}
+                            uid = uid or known.get(rid)
                         if rid not in known or uid != known[rid] or labels.get(MANAGED) != "true" or labels.get("peixian.deployment") != self.deployment_id:
                             raise ValueError()
                         item = resources.setdefault(rid, {"runtime_id": rid, "uid": uid, "running": False, "mutation_state": "idle"})
@@ -843,8 +855,11 @@ class RuntimeManager:
                 if (record.get("Labels") or {}).get("peixian.runtime_id") != spec["runtime_id"]:
                     raise RuntimeFailure("volume_owner_mismatch")
             else:
-                self.docker_run("volume", "create", "--label", MANAGED + "=true",
-                                "--label", "peixian.runtime_id=" + spec["runtime_id"], name)
+                labels = ["--label", MANAGED + "=true", "--label", "peixian.runtime_id=" + spec["runtime_id"],
+                          "--label", "peixian.uid=" + spec["uid"]]
+                if getattr(self, "deployment_id", None):
+                    labels.extend(["--label", "peixian.deployment=" + self.deployment_id])
+                self.docker_run("volume", "create", *labels, name)
             # Recover an interrupted initialization only when the owned volume is still empty.
             # Imported volumes took the branch above and can never reach this operation.
             self.docker_run("run", "--rm", "--pull", "never", "--network", "none", "--read-only",

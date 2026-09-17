@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "scope": "PR7A_local_synthetic_integration_not_production",
+  "build_source_commit": "b538aceab",
+  "checks": [
+    {
+      "name": "A01_five_accounts_zero_runtime_containers_and_reservations",
+      "status": "passed"
+    },
+    {
+      "name": "A02_A03_two_real_runtime_trios_and_deduplicated_start",
+      "status": "passed"
+    },
+    {
+      "name": "A01_remaining_three_metadata_only_capacity_rejected",
+      "status": "passed"
+    },
+    {
+      "name": "A07_stop_releases_only_own_slot_other_account_ready",
+      "status": "passed"
+    },
+    {
+      "name": "A07_A08_restart_preserves_session_file_applies_skill_rejects_stale_stop",
+      "status": "passed"
+    },
+    {
+      "name": "two_runtimes_stopped_volumes_retained",
+      "status": "passed"
+    },
+    {
+      "name": "D05_restored_identical_account_session_file_and_three_metadata_accounts",
+      "status": "passed"
+    },
+    {
+      "name": "restored_runtime_explicit_start_stop",
+      "status": "passed"
+    }
+  ],
+  "not_run": [
+    "Linux host",
+    "load",
+    "paid model",
+    "production migration"
+  ],
+  "volume_labels": {
+    "status": "passed",
+    "new_real_volumes_with_deployment_and_uid": 3
+  },
+  "images": {
+    "control": {
+      "tag": "agent-platform-control:pr7a-b538aceab",
+      "local_image_id": "sha256:7815fb3538c01cc2b652dec835d3282f00b9eee905c0ce50aa026158d612fe47"
+    },
+    "gateway": {
+      "tag": "agent-platform-gateway:pr7a-b538aceab",
+      "local_image_id": "sha256:52f45242550bb8bc9247b04d17152e58e9f4ce852ff403c3d6450c4542d48f18"
+    },
+    "agent": {
+      "tag": "peixian-opencode:pr7a-b538aceab",
+      "local_image_id": "sha256:cf9e8548668c2e4440e80654a777436f0b994d0aa8c7b016ddf386f73d827389"
+    },
+    "proxy": {
+      "tag": "agent-platform-proxy:nginx-1.28.0",
+      "local_image_id": "sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284"
+    }
+  },
+  "backup_manifest_sha256": "76a4f7ed509066d3494cb65a6ddb2ce77e17b063db71cef4fb5a73fcf69261d0"
+}

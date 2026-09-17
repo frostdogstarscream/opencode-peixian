@@ -446,7 +446,7 @@ def create_app(store=None):
         app.state.pool_task = None
         app.state.pool_stop = asyncio.Event()
         policy = await app.state.db_work.run(app.state.store.maintenance_status)
-        if policy.get('capacity_wait_enabled'):
+        if policy.get('pool_policy_version', 1) >= 2:
             from .runtime_pool import scheduler_loop
             app.state.pool_task = asyncio.create_task(scheduler_loop(app))
         try:

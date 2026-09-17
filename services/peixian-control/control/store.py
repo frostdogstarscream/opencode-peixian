@@ -105,14 +105,16 @@ class Store:
                 wanted = self.pool_settings['capacity_wait_enabled']
                 actual = bool(policy.get('capacity_wait_enabled', False))
                 if wanted != actual:
-                    if not wanted or actual_mode != 'on_demand':
-                        raise ValueError('Runtime waiting policy cannot be silently disabled')
+                    if actual_mode != 'on_demand':
+                        raise ValueError('Runtime waiting requires on-demand mode')
                     if not fresh and (os.getenv('PX_ALLOW_POOL_POLICY_CHANGE') != '1'
                             or policy['maintenance_mode'] != 'frozen'
-                            or db.execute("SELECT 1 FROM jobs WHERE status IN ('waiting_capacity','queued','running') OR recovery_required=1").fetchone()
+                            or db.execute("SELECT 1 FROM jobs WHERE status IN ('queued','running') OR recovery_required=1").fetchone()
                             or db.execute("SELECT 1 FROM job_attempts WHERE outcome IS NULL").fetchone()):
                         raise ValueError('Waiting policy change requires frozen offline approval')
-                    db.execute("UPDATE platform_state SET capacity_wait_enabled=1,pool_policy_version=2 WHERE id=1")
+                    # Disabling admission retains the newer policy identity and
+                    # existing waiters for status, cancellation and expiry cleanup.
+                    db.execute("UPDATE platform_state SET capacity_wait_enabled=?,pool_policy_version=2 WHERE id=1", (int(wanted),))
                     validate(db)
 
     def on_demand(self, db=None):

@@ -77,7 +77,7 @@ def register_worker(app):
             reject("执行器协议不匹配，必须使用内部协议 2", code="worker_protocol_mismatch")
         from shared.runtime_pool_config import CAPABILITY
         from shared.runtime_pool_config import WAIT_CAPABILITY
-        if app.state.store.maintenance_status().get('capacity_wait_enabled') and WAIT_CAPABILITY not in request.headers.get('x-peixian-capabilities', '').split(','):
+        if app.state.store.maintenance_status().get('pool_policy_version', 1) >= 2 and WAIT_CAPABILITY not in request.headers.get('x-peixian-capabilities', '').split(','):
             from .orchestration import reject
             reject('执行器缺少容量等待能力', code='worker_capability_mismatch')
         if app.state.store.on_demand() and CAPABILITY not in request.headers.get("x-peixian-capabilities", "").split(","):

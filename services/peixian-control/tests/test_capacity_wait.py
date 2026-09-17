@@ -118,6 +118,34 @@ def test_policy_downgrade_rejected_and_historical_migration_unchanged(waiting):
         with pytest.raises(ValueError): old_validate(db)
 
 
+def test_offline_disable_keeps_waiters_cancellable_and_expirable(waiting, monkeypatch):
+    s,args=waiting
+    users=[account(s,str(i)) for i in range(5)]
+    jobs=[begin(s,u)['job']['id'] for u in users[:4]]
+    with s.tx() as db:
+        db.execute("UPDATE platform_state SET maintenance_mode='frozen' WHERE id=1")
+    cancel(s,users[0]); cancel(s,users[1])
+    monkeypatch.setenv('PX_ALLOW_POOL_POLICY_CHANGE','1')
+    disabled=Store(*args,runtime_mode='on_demand',runtime_pool={'capacity_wait_enabled':False})
+    assert disabled.maintenance_status()['pool_policy_version']==2
+    with disabled.tx() as db:
+        db.execute("UPDATE platform_state SET maintenance_mode='normal' WHERE id=1")
+        assert public_status(disabled,db,users[2])['waiting']
+        validate(db)
+    scheduler_tick(disabled)
+    assert disabled.one('SELECT sum(reserved) n FROM runtimes')['n']==0
+    assert begin(disabled,users[2])['job']['id']==jobs[2]
+    with pytest.raises(HTTPException) as e: begin(disabled,users[4])
+    assert e.value.detail['code']=='runtime_wait_disabled'
+    cancel(disabled,users[2])
+    with disabled.tx() as db:
+        db.execute('UPDATE jobs SET capacity_expires_at=1 WHERE id=?',(jobs[3],))
+    scheduler_tick(disabled)
+    assert disabled.one('SELECT error FROM jobs WHERE id=?',(jobs[3],))['error']=='capacity_wait_expired'
+    assert begin(disabled,users[4])['job']['status']=='queued'
+    assert Store(*args,runtime_mode='on_demand',runtime_pool={'capacity_wait_enabled':False}).maintenance_status()['pool_policy_version']==2
+
+
 def test_waiting_old_worker_rejected_before_attempt(waiting):
     from client_helpers import TestClient
     from control.app import create_app

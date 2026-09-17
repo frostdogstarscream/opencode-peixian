@@ -120,13 +120,13 @@ def promote_waiters(store, db, *, timestamp=None):
     """Bounded FIFO allocation; callers hold the same short write transaction."""
     timestamp = now() if timestamp is None else timestamp
     policy = store.maintenance_status(db)
-    if not policy.get('capacity_wait_enabled'):
+    if policy.get('pool_policy_version', 1) < 2:
         return []
     batch = store.pool_settings['scheduler_batch']
     expired = db.execute("SELECT id,uid FROM jobs WHERE status='waiting_capacity' AND capacity_expires_at<=? ORDER BY enqueue_seq LIMIT ?", (timestamp, batch)).fetchall()
     for job in expired:
         cancel_waiter(db, job, 'capacity_wait_expired', timestamp)
-    if policy['maintenance_mode'] != 'normal' or not policy['capacity_healthy']:
+    if not policy.get('capacity_wait_enabled') or policy['maintenance_mode'] != 'normal' or not policy['capacity_healthy']:
         return []
     available = max(0, int(os.getenv('MAX_RUNTIMES', '4')) - db.execute('SELECT count(*) FROM runtimes WHERE reserved=1').fetchone()[0])
     selected = db.execute("SELECT * FROM jobs WHERE status='waiting_capacity' AND not_before<=? ORDER BY enqueue_seq LIMIT ?", (timestamp, batch)).fetchall()
@@ -228,6 +228,8 @@ def start(store, db, uid, *, admin=False):
         reject("runtime_recovery_required", "已有运行责任尚未完成核对")
     if db.execute("SELECT 1 FROM jobs WHERE uid=? AND recovery_required=1 UNION ALL SELECT 1 FROM job_attempts a JOIN jobs j ON j.id=a.job_id WHERE j.uid=? AND a.outcome IS NULL", (uid, uid)).fetchone():
         reject("runtime_recovery_required", "已有运行责任尚未完成核对")
+    if not platform.get('capacity_wait_enabled') and db.execute("SELECT 1 FROM jobs WHERE status='waiting_capacity' LIMIT 1").fetchone():
+        reject('runtime_wait_disabled', '容量等待已关闭，请等待已有申请取消或到期后重试')
     if platform.get('capacity_wait_enabled'):
         promote_waiters(store, db)
         if db.execute("SELECT count(*) FROM jobs WHERE status='waiting_capacity'").fetchone()[0] >= store.pool_settings['max_waiting_requests']:

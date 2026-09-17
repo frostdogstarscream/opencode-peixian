@@ -1,0 +1,57 @@
+{
+  "version": 4,
+  "profile": "single-host-on-demand",
+  "deployment_id": "synthetic-pr7a-example",
+  "public_url": "https://127.0.0.1:19447",
+  "bind_host": "127.0.0.1",
+  "https_port": 19447,
+  "control_port": 14098,
+  "data_root": "./synthetic-pr7a-data",
+  "tls": {
+    "certificate": "./tls/certificate.pem",
+    "private_key": "./tls/private-key.pem"
+  },
+  "network_pool": "10.247.0.0/16",
+  "max_runtimes": 2,
+  "control_resources": {
+    "cpus": 2,
+    "memory_mib": 2048
+  },
+  "capacity_policy": {
+    "cpu_mode": "shared",
+    "cpu_reserve": 4,
+    "cpu_overcommit_factor": 2,
+    "host_memory_reserve_mib": 4096
+  },
+  "orchestration": {
+    "worker_lease_seconds": 90,
+    "worker_heartbeat_seconds": 20,
+    "worker_heartbeat_timeout_seconds": 5,
+    "defer_seconds": 15,
+    "gate_probe_seconds": 2,
+    "reconcile_seconds": 30,
+    "reconcile_batch": 4,
+    "observation_ttl_seconds": 60,
+    "gate_observation_seconds": 3,
+    "receipt_retention_seconds": 604800,
+    "apply_defer_max_seconds": 300,
+    "drain_alert_seconds": 900,
+    "security_permit_ttl_seconds": 4,
+    "security_renew_seconds": 1,
+    "security_watchdog_ms": 100,
+    "security_request_seconds": 1,
+    "security_connections": 4,
+    "cancel_observe_seconds": 10
+  },
+  "images": {
+    "control": "agent-platform-control:pr7a-candidate",
+    "gateway": "agent-platform-gateway:pr7a-candidate",
+    "agent": "peixian-opencode:1.18.30-managed-pr7a-candidate",
+    "proxy": "agent-platform-proxy:nginx-1.28.0"
+  },
+  "runtime_pool": {
+    "runtime_mode": "on_demand",
+    "capacity_wait_enabled": false,
+    "idle_pause_enabled": false
+  }
+}

@@ -8,7 +8,16 @@ def extend(s, obj, ref, array, ID, STRING, BOOL, INTEGER):
     observation = {"observation_id": ID, "runtime_id": ID, "state_version": INTEGER,
                    "host_boot_id": ID, "observed_at": INTEGER, "components": components,
                    "mutation_state": {**STRING, "enum": ["idle", "running", "unknown"]}, "complete": BOOL, "evidence_ref": ID}
-    s["Health"]["properties"].update(schema_version={**INTEGER, "const": 4}, runtime_protocol_version={**INTEGER, "const": 2})
+    s["Health"]["properties"].update(schema_version={**INTEGER, "enum": [4, 5]}, runtime_protocol_version={**INTEGER, "const": 2})
+    s["RuntimeStartBody"] = obj({})
+    inventory_resource = obj({"runtime_id": ID, "uid": ID, "running": BOOL, "mutation_state": {**STRING, "enum": ["idle", "running", "unknown"]}}, ("runtime_id", "uid", "running", "mutation_state"))
+    s["PoolInventoryBody"] = obj({"host_boot_id": ID, "observed_at": INTEGER, "registry_digest": STRING, "complete": BOOL, "resources": array(inventory_resource, maxItems=10000)}, ("host_boot_id", "observed_at", "registry_digest", "complete", "resources"))
+    s["RuntimeStopBody"] = obj({"expected_state_version": {**INTEGER, "minimum": 0}, "start_job_id": ID}, ("expected_state_version",))
+    s["SelfRuntime"] = obj({"runtime_mode": {**STRING, "const": "on_demand"}, "status": STRING, "ready": BOOL,
+        "state_version": INTEGER, "desired": INTEGER, "revision": INTEGER, "stop_reason": STRING,
+        "manual_stop_reason": STRING, "allowed_actions": array({**STRING, "enum": ["start", "stop"]}),
+        "job": {"anyOf": [ref("Job"), {"type": "null"}]}}, extra=True)
+    s["SelfRuntimeResult"] = obj({"accepted": BOOL, "runtime": ref("SelfRuntime"), "job": {"anyOf": [ref("Job"), {"type": "null"}]}}, ("accepted", "runtime", "job"))
     s["Runtime"]["properties"].update(status=STRING, phase=phases, gate_policy=STRING,
         security_blocked=BOOL, recovery_required=BOOL, cancellation_confirmed=BOOL)
     s["Runtime"]["description"] += " revision 是实际验证的 applied；desired 是期望版本，可能尚未生效。安全阻断不证明外部操作已撤销。"

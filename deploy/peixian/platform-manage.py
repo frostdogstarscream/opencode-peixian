@@ -113,8 +113,10 @@ def compose_config(cfg, pinned=None):
     if cfg.version >= 2:
         console["memswap_limit"] = console["mem_limit"]
         console["environment"].update(cfg.concurrency_environment)
-    if cfg.version == 3:
+    if cfg.version >= 3:
         console["environment"].update(cfg.orchestration_environment)
+    if cfg.version == 4:
+        console["environment"]["PX_RUNTIME_MODE"] = cfg.runtime_pool["runtime_mode"]
     # This applies to v1 upgrades too: browser users must not share the proxy IP
     # in source-based login limits. No account management network is trusted.
     console["environment"]["FORWARDED_ALLOW_IPS"] = str(next(ipaddress.ip_network(cfg.network_pool).subnets(new_prefix=28)))

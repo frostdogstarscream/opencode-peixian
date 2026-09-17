@@ -190,6 +190,27 @@ def helper(image, volume, operation):
     return result
 
 
+def pool_backup_mapping(cfg, metadata, identities, volumes):
+    """Metadata-only registration is legal; missing established state is not."""
+    known = {row["id"]: row for row in metadata}
+    if set(identities) - set(known):
+        raise BackupError("backup_unregistered_runtime_directory")
+    mappings = []
+    for rid, row in known.items():
+        if bool(row["never_provisioned"]) != (rid not in identities):
+            raise BackupError("backup_runtime_metadata_physical_mismatch")
+        expected = set()
+        directory = cfg.worker_root / "runtimes" / rid
+        for path in directory.rglob("compose.json") if directory.exists() else []:
+            value = json.loads(path.read_text(encoding="utf-8"))
+            expected.update(v["name"] for v in value.get("volumes", {}).values())
+        if row["provisioned_at"] is not None and expected - set(volumes):
+            raise BackupError("backup_provisioned_volume_missing")
+        mappings.append({"runtime_id": rid, "metadata_only": bool(row["never_provisioned"]),
+                         "volumes": sorted(expected & set(volumes)), "uncreated_volumes": sorted(expected - set(volumes))})
+    return mappings
+
+
 def assert_stopped(volumes, cfg):
     if command("docker", "ps", "--filter", "label=peixian.deployment=" + cfg.deployment_id, "--format", "{{.ID}}"):
         raise BackupError("stop_platform_before_backup")
@@ -231,6 +252,8 @@ def backup(cfg, destination):
                 if meta["schema_version"] >= 4 and (meta.get("maintenance_mode") != "frozen" or meta.get("runtime_unsafe")):
                     raise BackupError("freeze_and_resolve_runtime_responsibility_before_backup")
                 manifest["database"] = meta
+                if meta["schema_version"] == 5:
+                    manifest["runtime_mapping"] = pool_backup_mapping(cfg, meta["runtime_metadata"], identities, volumes)
             file = destination / (name + ".tar.gz")
             with file.open("xb") as out:
                 result = subprocess.run(helper(image["Id"], name, "_pack"), stdout=out, stderr=subprocess.PIPE, timeout=1800)
@@ -414,14 +437,10 @@ def database_meta(root):
             if result["schema_version"] >= 4:
                 db.row_factory = sqlite3.Row
                 try:
-                    from control.migrations_v4 import validate
+                    from control.schema import validate
                 except ModuleNotFoundError:
-                    import importlib.util
-                    module_path = Path(__file__).resolve().parents[2] / "services/peixian-control/control/migrations_v4.py"
-                    module_spec = importlib.util.spec_from_file_location("backup_migrations_v4", module_path)
-                    module = importlib.util.module_from_spec(module_spec)
-                    module_spec.loader.exec_module(module)
-                    validate = module.validate
+                    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "services/peixian-control"))
+                    from control.schema import validate
                 try:
                     validate(db)
                 except ValueError:
@@ -431,6 +450,15 @@ def database_meta(root):
                 result["maintenance_mode"] = db.execute("SELECT maintenance_mode FROM platform_state WHERE id=1").fetchone()[0]
                 result["runtime_unsafe"] = bool(db.execute(
                     "SELECT 1 FROM runtimes WHERE recovery_required=1 OR drain_job_id IS NOT NULL OR status IN ('updating','draining') LIMIT 1").fetchone())
+                if result["schema_version"] == 5:
+                    result["runtime_policy"] = dict(db.execute("SELECT runtime_mode,capacity_wait_enabled,idle_pause_enabled,pool_policy_version FROM platform_state WHERE id=1").fetchone())
+                    result["runtime_metadata"] = [dict(row) for row in db.execute(
+                        "SELECT id,status,revision,desired,reserved,manual_stop_reason,provisioned_at,"
+                        "CASE WHEN provisioned_at IS NULL AND revision=0 AND reserved=0 AND recovery_required=0 "
+                        "AND gateway_boot_id IS NULL AND relay_boot_id IS NULL "
+                        "AND NOT EXISTS(SELECT 1 FROM jobs j JOIN job_attempts a ON a.job_id=j.id WHERE j.uid=r.uid) "
+                        "AND NOT EXISTS(SELECT 1 FROM jobs j WHERE j.uid=r.uid AND (j.attempts>0 OR j.recovery_required=1 OR j.status='running')) "
+                        "THEN 1 ELSE 0 END AS never_provisioned FROM runtimes r ORDER BY id")]
             return result
 
 
@@ -438,6 +466,10 @@ def pause_database(path):
     with closing(sqlite3.connect(str(path))) as db, db:
         version = db.execute("PRAGMA user_version").fetchone()[0]
         db.execute("UPDATE runtimes SET status='paused',reserved=0,error=NULL")
+        if version == 5:
+            db.execute("DELETE FROM runtime_pool_inventory")
+            db.execute("UPDATE runtimes SET status='unprovisioned' WHERE provisioned_at IS NULL AND revision=0 AND recovery_required=0 AND NOT EXISTS(SELECT 1 FROM jobs j JOIN job_attempts a ON a.job_id=j.id WHERE j.uid=runtimes.uid)")
+            db.execute("UPDATE jobs SET status='cancelled',phase='finished',error='recovery_reconfirmation_required' WHERE status='waiting_capacity'")
         db.execute("UPDATE users SET auth_version=auth_version+1")
         db.execute("DELETE FROM auth")
         if version >= 4:

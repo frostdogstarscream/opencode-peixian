@@ -492,7 +492,11 @@ def create_app(store=None):
         code = getattr(exc, "worker_code", None)
         if request.url.path.startswith("/internal/worker/") and code in CODES:
             headers[HEADER] = code
-        return JSONResponse({"message": str(exc.detail), "code": f"http_{exc.status_code}", "request_id": ident()}, status_code=exc.status_code, headers=headers)
+        detail = exc.detail
+        payload = {"message": str(detail), "code": f"http_{exc.status_code}"}
+        if isinstance(detail, dict) and set(detail) == {"message", "code"}:
+            payload = detail
+        return JSONResponse({**payload, "request_id": ident()}, status_code=exc.status_code, headers=headers)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):
@@ -710,6 +714,8 @@ def create_app(store=None):
     from .connections import register_connections
     register_connections(app)
     register_worker(app)
+    from .runtime_api import register_runtime
+    register_runtime(app)
     from .runtime_security import register_runtime_security
     register_runtime_security(app)
     register_files(app)

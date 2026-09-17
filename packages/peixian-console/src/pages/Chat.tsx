@@ -34,7 +34,7 @@ export default function Chat() {
   let disposed = false
   const active = createMemo(() => sessions().find((s) => s.id === selected()))
   const ready = createMemo(() => canSend(app.user().runtime))
-  const available = createMemo(() => ["ready", "draining", "updating", "applying"].includes(app.user().runtime?.status ?? ""))
+  const available = createMemo(() => app.user().runtime?.runtime_mode === "on_demand" ? app.user().runtime?.ready === true : ["ready", "draining", "updating", "applying"].includes(app.user().runtime?.status ?? ""))
   const notice = createMemo(() => runtimeNotice(app.user().runtime))
   const interval = () => (document.hidden ? 15000 : 500)
   const messageRefresh = createRefreshScheduler(

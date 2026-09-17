@@ -69,7 +69,7 @@ export default function Files() {
   const [drag, setDrag] = createSignal(false)
   let input!: HTMLInputElement
   async function refresh() {
-    if (!["ready", "running", "healthy"].includes(app.user().runtime?.status ?? "")) {
+    if (app.user().runtime?.runtime_mode === "on_demand" ? !app.user().runtime?.ready : !["ready", "running", "healthy"].includes(app.user().runtime?.status ?? "")) {
       setLoading(false)
       setError("个人工作空间尚不可用，恢复后可查看文件。")
       return

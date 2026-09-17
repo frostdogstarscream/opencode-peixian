@@ -75,6 +75,16 @@ def register_worker(app):
         if request.headers.get("x-peixian-protocol") != "2":
             from .orchestration import reject
             reject("执行器协议不匹配，必须使用内部协议 2", code="worker_protocol_mismatch")
+        from shared.runtime_pool_config import CAPABILITY
+        if app.state.store.on_demand() and CAPABILITY not in request.headers.get("x-peixian-capabilities", "").split(","):
+            from .orchestration import reject
+            reject("执行器缺少按需环境能力", code="worker_capability_mismatch")
+        if app.state.store.on_demand() and request.headers.get("x-peixian-runtime-mode") != "on_demand":
+            from .orchestration import reject
+            reject("执行器运行模式与控制库不匹配", code="worker_capability_mismatch")
+        if app.state.store.on_demand() and request.url.path.startswith("/internal/worker/legacy-") and request.method != "GET":
+            from .orchestration import reject
+            reject("按需部署不支持旧版接管写入协议", code="worker_capability_mismatch")
         return True
 
     def orchestration():
@@ -86,6 +96,19 @@ def register_worker(app):
     def busy(request: Request, authorized=Depends(worker)):
         return {"busy": bool(app.state.store.one("SELECT 1 FROM jobs WHERE status='running' LIMIT 1")),
                 "protocol_version": 2, "maintenance": app.state.store.maintenance_status()}
+
+    @app.get("/internal/worker/pool/inventory")
+    @blocking_endpoint(app)
+    def pool_inventory(request: Request, authorized=Depends(protocol_worker)):
+        from .runtime_pool import inventory_targets
+        with app.state.store.read(snapshot=True) as db:
+            return inventory_targets(db)
+
+    @app.post("/internal/worker/pool/inventory")
+    @blocking_endpoint(app, json_body=True)
+    def pool_inventory_result(request: Request, authorized=Depends(protocol_worker)):
+        from .runtime_pool import record_inventory
+        return record_inventory(app.state.store, request.state.json_body)
 
     @app.post("/internal/worker/claim")
     @blocking_endpoint(app)

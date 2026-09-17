@@ -213,6 +213,19 @@ class ConsoleClient:
     async def delete_file(self, file_id):
         return await self.request("DELETE", "/files/" + resource_id(file_id))
 
+    async def runtime_status(self):
+        return await self.request("GET", "/me/runtime")
+
+    async def start_runtime(self, *, idempotency_key=None):
+        """Explicit admission only: never automatically sends a saved message."""
+        return await self.request("POST", "/me/runtime/start", json={}, idempotency_key=idempotency_key)
+
+    async def stop_runtime(self, expected_state_version, *, start_job_id=None, idempotency_key=None):
+        body = {"expected_state_version": expected_state_version}
+        if start_job_id is not None:
+            body["start_job_id"] = resource_id(start_job_id)
+        return await self.request("POST", "/me/runtime/stop", json=body, idempotency_key=idempotency_key)
+
     async def sessions(self):
         return (await self.request("GET", "/sessions"))["items"]
 

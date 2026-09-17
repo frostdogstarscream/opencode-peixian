@@ -68,6 +68,7 @@ class PackageTests(unittest.TestCase):
         shared.mkdir(parents=True)
         shutil.copyfile(ROOT.parents[1] / "services/peixian-control/shared/orchestration_config.py", shared / "orchestration_config.py")
         shutil.copyfile(ROOT.parents[1] / "services/peixian-control/shared/eventhub_config.py", shared / "eventhub_config.py")
+        shutil.copyfile(ROOT.parents[1] / "services/peixian-control/shared/runtime_pool_config.py", shared / "runtime_pool_config.py")
         (source/"LICENSE").write_text("synthetic")
         wheels=self.root/"wheels"
         wheels.mkdir()

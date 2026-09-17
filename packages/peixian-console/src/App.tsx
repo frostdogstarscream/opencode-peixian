@@ -13,6 +13,7 @@ import Admin from "./pages/Admin"
 import { defaultPlatform, platformMetadata } from "./platform"
 import type { Platform } from "./platform"
 import { connectEvents, createChangeBus, parseChange, resources } from "./events"
+import RuntimeStatus from "./RuntimeStatus"
 const pages = [
   { id: "chat", name: "对话", icon: "chat" },
   { id: "files", name: "我的文件", icon: "file" },
@@ -109,7 +110,7 @@ export default function App() {
     return user &&
       can("business.use") &&
       !user.must_change_password &&
-      ["ready", "running", "healthy", "updating", "applying", "draining"].includes(user.runtime?.status ?? "")
+      (user.runtime?.runtime_mode === "on_demand" ? user.runtime.ready === true : ["ready", "running", "healthy", "updating", "applying", "draining"].includes(user.runtime?.status ?? ""))
       ? user.id
       : undefined
   })
@@ -302,6 +303,7 @@ export default function App() {
                       </Show>
                     </div>
                   </header>
+                  <Show when={can("business.use")}><RuntimeStatus /></Show>
                   <div class={"page-body " + (page() === "chat" ? "chat-page-body" : "")}>
                     <Show when={can("business.use")}>
                       <div class="chat-preserved" hidden={page() !== "chat"}>

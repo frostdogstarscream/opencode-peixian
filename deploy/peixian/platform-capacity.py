@@ -10,7 +10,7 @@ import math
 import re
 from pathlib import Path
 
-MAX_RUNTIMES = {1: 32, 2: 64, 3: 64}
+MAX_RUNTIMES = {1: 32, 2: 64, 3: 64, 4: 64}
 PROXY_MEMORY_MIB = 128
 PROXY_CPUS = 0.5
 POLICY = {"cpu_mode": "strict", "cpu_reserve": 4.0, "cpu_overcommit_factor": 1.0,

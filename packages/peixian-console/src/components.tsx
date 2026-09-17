@@ -115,6 +115,7 @@ const statuses: Record<string, [string, string]> = {
   passed: ["通过", "good"],
   queued: ["等待处理", "pending"],
   pending: ["等待处理", "pending"],
+  unprovisioned: ["尚未启动", "muted"],
   provisioning: ["准备中", "pending"],
   applying: ["更新中", "pending"],
   updating: ["更新中", "pending"],

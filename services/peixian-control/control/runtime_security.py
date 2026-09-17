@@ -28,6 +28,14 @@ def block_runtime(store, db, uid, *, reason="authorization_revoked"):
                "cancel_requested_at=?,security_confirmed_at=NULL,cancellation_confirmed=0,updated=? WHERE uid=?",
                (ident(), reason, now(), now(), uid))
     db.execute("UPDATE jobs SET cancel_requested=1 WHERE uid=? AND status='running'", (uid,))
+    if store.on_demand(db):
+        from .runtime_pool import current, never_executed, confirmed_stopped, stop
+        runtime = current(db, uid)
+        if never_executed(db, runtime):
+            stop(store, db, uid, reason="security")
+            db.execute("UPDATE runtimes SET cancellation_confirmed=1,security_confirmed_at=?,security_blocked=? WHERE uid=?", (now(), int(not runtime["active"]), uid))
+        elif confirmed_stopped(db, runtime):
+            db.execute("UPDATE runtimes SET cancellation_confirmed=1,security_confirmed_at=?,security_blocked=? WHERE uid=?", (now(), int(not runtime["active"]), uid))
 
 
 def owner(db, runtime):
@@ -70,6 +78,8 @@ def permit(store, data, credential, config):
         mode = store.maintenance_status(db)["maintenance_mode"]
         permitted = bool(row["active"] and not row["security_blocked"] and not row["recovery_required"])
         intake = permitted and mode == "normal" and row["status"] == "ready" and row["gate_policy"] in ("open", "reopen_check", "open_pending")
+        if store.on_demand(db) and row["manual_stop_reason"] != "none":
+            intake = False
         # Draining keeps egress for existing generation/confirmation only. The
         # local intake gate still rejects a new generation or plugin test.
         egress = permitted and mode in ("normal", "frozen") and row["status"] in ("ready", "draining") and row["gate_policy"] != "closed_all"

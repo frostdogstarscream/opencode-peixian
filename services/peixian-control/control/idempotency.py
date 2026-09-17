@@ -14,7 +14,7 @@ MUTATIONS = re.compile(
     r"^/api/console/v1/(?:admin/(?:users(?:/[^/]+(?:/runtime/[^/]+|/reset-password)?)?"
     r"|models(?:/[^/]+)?|plugins(?:/[^/]+/[^/]+(?:/connections)?)?"
     r"|connections(?:/[^/]+)?|templates(?:/[^/]+)?|maintenance|recovery/[^/]+)"
-    r"|skills(?:/[^/]+(?:/rollback)?)?|plugins/[^/]+(?:/rollback)?|templates/[^/]+/copy)$"
+    r"|skills(?:/[^/]+(?:/rollback)?)?|plugins/[^/]+(?:/rollback)?|templates/[^/]+/copy|me/runtime/(?:start|stop))$"
 )
 
 
@@ -92,7 +92,7 @@ def _unclosed(db, reference):
     if not reference:
         return False
     for jid in json.loads(reference):
-        if db.execute("SELECT 1 FROM jobs WHERE id=? AND (status IN ('queued','running') OR recovery_required=1)", (jid,)).fetchone():
+        if db.execute("SELECT 1 FROM jobs WHERE id=? AND (status IN ('waiting_capacity','queued','running') OR recovery_required=1)", (jid,)).fetchone():
             return True
         if db.execute("SELECT 1 FROM job_attempts WHERE job_id=? AND outcome IS NULL", (jid,)).fetchone():
             return True

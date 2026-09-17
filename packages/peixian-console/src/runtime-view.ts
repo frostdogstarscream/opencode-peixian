@@ -3,12 +3,18 @@ import type { User } from "./types"
 type Runtime = User["runtime"]
 
 export function canSend(runtime: Runtime) {
+  if (runtime?.runtime_mode === "on_demand" && runtime.ready !== true) return false
   return !!runtime && runtime.status === "ready" && runtime.gate_policy === "open"
     && !runtime.security_blocked && !runtime.recovery_required
 }
 
 export function runtimeNotice(runtime: Runtime): string {
   if (!runtime) return "正在准备你的工作空间，完成后即可开始对话。"
+  if (runtime.runtime_mode === "on_demand" && !runtime.ready) {
+    if (runtime.manual_stop_reason && runtime.manual_stop_reason !== "none") return "管理员已暂停助手，请联系管理员恢复。"
+    if (runtime.allowed_actions?.includes("start")) return "点击“启动助手”后开始对话，输入内容将保持保留。"
+    if (runtime.status === "provisioning") return "正在启动助手，完成核对后即可发送消息。"
+  }
   if (runtime.security_blocked)
     return runtime.cancellation_confirmed
       ? "新调用已阻断，相关活动已停止。正在核对最新授权配置。"

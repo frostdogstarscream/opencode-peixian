@@ -90,11 +90,11 @@ def test_migration_ddl_roles_auth_and_version_rollback_together(tmp_path, monkey
 def test_unknown_newer_schema_is_rejected_without_downgrade(tmp_path):
     args = legacy_database(tmp_path)
     with sqlite3.connect(args[0] / "control.sqlite3") as db:
-        db.execute("PRAGMA user_version=5")
+        db.execute("PRAGMA user_version=6")
     with pytest.raises(ValueError, match="newer"):
         Store(*args)
     with sqlite3.connect(args[0] / "control.sqlite3") as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 6
         assert db.execute("SELECT role FROM users WHERE id='old-administrator'").fetchone()[0] == "admin"
 
 
@@ -295,7 +295,7 @@ def test_schema_contract_describes_three_roles_and_scoped_management(context):
     schemas = document["components"]["schemas"]
     assert schemas["User"]["properties"]["role"]["enum"] == ["user", "admin", "super_admin"]
     assert "capabilities" in schemas["Identity"]["required"]
-    assert schemas["Health"]["properties"]["schema_version"]["const"] == SCHEMA_VERSION
+    assert schemas["Health"]["properties"]["schema_version"]["enum"] == [SCHEMA_VERSION, 5]
     for path in ("/admin/plugins", "/admin/templates", "/admin/jobs"):
         assert document["paths"][P + path]["get"]["x-roles"] == ["super_admin"]
     assert document["paths"][P + "/admin/models"]["post"]["x-roles"] == ["super_admin", "admin"]

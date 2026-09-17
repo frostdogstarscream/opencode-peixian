@@ -133,6 +133,8 @@ class Orchestration:
                 runtime = self._runtime(db, job["uid"])
                 user = db.execute("SELECT active FROM users WHERE id=?", (job["uid"],)).fetchone()
                 stopping = job["action"] == "pause"
+                if not stopping and self.store.on_demand(db) and runtime["manual_stop_reason"] != "none":
+                    continue
                 if (job["observation_deadline"] is not None and job["observation_deadline"] <= self.clock()
                         and not stopping and not job["recovery_required"]):
                     continue
@@ -364,6 +366,7 @@ class Orchestration:
                 return self._receipt(db, jid, data, request_hash, not_before=not_before, defer_count_after_commit=job["defer_count"] + 1)
             ok = data["ok"]
             recovery = False
+            allocation_retained = False
             if ok and job["phase"] not in ("applying", "reconciling"):
                 reject("Applying was not acknowledged", code="worker_phase_conflict")
             if ok and observed is None:
@@ -376,14 +379,21 @@ class Orchestration:
                 db.execute("UPDATE jobs SET status='cancelled',phase='finished',cancel_requested=1,recovery_required=0,updated=? WHERE uid=? AND id<>? AND status='queued'", (current, job["uid"], jid))
                 db.execute("UPDATE job_attempts SET outcome=?,outcome_hash=?,phase='finished',updated=? WHERE job_id IN (SELECT id FROM jobs WHERE uid=? AND id<>? AND status='cancelled') AND outcome IS NULL",
                            (canonical({"result": "stopped_by_repair"}), hashed({"result": "stopped_by_repair"}), current, job["uid"], jid))
-                self.release(db, job["uid"], expected_state_version=runtime["state_version"], job_id=jid,
-                             attempt=data["attempt"], observation_id=observed["observation_id"], operation_id=data["operation_id"])
-                db.execute("UPDATE runtimes SET status='paused',recovery_required=0,drain_job_id=NULL,gate_policy='closed',updated=? WHERE uid=?", (current, job["uid"]))
                 active = db.execute("SELECT active FROM users WHERE id=?", (job["uid"],)).fetchone()[0]
-                if (runtime["security_blocked"] and runtime["stop_reason"] != "account_disabled"
-                        and active and runtime["applied_spec_ciphertext"] and job["reason"] == "security"):
+                repair = (runtime["security_blocked"] and runtime["stop_reason"] != "account_disabled"
+                          and active and runtime["applied_spec_ciphertext"] and job["reason"] == "security"
+                          and (not self.store.on_demand(db) or runtime["manual_stop_reason"] == "none"))
+                if not repair:
+                    self.release(db, job["uid"], expected_state_version=runtime["state_version"], job_id=jid,
+                                 attempt=data["attempt"], observation_id=observed["observation_id"], operation_id=data["operation_id"])
+                db.execute("UPDATE runtimes SET status='paused',recovery_required=0,drain_job_id=NULL,gate_policy='closed',updated=? WHERE uid=?", (current, job["uid"]))
+                if self.store.on_demand(db) and not repair:
+                    db.execute("UPDATE runtimes SET cancellation_confirmed=1,security_confirmed_at=?,security_blocked=? WHERE uid=?", (current, int(not active), job["uid"]))
+                active = db.execute("SELECT active FROM users WHERE id=?", (job["uid"],)).fetchone()[0]
+                if repair:
+                    allocation_retained = True
                     # Full-stop proof retires old authority; the replacement freezes current grants at claim.
-                    db.execute("UPDATE runtimes SET reserved=1,status='provisioning',cancellation_confirmed=1,security_confirmed_at=? WHERE uid=?", (current, job["uid"]))
+                    db.execute("UPDATE runtimes SET status='provisioning',cancellation_confirmed=1,security_confirmed_at=?,state_version=state_version+1 WHERE uid=?", (current, job["uid"]))
                     db.execute("INSERT INTO jobs(id,uid,action,status,revision,reason,created,updated) VALUES(?,?,'resume','queued',?,'security_repair',?,?)",
                                (ident(), job["uid"], runtime["desired"], current, current))
             elif ok:
@@ -399,9 +409,12 @@ class Orchestration:
                     db.execute("UPDATE runtimes SET stop_reason='none',drain_intent_id=NULL WHERE uid=?", (job["uid"],))
                     runtime = self._runtime(db, job["uid"])
                 safe = (not runtime["security_blocked"] and not job["cancel_requested"] and runtime["stop_reason"] == "none"
+                        and (not self.store.on_demand(db) or runtime["manual_stop_reason"] == "none")
                         and self.store.maintenance_status(db)["maintenance_mode"] == "normal")
                 db.execute("UPDATE runtimes SET revision=?,applied_spec_ciphertext=?,applied_spec_digest=?,gateway_boot_id=?,status=?,gate_policy=?,reserved=1,recovery_required=0,drain_job_id=NULL,state_version=state_version+1,updated=? WHERE uid=?",
                            (attempt["revision"], attempt["spec_ciphertext"], attempt["spec_digest"], observed["gateway_boot_id"], "ready" if safe else "draining", "reopen_check" if safe else "closed", current, job["uid"]))
+                if self.store.on_demand(db):
+                    db.execute("UPDATE runtimes SET provisioned_at=COALESCE(provisioned_at,?),ready_since=? WHERE uid=?", (current, current if safe else None, job["uid"]))
             else:
                 rollback = data.get("rolled_back") is True
                 verified_rollback = (rollback and observed is not None and observed["classification"] == "running"
@@ -419,6 +432,8 @@ class Orchestration:
                 db.execute("UPDATE runtimes SET status=?,gate_policy=?,recovery_required=?,drain_job_id=?,state_version=state_version+1,error='runtime_operation_failed',updated=? WHERE uid=?",
                            ("ready" if safe_rollback else "failed", "reopen_check" if safe_rollback else "closed", int(recovery), jid if recovery else None, current, job["uid"]))
             outcome = {"result": "succeeded" if ok else "failed", "error": data.get("error"), "recovery_required": recovery}
+            if allocation_retained:
+                outcome["allocation_retained_for_security_repair"] = True
             self._outcome(db, jid, data["attempt"], outcome)
             db.execute("UPDATE jobs SET status=?,phase=?,recovery_required=?,lease=NULL,heartbeat=NULL,updated=? WHERE id=?",
                        ("queued" if recovery else "succeeded" if ok else "failed", "reconciling" if recovery else "finished", int(recovery), current, jid))
@@ -528,9 +543,11 @@ class Orchestration:
             reject("Reconciliation batch exceeds configured bound", 422)
         with self.store.tx() as db:
             platform = self.store.maintenance_status(db)
-            count = db.execute("SELECT count(*) FROM runtimes").fetchone()[0]
+            from .runtime_pool import RESPONSIBILITY
+            scope = " WHERE " + RESPONSIBILITY if self.store.on_demand(db) else ""
+            count = db.execute("SELECT count(*) FROM runtimes r" + scope).fetchone()[0]
             offset = platform["reconcile_generation"] % count if count else 0
-            rows = db.execute("SELECT uid,id AS runtime_id,state_version,gate_epoch,revision,gateway_boot_id FROM runtimes ORDER BY rowid LIMIT ? OFFSET ?", (limit, offset)).fetchall()
+            rows = db.execute("SELECT uid,id AS runtime_id,state_version,gate_epoch,revision,gateway_boot_id FROM runtimes r" + scope + " ORDER BY rowid LIMIT ? OFFSET ?", (limit, offset)).fetchall()
             generation = platform["reconcile_generation"] + len(rows)
             db.execute("UPDATE platform_state SET reconcile_generation=? WHERE id=1", (generation,))
             return {"protocol_version": 2, "items": [dict(row) for row in rows], "generation": generation}
@@ -580,6 +597,9 @@ class Orchestration:
                 db.execute("UPDATE runtimes SET reserved=1,recovery_required=1,gate_policy='closed',state_version=state_version+1 WHERE uid=?", (runtime["uid"],))
             if classification == "unknown" or drift:
                 db.execute("UPDATE platform_state SET capacity_healthy=0,freeze_reason=?,state_version=state_version+1,updated=? WHERE id=1", ("orphan_resources" if data.get("orphan_resources") else "runtime_observation_unknown", self.clock()))
+            elif self.store.on_demand(db):
+                from .runtime_pool import restore_capacity
+                restore_capacity(self.store, db, data["host_boot_id"])
             else:
                 # Only a complete, fresh view of every known runtime can clear protection.
                 unknown = db.execute("SELECT 1 FROM runtimes r WHERE r.recovery_required=1 OR NOT EXISTS(SELECT 1 FROM runtime_observations o WHERE o.runtime_id=r.id AND o.observation_id=(SELECT n.observation_id FROM runtime_observations n WHERE n.runtime_id=r.id ORDER BY n.observed_at DESC,n.rowid DESC LIMIT 1) AND o.complete=1 AND o.classification<>'unknown' AND o.expires_at>? AND o.host_boot_id=?) LIMIT 1", (self.clock(), data["host_boot_id"])).fetchone()

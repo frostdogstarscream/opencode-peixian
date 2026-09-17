@@ -190,7 +190,7 @@ export default function Plugins() {
                   <Show when={item.installed}>
                     <Button
                       variant="ghost"
-                      disabled={locked() || !pluginConnectionReady(item, item.installed?.version ?? item.version)}
+                      disabled={locked() || (app.user().runtime?.runtime_mode === "on_demand" && !app.user().runtime?.ready) || !pluginConnectionReady(item, item.installed?.version ?? item.version)}
                       busy={working() === item.id}
                       onClick={() => void action(item, "test")}
                     >

@@ -260,6 +260,9 @@ def schemas():
 # Keys are actual route suffixes (or the explicit expansion of an actual route).
 # Response status comes from FastAPI's registered route, not a duplicate table.
 CONTRACTS = {
+    ("get", "/me/runtime"): (None, ref("SelfRuntime"), "查询本人助手状态", "助手", "仅按需模式；不访问 Agent；只返回本人公开状态和允许动作。"),
+    ("post", "/me/runtime/start"): ("RuntimeStartBody", ref("SelfRuntimeResult"), "显式启动本人助手", "助手", "空对象，不接受账号或宿主参数。202表示启动已受理，200表示已就绪；幂等重放保持原状态码。名额不足返回409 runtime_capacity_full，不自动等待或重试。"),
+    ("post", "/me/runtime/stop"): ("RuntimeStopBody", ref("SelfRuntimeResult"), "显式停止或取消本人助手启动", "助手", "状态版本必须匹配；取消启动另传start_job_id。202表示排空停止已受理，200表示无需宿主操作。保留文件和历史，不取消管理员禁止。"),
     ("get", "/admin/maintenance"): (None, ref("Maintenance"), "查看维护与恢复状态", "管理：环境", "仅超级管理员；不包含用户正文或内部凭据。"),
     ("post", "/admin/maintenance"): ("MaintenanceBody", ref("Maintenance"), "调整持久维护状态", "管理：环境", "要求当前状态版本；冻结跨重启保留。解除冻结不跳过实际运行状态核对。"),
     ("post", "/admin/recovery/{uid}"): ("RecoveryBody", ref("Queued"), "处理等待排空的环境", "管理：环境", "仅超管选择继续等待或取消已准入活动后更新；取消不保证撤销外部副作用。"),
@@ -334,6 +337,8 @@ CONTRACTS = {
 }
 
 WORKER_CONTRACTS = {
+    ("get", "/internal/worker/pool/inventory"): (None, obj({"items": array(obj({}, extra=True)), "registry_digest": STRING})),
+    ("post", "/internal/worker/pool/inventory"): ("PoolInventoryBody", obj({"complete": BOOL, "capacity_healthy": BOOL})),
     ("post", "/internal/worker/jobs/{jid}/phase"): ("PhaseBody", ref("WorkerReceipt")),
     ("post", "/internal/worker/jobs/{jid}/boot"): ("BootBody", ref("WorkerReceipt")),
     ("get", "/internal/worker/jobs/{jid}"): (None, ref("WorkerReceipt")),
@@ -444,6 +449,10 @@ def build_openapi(app):
                 operation.update(tags=["内部：Worker"], security=[{"WorkerKey": []}], **{"x-internal": True, "x-role": "worker"})
                 operation["description"] = "仅可信宿主 Worker 使用 X-Worker-Key；普通 Cookie/Bearer 不能调用。不得向业务客户端公开响应中的租约或部署配置。"
                 operation.setdefault("parameters", []).append({"name": "X-Peixian-Protocol", "in": "header", "required": True, "schema": {"type": "string", "const": "2"}})
+                operation["parameters"].extend([
+                    {"name": "X-Peixian-Capabilities", "in": "header", "required": False, "schema": STRING, "description": "按需部署必须声明 runtime_pool_v1；缺失时不能领取或修改执行责任。"},
+                    {"name": "X-Peixian-Runtime-Mode", "in": "header", "required": False, "schema": {**STRING, "enum": ["eager", "on_demand"]}, "description": "按需控制库要求执行器使用同一 on_demand 配置。"},
+                ])
                 operation["description"] += "内部协议版本2；执行身份绑定attempt、有效租约与稳定operation_id。丢失回报时查询同一操作回执；不得以历史回执重新开放入口。"
                 operation["description"] += "失败响应可含 X-Peixian-Worker-Code 白名单诊断码，区分租约、阶段、观测及回执冲突；不得将全部409解释为租约失效。回执可含request_hash用于校验原请求。查无回执不证明宿主操作未执行；查询失败或先前请求结果未确认时保持unknown，不重复宿主变更。"
                 if path == "/internal/worker/legacy-retry":
@@ -479,6 +488,8 @@ def build_openapi(app):
                 operation["security"] = [] if anonymous else [{"BearerToken": []}, {"SessionCookie": [], **({"CsrfToken": []} if method not in ("get", "head", "options") else {})}]
                 annotate_body(operation, body)
                 annotate_response(operation, output)
+                if path in (P + "/me/runtime/start", P + "/me/runtime/stop"):
+                    operation["responses"]["202"] = response(output, "启停任务已受理；幂等重放维持首次响应语义")
                 from .idempotency import MUTATIONS
                 if method not in ("get", "head", "options") and MUTATIONS.fullmatch(path):
                     operation.setdefault("parameters", []).append({"name": "Idempotency-Key", "in": "header", "required": True,

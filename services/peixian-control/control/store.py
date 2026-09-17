@@ -12,7 +12,8 @@ import uuid
 from argon2 import PasswordHasher, extract_parameters
 from cryptography.fernet import Fernet
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 4  # Legacy initialization remains v4 unless on_demand is explicit.
+MAX_SCHEMA_VERSION = 5
 
 
 def ident():
@@ -32,7 +33,9 @@ def digest(value):
 
 
 class Store:
-    def __init__(self, root, key_file, worker_key_file, admin_password_file):
+    def __init__(self, root, key_file, worker_key_file, admin_password_file, *, runtime_mode=None):
+        if runtime_mode not in (None, "eager", "on_demand"):
+            raise ValueError("Unsupported runtime mode")
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / "control.sqlite3"
@@ -50,10 +53,10 @@ class Store:
         with self.tx() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
             fresh = version == 0 and not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'").fetchone()
-            if version > SCHEMA_VERSION:
+            if version > MAX_SCHEMA_VERSION:
                 raise ValueError("Control database schema is newer than this application")
-            if version == 4:
-                from .migrations_v4 import validate
+            if version in (4, 5):
+                from .schema import validate
                 validate(db)
             schema = """
                 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,username TEXT UNIQUE NOT NULL,password TEXT NOT NULL,role TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,must_change INTEGER NOT NULL DEFAULT 1,auth_version INTEGER NOT NULL DEFAULT 1,created INTEGER NOT NULL);
@@ -83,11 +86,22 @@ class Store:
                 raise ValueError("Control database has no super administrator")
             if db.execute("SELECT 1 FROM users WHERE role NOT IN ('super_admin','admin','user')").fetchone():
                 raise ValueError("Control database contains an unsupported role")
-            from .migrations_v4 import migrate, validate
+            from .migrations_v4 import migrate
+            from .schema import validate
             if version < 4:
                 migrate(self, db, fresh=fresh, timestamp=now())
             else:
                 validate(db)
+            if version < 5 and runtime_mode == "on_demand":
+                from .migrations_v5 import migrate as migrate_pool
+                migrate_pool(db, fresh=fresh, timestamp=now(), mode=runtime_mode)
+            policy = self.maintenance_status(db)
+            actual_mode = policy.get("runtime_mode", "eager")
+            if runtime_mode is not None and runtime_mode != actual_mode:
+                raise ValueError("Runtime policy differs from the initialized database")
+
+    def on_demand(self, db=None):
+        return self.maintenance_status(db).get("runtime_mode", "eager") == "on_demand"
 
     def migrate_roles(self, db, admin_password_file):
         columns = {row["name"] for row in db.execute("PRAGMA table_info(audit)")}
@@ -145,7 +159,7 @@ class Store:
     def _initialize_wal(self):
         db = self._connect()
         try:
-            if db.execute("PRAGMA user_version").fetchone()[0] > SCHEMA_VERSION:
+            if db.execute("PRAGMA user_version").fetchone()[0] > MAX_SCHEMA_VERSION:
                 raise ValueError("Control database schema is newer than this application")
             mode = db.execute("PRAGMA journal_mode").fetchone()[0]
             if mode.lower() != "wal":
@@ -251,8 +265,15 @@ class Store:
         runtime = db.execute("SELECT * FROM runtimes WHERE uid=?", (uid,)).fetchone()
         if not runtime:
             raise ValueError("Environment is not registered")
+        if self.on_demand(db) and action in ("resume", "provision"):
+            from .runtime_pool import start
+            return start(self, db, uid, admin=reason == "admin_resume")["job"]
+        if self.on_demand(db) and action == "pause":
+            from .runtime_pool import stop
+            return stop(self, db, uid, reason=reason)["job"]
         platform = self.maintenance_status(db)
-        if action != "pause" and (platform["maintenance_mode"] != "normal" or not platform["capacity_healthy"]):
+        metadata_apply = action == "apply" and self.on_demand(db) and not runtime["reserved"]
+        if action != "pause" and (platform["maintenance_mode"] != "normal" or (not platform["capacity_healthy"] and not metadata_apply)):
             raise ValueError("平台维护或容量核对中，暂不接受新环境操作")
         desired = runtime["desired"] + (action == "apply" and bump_desired)
         existing = db.execute("SELECT * FROM jobs WHERE uid=? AND status IN ('queued','running') ORDER BY created,rowid", (uid,)).fetchall()
@@ -359,6 +380,9 @@ class Store:
                     block_runtime(self, db, uid, reason="account_disabled")
             if target["role"] == "admin":
                 job = None
+            elif self.on_demand(db):
+                from .runtime_pool import identity_updated
+                job = identity_updated(self, db, uid, data, active)
             elif active and not target["active"]:
                 if db.execute("SELECT 1 FROM jobs WHERE uid=? AND action='pause' AND status IN ('queued','running')", (uid,)).fetchone():
                     raise ValueError("账号停用尚未完成，请等待空间暂停后再启用")
@@ -391,6 +415,9 @@ class Store:
                     user["runtime"][name] = bool(user["runtime"][name])
                 job = db.execute("SELECT phase FROM jobs WHERE uid=? AND status IN ('queued','running') ORDER BY CASE WHEN status='running' THEN 0 ELSE 1 END,enqueue_seq LIMIT 1", (uid,)).fetchone()
                 user["runtime"]["phase"] = job["phase"] if job else None
+                if self.on_demand(db):
+                    from .runtime_pool import public_status
+                    user["runtime"].update(public_status(self, db, uid))
             return user
 
     def create_browser_auth(self, uid, *, expected_password, expected_auth_version,
@@ -450,17 +477,25 @@ class Store:
             if authorize is not None:
                 authorize(db)
             platform = self.maintenance_status(db)
-            if platform["maintenance_mode"] != "normal" or not platform["capacity_healthy"]:
+            on_demand = self.on_demand(db)
+            if on_demand and legacy is not None:
+                raise ValueError("按需注册不接受旧环境接管参数")
+            if platform["maintenance_mode"] != "normal" or (not on_demand and not platform["capacity_healthy"]):
                 raise ValueError("平台维护或容量核对中，暂不接受新环境操作")
             count = db.execute("SELECT count(*) FROM runtimes WHERE reserved=1").fetchone()[0]
-            if count >= int(os.getenv("MAX_RUNTIMES", "4")):
+            if not on_demand and count >= int(os.getenv("MAX_RUNTIMES", "4")):
                 raise ValueError("运行环境名额已满，请先暂停其他环境")
             if db.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone():
                 raise ValueError("账号已存在")
             db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,'user',?)", (uid, username, password_hash, now()))
             self.set_grants(db, uid, "model", [] if model_ids is None else model_ids)
             self.set_grants(db, uid, "plugin", [] if plugin_ids is None else plugin_ids)
-            db.execute("INSERT INTO runtimes(uid,id,status,spec,updated) VALUES(?,?,'pending',?,?)", (uid, rid, self.encrypt(spec), now()))
-            job_id = ident()
-            db.execute("INSERT INTO jobs(id,uid,action,status,revision,created,updated) VALUES(?,?,'provision','queued',1,?,?)", (job_id, uid, now(), now()))
-        return self.user(uid), {"id": job_id, "status": "queued"}
+            if on_demand:
+                db.execute("INSERT INTO runtimes(uid,id,status,reserved,stop_reason,spec,updated) VALUES(?,?,'unprovisioned',0,'unprovisioned',?,?)", (uid, rid, self.encrypt(spec), now()))
+                job = None
+            else:
+                db.execute("INSERT INTO runtimes(uid,id,status,spec,updated) VALUES(?,?,'pending',?,?)", (uid, rid, self.encrypt(spec), now()))
+                job_id = ident()
+                db.execute("INSERT INTO jobs(id,uid,action,status,revision,created,updated) VALUES(?,?,'provision','queued',1,?,?)", (job_id, uid, now(), now()))
+                job = {"id": job_id, "status": "queued"}
+        return self.user(uid), job

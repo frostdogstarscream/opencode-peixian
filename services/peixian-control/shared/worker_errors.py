@@ -1,7 +1,7 @@
 """Additive protocol-v2 diagnostics; never trust arbitrary remote error text."""
 HEADER = "X-Peixian-Worker-Code"
 CODES = frozenset({
-    "worker_rejected", "worker_invalid_request", "worker_not_found", "worker_protocol_mismatch",
+    "worker_rejected", "worker_invalid_request", "worker_not_found", "worker_protocol_mismatch", "worker_capability_mismatch",
     "worker_lease_expired", "worker_attempt_inactive", "worker_phase_conflict",
     "worker_receipt_conflict", "worker_state_changed", "worker_gate_changed",
     "worker_observation_missing", "worker_observation_incomplete", "worker_observation_expired",

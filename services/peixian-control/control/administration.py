@@ -146,6 +146,10 @@ def register_admin(app):
             fail("账号不存在", 404)
         if not target["active"] and action != "pause":
             fail("请先启用账号", 409)
+        if app.state.store.on_demand() and action in ("resume", "retry"):
+            with app.state.store.tx() as db:
+                from .runtime_pool import start
+                return start(app.state.store, db, uid, admin=True)
         return {"job": queue(uid, "provision" if action == "retry" else action)}
 
     @app.get(PREFIX + "/admin/jobs")

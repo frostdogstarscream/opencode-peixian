@@ -87,16 +87,18 @@ def host_lock(root):
 
 
 class Worker:
-    def __init__(self, api, manager, *, orchestration=None, clock=time.monotonic):
+    def __init__(self, api, manager, *, orchestration=None, clock=time.monotonic, runtime_pool=False):
         self.api, self.manager = api, manager
         self.config = settings.validate(orchestration or {})
         self.clock = clock
         self.next_reconcile = 0
+        self.runtime_pool = runtime_pool
+        self.next_inventory = 0
         self.boot_id = host_boot_id()
 
     def request(self, method, path, **kwargs):
         allow_state_conflict = kwargs.pop("allow_state_conflict", False)
-        kwargs["headers"] = {**kwargs.pop("headers", {}), "X-Peixian-Protocol": "2"}
+        kwargs["headers"] = {**kwargs.pop("headers", {}), "X-Peixian-Protocol": "2", "X-Peixian-Capabilities": "runtime_pool_v1", "X-Peixian-Runtime-Mode": "on_demand" if self.runtime_pool else "eager"}
         kwargs.setdefault("timeout", self.config["worker_heartbeat_timeout_seconds"])
         started = self.clock()
         transport = {"new_connection": False}
@@ -255,6 +257,14 @@ class Worker:
         return observation, state
 
     def reconcile(self):
+        if self.runtime_pool and self.clock() >= self.next_inventory:
+            self.next_inventory = self.clock() + 60
+            targets = self.request("GET", "/internal/worker/pool/inventory").json()
+            started = int(time.time())
+            resources, complete = self.manager.pool_inventory(targets["items"])
+            self.request("POST", "/internal/worker/pool/inventory", json={
+                "host_boot_id": self.boot_id, "observed_at": started, "registry_digest": targets["registry_digest"],
+                "resources": resources, "complete": complete}, allow_state_conflict=True)
         selected = self.request("GET", "/internal/worker/reconcile", params={"limit": self.config["reconcile_batch"]}).json()
         if selected.get("protocol_version") != 2 or not isinstance(selected.get("items"), list):
             raise runtime.RuntimeFailure("worker_protocol_mismatch")
@@ -279,7 +289,7 @@ class Worker:
             raise runtime.RuntimeFailure("invalid_plugin_digest")
         output = bytearray()
         with self.api.stream("GET", "/internal/worker/packages/" + digest,
-                             headers={"X-Peixian-Protocol": "2"}) as response:
+                             headers={"X-Peixian-Protocol": "2", "X-Peixian-Capabilities": "runtime_pool_v1", "X-Peixian-Runtime-Mode": "on_demand" if self.runtime_pool else "eager"}) as response:
             if response.status_code != 200:
                 raise runtime.RuntimeFailure("plugin_download_unavailable")
             for chunk in response.iter_bytes():
@@ -461,7 +471,7 @@ def main():
                                      agent_image=args.agent_image, gateway_image=args.gateway_image,
                                      maximum=args.max_runtimes, **manager_options)
     with host_lock(manager.root), control_client(args.control_url, key) as client:
-        worker = Worker(client, manager, orchestration=manager_options.get("orchestration"))
+        worker = Worker(client, manager, orchestration=manager_options.get("orchestration"), runtime_pool=bool(args.config and cfg.version == 4))
         while True:
             try:
                 found = worker.once()

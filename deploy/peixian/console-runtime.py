@@ -514,6 +514,45 @@ class RuntimeManager:
         except (RuntimeFailure, ValueError, KeyError, TypeError):
             return {name: "unknown" for name in states}, False
 
+    def pool_inventory(self, targets):
+        """Read-only, bounded host inventory including unreserved retained resources."""
+        known = {item["runtime_id"]: item["uid"] for item in targets}
+        resources = {}
+        deadline = time.monotonic() + 12
+        try:
+            if not self.deployment_id:
+                raise ValueError()
+            filters = ["--filter", "label=peixian.runtime_id", "--filter", "label=peixian.deployment=" + self.deployment_id]
+            for kind, listing in (("container", ("ps", "-a")), ("volume", ("volume", "ls")), ("network", ("network", "ls"))):
+                names = self.docker_run(*listing, *filters, "--format", "{{.Name}}" if kind == "volume" else "{{.ID}}", timeout=2).split()
+                if len(names) > 10000:
+                    raise ValueError()
+                for offset in range(0, len(names), 40):
+                    if time.monotonic() >= deadline:
+                        raise ValueError()
+                    prefix = () if kind == "container" else (kind,)
+                    for record in json.loads(self.docker_run(*prefix, "inspect", *names[offset:offset+40], timeout=2)):
+                        labels = (record.get("Config", {}).get("Labels") if kind == "container" else record.get("Labels")) or {}
+                        rid, uid = labels.get("peixian.runtime_id"), labels.get("peixian.uid")
+                        if rid not in known or uid != known[rid] or labels.get(MANAGED) != "true" or labels.get("peixian.deployment") != self.deployment_id:
+                            raise ValueError()
+                        item = resources.setdefault(rid, {"runtime_id": rid, "uid": uid, "running": False, "mutation_state": "idle"})
+                        if kind == "container":
+                            state = record.get("State", {})
+                            if type(state.get("Running")) is not bool:
+                                raise ValueError()
+                            item["running"] |= state["Running"] or bool(state.get("Restarting")) or bool(state.get("Paused"))
+            root = self.root / "runtimes"
+            for directory in root.iterdir() if root.exists() else []:
+                if time.monotonic() >= deadline or directory.is_symlink() or not directory.is_dir() or directory.name not in known:
+                    raise ValueError()
+                rid = directory.name
+                item = resources.setdefault(rid, {"runtime_id": rid, "uid": known[rid], "running": False, "mutation_state": "idle"})
+                item["mutation_state"] = self.mutation_state(rid)
+            return list(resources.values()), True
+        except (RuntimeFailure, ValueError, KeyError, TypeError, OSError):
+            return list(resources.values()), False
+
     def mutation_record(self, job, state):
         write_json(self.directory(job["runtime_id"]) / "mutation.json", {
             "job_id": job["id"], "attempt": job["attempt"], "runtime_id": job["runtime_id"],

@@ -20,7 +20,9 @@ export type User = {
   model_ids?: string[]
   plugin_ids?: string[]
   runtime?: { id?: string; status: string; revision?: number; desired?: number; error?: string; phase?: string;
-    security_blocked?: boolean; cancellation_confirmed?: boolean; recovery_required?: boolean; gate_policy?: string }
+    security_blocked?: boolean; cancellation_confirmed?: boolean; recovery_required?: boolean; gate_policy?: string;
+    runtime_mode?: "on_demand"; ready?: boolean; state_version?: number; stop_reason?: string; manual_stop_reason?: string;
+    allowed_actions?: string[]; job?: { id: string; action: string; status: string } | null }
 }
 export type Auth = { user: User; csrf_token: string; capabilities: Capability[] }
 export type Session = { id: string; title: string; status?: string; updated_at?: string; time?: { updated?: number } }

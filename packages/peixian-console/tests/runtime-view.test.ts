@@ -2,6 +2,11 @@ import { describe, expect, test } from "bun:test"
 import { canSend, runtimeNotice } from "../src/runtime-view"
 
 describe("runtime status does not bypass admission", () => {
+  test("on-demand admission and administrator pause are authoritative", () => {
+    expect(canSend({ status: "ready", gate_policy: "open", runtime_mode: "on_demand", ready: false })).toBe(false)
+    expect(runtimeNotice({ status: "unprovisioned", runtime_mode: "on_demand", manual_stop_reason: "none", allowed_actions: ["start"] })).toContain("启动助手")
+    expect(runtimeNotice({ status: "paused", runtime_mode: "on_demand", manual_stop_reason: "admin" })).toContain("管理员")
+  })
   test("ready is insufficient until the gate has acknowledged opening", () => {
     expect(canSend({ status: "ready", gate_policy: "open_pending" })).toBe(false)
     expect(canSend({ status: "ready", gate_policy: "open" })).toBe(true)

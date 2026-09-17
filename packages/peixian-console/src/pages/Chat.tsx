@@ -1,5 +1,5 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
-import { api, list, patch, post, remove, safeMessage } from "../api"
+import { api, ApiError, list, patch, post, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, Markdown, Modal, Spinner, Status } from "../components"
 import { useConsole } from "../context"
 import BusinessConfirmations from "../BusinessConfirmations"
@@ -21,9 +21,10 @@ export default function Chat() {
   const [selectedSkills, setSelectedSkills] = createSignal<string[]>([])
   const [busy, setBusy] = createSignal(false)
   const [sending, setSending] = createSignal(false)
+  const [uncertain, setUncertain] = createSignal(false)
   const [loading, setLoading] = createSignal(true)
   const [error, setError] = createSignal("")
-  const [picker, setPicker] = createSignal<"files" | "skills">()
+  const [picker, setPicker] = createSignal<"files" | "capabilities">()
   const [search, setSearch] = createSignal("")
   const [showHistory, setShowHistory] = createSignal(false)
   const [rename, setRename] = createSignal<Session>()
@@ -32,6 +33,16 @@ export default function Chat() {
   let textarea!: HTMLTextAreaElement
   const selection = createResponseGuard(selected)
   let disposed = false
+  const [capabilityKind, setCapabilityKind] = createSignal<"all" | "skill" | "plugin">("all")
+  const shownSessions = sessions
+  const shownModels = models
+  const shownCapabilities = createMemo<{ id: string; name: string; description?: string; kind: "skill" | "plugin"; version: string; owned: boolean }[]>(() => skills().filter((item) => item.enabled).map((item) => ({
+    id: item.id, name: item.name, description: item.description, kind: "skill" as const,
+    version: String(item.version ?? 1), owned: true,
+  })))
+  const slashQuery = createMemo(() => draft().match(/^\s*\/([^\s]*)$/)?.[1]?.toLowerCase())
+  const slashCapabilities = createMemo(() => slashQuery() === undefined ? [] : shownCapabilities().filter((item) =>
+    !slashQuery() || (item.name + (item.description ?? "")).toLowerCase().includes(slashQuery()!)).slice(0, 7))
   const active = createMemo(() => sessions().find((s) => s.id === selected()))
   const ready = createMemo(() => canSend(app.user().runtime))
   const available = createMemo(() => canObserve(app.user().runtime))
@@ -147,6 +158,7 @@ export default function Chat() {
     })
   })
   async function choose(id: string) {
+    if (sending()) return
     selection.invalidate()
     setSelected(id)
     setMessages([])
@@ -160,10 +172,11 @@ export default function Chat() {
     }
   }
   function fresh() {
+    if (sending()) return
     selection.invalidate()
     setSelected(undefined)
     setMessages([])
-    setDraft("")
+    if (!uncertain()) setDraft("")
     setSelectedFiles([])
     setSelectedSkills([])
     setError("")
@@ -172,30 +185,43 @@ export default function Chat() {
     textarea?.focus()
   }
   async function send() {
-    if (!draft().trim() || sending() || busy() || !ready() || !models().length) return
+    if (!draft().trim() || sending() || uncertain() || busy() || !ready() || !models().length) return
+    const text = draft()
+    const payload = { text: text.trim(), model_id: model() || undefined, skill_ids: [...selectedSkills()], file_ids: [...selectedFiles()] }
+    const uid = app.user().id
     setSending(true)
     setError("")
+    let submitting = false
+    let accepted = false
     try {
       let id = selected()
       if (!id) {
-        const session = await post<Session>("/sessions", { title: draft().trim().slice(0, 35) })
+        const session = await post<Session>("/sessions", { title: text.trim().slice(0, 35) })
+        if (disposed || app.user().id !== uid) return
         id = session.id
         selection.invalidate()
         setSelected(id)
       }
-      await post("/sessions/" + id + "/messages", {
-        text: draft().trim(),
-        model_id: model() || undefined,
-        skill_ids: selectedSkills(),
-        file_ids: selectedFiles(),
-      })
-      setDraft("")
+      if (!ready()) return
+      submitting = true
+      const result = await post<{ accepted: boolean }>("/sessions/" + id + "/messages", payload)
+      if (disposed || app.user().id !== uid) return
+      if (result?.accepted !== true) throw new ApiError("提交结果待确认，请核对历史记录。", 0, "unknown_submission")
+      accepted = true
+      if (draft() === text) setDraft("")
       setBusy(true)
+      // run_id is not a durable Run API in the milestone; refresh real history only.
       await refresh()
     } catch (error) {
-      setError((error as Error).message)
+      if (disposed || app.user().id !== uid) return
+      if (accepted) {
+        setError("消息已受理，历史记录暂未刷新；请等待恢复，不要重复发送。")
+      } else if (submitting && error instanceof ApiError && (error.status === 0 || error.status >= 500)) {
+        setUncertain(true)
+        setError("提交结果待确认，草稿已保留。请先检查历史和当前任务状态，避免重复调用。")
+      } else setError((error as Error).message)
     } finally {
-      setSending(false)
+      if (!disposed && app.user().id === uid) setSending(false)
     }
   }
   async function abort() {
@@ -212,6 +238,7 @@ export default function Chat() {
     }
   }
   async function deleteSession(item: Session) {
+    if (sending()) return
     if (!window.confirm("确定删除这条对话及其消息吗？")) return
     try {
       await remove("/sessions/" + item.id)
@@ -240,17 +267,23 @@ export default function Chat() {
     }
     setter(current.includes(id) ? current.filter((value) => value !== id) : [...current, id])
   }
+  function toggleCapability(item: { id: string }) { toggle(item.id, "skills") }
+  function chooseSlashCapability(item: { id: string }) {
+    toggleCapability(item)
+    setDraft("")
+    queueMicrotask(() => textarea?.focus())
+  }
   return (
     <div class="chat-layout">
       <aside class={"history-panel " + (showHistory() ? "visible" : "")}>
         <div class="history-head">
-          <strong>对话记录</strong>
-          <button class="icon-button" aria-label="新建对话" onClick={fresh}>
+          <strong>研判记录</strong>
+          <button class="icon-button" aria-label="新建研判" onClick={fresh}>
             <Icon name="plus" />
           </button>
         </div>
         <Button class="new-chat" icon="plus" onClick={fresh}>
-          新建对话
+          新建研判
         </Button>
         <label class="search-box">
           <Icon name="search" size={16} />
@@ -271,8 +304,8 @@ export default function Chat() {
             }
           >
             <For
-              each={sessions().filter((item) => item.title?.includes(search()))}
-              fallback={<p class="quiet">你的对话会保存在这里</p>}
+              each={shownSessions().filter((item) => item.title?.includes(search()))}
+              fallback={<p class="quiet">你的研判记录会保存在这里</p>}
             >
               {(item) => (
                 <div class={"history-item " + (selected() === item.id ? "selected" : "")}>
@@ -315,21 +348,18 @@ export default function Chat() {
             >
               <Icon name="clock" />
             </button>
-            <h2>{active()?.title || "新的对话"}</h2>
+            <h2>{active()?.title || "新建研判"}</h2>
           </div>
-          <div class="model-choice">
-            <span class="model-dot" />
-            <Show
-              when={models().length > 1}
-              fallback={<span class="model-name">{models()[0]?.name ?? "暂无可用模型"}</span>}
-            >
+          <div class="conversation-head-actions">
+            <div class="model-choice">
+              <span class="model-dot" />
               <select
                 aria-label="选择授权模型"
-                value={model()}
-                disabled={busy()}
+                value={model() || shownModels()[0]?.id}
+                disabled={busy() || sending()}
                 onChange={(event) => setModel(event.currentTarget.value)}
               >
-                <For each={models()}>
+                <For each={shownModels()}>
                   {(item) => (
                     <option value={item.id}>
                       {item.name}
@@ -338,61 +368,16 @@ export default function Chat() {
                   )}
                 </For>
               </select>
-            </Show>
+            </div>
+            <span class="quiet">对话与结果仅本人可见</span>
           </div>
         </div>
-        <Show when={notice()}>
-          <div class="runtime-banner">
-            <Icon name="clock" size={17} />
-            <span>
-              {notice()}
-            </span>
-            <Status value={app.user().runtime?.status} />
-          </div>
-        </Show>
+        <Show when={notice()}><div class="runtime-banner" role="status"><Icon name="clock" size={17} /><span>{notice()}</span></div></Show>
+        <Show when={!models().length && !loading()}><div class="runtime-banner">暂无获授权模型，请联系管理员配置。</div></Show>
         <div class="messages-scroll" ref={scroll}>
           <Show
             when={messages().length}
-            fallback={
-              <div class="welcome">
-                <div class="welcome-symbol">
-                  <Icon name="skill" size={31} />
-                </div>
-                <div class="eyebrow">你的专属智能助手</div>
-                <h1>今天，从什么问题开始？</h1>
-                <p>
-                  提出问题，关联文件，或选择一项个人技能。
-                  <br />
-                  每一步思考，都在你的独立空间中完成。
-                </p>
-                <div class="suggestion-grid">
-                  <button
-                    onClick={() => {
-                      setDraft("请帮我梳理资料中的关键事实，并标明资料来源。")
-                      textarea?.focus()
-                    }}
-                  >
-                    <Icon name="file" />
-                    <strong>梳理关键事实</strong>
-                    <span>让复杂资料变得有条理</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setPicker("skills")
-                    }}
-                  >
-                    <Icon name="skill" />
-                    <strong>使用我的技能</strong>
-                    <span>按你的习惯完成工作</span>
-                  </button>
-                  <button onClick={() => setPicker("files")}>
-                    <Icon name="plugin" />
-                    <strong>结合已有资料</strong>
-                    <span>选择文件作为对话依据</span>
-                  </button>
-                </div>
-              </div>
-            }
+            fallback={<div class="conversation-blank" aria-label="空白研判对话区" />}
           >
             <div class="messages">
               <For each={messages()}>
@@ -477,7 +462,7 @@ export default function Chat() {
                   </article>
                 )}
               </For>
-              <Show when={busy()}>
+              <Show when={busy() && available()}>
                 <div class="thinking">
                   <Spinner />
                   <span>正在整理思路与资料…</span>
@@ -491,6 +476,7 @@ export default function Chat() {
           <Show when={!available() && selected()}><p role="status">状态暂不可更新，最后已知任务状态和历史内容已保留。</p></Show>
           <BusinessConfirmations sessionID={selected()} available={available()} canContinue={continuing()} onAnswered={() => void refresh()} />
           <ErrorLine message={error()} />
+          <Show when={uncertain()}><div class="runtime-banner" role="status"><span>结果待确认。刷新不会自动重发本次问题。</span><Button onClick={() => void refresh()}>刷新历史</Button><Button onClick={() => { if (window.confirm("请确认已核对原会话历史及任务状态。重新发送可能产生重复调用，是否解除发送保护？")) { setUncertain(false); setError("") } }}>已核对，解除保护</Button></div></Show>
           <Show when={selectedFiles().length || selectedSkills().length}>
             <div class="selection-chips">
               <For each={selectedFiles()}>
@@ -506,10 +492,19 @@ export default function Chat() {
                 {(id) => (
                   <button onClick={() => toggle(id, "skills")}>
                     <Icon name="skill" size={13} />
-                    {skills().find((x) => x.id === id)?.name ?? "已选技能"}
+                    {shownCapabilities().find((x) => x.id === id)?.name ?? skills().find((x) => x.id === id)?.name ?? "已选技能"}
                     <Icon name="close" size={12} />
                   </button>
                 )}
+              </For>
+
+            </div>
+          </Show>
+          <Show when={slashQuery() !== undefined}>
+            <div class="slash-command-menu">
+              <div class="slash-command-head"><strong>/ 选择技能</strong><span>输入名称可筛选</span></div>
+              <For each={slashCapabilities()} fallback={<p>没有匹配的可用能力</p>}>
+                {(item) => <button onClick={() => chooseSlashCapability(item)}><span class={"slash-kind " + item.kind}><Icon name={item.kind === "skill" ? "skill" : "plugin"} size={16} /></span><span><strong>{item.name}</strong><small>{item.description}</small></span><em>{item.kind === "skill" ? "Skill" : "插件"}</em></button>}
               </For>
             </div>
           </Show>
@@ -518,7 +513,7 @@ export default function Chat() {
               ref={textarea}
               aria-label="输入消息"
               maxlength={32000}
-              placeholder="描述你的问题，或告诉我希望完成什么…"
+              placeholder="输入研判内容，使用 / 选择已启用技能…"
               value={draft()}
               rows={3}
               onInput={(event) => setDraft(event.currentTarget.value)}
@@ -531,23 +526,23 @@ export default function Chat() {
             />
             <div class="composer-tools">
               <div>
+                <button onClick={() => setPicker("capabilities")}>
+                  <Icon name="skill" size={17} />
+                  能力
+                </button>
                 <button onClick={() => setPicker("files")}>
                   <Icon name="file" size={17} />
-                  关联文件
-                </button>
-                <button onClick={() => setPicker("skills")}>
-                  <Icon name="skill" size={17} />
-                  使用技能
+                  文件
                 </button>
               </div>
               <Show
-                when={busy()}
+                when={busy() && available()}
                 fallback={
                   <Button
                     variant="primary"
                     icon="send"
                     busy={sending()}
-                    disabled={!draft().trim() || !ready() || !models().length}
+                    disabled={!draft().trim() || uncertain() || !ready() || !shownModels().length}
                     onClick={send}
                   >
                     发送
@@ -565,48 +560,62 @@ export default function Chat() {
           </div>
         </div>
       </section>
+<aside class="related-capabilities">
+        <div class="related-capabilities-head"><div><strong>已启用技能</strong><small>当前账号已启用技能</small></div><span>{shownCapabilities().length}</span></div>
+        <div class="related-capabilities-list">
+          <For each={shownCapabilities()}>
+            {(item, index) => <button class={selectedSkills().includes(item.id) ? "selected" : ""} onClick={() => toggleCapability(item)}><span class={"capability-icon tone-" + (index() % 5)}><Icon name={item.kind === "skill" ? "skill" : "plugin"} size={18} /></span><span><strong>{item.name}<em>v{item.version}</em></strong><small>{item.description}</small><i>{item.kind === "skill" ? (item.owned ? "个人 Skill" : "官方 Skill") : "插件工具"}</i></span><b>{selectedSkills().includes(item.id) ? "已选" : "使用"}</b></button>}
+          </For>
+        </div>
+      </aside>
       <Show when={picker()}>
         {(type) => (
           <Modal
-            title={type() === "files" ? "关联文件" : "使用我的技能"}
-            text={type() === "files" ? "仅可选择已完成解析的个人文件。" : "选择的技能将用于本次提问。"}
+            title={type() === "files" ? "关联文件" : "能力选择"}
+            text={type() === "files" ? "仅可选择已完成解析的个人文件。" : "本阶段展示已启用个人技能；平台插件管理将在下一步接入。"}
             onClose={() => setPicker(undefined)}
           >
+            <Show when={type() === "capabilities"}>
+              <div class="capability-toolbar"><label class="search-box"><Icon name="search" size={16} /><input placeholder="搜索能力名称或描述" value={search()} onInput={(event) => setSearch(event.currentTarget.value)} /></label><div class="segmented"><button class={capabilityKind() === "all" ? "active" : ""} onClick={() => setCapabilityKind("all")}>全部</button><button class={capabilityKind() === "skill" ? "active" : ""} onClick={() => setCapabilityKind("skill")}>分析 Skill</button><button class={capabilityKind() === "plugin" ? "active" : ""} onClick={() => setCapabilityKind("plugin")}>插件工具</button></div></div>
+            </Show>
             <div class="picker-list">
               <For
                 each={
                   type() === "files"
                     ? files().filter((item) => ["ready", "partial"].includes(item.status ?? ""))
-                    : skills().filter((item) => item.enabled)
+                    : shownCapabilities().filter((item) => (capabilityKind() === "all" || item.kind === capabilityKind()) && (!search() || (item.name + (item.description ?? "")).toLowerCase().includes(search().toLowerCase())))
                 }
                 fallback={
                   <Empty
                     title={type() === "files" ? "暂无可关联文件" : "暂无已启用技能"}
-                    text="请先到对应页面添加后再使用。"
+                    text={type() === "files" ? "请先上传并等待文件解析完成。" : "当前没有匹配的可用能力。"}
                   />
                 }
               >
                 {(item) => (
-                  <label class="pick-row">
+                  <div class="pick-row capability-row">
                     <input
                       type="checkbox"
                       disabled={type() === "files" && "status" in item && item.status === "partial"}
                       checked={(type() === "files" ? selectedFiles() : selectedSkills()).includes(item.id)}
-                      onChange={() => toggle(item.id, type())}
+                      onChange={() => type() === "files" ? toggle(item.id, "files") : "kind" in item && toggleCapability(item)}
                     />
                     <Icon name={type() === "files" ? "file" : "skill"} />
                     <span>
                       {item.name}
+                      <Show when={type() === "capabilities" && "description" in item}><small>{("description" in item ? item.description : "") || "可用于当前研判任务"}</small></Show>
                       <Show when={type() === "files" && "status" in item && item.status === "partial"}>
                         <br />
                         <small class="muted">部分解析 · 请拆分重传</small>
                       </Show>
                     </span>
-                  </label>
+
+                  </div>
                 )}
               </For>
             </div>
             <div class="modal-actions">
+              <Show when={type() === "capabilities"}><span class="quiet">本阶段支持选择已启用的个人技能；插件配置与 AI 草稿将在后续接入。</span></Show>
               <Button variant="primary" onClick={() => setPicker(undefined)}>
                 完成选择
               </Button>

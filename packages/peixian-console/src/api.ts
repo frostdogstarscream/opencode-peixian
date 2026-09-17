@@ -1,3 +1,4 @@
+import { retryAfter } from "./events"
 import type { Auth } from "./types"
 export const BASE = "/api/console/v1"
 let csrf = ""
@@ -25,6 +26,8 @@ export class ApiError extends Error {
     public status: number,
     public code?: string,
     public operationKey?: string,
+    public retryAfterMs?: number,
+    public requestId?: string,
   ) {
     super(message)
   }
@@ -43,7 +46,12 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   } catch {
     throw new ApiError(mutation ? "提交结果待确认，请先刷新状态；输入内容已保留。" : "连接暂时中断，请稍后重试。", 0, "network_error", operationKey)
   }
-  const content = response.status === 204 ? "" : await response.text()
+  let content: string
+  try {
+    content = response.status === 204 ? "" : await response.text()
+  } catch {
+    throw new ApiError(mutation ? "提交结果待确认，请先核对状态；输入内容已保留。" : "读取结果中断，请重试。", 0, "response_interrupted", operationKey)
+  }
   let data: Record<string, unknown> | null = null
   if (content) {
     try {
@@ -65,10 +73,12 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
               ? "请检查填写内容后重试。"
               : "操作未完成，请稍后重试。"
     throw new ApiError(
-      safeMessage(data?.message, fallback),
+      safeMessage(data?.message, [429, 503].includes(response.status) ? "服务繁忙，请稍后重试；输入内容已保留。" : fallback),
       response.status,
       typeof data?.code === "string" ? data.code : undefined,
       operationKey,
+      retryAfter(response.headers.get("Retry-After")),
+      typeof data?.request_id === "string" ? data.request_id : undefined,
     )
   }
   return data as T

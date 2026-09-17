@@ -3,7 +3,7 @@
 import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
 const { chromium } = createRequire(import.meta.url)('playwright')
-const browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || "msedge" })
+const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) })
 const page = await browser.newPage()
 let status = 'ready', mode = 'normal', activity = 'busy', question = true, permission = true
 let questionsHeld, releaseQuestions
@@ -31,7 +31,7 @@ await page.route('**/api/console/v1/**', async route => {
     if (questionsHeld) await new Promise(resolve => { releaseQuestions = resolve })
     body = { items }
   } else if (path === '/permissions') body = { items:permission ? [{id:'p',sessionID:'session-a',description:'合成操作确认'}] : [] }
-  else if (path === '/events') return route.fulfill({ status:200,contentType:'text/event-stream',body:'event: change\ndata: {"resources":["messages"]}\n\n' })
+  else if (path === '/events') return route.fulfill({ status:200,contentType:'text/event-stream',body:'event: change\ndata: {"type":"updated","resources":["messages"]}\n\n' })
   return route.fulfill({status:200,json:body})
 })
 async function sync() {

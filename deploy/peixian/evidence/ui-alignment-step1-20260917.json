@@ -1,0 +1,103 @@
+{
+  "scope": "UI interface and runtime state alignment; server-local initial acceptance only",
+  "backend_base": "ea36aa8ec39bc319b66596f7774537891d8f0d97",
+  "frontend_source": "b7cf3e2aaa9a430097a0b4cccac1b5f4d7e2338a",
+  "branch": "frontend-alignment",
+  "date": "2026-09-17",
+  "production_backend_changes": false,
+  "database_migration": false,
+  "control_test": {
+    "passed": 462,
+    "skipped": 4,
+    "warnings": 2,
+    "python": "3.12.14",
+    "network": "none",
+    "image_id": "sha256:7c26c1ca077ff97fd2bffe6f832dee982eda71fd0a0821897e5336fe1338ce75"
+  },
+  "frontend_test": {
+    "passed": 55,
+    "failed": 0,
+    "typecheck": true,
+    "build": true,
+    "bun": "1.3.14",
+    "node": "22.14.0",
+    "playwright": "1.58.2"
+  },
+  "browser_contract": {
+    "passed": true,
+    "scenarios": [
+      "empty catalogs have no demo data; on-demand start uses csrf/idempotency and preserves draft",
+      "message accepted; no automatic replay, no Run query",
+      "message network; no automatic replay, no Run query",
+      "message server; no automatic replay, no Run query",
+      "message overload; no automatic replay, no Run query",
+      "admin menu and resource permissions",
+      "super_admin menu and resource permissions",
+      "first-password gate blocks business reads"
+    ]
+  },
+  "browser_real_control": {
+    "passed": true,
+    "scenarios": [
+      "super_admin: real login, initial password, cookie, csrf, origin, menu, logout/revocation",
+      "admin: real login, initial password, cookie, csrf, origin, menu, logout/revocation",
+      "real runtime start/cancel with state version and no Worker",
+      "user: real login, initial password, cookie, csrf, origin, menu, logout/revocation"
+    ]
+  },
+  "browser_milestone_regression": {
+    "passed": true,
+    "scenarios": [
+      "question",
+      "permission",
+      "abort",
+      "new_prompt_denied",
+      "maintenance",
+      "late_read",
+      "draft",
+      "1366",
+      "1920",
+      "390"
+    ],
+    "writes": [
+      "/questions/q/reply",
+      "/permissions/p/reply",
+      "/sessions/session-a/abort"
+    ]
+  },
+  "source_file_sha256": {
+    "packages/peixian-console/src/App.tsx": "f83ee96ae05f940432d5d95b122ed69e656df2458ac5b009c2ee625de3cc3651",
+    "packages/peixian-console/src/api.ts": "048db9a08f279f4fbf6693b96bf25b0f3a09dce2a9d2ee3b17f17ccefbccdd19",
+    "packages/peixian-console/src/components.tsx": "993fc03f64e7e6ecbedf8b41080d0991a90cd6c697f1bbd7d2c06e43d36625a1",
+    "packages/peixian-console/src/pages/Admin.tsx": "725793427268d424c09713e691540aa636709de580114a1b590eb853ddf9b618",
+    "packages/peixian-console/src/pages/Chat.tsx": "dc6bfeb82617d9e5edf615b9e20a51221d8cdc6fd3ee63277f100a7f95cd9fdd",
+    "packages/peixian-console/src/styles.css": "e0f655893f4dd41ec201fd16899647c3a368c67125103037410d31168d2d004d",
+    "packages/peixian-console/tests/review-browser.mjs": "e812bf8d561ad96611baf5cb71ada93cb0f67a444efe38dc3ebe28c4eadba372",
+    "packages/peixian-console/tests/alignment-browser.mjs": "575a7550ff21c5b70f3b6b2dbb3b0433f05a8493ba3e678ea63d66a606015540",
+    "packages/peixian-console/tests/alignment-auth-browser.mjs": "1873be66e9574dec6c2413765ea595027ec8726f8e04192697f8957121eb02e8",
+    "services/peixian-control/tests/alignment_server.py": "6739d5a785d3bffe35df4bcf6d3be107211b897643f2e315d7b7f2adbaff999e",
+    "packages/peixian-console/src/assets/peixian-login-prototype.png": "dddf7068fe9f5345dfda26368b49d16b1ddf9c3e8bd8036c9375f57923710212"
+  },
+  "built_file_sha256": {
+    "packages/peixian-console/dist/assets/index-Dmphm3se.js": "4f46e6dd791bbed2cad5ad2fdbc61ca94f61cab35abbfd613e70ecd5c7208f68",
+    "packages/peixian-console/dist/assets/index-DnvpgVUd.css": "b410661144dc74f4f007815a5a42996aa56b8ecf11e26a86891d844349f6de38",
+    "packages/peixian-console/dist/assets/peixian-login-prototype-D2qTzBuR.png": "dddf7068fe9f5345dfda26368b49d16b1ddf9c3e8bd8036c9375f57923710212",
+    "packages/peixian-console/dist/index.html": "e59dd9cf9836725daf15820aa0ab30abf18046aff8f30c7aecf1319b1631762f"
+  },
+  "log_sha256": {
+    "alignment-control-py312.log": "25a7ffa61799cea7cebc2f5e0f1e6cb69784d2834bae1002a28fbe0fa00f0512",
+    "alignment-unit.log": "3fecc0ff8e64596591a53f495fa1cfd80bed8fd3677038c6663426da2bcd016e",
+    "alignment-build.log": "50eb426f91aa6c0db3e3d1dd1045a9e720d87d67ddc151490b0fa32573538213",
+    "alignment-browser-results.log": "231106c3302c93f3fbf18fdcad3efd5f5fbb8f0d0431a35abdb6e6c78790d1b7",
+    "alignment-auth-browser.log": "262b9e259a4fab0707b0e8f838346beb89ee9a2b9a0524239d5c45891b01a95c",
+    "alignment-review-browser.log": "627ddd2f99a7743fa4f16a1bf4a90a44fde08c01bcb5390d1cbaba329af70838"
+  },
+  "not_executed": [
+    "real Agent/Gateway/Relay end-to-end",
+    "paid model or private vLLM",
+    "real police data",
+    "HTTPS external deployment",
+    "persistent business Run",
+    "concurrency or soak load"
+  ]
+}

@@ -60,10 +60,14 @@ const auditActions: Record<string, string> = {
   "template.delete": "删除技能模板",
   "management.request": "其他管理请求",
 }
-export default function Admin() {
+export default function Admin(props: { section?: string } = {}) {
   const app = useConsole()
   const [tab, setTab] = createSignal<ManagementTab>("users")
   const tabs = () => visibleManagementTabs(app.capabilities())
+  createEffect(() => {
+    const next = tabs().find((item) => item.id === props.section)
+    if (next) setTab(next.id)
+  })
   const [users, setUsers] = createSignal<User[]>([])
   const [models, setModels] = createSignal<Model[]>([])
   const [plugins, setPlugins] = createSignal<Plugin[]>([])

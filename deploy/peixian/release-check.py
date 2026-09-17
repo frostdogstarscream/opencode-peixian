@@ -3,8 +3,19 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
+import subprocess
 import tarfile
 from evidence_contract import EvidenceError, archive_identity, read_json, regular, require, safe_name, sha, validate_public, write_new
+
+
+def source_equal(name, left, right):
+    # Git archive on Windows may apply the repository's text EOL attributes.
+    # Archive/package integrity is separately checked on raw bytes above.
+    text = Path(name).suffix in ('.py', '.json', '.md', '.txt', '.ps1', '.sh', '.lock', '.mjs', '.service', '.conf')
+    if text and 'migration' not in name.lower():
+        return left.replace(b'\r\n', b'\n') == right.replace(b'\r\n', b'\n')
+    return left == right
 
 
 def verify_package(folder):
@@ -31,13 +42,18 @@ def verify_package(folder):
     require(actual == sums.keys(), 'package_file_missing')
     manifest = read_json(folder / 'release-manifest.json')
     require(manifest.get('source_matches_commit') is True, 'package_source_mismatch')
+    require(re.fullmatch('[0-9a-f]{40}', manifest.get('source_commit', '')) is not None, 'fixed_source_commit_required')
     # Independently compare exported deployment sources to the fixed source archive.
     with tarfile.open(regular(folder / 'source.tar.gz'), 'r:gz') as source:
         members = {m.name: m for m in source.getmembers()}
         for name in actual:
             if name.startswith(('deploy/', 'services/')):
                 require(name in members and members[name].isfile(), 'source_archive_file_missing')
-                require(source.extractfile(members[name]).read().replace(b'\r\n', b'\n') == (folder / name).read_bytes().replace(b'\r\n', b'\n'), 'source_archive_content_mismatch')
+                archived = source.extractfile(members[name]).read()
+                committed = subprocess.check_output(['git', 'show', manifest['source_commit'] + ':' + name],
+                    cwd=Path(__file__).resolve().parents[2], stderr=subprocess.PIPE, timeout=15)
+                require(source_equal(name, archived, committed), 'source_archive_git_blob_mismatch')
+                require(source_equal(name, archived, (folder / name).read_bytes()), 'source_archive_content_mismatch')
     return manifest, sums
 
 
@@ -96,6 +112,14 @@ if __name__ == '__main__':
         result = check(a.package, read_json(a.evidence), read_json(a.profile))
     except Exception as error:
         result = {'status': 'fail', 'failure_code': str(error) if isinstance(error, EvidenceError) else 'release_check_incomplete'}
+    root = Path(__file__).resolve().parents[2]
+    commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root).decode().strip()
+    tool_inputs = {}
+    for name in ('deploy/peixian/release-check.py', 'deploy/peixian/evidence_contract.py'):
+        raw = regular(root/name).read_bytes()
+        committed = subprocess.check_output(['git', 'show', commit+':'+name], cwd=root)
+        tool_inputs[name] = {'raw_sha256': sha(raw), 'matches_commit': source_equal(name, raw, committed)}
+    result.update(checker_source_commit=commit, checker_inputs=tool_inputs)
     write_new(a.output, result)
     print(json.dumps(result))
     raise SystemExit(0 if result['status'] == 'pass' else 2)

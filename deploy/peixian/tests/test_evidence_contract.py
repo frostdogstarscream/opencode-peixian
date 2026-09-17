@@ -236,3 +236,10 @@ def test_archive_only_report_has_no_runtime_claim(tmp_path):
     result = tool.collect(tmp_path)
     assert result['runtime_collection'] == 'not_collected_archive_only'
     assert result['identities']['control']['archive_config_digest']['digest'] in tool.render(result)
+
+
+def test_source_eol_policy_never_normalizes_migration_or_binary():
+    check = module('release-check')
+    assert check.source_equal('deploy/tool.py', b'a\r\n', b'a\n')
+    assert not check.source_equal('control/migrations_v4.py', b'a\r\n', b'a\n')
+    assert not check.source_equal('images.tar', b'a\r\n', b'a\n')

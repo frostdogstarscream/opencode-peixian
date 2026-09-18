@@ -137,7 +137,16 @@ def schemas():
                            "id": ID, "enabled": FLAG, "is_default": FLAG, "api_key_configured": BOOL},
                           ("id", "name", "description", "base_url", "model_id", "enabled", "is_default", "api_key_configured")),
         "ModelChanged": obj({"model": ref("AdminModel"), "jobs": array(ref("Job"))}, ("model", "jobs")),
+        "ScenarioPresentation": obj({
+            "version": {"const": "1.0"}, "turn_id": STRING, "title": STRING, "subject_ref": STRING,
+            "process": array(obj({"id": STRING, "title": STRING, "detail": STRING, "status": {"enum": ["pending", "running", "completed", "failed"]}, "time": STRING})),
+            "conclusions": array(obj({"text": STRING, "clue_id": STRING, "source_ids": array(STRING)})),
+            "evidence": array(obj({"type": STRING, "title": STRING, "value": {"type": ["string", "integer"]}, "unit": STRING, "summary": STRING, "items": array(STRING), "clue_id": STRING})),
+            "clues": array(obj({"id": STRING, "type": STRING, "title": STRING, "headline": STRING, "summary": STRING, "discoveries": array(STRING), "evidence": array(obj({"type": STRING, "label": STRING, "content": STRING, "source_ids": array(STRING)}))})),
+            "missing": array(STRING),
+        }),
         "ScenarioEvidence": obj({
+            "presentation": ref("ScenarioPresentation"),
             "summary_check": STRING, "verified_summary": array(obj({"fact_id": STRING, "statement": STRING, "source_ids": array(STRING)})),
             "schema_version": {"const": "1"}, "status": {"type": "string", "enum": ["empty", "partial", "complete", "unavailable"]}, "turn_id": STRING, "notice": STRING,
             "scenario": nullable(obj({"title": STRING, "scenario_id": STRING, "subject_ref": STRING, "snapshot_id": STRING, "records_snapshot_id": STRING, "rule_version": STRING, "timezone": STRING, "night_window": STRING, "case_window": array(STRING)})),

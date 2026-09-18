@@ -667,7 +667,13 @@ def create_app(store=None):
         values = (await upstream(request, user, "GET", f"/session/{sid}/message")).json()
         # Recheck grants after network await, so a revoked plugin cannot expose records.
         authorized = await app.state.db_work.run(permitted, app.state.store, user["uid"])
-        return project(values, authorized)
+        result = project(values, authorized)
+        if authorized:
+            from .scenario_presentation import presentation
+            view = presentation(result, values)
+            if view is not None:
+                result["presentation"] = view
+        return result
 
     @app.post(PREFIX + "/sessions/{sid}/messages", status_code=202)
     async def message_send(sid: str, request: Request, user=Depends(normal)):

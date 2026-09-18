@@ -1,33 +1,30 @@
-import EvidencePanel, { type Evidence } from "../EvidencePanel"
-import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { api, ApiError, list, patch, post, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, Markdown, Modal, Spinner, Status } from "../components"
 import { useConsole } from "../context"
 import BusinessConfirmations from "../BusinessConfirmations"
-import type { FileItem, Message, Model, Session, Skill, Plugin } from "../types"
-import { createRefreshScheduler, createResponseGuard } from "../refresh"
-import { canSend, canObserve, canContinue, runtimeNotice } from "../runtime-view"
-import Skills from "./Skills"
-import Plugins from "./Plugins"
-import Files from "./Files"
-import { capabilityCatalog, type CapabilityEntry } from "../capability-catalog"
+import { AnalysisResultView, ClueDrawer, CluePanel } from "../TrustedAnalysis"
+import type { TrustedEvidence } from "../TrustedAnalysis"
+import { displayName } from "../analysis-display"
+import { capabilityCatalog } from "../capability-catalog"
+import { canObserve, canSend } from "../runtime-view"
+import type { AnalysisClue, CapabilityItem, Evidence, FileItem, Message, Model, Plugin, RunEvent, Session, Skill, SkillDraft } from "../types"
 export default function Chat() {
   const app = useConsole()
   const [sessions, setSessions] = createSignal<Session[]>([])
-  const [evidence, setEvidence] = createSignal<Evidence>()
-  const [evidenceError, setEvidenceError] = createSignal("")
   const [messages, setMessages] = createSignal<Message[]>([])
   const [expandedTools, setExpandedTools] = createSignal<Record<string, boolean>>({})
   const [models, setModels] = createSignal<Model[]>([])
   const [files, setFiles] = createSignal<FileItem[]>([])
-  const [plugins, setPlugins] = createSignal<Plugin[]>([])
-  const [manager, setManager] = createSignal<"skills" | "plugins" | "files">()
   const [skills, setSkills] = createSignal<Skill[]>([])
+  const [plugins, setPlugins] = createSignal<Plugin[]>([])
+  const [capabilities, setCapabilities] = createSignal<CapabilityItem[]>([])
   const [selected, setSelected] = createSignal<string>()
   const [model, setModel] = createSignal("")
   const [draft, setDraft] = createSignal("")
   const [selectedFiles, setSelectedFiles] = createSignal<string[]>([])
   const [selectedSkills, setSelectedSkills] = createSignal<string[]>([])
+  const [selectedPlugins, setSelectedPlugins] = createSignal<string[]>([])
   const [busy, setBusy] = createSignal(false)
   const [sending, setSending] = createSignal(false)
   const [uncertain, setUncertain] = createSignal(false)
@@ -35,146 +32,139 @@ export default function Chat() {
   const [error, setError] = createSignal("")
   const [picker, setPicker] = createSignal<"files" | "capabilities">()
   const [search, setSearch] = createSignal("")
+  const [capabilityKind, setCapabilityKind] = createSignal<"all" | "skill" | "plugin">("all")
+  const [creator, setCreator] = createSignal<"choose" | "source" | "edit">()
+  const [creatorSource, setCreatorSource] = createSignal<"requirement" | "conversation">("requirement")
+  const [skillDraft, setSkillDraft] = createSignal<SkillDraft>()
+  const [skillEditor, setSkillEditor] = createSignal<Skill>()
+  const [latestRun, setLatestRun] = createSignal<string>()
+  const [runEvents, setRunEvents] = createSignal<RunEvent[]>([])
+  const [evidence, setEvidence] = createSignal<Evidence>()
+  const [trusted, setTrusted] = createSignal<TrustedEvidence>()
+  const [selectedClue, setSelectedClue] = createSignal<AnalysisClue>()
   const [showHistory, setShowHistory] = createSignal(false)
   const [rename, setRename] = createSignal<Session>()
   const [title, setTitle] = createSignal("")
   let scroll!: HTMLDivElement
   let textarea!: HTMLTextAreaElement
-  const selection = createResponseGuard(selected)
-  let disposed = false
-  const [capabilityKind, setCapabilityKind] = createSignal<"all" | "skill" | "plugin">("all")
-  const shownSessions = sessions
-  const shownModels = models
-  const shownCapabilities = createMemo(() => capabilityCatalog(skills(), plugins()))
+  let selectionRevision = 0
+  let messageFlight: { id: string; revision: number; trailing: boolean; promise: Promise<void> } | undefined
+  const shownSessions = createMemo(() => sessions())
+  const active = createMemo(() => shownSessions().find((s) => s.id === selected()))
+  const shownModels = createMemo(() => models())
+  const shownCapabilities = createMemo(() => capabilities().filter((item) => item.enabled).map(item=>({...item,name:displayName(item.name),description:displayName(item.name)!==item.name?"整理相关资料并核对来源。":item.description})))
   const slashQuery = createMemo(() => draft().match(/^\s*\/([^\s]*)$/)?.[1]?.toLowerCase())
-  const slashCapabilities = createMemo(() => slashQuery() === undefined ? [] : shownCapabilities().filter((item) =>
-    !slashQuery() || (item.name + (item.description ?? "")).toLowerCase().includes(slashQuery()!)).slice(0, 7))
-  const active = createMemo(() => sessions().find((s) => s.id === selected()))
+  const slashCapabilities = createMemo(() => {
+    const query = slashQuery()
+    if (query === undefined) return []
+    return shownCapabilities().filter((item) => !query || `${item.name}${item.description ?? ""}`.toLowerCase().includes(query)).slice(0, 7)
+  })
+  const latestAnalysis = createMemo(() => trusted()?.presentation)
+  const shownMessages = createMemo(() => {
+    const values=messages(), turn=values.findIndex(x=>x.info.id===trusted()?.turn_id);
+    return latestAnalysis()&&turn>=0?values.filter((x,i)=>i<=turn||x.info.role!=="assistant"):values
+  })
+  createEffect(() => {
+    const clue = selectedClue()
+    if (clue && !latestAnalysis()?.clues.some((item) => item.id === clue.id)) setSelectedClue(undefined)
+  })
   const ready = createMemo(() => canSend(app.user().runtime))
   const available = createMemo(() => canObserve(app.user().runtime))
-  const continuing = createMemo(() => canContinue(app.user().runtime))
-  let observationGeneration = 0
-  const account = createMemo(() => app.user().id)
-  createEffect(() => { account(); available(); observationGeneration++; selection.invalidate(); setEvidence(undefined); setEvidenceError("") })
-  const notice = createMemo(() => runtimeNotice(app.user().runtime))
-  const interval = () => (document.hidden ? 15000 : 500)
-  const messageRefresh = createRefreshScheduler(
-    async (signal) => {
-      const id = selected(),
-        current = selection.capture()
-      const generation = observationGeneration
-      if (!available() || !id) return
-      try {
-        const data = await list<Message>("/sessions/" + id + "/messages", { signal })
-        if (!disposed && current() && available() && generation === observationGeneration) setMessages(data)
+  function fetchMessages(id: string): Promise<void> {
+    const revision = selectionRevision
+    const owner = app.user().id
+    if (messageFlight?.id === id && messageFlight.revision === revision) {
+      messageFlight.trailing = true
+      return messageFlight.promise
+    }
+    const flight = { id, revision, trailing: false, promise: Promise.resolve() }
+    messageFlight = flight
+    const current = () => selected() === id && selectionRevision === revision && app.user().id === owner
+    flight.promise = (async () => {
+      do {
+        flight.trailing = false
+        const data = await list<Message>("/sessions/" + id + "/messages")
+        if (!current()) return
+        setMessages(data)
+        if(trusted()?.turn_id!==data.filter(x=>x.info.role==="user").at(-1)?.info.id)setTrusted(undefined)
         try {
-          const facts = await api<Evidence>("/sessions/" + id + "/evidence", { signal })
-          if (!disposed && current() && available() && generation === observationGeneration) { setEvidence(facts); setEvidenceError("") }
+          const view=await api<TrustedEvidence>("/sessions/"+id+"/evidence")
+          if(current())setTrusted(view)
         } catch {
-          if (!disposed && current() && available() && generation === observationGeneration) { setEvidence(undefined); setEvidenceError("资料视图暂未读取成功，请重试。") }
+          if(current()){setTrusted(undefined);setError("研判结果暂时无法读取，请刷新重试。")}
         }
-      } catch (error) {
-        if (!disposed && current() && available() && generation === observationGeneration) setError((error as Error).message)
-      }
-    },
-    { interval },
-  )
-  const sessionRefresh = createRefreshScheduler(
-    async (signal) => {
-      if (!available()) return
-      const generation = observationGeneration
-      const values = await list<Session>("/sessions", { signal })
-      if (disposed || !available() || generation !== observationGeneration) return
+      } while (flight.trailing && current())
+    })().finally(() => {
+      if (messageFlight === flight) messageFlight = undefined
+    })
+    return flight.promise
+  }
+  async function refresh() {
+    if (!available()) {
+      setBusy(false)
+      return
+    }
+    try {
+      const values = await list<Session>("/sessions")
       setSessions(values)
-      if (selected())
+      if (selected()) {
         setBusy(["busy", "retry"].includes(values.find((item) => item.id === selected())?.status ?? "idle"))
-    },
-    { interval, onError: (error) => setError((error as Error).message) },
-  )
-  const modelRefresh = createRefreshScheduler(
-    async (signal) => {
-      const values = await list<Model>("/models", { signal })
-      if (disposed) return
-      setModels(values)
-      if (!values.some((item) => item.id === model()))
-        setModel(values.find((item) => item.is_default)?.id ?? values[0]?.id ?? "")
-    },
-    { interval },
-  )
-  const fileRefresh = createRefreshScheduler(
-    async (signal) => {
-      if (!available()) return
-      const generation = observationGeneration
-      const values = await list<FileItem>("/files", { signal })
-      if (!disposed && available() && generation === observationGeneration) {
-        setFiles(values)
-        setSelectedFiles((current) => current.filter((id) => values.some((item) => item.id === id && item.status === "ready")))
+        await fetchMessages(selected()!)
       }
-    },
-    { interval },
-  )
-  const skillRefresh = createRefreshScheduler(
-    async (signal) => {
-      const values = await list<Skill>("/skills", { signal })
-      if (!disposed) {
-        setSkills(values)
-        setSelectedSkills((current) => current.filter((id) => values.some((item) => item.id === id && item.enabled)))
-      }
-    },
-    { interval },
-  )
-  const pluginRefresh = createRefreshScheduler(async (signal) => {
-    const values = await list<Plugin>("/plugins", { signal })
-    if (!disposed) setPlugins(values)
-  }, { interval, onError: (error) => setError((error as Error).message) })
-  const refresh = async () => {
-    await Promise.all([sessionRefresh.request(), messageRefresh.request()])
+      setError("")
+    } catch (error) {
+      setError((error as Error).message)
+    }
   }
-  const calibrate = async () => {
-    await Promise.all([refresh(), modelRefresh.request(), fileRefresh.request(), skillRefresh.request(), pluginRefresh.request()])
-    if (!disposed) setLoading(false)
+  async function resources() {
+    if (!available()) {
+      setLoading(false)
+      return
+    }
+    const result = await Promise.allSettled([
+      list<Model>("/models"),
+      list<FileItem>("/files"),
+      list<Skill>("/skills"),
+      list<Session>("/sessions"),
+      list<Plugin>("/plugins"),
+    ])
+    if (result[0].status === "fulfilled") {
+      setModels(result[0].value as Model[])
+      const data = result[0].value as Model[]
+      if (!data.some((item) => item.id === model())) setModel(data.find((x) => x.is_default)?.id ?? data[0]?.id ?? "")
+    }
+    if (result[1].status === "fulfilled") setFiles(result[1].value as FileItem[])
+    if (result[2].status === "fulfilled") setSkills(result[2].value as Skill[])
+    if (result[3].status === "fulfilled") setSessions(result[3].value as Session[])
+    if (result[4].status === "fulfilled") setPlugins(result[4].value as Plugin[])
+    setCapabilities(
+      capabilityCatalog(
+        result[2].status === "fulfilled" ? (result[2].value as Skill[]) : skills(),
+        result[4].status === "fulfilled" ? (result[4].value as Plugin[]) : plugins(),
+      ).map((item) => ({
+        ...item,
+        category: item.kind === "skill" ? "个人 Skill" : "插件工具",
+        recommended: false,
+        enabled: true,
+        owned: item.kind === "skill",
+        scope: item.kind === "skill" ? "personal" : "authorized",
+      })),
+    )
+    setLoading(false)
   }
-  const subscriptions = [
-    app.subscribe("messages", (event) => {
-      if (!event.session_id || event.session_id === selected()) void messageRefresh.request()
-    }),
-    app.subscribe("sessions", () => {
-      void sessionRefresh.request()
-    }),
-    app.subscribe("models", () => {
-      void modelRefresh.request()
-    }),
-    app.subscribe("files", () => {
-      void fileRefresh.request()
-    }),
-    app.subscribe("skills", () => {
-      void skillRefresh.request()
-    }),
-    app.subscribe("plugins", () => { void pluginRefresh.request() }),
-    app.subscribe("runtime", () => {
-      void calibrate()
-    }),
-  ]
+  onMount(() => {
+    void resources()
+  })
   createEffect(() => {
-    available()
-    void calibrate()
+    app.changed()
+    void refresh()
+    void resources()
   })
   const poll = setInterval(() => {
-    if (busy() && !document.hidden) void refresh()
-  }, 2000)
-  const calibration = setInterval(() => {
-    if (!document.hidden) void calibrate()
-  }, 30000)
-  onCleanup(() => {
-    disposed = true
-    selection.invalidate()
-    clearInterval(poll)
-    clearInterval(calibration)
-    subscriptions.forEach((dispose) => dispose())
-    ;[messageRefresh, sessionRefresh, modelRefresh, fileRefresh, skillRefresh, pluginRefresh].forEach((scheduler) =>
-      scheduler.dispose(),
-    )
-  })
+    if (busy()) void refresh()
+  }, 1800)
+  onCleanup(() => { selectionRevision++; clearInterval(poll) })
+  createEffect(()=>{if(!available()){selectionRevision++;setTrusted(undefined);setSelectedClue(undefined)}})
   createEffect(() => {
     messages()
     busy()
@@ -183,40 +173,44 @@ export default function Chat() {
     })
   })
   async function choose(id: string) {
-    if (sending()) return
-    selection.invalidate()
+    selectionRevision++
     setSelected(id)
     setMessages([])
-    setEvidence(undefined)
-    setEvidenceError("")
+    setTrusted(undefined)
+    setSelectedClue(undefined)
     setError("")
     setShowHistory(false)
     setBusy(["busy", "retry"].includes(sessions().find((item) => item.id === id)?.status ?? "idle"))
     try {
-      await messageRefresh.request()
+      await fetchMessages(id)
     } catch (error) {
       setError((error as Error).message)
     }
   }
   function fresh() {
-    if (sending()) return
-    selection.invalidate()
+    selectionRevision++
     setSelected(undefined)
     setMessages([])
-    setEvidence(undefined)
-    setEvidenceError("")
+    setTrusted(undefined)
+    setSelectedClue(undefined)
     if (!uncertain()) setDraft("")
     setSelectedFiles([])
     setSelectedSkills([])
+    setSelectedPlugins([])
     setError("")
     setShowHistory(false)
     setBusy(false)
     textarea?.focus()
   }
   async function send() {
-    if (!draft().trim() || sending() || uncertain() || busy() || !ready() || !models().length) return
+    if (!draft().trim() || sending() || uncertain() || busy() || !ready() || !shownModels().length) return
     const text = draft()
-    const payload = { text: text.trim(), model_id: model() || undefined, skill_ids: [...selectedSkills()], file_ids: [...selectedFiles()] }
+    const payload = {
+      text: text.trim(),
+      model_id: model() || undefined,
+      skill_ids: [...selectedSkills()],
+      file_ids: [...selectedFiles()],
+    }
     const uid = app.user().id
     setSending(true)
     setError("")
@@ -226,48 +220,45 @@ export default function Chat() {
       let id = selected()
       if (!id) {
         const session = await post<Session>("/sessions", { title: text.trim().slice(0, 35) })
-        if (disposed || app.user().id !== uid) return
+        if (app.user().id !== uid) return
         id = session.id
-        selection.invalidate()
+        selectionRevision++
         setSelected(id)
       }
       if (!ready()) return
       submitting = true
-      const result = await post<{ accepted: boolean }>("/sessions/" + id + "/messages", payload)
-      if (disposed || app.user().id !== uid) return
-      if (result?.accepted !== true) throw new ApiError("提交结果待确认，请核对历史记录。", 0, "unknown_submission")
+      const result = await post<{ accepted: boolean; run_id: string }>("/sessions/" + id + "/messages", payload)
+      if (app.user().id !== uid) return
+      if (result.accepted !== true) throw new ApiError("提交结果待确认，请核对历史记录。", 0, "unknown_submission")
       accepted = true
+      setLatestRun(result.run_id)
+      setRunEvents([])
       if (draft() === text) setDraft("")
       setBusy(true)
-      // run_id is not a durable Run API in the milestone; refresh real history only.
       await refresh()
     } catch (error) {
-      if (disposed || app.user().id !== uid) return
-      if (accepted) {
-        setError("消息已受理，历史记录暂未刷新；请等待恢复，不要重复发送。")
-      } else if (submitting && error instanceof ApiError && (error.status === 0 || error.status >= 500)) {
+      if (app.user().id !== uid) return
+      if (accepted) setError("消息已受理，历史记录暂未刷新；请等待恢复，不要重复发送。")
+      else if (submitting && error instanceof ApiError && (error.status === 0 || error.status >= 500)) {
         setUncertain(true)
         setError("提交结果待确认，草稿已保留。请先检查历史和当前任务状态，避免重复调用。")
       } else setError((error as Error).message)
     } finally {
-      if (!disposed && app.user().id === uid) setSending(false)
+      if (app.user().id === uid) setSending(false)
     }
   }
   async function abort() {
-    if (!continuing() || !selected()) return
-    const id = selected(), current = selection.capture(), uid = app.user().id
+    if (!selected()) return
     try {
-      await post("/sessions/" + id + "/abort")
-      if (disposed || !current() || app.user().id !== uid) return
+      await post("/sessions/" + selected() + "/abort")
+      setBusy(false)
       await refresh()
-      app.notify("已提交停止请求，正在核对任务状态。")
+      app.notify("已停止本次生成。")
     } catch (error) {
-      if (disposed || !current() || app.user().id !== uid) return
       setError((error as Error).message)
     }
   }
   async function deleteSession(item: Session) {
-    if (sending()) return
     if (!window.confirm("确定删除这条对话及其消息吗？")) return
     try {
       await remove("/sessions/" + item.id)
@@ -296,18 +287,84 @@ export default function Chat() {
     }
     setter(current.includes(id) ? current.filter((value) => value !== id) : [...current, id])
   }
-  function manage(value: "files" | "skills" | "plugins") {
-    setPicker(undefined)
-    setManager(value)
+  function toggleCapability(item: CapabilityItem) {
+    if (item.kind === "skill") {
+      toggle(item.id, "skills")
+      return
+    }
+    app.notify("当前后端不支持随消息选择插件；已授权插件由助手按需调用。", "error")
   }
-  function toggleCapability(item: CapabilityEntry) {
-    if (item.kind === "plugin") return manage("plugins")
-    toggle(item.id, "skills")
-  }
-  function chooseSlashCapability(item: CapabilityEntry) {
+  function chooseSlashCapability(item: CapabilityItem) {
     toggleCapability(item)
     setDraft("")
     queueMicrotask(() => textarea?.focus())
+  }
+  async function generateSkill(source: "requirement" | "conversation") {
+    if (source === "conversation" && !selected()) {
+      app.notify("请先选择一条已有对话。", "error")
+      return
+    }
+    setCreatorSource(source)
+    app.notify("当前后端尚未提供 Skill 草稿生成接口。", "error")
+  }
+  async function updateDraft() {
+    return skillDraft()
+  }
+  async function testDraft() {
+    await updateDraft()
+    app.notify("当前后端尚未提供 Skill 草稿测试接口。", "error")
+  }
+  async function saveDraft() {
+    await updateDraft()
+    app.notify("当前后端尚未提供 Skill 草稿保存接口。", "error")
+  }
+  async function savePersonalSkill() {
+    const value = skillEditor()
+    if (!value) return
+    try {
+      await patch("/skills/" + value.id, {
+        name: value.name,
+        description: value.description ?? "",
+        content: value.content ?? "",
+        enabled: value.enabled ?? true,
+      })
+      setSkillEditor(undefined)
+      await resources()
+      app.notify("个人 Skill 已更新。")
+    } catch (cause) {
+      app.notify((cause as Error).message, "error")
+    }
+  }
+  async function testPersonalSkill() {
+    const value = skillEditor()
+    if (!value) return
+    try {
+      const result = await post<{ ok: boolean; message: string }>("/skills/" + value.id + "/test")
+      app.notify(result.message, result.ok ? "success" : "error")
+    } catch (cause) {
+      app.notify((cause as Error).message, "error")
+    }
+  }
+  async function deletePersonalSkill() {
+    const value = skillEditor()
+    if (!value || !window.confirm(`确定删除个人 Skill“${value.name}”吗？`)) return
+    try {
+      await remove("/skills/" + value.id)
+      setSelectedSkills(selectedSkills().filter((id) => id !== value.id))
+      setSkillEditor(undefined)
+      await resources()
+      app.notify("个人 Skill 已删除。")
+    } catch (cause) {
+      app.notify((cause as Error).message, "error")
+    }
+  }
+  async function showEvidence() {
+    if (!selected() || !latestRun()) return
+    try {
+      setEvidence(await api<Evidence>("/sessions/" + selected() + "/evidence"))
+    } catch (cause) {
+      app.notify((cause as Error).message, "error")
+    }
   }
   return (
     <div class="chat-layout">
@@ -347,9 +404,9 @@ export default function Chat() {
                 <div class={"history-item " + (selected() === item.id ? "selected" : "")}>
                   <button onClick={() => void choose(item.id)}>
                     <Icon name="chat" size={16} />
-                    <span>{item.title || "未命名对话"}</span>
+                    <span>{displayName(item.title) || "未命名对话"}</span>
                   </button>
-                  <div class="history-actions">
+                  <Show when={!item.id.startsWith("mock-")}><div class="history-actions">
                     <button
                       class="icon-button"
                       aria-label="重命名对话"
@@ -363,7 +420,7 @@ export default function Chat() {
                     <button class="icon-button" aria-label="删除对话" onClick={() => void deleteSession(item)}>
                       <Icon name="trash" size={14} />
                     </button>
-                  </div>
+                  </div></Show>
                 </div>
               )}
             </For>
@@ -384,7 +441,7 @@ export default function Chat() {
             >
               <Icon name="clock" />
             </button>
-            <h2>{active()?.title || "新建研判"}</h2>
+            <h2>{displayName(active()?.title) || "新建研判"}</h2>
           </div>
           <div class="conversation-head-actions">
             <div class="model-choice">
@@ -392,7 +449,7 @@ export default function Chat() {
               <select
                 aria-label="选择授权模型"
                 value={model() || shownModels()[0]?.id}
-                disabled={busy() || sending()}
+                disabled={busy()}
                 onChange={(event) => setModel(event.currentTarget.value)}
               >
                 <For each={shownModels()}>
@@ -405,21 +462,34 @@ export default function Chat() {
                 </For>
               </select>
             </div>
-            <span class="quiet">对话与结果仅本人可见</span>
+            <Button class="distill-skill" icon="skill" onClick={() => setCreator("choose")}>沉淀为 Skill</Button>
           </div>
         </div>
-        <Show when={notice()}><div class="runtime-banner" role="status"><Icon name="clock" size={17} /><span>{notice()}</span></div></Show>
-        <Show when={!models().length && !loading()}><div class="runtime-banner">暂无获授权模型，请联系管理员配置。</div></Show>
+        <Show when={!ready()}>
+          <div class="runtime-banner">
+            <Icon name="clock" size={17} />
+            <span>
+              个人工作空间
+              {["updating", "applying"].includes(app.user().runtime?.status ?? "")
+                ? "正在更新配置，当前对话可继续查看或停止，完成后即可发送新消息。"
+                : ["paused", "stopped"].includes(app.user().runtime?.status ?? "")
+                  ? "已暂停，请联系管理员恢复。"
+                  : ["failed", "error"].includes(app.user().runtime?.status ?? "")
+                    ? "暂时不可用，请联系管理员检查并重试。"
+                    : "正在准备，准备完成后即可发送消息。"}
+            </span>
+            <Status value={app.user().runtime?.status} />
+          </div>
+        </Show>
         <div class="messages-scroll" ref={scroll}>
-          <EvidencePanel summary value={evidence()} onRetry={() => void messageRefresh.request()} />
           <Show
             when={messages().length}
             fallback={<div class="conversation-blank" aria-label="空白研判对话区" />}
           >
             <div class="messages">
-              <For each={messages()}>
+              <For each={shownMessages()}>
                 {(message) => (
-                  <article id={"message-" + message.info.id} class={"message " + (message.info.role === "user" ? "user" : "assistant")}>
+                  <article class={"message " + (message.info.role === "user" ? "user" : "assistant")}>
                     <div class="message-avatar">
                       <Show when={message.info.role === "user"} fallback={<Icon name="skill" size={17} />}>
                         {app.user().username.slice(0, 1).toUpperCase()}
@@ -428,7 +498,9 @@ export default function Chat() {
                     <div class="message-content">
                       <div class="message-author">{message.info.role === "user" ? "你" : "智能助手"}</div>
                       <For each={message.parts}>
-                        {(part) => (
+                        {(part) => {
+                          const structured = undefined
+                          return (
                           <>
                             <Show when={part.type === "text" && part.text}>
                               <Markdown text={part.text ?? ""} />
@@ -484,7 +556,8 @@ export default function Chat() {
                               </details>
                             </Show>
                           </>
-                        )}
+                          )
+                        }}
                       </For>
                       <Show when={message.info.error}>
                         <ErrorLine
@@ -499,22 +572,33 @@ export default function Chat() {
                   </article>
                 )}
               </For>
-              <Show when={busy() && available()}>
+              <Show when={latestAnalysis()}>{result=><article class="message assistant"><div class="message-avatar"><Icon name="skill" size={17}/></div><div class="message-content"><div class="message-author">智能助手</div><AnalysisResultView result={result()} onSelect={setSelectedClue}/></div></article>}</Show>
+              <Show when={busy()}>
                 <div class="thinking">
                   <Spinner />
                   <span>正在整理思路与资料…</span>
-                  <button disabled={!continuing()} onClick={abort}>停止</button>
+                  <button onClick={abort}>停止</button>
                 </div>
               </Show>
             </div>
           </Show>
         </div>
         <div class="composer-area">
-          <Show when={!available() && selected()}><p role="status">状态暂不可更新，最后已知任务状态和历史内容已保留。</p></Show>
-          <BusinessConfirmations sessionID={selected()} available={available()} canContinue={continuing()} onAnswered={() => void refresh()} />
+          <BusinessConfirmations sessionID={selected()} available={available()} onAnswered={() => void refresh()} />
           <ErrorLine message={error()} />
-          <Show when={uncertain()}><div class="runtime-banner" role="status"><span>结果待确认。刷新不会自动重发本次问题。</span><Button onClick={() => void refresh()}>刷新历史</Button><Button onClick={() => { if (window.confirm("请确认已核对原会话历史及任务状态。重新发送可能产生重复调用，是否解除发送保护？")) { setUncertain(false); setError("") } }}>已核对，解除保护</Button></div></Show>
-          <Show when={selectedFiles().length || selectedSkills().length}>
+          <Show when={uncertain()}>
+            <div class="runtime-banner" role="status">
+              <span>结果待确认。刷新不会自动重发本次问题。</span>
+              <Button onClick={() => void refresh()}>刷新历史</Button>
+              <Button onClick={() => {
+                if (window.confirm("请确认已核对原会话历史及任务状态。重新发送可能产生重复调用，是否解除发送保护？")) {
+                  setUncertain(false)
+                  setError("")
+                }
+              }}>已核对，解除保护</Button>
+            </div>
+          </Show>
+          <Show when={selectedFiles().length || selectedSkills().length || selectedPlugins().length}>
             <div class="selection-chips">
               <For each={selectedFiles()}>
                 {(id) => (
@@ -534,12 +618,20 @@ export default function Chat() {
                   </button>
                 )}
               </For>
-
+              <For each={selectedPlugins()}>
+                {(id) => (
+                  <button onClick={() => setSelectedPlugins((current) => current.filter((value) => value !== id))}>
+                    <Icon name="plugin" size={13} />
+                    {shownCapabilities().find((x) => x.id === id)?.name ?? "已选插件"}
+                    <Icon name="close" size={12} />
+                  </button>
+                )}
+              </For>
             </div>
           </Show>
           <Show when={slashQuery() !== undefined}>
             <div class="slash-command-menu">
-              <div class="slash-command-head"><strong>/ 选择技能</strong><span>输入名称可筛选</span></div>
+              <div class="slash-command-head"><strong>/ 选择技能或插件</strong><span>输入名称可筛选</span></div>
               <For each={slashCapabilities()} fallback={<p>没有匹配的可用能力</p>}>
                 {(item) => <button onClick={() => chooseSlashCapability(item)}><span class={"slash-kind " + item.kind}><Icon name={item.kind === "skill" ? "skill" : "plugin"} size={16} /></span><span><strong>{item.name}</strong><small>{item.description}</small></span><em>{item.kind === "skill" ? "Skill" : "插件"}</em></button>}
               </For>
@@ -550,7 +642,7 @@ export default function Chat() {
               ref={textarea}
               aria-label="输入消息"
               maxlength={32000}
-              placeholder="输入研判内容，使用 / 选择已启用技能…"
+              placeholder="输入研判内容，使用 / 唤醒技能或插件…"
               value={draft()}
               rows={3}
               onInput={(event) => setDraft(event.currentTarget.value)}
@@ -573,7 +665,7 @@ export default function Chat() {
                 </button>
               </div>
               <Show
-                when={busy() && available()}
+                when={busy()}
                 fallback={
                   <Button
                     variant="primary"
@@ -586,7 +678,7 @@ export default function Chat() {
                   </Button>
                 }
               >
-                <Button icon="stop" disabled={!continuing()} onClick={abort}>
+                <Button icon="stop" onClick={abort}>
                   停止生成
                 </Button>
               </Show>
@@ -597,21 +689,22 @@ export default function Chat() {
           </div>
         </div>
       </section>
-      <EvidencePanel value={evidence()} error={evidenceError()} onRetry={() => void messageRefresh.request()} />
-<aside class="related-capabilities">
-        <div class="related-capabilities-head"><div><strong>技能与插件</strong><small>个人技能与已获授权插件</small></div><span>{shownCapabilities().length}</span></div>
-        <div class="capability-management-actions"><Button onClick={() => manage("skills")}>管理技能</Button><Button onClick={() => manage("plugins")}>管理插件</Button></div>
+      <Show when={latestAnalysis()?.clues.length} fallback={<aside class="related-capabilities">
+        <div class="related-capabilities-head"><div><strong>相关插件技能</strong><small>当前账号全部可用能力</small></div><span>{shownCapabilities().length}</span></div>
         <div class="related-capabilities-list">
           <For each={shownCapabilities()}>
-            {(item, index) => <button class={selectedSkills().includes(item.id) ? "selected" : ""} onClick={() => toggleCapability(item)}><span class={"capability-icon tone-" + (index() % 5)}><Icon name={item.kind === "skill" ? "skill" : "plugin"} size={18} /></span><span><strong>{item.name}<em>v{item.version}</em></strong><small>{item.description}</small><i>{item.kind === "skill" ? "个人 Skill" : item.state}</i></span><b>{item.kind === "plugin" ? "配置" : selectedSkills().includes(item.id) ? "已选" : "使用"}</b></button>}
+            {(item, index) => <button class={(item.kind === "skill" ? selectedSkills() : selectedPlugins()).includes(item.id) ? "selected" : ""} onClick={() => toggleCapability(item)}><span class={"capability-icon tone-" + (index() % 5)}><Icon name={item.kind === "skill" ? "skill" : "plugin"} size={18} /></span><span><strong>{item.name}<em>v{item.version}</em></strong><small>{item.description}</small><i>{item.kind === "skill" ? (item.owned ? "个人 Skill" : "官方 Skill") : "插件工具"}</i></span><b>{(item.kind === "skill" ? selectedSkills() : selectedPlugins()).includes(item.id) ? "已选" : "使用"}</b></button>}
           </For>
         </div>
-      </aside>
+      </aside>}>
+        <CluePanel clues={latestAnalysis()?.clues ?? []} onSelect={setSelectedClue} />
+      </Show>
+      <Show when={selectedClue()}>{(clue) => <ClueDrawer clue={clue()} onClose={() => setSelectedClue(undefined)} />}</Show>
       <Show when={picker()}>
         {(type) => (
           <Modal
             title={type() === "files" ? "关联文件" : "能力选择"}
-            text={type() === "files" ? "仅可选择已完成解析的个人文件。" : "Skill 可随消息选用。插件在个人环境应用后由助手按需调用，配置不代表已经生效。"}
+            text={type() === "files" ? "仅可选择已完成解析的个人文件。" : "选择适合当前任务的能力；个人 Skill 可在此编辑和使用。"}
             onClose={() => setPicker(undefined)}
           >
             <Show when={type() === "capabilities"}>
@@ -633,16 +726,13 @@ export default function Chat() {
               >
                 {(item) => (
                   <div class="pick-row capability-row">
-                    <Show when={!("kind" in item && item.kind === "plugin")} fallback={<Button onClick={() => manage("plugins")}>配置</Button>}>
                     <input
                       type="checkbox"
-                      aria-label={"选择 " + item.name}
                       disabled={type() === "files" && "status" in item && item.status === "partial"}
-                      checked={(type() === "files" ? selectedFiles() : selectedSkills()).includes(item.id)}
+                      checked={(type() === "files" ? selectedFiles() : "kind" in item && item.kind === "plugin" ? selectedPlugins() : selectedSkills()).includes(item.id)}
                       onChange={() => type() === "files" ? toggle(item.id, "files") : "kind" in item && toggleCapability(item)}
                     />
-                    </Show>
-                    <Icon name={type() === "files" ? "file" : "kind" in item && item.kind === "plugin" ? "plugin" : "skill"} />
+                    <Icon name={type() === "files" ? "file" : "skill"} />
                     <span>
                       {item.name}
                       <Show when={type() === "capabilities" && "description" in item}><small>{("description" in item ? item.description : "") || "可用于当前研判任务"}</small></Show>
@@ -651,15 +741,23 @@ export default function Chat() {
                         <small class="muted">部分解析 · 请拆分重传</small>
                       </Show>
                     </span>
-
+                    <Show when={type() === "capabilities" && "owned" in item && item.owned}>
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          const skill = skills().find((value) => value.id === item.id)
+                          if (skill) setSkillEditor({ ...skill })
+                        }}
+                      >
+                        编辑
+                      </Button>
+                    </Show>
                   </div>
                 )}
               </For>
             </div>
             <div class="modal-actions">
-              <Show when={type() === "files"} fallback={<><Button onClick={() => manage("skills")}>管理技能</Button><Button onClick={() => manage("plugins")}>管理插件</Button></>}>
-                <Button onClick={() => manage("files")}>上传与管理文件</Button>
-              </Show>
+              <Show when={type() === "capabilities"}><Button icon="plus" onClick={() => { setPicker(undefined); setCreator("choose") }}>创建 Skill</Button></Show>
               <Button variant="primary" onClick={() => setPicker(undefined)}>
                 完成选择
               </Button>
@@ -667,17 +765,10 @@ export default function Chat() {
           </Modal>
         )}
       </Show>
-      <Show when={manager()}>
-        <Modal wide title={manager() === "skills" ? "个人技能管理" : manager() === "plugins" ? "授权插件管理" : "文件管理"} onClose={() => setManager(undefined)}>
-          <Show when={manager() === "skills"}><Skills /></Show>
-          <Show when={manager() === "plugins"}><Plugins /></Show>
-          <Show when={manager() === "files"}><Files onUse={(item) => {
-            if (!selectedFiles().includes(item.id)) toggle(item.id, "files")
-            setManager(undefined)
-            void fileRefresh.request()
-          }} /></Show>
-        </Modal>
-      </Show>
+      <Show when={creator() === "choose"}><Modal title="选择创建方式" onClose={() => setCreator(undefined)}><div class="creator-choice"><button onClick={() => { setCreatorSource("requirement"); setCreator("source") }}><Icon name="file" /><strong>从需求创建</strong><span>通过自然语言描述，由系统生成 Skill 草稿</span></button><button onClick={() => void generateSkill("conversation")}><Icon name="chat" /><strong>从当前对话生成</strong><span>提炼当前研判对话中的有效流程</span></button></div></Modal></Show>
+      <Show when={creator() === "source"}><Modal title="从需求创建 Skill" text="描述需要固化的研判目标、数据范围和输出要求。" wide onClose={() => setCreator(undefined)}><Field label="研判需求" required><textarea rows={8} value={draft()} onInput={(event) => setDraft(event.currentTarget.value)} placeholder="例如：分析目标人员最近30天夜间活动和共同出现人员" /></Field><div class="modal-actions"><Button onClick={() => setCreator("choose")}>上一步</Button><Button variant="primary" onClick={() => void generateSkill("requirement")}>AI 提炼生成</Button></div></Modal></Show>
+      <Show when={creator() === "edit" && skillDraft()}>{(value) => <Modal title="编辑 Skill" text={`来源：${creatorSource() === "conversation" ? "当前对话" : "需求描述"}`} wide onClose={() => setCreator(undefined)}><div class="form-grid"><Field label="Skill 名称" required><input value={value().name} onInput={(event) => setSkillDraft({ ...value(), name: event.currentTarget.value })} /></Field><Field label="使用场景"><input value={value().description} onInput={(event) => setSkillDraft({ ...value(), description: event.currentTarget.value })} /></Field></div><Field label="Skill 内容（SKILL.md）" required><textarea class="skill-editor" value={value().content} onInput={(event) => setSkillDraft({ ...value(), content: event.currentTarget.value })} /></Field><div class="modal-actions"><Button onClick={() => void testDraft()}>测试运行</Button><Button variant="primary" onClick={() => void saveDraft()}>保存到个人 Skill</Button></div></Modal>}</Show>
+      <Show when={skillEditor()}>{(value) => <Modal title="编辑个人 Skill" text="个人 Skill 仅当前账号可见，可在能力选择弹窗中继续使用。" wide onClose={() => setSkillEditor(undefined)}><div class="form-grid"><Field label="Skill 名称" required><input value={value().name} onInput={(event) => setSkillEditor({ ...value(), name: event.currentTarget.value })} /></Field><Field label="使用场景"><input value={value().description ?? ""} onInput={(event) => setSkillEditor({ ...value(), description: event.currentTarget.value })} /></Field></div><Field label="Skill 内容（SKILL.md）" required><textarea class="skill-editor" value={value().content ?? ""} onInput={(event) => setSkillEditor({ ...value(), content: event.currentTarget.value })} /></Field><div class="modal-actions split"><Button variant="danger" onClick={() => void deletePersonalSkill()}>删除</Button><span /><Button onClick={() => void testPersonalSkill()}>测试运行</Button><Button variant="primary" onClick={() => void savePersonalSkill()}>保存</Button></div></Modal>}</Show>
       <Show when={rename()}>
         <Modal title="重命名对话" onClose={() => setRename(undefined)}>
           <form onSubmit={saveTitle}>

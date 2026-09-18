@@ -4941,3 +4941,34 @@ tr:hover td {
 .evidence-drawer dd { margin: 5px 0; }
 @media(max-width: 1450px) { .chat-layout { grid-template-columns: 220px minmax(0,1fr) 270px; } }
 @media(max-width: 1050px) { .chat-layout { grid-template-columns: minmax(0,1fr); } .evidence-panel { position: absolute; bottom: 0; right: 0; width: 280px; z-index: 12; max-height: 60vh; box-shadow: 0 -3px 18px #143d6820; } .evidence-content { display: none; } .evidence-panel.expanded .evidence-content { display: block; } .evidence-summary { margin: 8px; } .conversation { padding-bottom: 50px; } }
+
+/* Trusted result presentation reuses the approved screenshot design. */
+.trusted-analysis { gap: 12px; margin: 8px 0 20px; }
+.trusted-analysis .analysis-step { min-height: 46px; }
+.trusted-analysis .analysis-step p { white-space: normal; }
+.trusted-analysis .analysis-section > h3 { min-height: 36px; }
+.trusted-analysis .analysis-evidence-card { text-align: left; font: inherit; cursor: pointer; color: #23466f; }
+.conclusion-link { border: 0; background: transparent; color: #23466f; text-align: left; padding: 3px 0; font: inherit; cursor: pointer; }
+.conclusion-link:hover { color: #0870e9; text-decoration: underline; }
+.analysis-limits { color: #526e8d; font-size: 12px; }
+.trusted-clues { width: 100%; max-width: 100%; min-width: 0; }
+.trusted-clues .clue-card { overflow-wrap: anywhere; }
+.trusted-clues .clue-panel-head { width: 100%; border: 0; background: #f7fbff; text-align: left; }
+.trusted-drawer { position: fixed; inset: 0 0 0 auto; margin: 0; width: min(480px,100vw); height: 100dvh; max-height: 100dvh; max-width: 100vw; border: 0; padding: 0; color: #23466f; background: #f7fbff; }
+.trusted-drawer::backdrop { background: #142d4b40; }
+.trusted-drawer > header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: white; border-bottom: 1px solid #d4e4f6; }
+.trusted-drawer .clue-drawer-scroll { max-height: calc(100dvh - 80px); overflow: auto; }
+.trusted-drawer section { border: 1px solid #d4e4f6; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: white; }
+.trusted-drawer h3 { color: #0870e9; font-size: 14px; }
+.trusted-drawer p,.trusted-drawer li { line-height: 1.7; overflow-wrap: anywhere; }
+@media(max-width:1050px){.trusted-clues{display:block!important;position:absolute;right:0;bottom:0;width:280px;max-height:60vh;z-index:12;box-shadow:0 -3px 18px #143d6820}.trusted-clues .clue-list{display:none}.trusted-clues.expanded .clue-list{display:block;max-height:45vh;overflow:auto}.conversation{padding-bottom:50px}}
+@media(max-width:600px){.trusted-analysis .analysis-step{grid-template-columns:25px minmax(0,1fr) 65px}.trusted-analysis .analysis-step time{grid-column:3;grid-row:auto}.trusted-analysis .analysis-step p{grid-column:2/-1}.trusted-analysis .analysis-evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.trusted-analysis .analysis-evidence-card{min-width:0}.trusted-analysis .analysis-evidence-note{overflow-wrap:anywhere}}
+
+.trusted-analysis .analysis-evidence-card > p,
+.trusted-analysis .analysis-evidence-note { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+@media(max-width:1050px) {
+ .trusted-clues { position: fixed; right: 12px; bottom: 10px; width: 170px; max-width: calc(100vw - 24px); border-radius: 8px; }
+ .trusted-clues.expanded { width: 280px; }
+ .trusted-clues .clue-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 8px; }
+ .trusted-clues .clue-panel-head strong { font-size: 14px; }
+}

@@ -1,0 +1,17 @@
+{
+  "DEMO-CASE-THEFT": {
+    "places": [
+      {
+        "id": "DEMO-PLACE-ECHO",
+        "label": "地点 ECHO",
+        "relationship": "相邻点",
+        "device_ref": "DEMO-CAMERA-ECHO",
+        "source_ids": [
+          "DEMO-CTX-T03",
+          "DEMO-NGT-007",
+          "DEMO-DOC-T03"
+        ]
+      }
+    ]
+  }
+}

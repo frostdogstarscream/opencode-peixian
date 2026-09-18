@@ -20,7 +20,7 @@ def permitted(store, uid):
         grant = db.execute("SELECT 1 FROM grants WHERE uid=? AND kind='plugin' AND resource='peixian-synthetic-records'", (uid,)).fetchone()
         applied = store.decrypt(row[0]) if row and row[0] else {}
     plugins = applied.get("plugins", [])
-    matches = [p for p in plugins if p.get("id") == "peixian-synthetic-records" and p.get("manifest", {}).get("version") in ("1.1.0", "1.2.0")]
+    matches = [p for p in plugins if p.get("id") == "peixian-synthetic-records" and p.get("manifest", {}).get("version") in ("1.1.0", "1.2.0", "1.3.0")]
     # Another plugin claiming these names must not acquire this public projection.
     if not grant or len(matches) != 1:
         return False

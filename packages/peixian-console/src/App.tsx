@@ -9,6 +9,7 @@ import Chat from "./pages/Chat"
 import Files from "./pages/Files"
 import Settings from "./pages/Settings"
 import Admin from "./pages/Admin"
+import FinalAdmin from "./pages/FinalAdmin"
 import { defaultPlatform, platformMetadata } from "./platform"
 import type { Platform } from "./platform"
 import { connectEvents, createChangeBus, parseChange, resources } from "./events"
@@ -30,11 +31,15 @@ export default function App() {
   const changes = createChangeBus()
   const [disconnected, setDisconnected] = createSignal(false)
   const [toast, setToast] = createSignal<{ message: string; kind: string }>()
-  const [dark, setDark] = createSignal(localStorage.getItem("peixian-theme") === "dark")
   const capabilities = () => auth()?.capabilities ?? []
   const can = (capability: Capability) => capabilities().includes(capability)
   const management = () => visibleManagementTabs(capabilities()).length > 0
-  const adminPages = () => visibleManagementTabs(capabilities()).map((tab) => ({ id: "admin-" + tab.id, name: tab.label, icon: tab.id === "models" ? "model" : "shield" }))
+  const adminPages = () =>
+    visibleManagementTabs(capabilities()).map((tab) => ({
+      id: "admin-" + tab.id,
+      name: tab.id === "users" ? "用户与部门" : tab.id === "audit" ? "调用审计" : tab.label,
+      icon: tab.id === "models" ? "skill" : tab.id === "users" ? "users" : tab.id === "audit" ? "clock" : "shield",
+    }))
   const defaultPage = () => (can("business.use") ? "chat" : adminPages()[0]?.id ?? "settings")
   const visiblePages = () => pages.filter((item) => item.id === "settings" || can("business.use"))
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -99,10 +104,6 @@ export default function App() {
   createEffect(() => {
     if (!auth()) return
     if (![...visiblePages(), ...adminPages()].some((item) => item.id === page())) setPage(defaultPage())
-  })
-  createEffect(() => {
-    document.documentElement.dataset.theme = dark() ? "dark" : "light"
-    localStorage.setItem("peixian-theme", dark() ? "dark" : "light")
   })
   const eventIdentity = createMemo(() => {
     const user = auth()?.user
@@ -256,8 +257,8 @@ export default function App() {
                       <Show when={disconnected()}>
                         <span class="connection-note">正在恢复连接</span>
                       </Show>
-                      <Show when={can("business.use")} fallback={<div class="admin-profile"><span class="admin-avatar">警</span><span><strong>{session().user.username}</strong><small>{roleNames[session().user.role]}</small></span><button class="icon-button" aria-label="退出登录" title="退出登录" onClick={logout}><Icon name="logout" size={17} /></button></div>}>
-                        <div class="business-profile"><span class="business-location">江苏 · 沛县<small>千年汉风地 · 今日平安城</small></span><span class="admin-avatar">警</span><span><strong>{session().user.username}</strong><small>{roleNames[session().user.role]}</small></span><button class="icon-button" aria-label="退出登录" title="退出登录" onClick={logout}><Icon name="logout" size={17} /></button></div>
+                      <Show when={can("business.use")} fallback={<div class="admin-profile"><span class="admin-avatar">警</span><span><strong>{session().user.display_name || session().user.username}</strong><small>{roleNames[session().user.role]}</small></span><button class="icon-button" aria-label="退出登录" title="退出登录" onClick={logout}><Icon name="logout" size={17} /></button></div>}>
+                        <div class="business-profile"><span class="business-location">江苏 · 沛县<small>千年汉风地 · 今日平安城</small></span><span class="admin-avatar">警</span><span><strong>{session().user.display_name || session().user.username}</strong><small>{session().user.position || roleNames[session().user.role]}</small></span><button class="icon-button" aria-label="退出登录" title="退出登录" onClick={logout}><Icon name="logout" size={17} /></button></div>
                       </Show>
                     </div>
                   </header>
@@ -271,6 +272,9 @@ export default function App() {
                     <Switch>
                       <Match when={page() === "files" && can("business.use")}><Files /></Match>
                       <Match when={page() === "settings"}><Settings /></Match>
+                      <Match when={page() === "admin-models" && management()}><FinalAdmin section="models" /></Match>
+                      <Match when={page() === "admin-users" && management()}><FinalAdmin section="users" /></Match>
+                      <Match when={page() === "admin-audit" && management()}><FinalAdmin section="audit" /></Match>
                       <Match when={page().startsWith("admin-") && management()}><Admin section={page().slice(6)} /></Match>
                     </Switch>
                   </div>

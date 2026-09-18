@@ -41,6 +41,8 @@ def project_facts(turn, result, data):
             if not isinstance(raw, str) or len(raw) > 1048576:
                 raise ValueError()
             output = json.loads(raw)
+            if isinstance(output, dict):
+                output.pop("execution_trace", None)
             args = state.get("input", {})
             if part["tool"] == PREPARE:
                 if not isinstance(args, dict) or set(args) != {"scenario_id"} or output.get("scenario_id") != args["scenario_id"] or output not in TABLES:

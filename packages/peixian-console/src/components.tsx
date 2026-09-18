@@ -180,6 +180,11 @@ export function Modal(props: {
     dialog.showModal()
     dialog.querySelector<HTMLElement>("input,textarea,select,button")?.focus()
   })
+  const handle = (event: KeyboardEvent) => {
+    if (event.key === "Escape") props.onClose()
+  }
+  document.addEventListener("keydown", handle)
+  onCleanup(() => document.removeEventListener("keydown", handle))
   return (
     <dialog
       ref={dialog}

@@ -45,7 +45,7 @@
 
 ## 发布与恢复
 
-Control 镜像标签 agent-platform-control:presentation-final-20260918，实际 Docker 镜像 ID：sha256:5c79ed445f9daa8aae5f3891645b909aa4acbf5c239c33b6997225c20d54cbb4。它是本机镜像身份，不是 registry manifest 摘要。
+Control 镜像标签 agent-platform-control:presentation-final-20260918，实际 Docker 镜像 ID：sha256:a9980c54f30ae4d249b0ad9b7da5f95d5d609daae0047db7cfd145c06a763a54。它是本机镜像身份，不是 registry manifest 摘要。
 
 复用本地固定依赖镜像离线构建；部署配置使用精确镜像 ID。Control 与前端匹配发布，Worker 短暂停止后恢复。Agent/Gateway 未重建内核。
 
@@ -60,3 +60,5 @@ Control 镜像标签 agent-platform-control:presentation-final-20260918，实际
 - presentation_acceptance.py 为有费用的现场验收工具，持久文件锁和已尝试记录限制重试；不能在不核对预算的情况下重建报告。
 
 本轮没有执行并发压测、真实业务数据验收、全仓全量回归或新一轮在途停止/网络故障注入。稳定性及实际业务能力不由界面改版证明。既有运行时停止修复、数据适配器和其他交付文件保留在工作区，不混入本次提交。
+
+最终窄屏补充：资料发现入口纳入页面顶部独立行，展开列表有高度限制，不遮挡输入区或发送按钮；已补充入口与输入区不相交断言。

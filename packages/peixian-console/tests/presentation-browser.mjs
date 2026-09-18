@@ -25,7 +25,9 @@ for(const width of [1366,1920,390]) {
   for(const el of await page.locator(selector).all()) {const box=await el.boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=width+1,selector+" clipped");}
  }
  if(width===390) {
-  const toggle=page.locator(".trusted-clues .clue-panel-head");await toggle.click();
+  const toggle=page.locator(".trusted-clues .clue-panel-head");
+  const tb=await toggle.boundingBox(), composer=await page.locator(".composer").boundingBox();
+  assert.ok(tb&&composer&&tb.y+tb.height<=composer.y,"discovery toggle overlaps composer");await toggle.click();
   await page.locator(".trusted-clues .clue-card > button").first().click();await page.getByRole("dialog",{name:"线索详情"}).waitFor();await page.keyboard.press("Escape");await toggle.click();
  }
  await result.locator(".analysis-evidence-grid").scrollIntoViewIfNeeded();

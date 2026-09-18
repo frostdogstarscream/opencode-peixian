@@ -4967,8 +4967,10 @@ tr:hover td {
 .trusted-analysis .analysis-evidence-card > p,
 .trusted-analysis .analysis-evidence-note { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 @media(max-width:1050px) {
- .trusted-clues { position: fixed; right: 12px; bottom: 10px; width: 170px; max-width: calc(100vw - 24px); border-radius: 8px; }
- .trusted-clues.expanded { width: 280px; }
+ .chat-layout:has(.trusted-clues) { grid-template-rows: auto minmax(0, 1fr); }
+ .chat-layout:has(.trusted-clues) > .conversation { grid-row: 2; }
+ .trusted-clues, .trusted-clues.expanded { position: static; grid-row: 1; width: 100%; max-width: 100%; max-height: 40vh; }
+ .trusted-clues.expanded .clue-list { max-height: 30vh; }
  .trusted-clues .clue-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 8px; }
  .trusted-clues .clue-panel-head strong { font-size: 14px; }
 }

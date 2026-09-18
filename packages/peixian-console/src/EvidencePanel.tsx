@@ -2,6 +2,7 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "so
 
 export type EvidenceCard = { id: string; title: string; description: string; time: string; source_ids: string[]; fields: { label: string; value: string }[]; message_id: string; snapshot_id: string }
 export type Evidence = {
+  summary_check?: string; verified_summary?: { fact_id: string; statement: string; source_ids: string[] }[]
   turn_id?: string; status: string; notice: string; scenario: null | { title: string; scenario_id: string; subject_ref: string; snapshot_id: string; records_snapshot_id: string; rule_version: string; timezone: string; night_window: string; case_window: string[] }
   steps: { label: string; status: string }[]; cards: EvidenceCard[]; missing: string[]
   summary: { label: string; count: number; dates: string[]; night_count: number }[]
@@ -22,6 +23,11 @@ export default function EvidencePanel(props: { value?: Evidence; summary?: boole
         <ol><For each={props.value?.steps}>{step => <li>{step.label}<span>{labels[step.status] || "等待处理"}</span></li>}</For></ol>
         <div class="evidence-counts"><For each={props.value?.summary}>{item => <div><strong>{item.count}</strong><span>{item.label}</span><small>涉及 {item.dates.length} 个自然日 · 夜间 {item.night_count} 条</small></div>}</For></div>
         <Show when={props.value?.scenario}><p>北京时间 · 夜间 22:00 至次日 06:00；仅统计返回资料，不推断行为目的。</p></Show>
+        <Show when={props.value?.summary_check}>
+          <section aria-label="已核对摘要"><h3>已核对摘要</h3><p>仅以下原句通过代码核对；助手其他文字及改写仍未核验。</p>
+          <For each={props.value?.verified_summary} fallback={<p>尚无通过核对的摘要表述。</p>}>{fact => <p>{fact.statement}<small> 来源：{fact.source_ids.join("、") || "已取得的完整模块与固定统计口径"}</small></p>}</For>
+          <Show when={props.value?.summary_check === "rejected"}><p>部分提交表述不被来源支持，已拒绝展示为核验结果。</p></Show></section>
+        </Show>
         <details><summary>资料缺口与限制</summary><ul><For each={props.value?.missing}>{text => <li>{text}</li>}</For></ul></details>
       </section>
     </Show>

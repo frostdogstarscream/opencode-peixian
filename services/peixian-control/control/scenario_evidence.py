@@ -20,11 +20,11 @@ def permitted(store, uid):
         grant = db.execute("SELECT 1 FROM grants WHERE uid=? AND kind='plugin' AND resource='peixian-synthetic-records'", (uid,)).fetchone()
         applied = store.decrypt(row[0]) if row and row[0] else {}
     plugins = applied.get("plugins", [])
-    matches = [p for p in plugins if p.get("id") == "peixian-synthetic-records" and p.get("manifest", {}).get("version") == "1.1.0"]
+    matches = [p for p in plugins if p.get("id") == "peixian-synthetic-records" and p.get("manifest", {}).get("version") in ("1.1.0", "1.2.0")]
     # Another plugin claiming these names must not acquire this public projection.
     if not grant or len(matches) != 1:
         return False
-    names = set(TOOLS) | {CONTEXT}
+    names = set(TOOLS) | {CONTEXT, "peixian_prepare_scenario_facts", "peixian_check_scenario_summary"}
     return not any(names.intersection(p.get("manifest", {}).get("tools", [])) for p in plugins if p is not matches[0])
 
 
@@ -42,6 +42,10 @@ def project(messages, authorized):
         return result
     result["turn_id"] = messages[starts[-1]].get("info", {}).get("id", "")
     turn = messages[starts[-1] + 1:]
+    from .scenario_facts import project_facts
+    computed = project_facts(turn, result, DATA)
+    if computed is not None:
+        return computed
     accepted = {}
     context = None
     for message in turn:

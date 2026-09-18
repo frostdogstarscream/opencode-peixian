@@ -138,6 +138,7 @@ def schemas():
                           ("id", "name", "description", "base_url", "model_id", "enabled", "is_default", "api_key_configured")),
         "ModelChanged": obj({"model": ref("AdminModel"), "jobs": array(ref("Job"))}, ("model", "jobs")),
         "ScenarioEvidence": obj({
+            "summary_check": STRING, "verified_summary": array(obj({"fact_id": STRING, "statement": STRING, "source_ids": array(STRING)})),
             "schema_version": {"const": "1"}, "status": {"type": "string", "enum": ["empty", "partial", "complete", "unavailable"]}, "turn_id": STRING, "notice": STRING,
             "scenario": nullable(obj({"title": STRING, "scenario_id": STRING, "subject_ref": STRING, "snapshot_id": STRING, "records_snapshot_id": STRING, "rule_version": STRING, "timezone": STRING, "night_window": STRING, "case_window": array(STRING)})),
             "steps": array(obj({"label": STRING, "status": {"type": "string", "enum": ["pending", "running", "completed", "error"]}}, ("label", "status"))),

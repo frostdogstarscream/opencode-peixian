@@ -24,6 +24,18 @@ ALLOWED_FILES = (
     'deploy/peixian/examples/peixian_synthetic_records/skills/gambling-materials/SKILL.md',
     'deploy/peixian/examples/peixian_synthetic_records/skills/theft-timeline/SKILL.md',
 
+    'deploy/peixian/examples/peixian_synthetic_records/facts-plugin/manifest.json',
+    'deploy/peixian/examples/peixian_synthetic_records/facts-plugin/engine.mjs',
+    'deploy/peixian/examples/peixian_synthetic_records/facts-plugin/fixtures.json',
+    'deploy/peixian/examples/peixian_synthetic_records/facts-plugin/legacy.mjs',
+    'deploy/peixian/examples/peixian_synthetic_records/facts-plugin/entry.mjs',
+    'deploy/peixian/examples/peixian_synthetic_records/facts-skills/gambling-materials/SKILL.md',
+    'deploy/peixian/examples/peixian_synthetic_records/facts-skills/theft-timeline/SKILL.md',
+    'deploy/peixian/examples/peixian_synthetic_records/facts_acceptance.py',
+    'deploy/peixian/examples/peixian_synthetic_records/facts-plugin.test.mjs',
+    'deploy/peixian/examples/peixian_synthetic_records/build_facts_projection.mjs',
+
+    'deploy/peixian/examples/peixian_synthetic_records/FACTS_SKILLS_GUIDE.md',
     "LICENSE",
     "deploy/peixian/platform-capacity.py", "deploy/peixian/platform-sample.py",
     "deploy/peixian/server/platform.50-io.example.json",

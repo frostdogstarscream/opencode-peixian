@@ -1,0 +1,3308 @@
+[
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [],
+    "facts": [
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-G02 引用资料未取得，不能核对。",
+      "DEMO-CTX-G03 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-G02 引用资料未取得，不能核对。",
+      "DEMO-CTX-G03 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G02",
+        "statement": "资料明确标注 same_trip；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G03",
+        "statement": "DEMO-CAMERA-CHARLIE 对应虚构地点 DEMO-PLACE-CHARLIE，无真实坐标。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G02",
+        "statement": "资料明确标注 same_trip；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G03",
+        "statement": "DEMO-CAMERA-CHARLIE 对应虚构地点 DEMO-PLACE-CHARLIE，无真实坐标。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "DEMO-MEMBER-ORCHID 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-FND-001",
+          "DEMO-FND-002",
+          "DEMO-FND-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-FND-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:14:00+08:00，原始流水 DEMO-TXN-1001，credit，金额 12800 分，对手账户 DEMO-ACCOUNT-EMBER-B；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-001"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:17:00+08:00，原始流水 DEMO-TXN-1002，debit，金额 12600 分，对手账户 DEMO-ACCOUNT-CEDAR-C；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-002"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:42:00+08:00，原始流水 DEMO-TXN-1007，debit，金额 3200 分，对手账户 DEMO-ACCOUNT-GLASS-D；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-007"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-G02 引用资料未取得，不能核对。",
+      "DEMO-CTX-G03 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "DEMO-MEMBER-ORCHID 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-FND-001",
+          "DEMO-FND-002",
+          "DEMO-FND-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-FND-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:14:00+08:00，原始流水 DEMO-TXN-1001，credit，金额 12800 分，对手账户 DEMO-ACCOUNT-EMBER-B；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-001"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:17:00+08:00，原始流水 DEMO-TXN-1002，debit，金额 12600 分，对手账户 DEMO-ACCOUNT-CEDAR-C；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-002"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:42:00+08:00，原始流水 DEMO-TXN-1007，debit，金额 3200 分，对手账户 DEMO-ACCOUNT-GLASS-D；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-007"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-G02 引用资料未取得，不能核对。",
+      "DEMO-CTX-G03 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "DEMO-MEMBER-ORCHID 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-FND-001",
+          "DEMO-FND-002",
+          "DEMO-FND-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G02",
+        "statement": "资料明确标注 same_trip；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G03",
+        "statement": "DEMO-CAMERA-CHARLIE 对应虚构地点 DEMO-PLACE-CHARLIE，无真实坐标。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-FND-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:14:00+08:00，原始流水 DEMO-TXN-1001，credit，金额 12800 分，对手账户 DEMO-ACCOUNT-EMBER-B；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-001"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:17:00+08:00，原始流水 DEMO-TXN-1002，debit，金额 12600 分，对手账户 DEMO-ACCOUNT-CEDAR-C；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-002"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:42:00+08:00，原始流水 DEMO-TXN-1007，debit，金额 3200 分，对手账户 DEMO-ACCOUNT-GLASS-D；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-007"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "DEMO-MEMBER-ORCHID 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-FND-001",
+          "DEMO-FND-002",
+          "DEMO-FND-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G02",
+        "statement": "资料明确标注 same_trip；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G03",
+        "statement": "DEMO-CAMERA-CHARLIE 对应虚构地点 DEMO-PLACE-CHARLIE，无真实坐标。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-FND-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:14:00+08:00，原始流水 DEMO-TXN-1001，credit，金额 12800 分，对手账户 DEMO-ACCOUNT-EMBER-B；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-001"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:17:00+08:00，原始流水 DEMO-TXN-1002，debit，金额 12600 分，对手账户 DEMO-ACCOUNT-CEDAR-C；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-002"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:42:00+08:00，原始流水 DEMO-TXN-1007，debit，金额 3200 分，对手账户 DEMO-ACCOUNT-GLASS-D；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-007"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "DEMO-MEMBER-ORCHID 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-LKP-004",
+          "DEMO-LKP-006",
+          "DEMO-LKP-008"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-LKP-001",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_account，DEMO-MEMBER-ORCHID → DEMO-ACCOUNT-HARBOR-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-FND-001",
+          "DEMO-FND-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-004",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_contact，DEMO-MEMBER-ORCHID → DEMO-CONTACT-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-004",
+          "DEMO-CAL-001"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-006",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_vehicle，DEMO-MEMBER-ORCHID → DEMO-VEHICLE-EMBER-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-006",
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-008",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 shared_capture_event，DEMO-MEMBER-ORCHID → DEMO-MEMBER-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-008",
+          "DEMO-POR-001",
+          "DEMO-POR-002"
+        ],
+        "time": "",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-G02 引用资料未取得，不能核对。",
+      "DEMO-CTX-G03 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "DEMO-MEMBER-ORCHID 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-LKP-004",
+          "DEMO-LKP-006",
+          "DEMO-LKP-008"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-LKP-001",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_account，DEMO-MEMBER-ORCHID → DEMO-ACCOUNT-HARBOR-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-FND-001",
+          "DEMO-FND-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-004",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_contact，DEMO-MEMBER-ORCHID → DEMO-CONTACT-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-004",
+          "DEMO-CAL-001"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-006",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_vehicle，DEMO-MEMBER-ORCHID → DEMO-VEHICLE-EMBER-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-006",
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-008",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 shared_capture_event，DEMO-MEMBER-ORCHID → DEMO-MEMBER-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-008",
+          "DEMO-POR-001",
+          "DEMO-POR-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-G02 引用资料未取得，不能核对。",
+      "DEMO-CTX-G03 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "DEMO-MEMBER-ORCHID 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-LKP-004",
+          "DEMO-LKP-006",
+          "DEMO-LKP-008"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G02",
+        "statement": "资料明确标注 same_trip；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G03",
+        "statement": "DEMO-CAMERA-CHARLIE 对应虚构地点 DEMO-PLACE-CHARLIE，无真实坐标。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-LKP-001",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_account，DEMO-MEMBER-ORCHID → DEMO-ACCOUNT-HARBOR-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-FND-001",
+          "DEMO-FND-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-004",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_contact，DEMO-MEMBER-ORCHID → DEMO-CONTACT-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-004",
+          "DEMO-CAL-001"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-006",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_vehicle，DEMO-MEMBER-ORCHID → DEMO-VEHICLE-EMBER-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-006",
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-008",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 shared_capture_event，DEMO-MEMBER-ORCHID → DEMO-MEMBER-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-008",
+          "DEMO-POR-001",
+          "DEMO-POR-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "DEMO-MEMBER-ORCHID 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-LKP-004",
+          "DEMO-LKP-006",
+          "DEMO-LKP-008"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G02",
+        "statement": "资料明确标注 same_trip；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G03",
+        "statement": "DEMO-CAMERA-CHARLIE 对应虚构地点 DEMO-PLACE-CHARLIE，无真实坐标。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-LKP-001",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_account，DEMO-MEMBER-ORCHID → DEMO-ACCOUNT-HARBOR-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-FND-001",
+          "DEMO-FND-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-004",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_contact，DEMO-MEMBER-ORCHID → DEMO-CONTACT-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-004",
+          "DEMO-CAL-001"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-006",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_vehicle，DEMO-MEMBER-ORCHID → DEMO-VEHICLE-EMBER-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-006",
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-008",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 shared_capture_event，DEMO-MEMBER-ORCHID → DEMO-MEMBER-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-008",
+          "DEMO-POR-001",
+          "DEMO-POR-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "DEMO-MEMBER-ORCHID 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-FND-001",
+          "DEMO-FND-002",
+          "DEMO-FND-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "DEMO-MEMBER-ORCHID 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-LKP-004",
+          "DEMO-LKP-006",
+          "DEMO-LKP-008"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-FND-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:14:00+08:00，原始流水 DEMO-TXN-1001，credit，金额 12800 分，对手账户 DEMO-ACCOUNT-EMBER-B；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-001"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:17:00+08:00，原始流水 DEMO-TXN-1002，debit，金额 12600 分，对手账户 DEMO-ACCOUNT-CEDAR-C；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-002"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:42:00+08:00，原始流水 DEMO-TXN-1007，debit，金额 3200 分，对手账户 DEMO-ACCOUNT-GLASS-D；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-007"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-001",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_account，DEMO-MEMBER-ORCHID → DEMO-ACCOUNT-HARBOR-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-FND-001",
+          "DEMO-FND-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-004",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_contact，DEMO-MEMBER-ORCHID → DEMO-CONTACT-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-004",
+          "DEMO-CAL-001"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-006",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_vehicle，DEMO-MEMBER-ORCHID → DEMO-VEHICLE-EMBER-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-006",
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-008",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 shared_capture_event，DEMO-MEMBER-ORCHID → DEMO-MEMBER-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-008",
+          "DEMO-POR-001",
+          "DEMO-POR-002"
+        ],
+        "time": "",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-G02 引用资料未取得，不能核对。",
+      "DEMO-CTX-G03 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "DEMO-MEMBER-ORCHID 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-FND-001",
+          "DEMO-FND-002",
+          "DEMO-FND-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "DEMO-MEMBER-ORCHID 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-LKP-004",
+          "DEMO-LKP-006",
+          "DEMO-LKP-008"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-FND-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:14:00+08:00，原始流水 DEMO-TXN-1001，credit，金额 12800 分，对手账户 DEMO-ACCOUNT-EMBER-B；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-001"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:17:00+08:00，原始流水 DEMO-TXN-1002，debit，金额 12600 分，对手账户 DEMO-ACCOUNT-CEDAR-C；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-002"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:42:00+08:00，原始流水 DEMO-TXN-1007，debit，金额 3200 分，对手账户 DEMO-ACCOUNT-GLASS-D；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-007"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-001",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_account，DEMO-MEMBER-ORCHID → DEMO-ACCOUNT-HARBOR-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-FND-001",
+          "DEMO-FND-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-004",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_contact，DEMO-MEMBER-ORCHID → DEMO-CONTACT-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-004",
+          "DEMO-CAL-001"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-006",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_vehicle，DEMO-MEMBER-ORCHID → DEMO-VEHICLE-EMBER-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-006",
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-008",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 shared_capture_event，DEMO-MEMBER-ORCHID → DEMO-MEMBER-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-008",
+          "DEMO-POR-001",
+          "DEMO-POR-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-G02 引用资料未取得，不能核对。",
+      "DEMO-CTX-G03 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "DEMO-MEMBER-ORCHID 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-FND-001",
+          "DEMO-FND-002",
+          "DEMO-FND-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "DEMO-MEMBER-ORCHID 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-LKP-004",
+          "DEMO-LKP-006",
+          "DEMO-LKP-008"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G02",
+        "statement": "资料明确标注 same_trip；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G03",
+        "statement": "DEMO-CAMERA-CHARLIE 对应虚构地点 DEMO-PLACE-CHARLIE，无真实坐标。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-FND-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:14:00+08:00，原始流水 DEMO-TXN-1001，credit，金额 12800 分，对手账户 DEMO-ACCOUNT-EMBER-B；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-001"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:17:00+08:00，原始流水 DEMO-TXN-1002，debit，金额 12600 分，对手账户 DEMO-ACCOUNT-CEDAR-C；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-002"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:42:00+08:00，原始流水 DEMO-TXN-1007，debit，金额 3200 分，对手账户 DEMO-ACCOUNT-GLASS-D；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-007"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-001",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_account，DEMO-MEMBER-ORCHID → DEMO-ACCOUNT-HARBOR-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-FND-001",
+          "DEMO-FND-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-004",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_contact，DEMO-MEMBER-ORCHID → DEMO-CONTACT-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-004",
+          "DEMO-CAL-001"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-006",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_vehicle，DEMO-MEMBER-ORCHID → DEMO-VEHICLE-EMBER-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-006",
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-008",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 shared_capture_event，DEMO-MEMBER-ORCHID → DEMO-MEMBER-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-008",
+          "DEMO-POR-001",
+          "DEMO-POR-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "complete",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "DEMO-MEMBER-ORCHID 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-FND-001",
+          "DEMO-FND-002",
+          "DEMO-FND-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "DEMO-MEMBER-ORCHID 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-LKP-004",
+          "DEMO-LKP-006",
+          "DEMO-LKP-008"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-G01",
+        "statement": "虚构资料登记载明 DEMO-MEMBER-INDIGO 的既往涉赌记录，仅供演示资料引用；不能据此认定其他对象涉赌。",
+        "source_ids": [
+          "DEMO-DOC-G01"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G02",
+        "statement": "资料明确标注 same_trip；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-G03",
+        "statement": "DEMO-CAMERA-CHARLIE 对应虚构地点 DEMO-PLACE-CHARLIE，无真实坐标。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-FND-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:14:00+08:00，原始流水 DEMO-TXN-1001，credit，金额 12800 分，对手账户 DEMO-ACCOUNT-EMBER-B；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-001"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:17:00+08:00，原始流水 DEMO-TXN-1002，debit，金额 12600 分，对手账户 DEMO-ACCOUNT-CEDAR-C；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-002"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-FND-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:42:00+08:00，原始流水 DEMO-TXN-1007，debit，金额 3200 分，对手账户 DEMO-ACCOUNT-GLASS-D；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "DEMO-FND-007"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-001",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_account，DEMO-MEMBER-ORCHID → DEMO-ACCOUNT-HARBOR-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-001",
+          "DEMO-FND-001",
+          "DEMO-FND-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-004",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_contact，DEMO-MEMBER-ORCHID → DEMO-CONTACT-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-004",
+          "DEMO-CAL-001"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-006",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 member_to_vehicle，DEMO-MEMBER-ORCHID → DEMO-VEHICLE-EMBER-A；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-006",
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-LKP-008",
+        "statement": "DEMO-MEMBER-ORCHID，资料未提供时间，明确关系 shared_capture_event，DEMO-MEMBER-ORCHID → DEMO-MEMBER-QUARTZ；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "DEMO-LKP-008",
+          "DEMO-POR-001",
+          "DEMO-POR-002"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [],
+    "facts": [
+      {
+        "fact_id": "DEMO-CTX-T01",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点 DEMO-PLACE-ECHO；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "DEMO-DOC-T01"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "车辆记录未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-T02 引用资料未取得，不能核对。",
+      "DEMO-CTX-T03 引用资料未取得，不能核对。",
+      "DEMO-CTX-T04 引用资料未取得，不能核对。",
+      "DEMO-CTX-T05 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-T01",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点 DEMO-PLACE-ECHO；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "DEMO-DOC-T01"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T02",
+        "statement": "补充观测仅在 01:12 的该段画面标注一人经过；不证明作案，也不证明其他时段没有同行者。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T02"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T03",
+        "statement": "虚构地点表将 DEMO-CAMERA-ECHO 标注为 DEMO-PLACE-ECHO 的相邻点；没有距离测量值，不推算米数。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T03"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T04",
+        "statement": "22:16 资料没有同行覆盖信息，独行状态无法判断。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，明确独行观测（仅此观测片段，不代表作案）；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T02"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "车辆记录未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-T05 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-T01",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点 DEMO-PLACE-ECHO；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "DEMO-DOC-T01"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T05",
+        "statement": "23:55 有明确同行记录；不能把其余时间无同行记录解释为独行。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "车辆记录未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-T02 引用资料未取得，不能核对。",
+      "DEMO-CTX-T03 引用资料未取得，不能核对。",
+      "DEMO-CTX-T04 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-T01",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点 DEMO-PLACE-ECHO；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "DEMO-DOC-T01"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T02",
+        "statement": "补充观测仅在 01:12 的该段画面标注一人经过；不证明作案，也不证明其他时段没有同行者。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T02"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T03",
+        "statement": "虚构地点表将 DEMO-CAMERA-ECHO 标注为 DEMO-PLACE-ECHO 的相邻点；没有距离测量值，不推算米数。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T03"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T04",
+        "statement": "22:16 资料没有同行覆盖信息，独行状态无法判断。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T05",
+        "statement": "23:55 有明确同行记录；不能把其余时间无同行记录解释为独行。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，明确独行观测（仅此观测片段，不代表作案）；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T02"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "车辆记录未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "vehicle",
+        "label": "车辆记录",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-vehicle",
+        "statement": "DEMO-MEMBER-ORCHID 的车辆记录为 2 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-T01",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点 DEMO-PLACE-ECHO；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "DEMO-DOC-T01"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-VEH-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T19:54:00+08:00，车辆 DEMO-VEHICLE-EMBER-A，inbound，设备 DEMO-GATE-ALPHA；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "DEMO-VEH-001"
+        ],
+        "time": "2026-09-14T19:54:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-VEH-004",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:47:00+08:00，车辆 DEMO-VEHICLE-EMBER-A，outbound，设备 DEMO-GATE-BRAVO；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "DEMO-VEH-004"
+        ],
+        "time": "2026-09-15T00:47:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-T02 引用资料未取得，不能核对。",
+      "DEMO-CTX-T03 引用资料未取得，不能核对。",
+      "DEMO-CTX-T04 引用资料未取得，不能核对。",
+      "DEMO-CTX-T05 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "vehicle",
+        "label": "车辆记录",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-vehicle",
+        "statement": "DEMO-MEMBER-ORCHID 的车辆记录为 2 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-T01",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点 DEMO-PLACE-ECHO；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "DEMO-DOC-T01"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T02",
+        "statement": "补充观测仅在 01:12 的该段画面标注一人经过；不证明作案，也不证明其他时段没有同行者。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T02"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T03",
+        "statement": "虚构地点表将 DEMO-CAMERA-ECHO 标注为 DEMO-PLACE-ECHO 的相邻点；没有距离测量值，不推算米数。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T03"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T04",
+        "statement": "22:16 资料没有同行覆盖信息，独行状态无法判断。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，明确独行观测（仅此观测片段，不代表作案）；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T02"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-VEH-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T19:54:00+08:00，车辆 DEMO-VEHICLE-EMBER-A，inbound，设备 DEMO-GATE-ALPHA；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "DEMO-VEH-001"
+        ],
+        "time": "2026-09-14T19:54:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-VEH-004",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:47:00+08:00，车辆 DEMO-VEHICLE-EMBER-A，outbound，设备 DEMO-GATE-BRAVO；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "DEMO-VEH-004"
+        ],
+        "time": "2026-09-15T00:47:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-T05 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "vehicle",
+        "label": "车辆记录",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-vehicle",
+        "statement": "DEMO-MEMBER-ORCHID 的车辆记录为 2 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-T01",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点 DEMO-PLACE-ECHO；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "DEMO-DOC-T01"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T05",
+        "statement": "23:55 有明确同行记录；不能把其余时间无同行记录解释为独行。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-VEH-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T19:54:00+08:00，车辆 DEMO-VEHICLE-EMBER-A，inbound，设备 DEMO-GATE-ALPHA；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "DEMO-VEH-001"
+        ],
+        "time": "2026-09-14T19:54:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-VEH-004",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:47:00+08:00，车辆 DEMO-VEHICLE-EMBER-A，outbound，设备 DEMO-GATE-BRAVO；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "DEMO-VEH-004"
+        ],
+        "time": "2026-09-15T00:47:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "DEMO-CTX-T02 引用资料未取得，不能核对。",
+      "DEMO-CTX-T03 引用资料未取得，不能核对。",
+      "DEMO-CTX-T04 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "DEMO-MEMBER-ORCHID",
+    "scenario_snapshot_id": "DEMO-SCENARIOS-20260918-01",
+    "records_snapshot_id": "DEMO-SNAPSHOT-20260918-01",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "complete",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "vehicle",
+        "label": "车辆记录",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "DEMO-MEMBER-ORCHID 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-NGT-001",
+          "DEMO-NGT-007"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "DEMO-MEMBER-ORCHID 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-POR-001",
+          "DEMO-POR-002",
+          "DEMO-POR-005",
+          "DEMO-POR-006"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-vehicle",
+        "statement": "DEMO-MEMBER-ORCHID 的车辆记录为 2 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "DEMO-VEH-001",
+          "DEMO-VEH-004"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "DEMO-CTX-T01",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点 DEMO-PLACE-ECHO；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "DEMO-DOC-T01"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T02",
+        "statement": "补充观测仅在 01:12 的该段画面标注一人经过；不证明作案，也不证明其他时段没有同行者。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T02"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T03",
+        "statement": "虚构地点表将 DEMO-CAMERA-ECHO 标注为 DEMO-PLACE-ECHO 的相邻点；没有距离测量值，不推算米数。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T03"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T04",
+        "statement": "22:16 资料没有同行覆盖信息，独行状态无法判断。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-CTX-T05",
+        "statement": "23:55 有明确同行记录；不能把其余时间无同行记录解释为独行。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "DEMO-NGT-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 DEMO-CAMERA-DELTA。",
+        "source_ids": [
+          "DEMO-NGT-001"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-NGT-007",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T01:12:00+08:00，明确独行观测（仅此观测片段，不代表作案）；设备 DEMO-CAMERA-ECHO。",
+        "source_ids": [
+          "DEMO-NGT-007",
+          "DEMO-DOC-T02"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-QUARTZ，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-001"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-002",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 DEMO-MEMBER-QUARTZ，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-ALPHA。",
+        "source_ids": [
+          "DEMO-POR-002"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-005",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-ORCHID，共同出现对象 DEMO-MEMBER-INDIGO，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-005"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-POR-006",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T23:55:00+08:00，明确同行；记录主体 DEMO-MEMBER-INDIGO，共同出现对象 DEMO-MEMBER-ORCHID，设备 DEMO-CAMERA-CHARLIE。",
+        "source_ids": [
+          "DEMO-POR-006"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-VEH-001",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-14T19:54:00+08:00，车辆 DEMO-VEHICLE-EMBER-A，inbound，设备 DEMO-GATE-ALPHA；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "DEMO-VEH-001"
+        ],
+        "time": "2026-09-14T19:54:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "DEMO-VEH-004",
+        "statement": "DEMO-MEMBER-ORCHID，2026-09-15T00:47:00+08:00，车辆 DEMO-VEHICLE-EMBER-A，outbound，设备 DEMO-GATE-BRAVO；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "DEMO-VEH-004"
+        ],
+        "time": "2026-09-15T00:47:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。"
+    ]
+  }
+]

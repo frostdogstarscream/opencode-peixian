@@ -1,0 +1,127 @@
+{
+  "model_limit": 40,
+  "prior_requests": 4,
+  "scope": "code_prepared_scenarios",
+  "total_requests": 10,
+  "remaining": 30,
+  "cases": [
+    {
+      "account": "alignment-a",
+      "scenario": "DEMO-CASE-GAMBLING",
+      "status": "passed",
+      "seconds": 13.01,
+      "tool_chain": [
+        "skill",
+        "peixian_prepare_scenario_facts",
+        "peixian_check_scenario_summary"
+      ],
+      "card_count": 20,
+      "checked_count": 16,
+      "cross_account_denied": true,
+      "batch": "v200",
+      "review": "superseded: final prose rewrote checked sentences; theft also omitted synthetic label; original failure preserved"
+    },
+    {
+      "account": "alignment-a",
+      "scenario": "DEMO-CASE-THEFT",
+      "status": "failed",
+      "reason": "AssertionError:",
+      "batch": "v200",
+      "review": "superseded: final prose rewrote checked sentences; theft also omitted synthetic label; original failure preserved"
+    },
+    {
+      "account": "alignment-a",
+      "scenario": "DEMO-CASE-GAMBLING",
+      "status": "passed",
+      "batch": "v201",
+      "seconds": 6.91,
+      "tool_chain": [
+        "skill",
+        "peixian_prepare_scenario_facts",
+        "peixian_check_scenario_summary"
+      ],
+      "card_count": 20,
+      "checked_count": 10,
+      "cross_account_denied": true
+    },
+    {
+      "account": "alignment-a",
+      "scenario": "DEMO-CASE-THEFT",
+      "status": "passed",
+      "batch": "v201",
+      "seconds": 6.42,
+      "tool_chain": [
+        "skill",
+        "peixian_prepare_scenario_facts",
+        "peixian_check_scenario_summary"
+      ],
+      "card_count": 16,
+      "checked_count": 8,
+      "cross_account_denied": true
+    },
+    {
+      "account": "alignment-b",
+      "scenario": "DEMO-CASE-GAMBLING",
+      "status": "passed",
+      "batch": "v201",
+      "seconds": 9.03,
+      "tool_chain": [
+        "skill",
+        "peixian_prepare_scenario_facts",
+        "peixian_check_scenario_summary"
+      ],
+      "card_count": 20,
+      "checked_count": 14,
+      "cross_account_denied": true
+    },
+    {
+      "account": "alignment-b",
+      "scenario": "DEMO-CASE-THEFT",
+      "status": "passed",
+      "batch": "v201",
+      "seconds": 6.45,
+      "tool_chain": [
+        "skill",
+        "peixian_prepare_scenario_facts",
+        "peixian_check_scenario_summary"
+      ],
+      "card_count": 16,
+      "checked_count": 11,
+      "cross_account_denied": true
+    }
+  ],
+  "browser": {
+    "results": [
+      {
+        "width": 1366,
+        "actual_api": true,
+        "drawer_keyboard": true,
+        "session_clear": true,
+        "empty_state": true,
+        "chinese_draft": true,
+        "no_overflow": true,
+        "page_errors": 0
+      },
+      {
+        "width": 1920,
+        "actual_api": true,
+        "drawer_keyboard": true,
+        "session_clear": true,
+        "empty_state": true,
+        "chinese_draft": true,
+        "no_overflow": true,
+        "page_errors": 0
+      },
+      {
+        "width": 390,
+        "actual_api": true,
+        "drawer_keyboard": true,
+        "session_clear": true,
+        "empty_state": true,
+        "chinese_draft": true,
+        "no_overflow": true,
+        "page_errors": 0
+      }
+    ]
+  }
+}

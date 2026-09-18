@@ -657,6 +657,18 @@ def create_app(store=None):
         values = app.state.live_text.overlay(user["uid"], sid, values)
         return {"items": await app.state.db_work.run(lambda: public_messages(values, tool_displays(app.state.store, user["uid"])))}
 
+    @app.get(PREFIX + "/sessions/{sid}/evidence")
+    async def session_evidence(sid: str, request: Request, user=Depends(normal)):
+        from .scenario_evidence import permitted, project
+        await session_owned(request, user, sid)
+        authorized = await app.state.db_work.run(permitted, app.state.store, user["uid"])
+        if not authorized:
+            return project([], False)
+        values = (await upstream(request, user, "GET", f"/session/{sid}/message")).json()
+        # Recheck grants after network await, so a revoked plugin cannot expose records.
+        authorized = await app.state.db_work.run(permitted, app.state.store, user["uid"])
+        return project(values, authorized)
+
     @app.post(PREFIX + "/sessions/{sid}/messages", status_code=202)
     async def message_send(sid: str, request: Request, user=Depends(normal)):
         await session_owned(request, user, sid)

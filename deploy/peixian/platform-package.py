@@ -15,6 +15,15 @@ import tarfile
 ROOT = Path(__file__).resolve().parents[2]
 DEPLOY = ROOT / "deploy/peixian"
 ALLOWED_FILES = (
+    'deploy/peixian/Scenario.Control.Dockerfile',
+    'deploy/peixian/examples/peixian_synthetic_records/SCENARIO_GUIDE.md',
+    'deploy/peixian/examples/peixian_synthetic_records/scenario_acceptance.py',
+    'deploy/peixian/examples/peixian_synthetic_records/scenario-plugin.test.mjs',
+    'deploy/peixian/examples/peixian_synthetic_records/scenario-plugin/entry.mjs',
+    'deploy/peixian/examples/peixian_synthetic_records/scenario-plugin/manifest.json',
+    'deploy/peixian/examples/peixian_synthetic_records/skills/gambling-materials/SKILL.md',
+    'deploy/peixian/examples/peixian_synthetic_records/skills/theft-timeline/SKILL.md',
+
     "LICENSE",
     "deploy/peixian/platform-capacity.py", "deploy/peixian/platform-sample.py",
     "deploy/peixian/server/platform.50-io.example.json",
@@ -78,6 +87,29 @@ ALLOWED_FILES = (
     "services/peixian-control/benchmarks/CONTROL_LAYER_LOAD.md",
     "services/peixian-control/docs/HARDENING_R1.md",
     "services/peixian-control/docs/HARDENING_R1_REPORT.md",
+    "deploy/peixian/examples/peixian_synthetic_records/records_service.py",
+    "deploy/peixian/examples/peixian_synthetic_records/openapi.json",
+    "deploy/peixian/examples/peixian_synthetic_records/peixian-synthetic-records.service",
+    "deploy/peixian/examples/peixian_synthetic_records/package_plugin.py",
+    "deploy/peixian/examples/peixian_synthetic_records/provision_platform.py",
+    "deploy/peixian/examples/peixian_synthetic_records/README.md",
+    "deploy/peixian/examples/peixian_synthetic_records/plugin/entry.mjs",
+    "deploy/peixian/examples/peixian_synthetic_records/plugin/manifest.json",
+    "deploy/peixian/examples/peixian_synthetic_records/plugin/SKILL.md",
+    "deploy/peixian/examples/peixian_synthetic_records/accept_registered_tools.py",
+    "deploy/peixian/examples/peixian_synthetic_records/agent_acceptance_evidence.py",
+    "deploy/peixian/examples/peixian_synthetic_records/verify_remote_synthetic.py",
+    "deploy/peixian/examples/peixian_synthetic_records/peixian-synthetic-records-simulated-fixtures.conf",
+    "deploy/peixian/examples/peixian_synthetic_records/SIMULATED_FIXTURES.md",
+    "deploy/peixian/examples/peixian_synthetic_records/test_simulated_fixtures.py",
+    "deploy/peixian/examples/peixian_synthetic_records/records_service_simulated.py",
+    "deploy/peixian/examples/peixian_synthetic_records/fixture_profiles.py",
+    "deploy/peixian/examples/peixian_synthetic_records/accept_agent_behavior_with_template.py",
+    "deploy/peixian/examples/peixian_synthetic_records/accept_agent_behavior.py",
+    "deploy/peixian/examples/peixian_synthetic_records/plugin.test.mjs",
+    "deploy/peixian/examples/peixian_synthetic_records/test_records_service.py",
+    "deploy/peixian/examples/peixian_synthetic_records/test_package_plugin.py",
+    "deploy/peixian/examples/peixian_synthetic_records/test_agent_acceptance_evidence.py",
 )
 OPTIONAL_FILES = ("deploy/peixian/GENERIC_ACCEPTANCE_REPORT.md", "deploy/peixian/examples/openai-fixture.py")
 ARTIFACTS = {"images.tar", "source.tar.gz", "source.tar", "release-manifest.json", "SHA256SUMS", "README.md"}

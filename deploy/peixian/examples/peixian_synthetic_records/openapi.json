@@ -1,0 +1,26 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "沛县 Agent 七项合成资料服务",
+    "version": "1.0.0",
+    "description": "仅供固定平台连接读取合成演示资料；不含真实业务数据。"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "responses": {"200": {"description": "合成资料服务可用"}, "401": {"description": "固定服务鉴权失败"}}
+      }
+    },
+    "/v1/demo/records/query": {
+      "post": {
+        "operationId": "querySyntheticRecords",
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"type": "object", "additionalProperties": false, "required": ["module"], "properties": {"module": {"type": "string", "enum": ["funds", "calls", "portrait", "composite", "night", "vehicle", "lookup"]}}}}}
+        },
+        "responses": {"200": {"description": "完整合成资料响应"}, "400": {"description": "无效请求"}, "401": {"description": "固定服务鉴权失败"}}
+      }
+    }
+  }
+}

@@ -1,0 +1,49 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import { chromium } from "playwright";
+const root = "/srv/peixian-alignment-20260917";
+const credentials = JSON.parse(fs.readFileSync(root+"/private.json", "utf8"));
+const report = JSON.parse(fs.readFileSync(root+"/scenario-acceptance-20260918.json", "utf8"));
+const output = "/root/PeiXianDB/frontend-alignment/output/playwright/scenarios";
+fs.mkdirSync(output, { recursive: true });
+const browser = await chromium.launch({headless:true,args:["--host-resolver-rules=MAP 36.134.45.38 127.0.0.1","--no-proxy-server"]});
+const results = [];
+try {
+ for (const width of [1366,1920,390]) {
+  const context = await browser.newContext({ignoreHTTPSErrors:true,viewport:{width,height:900}});
+  const page = await context.newPage(), errors = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.goto("https://36.134.45.38:19460/");
+  await page.getByRole("textbox",{name:"账号",exact:true}).fill("alignment-a");
+  await page.locator('input[autocomplete="current-password"]').fill(credentials.accounts["alignment-a"].password);
+  await page.getByRole("button",{name:/登\s*录/}).click();
+  await page.getByRole("button",{name:"退出登录",exact:true}).waitFor();
+  if(width===390) await page.getByRole("button",{name:"显示对话记录",exact:true}).click();
+  await page.getByRole("button",{name:"涉赌案件资料整理（合成演示）",exact:true}).click();
+  await page.locator(".evidence-card").first().waitFor({state:"attached"});
+  if(width===390) await page.locator(".evidence-heading").click();
+  await page.getByRole("button",{name:"查看依据",exact:true}).first().click();
+  await page.getByRole("dialog",{name:"资料依据详情"}).waitFor();
+  await page.screenshot({path:output+"/drawer-"+width+".png",fullPage:true});
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog",{name:"资料依据详情"}).waitFor({state:"detached"});
+  assert.equal(await page.evaluate(()=>document.activeElement?.textContent),"查看依据");
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));
+  await page.screenshot({path:output+"/conversation-"+width+".png",fullPage:true});
+  if(width===390) await page.getByRole("button",{name:"显示对话记录",exact:true}).click();
+  await page.getByRole("button",{name:"盗窃案件时空资料核对（合成演示）",exact:true}).click();
+  await page.locator(".evidence-summary h3").filter({hasText:"盗窃案件"}).waitFor();
+  assert.equal(await page.locator(".evidence-card h3").filter({hasText:"独立身份资料来源"}).count(),0);
+  if(width===390) await page.getByRole("button",{name:"显示对话记录",exact:true}).click();
+  await page.getByRole("button",{name:"新建研判",exact:true}).last().click();
+  assert.equal(await page.locator(".evidence-card").count(),0);
+  const input=page.getByRole("textbox",{name:"输入消息",exact:true});
+  await input.fill("中文草稿：保留资料与来源");
+  assert.equal(await input.inputValue(),"中文草稿：保留资料与来源");
+  assert.deepEqual(errors,[]);
+  results.push({width,actual_api:true,drawer_keyboard:true,session_clear:true,empty_state:true,chinese_draft:true,no_overflow:true,page_errors:0});
+  await context.close();
+ }
+ fs.writeFileSync(output+"/browser-report.json",JSON.stringify({results},null,2));
+ console.log(JSON.stringify(results));
+} finally { await browser.close(); }

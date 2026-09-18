@@ -1,0 +1,84 @@
+{
+  "scope": "synthetic_two_scenarios",
+  "status_scope": "case passed means tool-chain and evidence structure only, not prose accuracy",
+  "overall_acceptance": "partial_model_prose_review_not_passed",
+  "model_requests_used": 4,
+  "cases": [
+    {
+      "account": "alignment-a",
+      "scenario": "DEMO-CASE-GAMBLING",
+      "status": "passed",
+      "manual_review": {
+        "result": "needs_correction",
+        "findings": [
+          "文字将 NGT004 错配至 ORCHID，越出对象范围"
+        ]
+      }
+    },
+    {
+      "account": "alignment-a",
+      "scenario": "DEMO-CASE-THEFT",
+      "status": "passed",
+      "manual_review": {
+        "result": "needs_correction",
+        "findings": [
+          "资料与场景快照混用，范围和资料缺口表述错误"
+        ]
+      }
+    },
+    {
+      "account": "alignment-b",
+      "scenario": "DEMO-CASE-GAMBLING",
+      "status": "passed",
+      "manual_review": {
+        "result": "needs_correction",
+        "findings": [
+          "上下文参数及独行观测表述没有来源支持"
+        ]
+      }
+    },
+    {
+      "account": "alignment-b",
+      "scenario": "DEMO-CASE-THEFT",
+      "status": "passed",
+      "manual_review": {
+        "result": "no_material_issue_found_in_this_review",
+        "findings": []
+      }
+    }
+  ],
+  "browser": {
+    "results": [
+      {
+        "width": 1366,
+        "actual_api": true,
+        "drawer_keyboard": true,
+        "session_clear": true,
+        "empty_state": true,
+        "chinese_draft": true,
+        "no_overflow": true,
+        "page_errors": 0
+      },
+      {
+        "width": 1920,
+        "actual_api": true,
+        "drawer_keyboard": true,
+        "session_clear": true,
+        "empty_state": true,
+        "chinese_draft": true,
+        "no_overflow": true,
+        "page_errors": 0
+      },
+      {
+        "width": 390,
+        "actual_api": true,
+        "drawer_keyboard": true,
+        "session_clear": true,
+        "empty_state": true,
+        "chinese_draft": true,
+        "no_overflow": true,
+        "page_errors": 0
+      }
+    ]
+  }
+}

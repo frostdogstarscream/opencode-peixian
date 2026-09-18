@@ -1,0 +1,29 @@
+{
+  "id": "peixian-synthetic-records",
+  "version": "1.0.0",
+  "name": "沛县七项合成资料查询",
+  "description": "通过已绑定的只读服务查询七项研判的合成原始记录。",
+  "opencode_version": "1.18.30",
+  "entry": "entry.mjs",
+  "tools": [
+    "peixian_get_funds_records",
+    "peixian_get_calls_records",
+    "peixian_get_portrait_records",
+    "peixian_get_composite_records",
+    "peixian_get_night_records",
+    "peixian_get_vehicle_records",
+    "peixian_get_lookup_records"
+  ],
+  "connections": {
+    "peixian_records": {"description": "沛县七项合成资料只读服务"}
+  },
+  "display": {
+    "input_fields": [],
+    "output_fields": ["module", "data_status", "returned_count", "total_count", "has_more", "snapshot_id", "source", "synthetic"]
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
+}

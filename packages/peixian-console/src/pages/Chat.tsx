@@ -1,3 +1,4 @@
+import EvidencePanel, { type Evidence } from "../EvidencePanel"
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
 import { api, ApiError, list, patch, post, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, Markdown, Modal, Spinner, Status } from "../components"
@@ -13,6 +14,8 @@ import { capabilityCatalog, type CapabilityEntry } from "../capability-catalog"
 export default function Chat() {
   const app = useConsole()
   const [sessions, setSessions] = createSignal<Session[]>([])
+  const [evidence, setEvidence] = createSignal<Evidence>()
+  const [evidenceError, setEvidenceError] = createSignal("")
   const [messages, setMessages] = createSignal<Message[]>([])
   const [expandedTools, setExpandedTools] = createSignal<Record<string, boolean>>({})
   const [models, setModels] = createSignal<Model[]>([])
@@ -52,7 +55,7 @@ export default function Chat() {
   const continuing = createMemo(() => canContinue(app.user().runtime))
   let observationGeneration = 0
   const account = createMemo(() => app.user().id)
-  createEffect(() => { account(); available(); observationGeneration++; selection.invalidate() })
+  createEffect(() => { account(); available(); observationGeneration++; selection.invalidate(); setEvidence(undefined); setEvidenceError("") })
   const notice = createMemo(() => runtimeNotice(app.user().runtime))
   const interval = () => (document.hidden ? 15000 : 500)
   const messageRefresh = createRefreshScheduler(
@@ -64,6 +67,12 @@ export default function Chat() {
       try {
         const data = await list<Message>("/sessions/" + id + "/messages", { signal })
         if (!disposed && current() && available() && generation === observationGeneration) setMessages(data)
+        try {
+          const facts = await api<Evidence>("/sessions/" + id + "/evidence", { signal })
+          if (!disposed && current() && available() && generation === observationGeneration) { setEvidence(facts); setEvidenceError("") }
+        } catch {
+          if (!disposed && current() && available() && generation === observationGeneration) { setEvidence(undefined); setEvidenceError("资料视图暂未读取成功，请重试。") }
+        }
       } catch (error) {
         if (!disposed && current() && available() && generation === observationGeneration) setError((error as Error).message)
       }
@@ -178,6 +187,8 @@ export default function Chat() {
     selection.invalidate()
     setSelected(id)
     setMessages([])
+    setEvidence(undefined)
+    setEvidenceError("")
     setError("")
     setShowHistory(false)
     setBusy(["busy", "retry"].includes(sessions().find((item) => item.id === id)?.status ?? "idle"))
@@ -192,6 +203,8 @@ export default function Chat() {
     selection.invalidate()
     setSelected(undefined)
     setMessages([])
+    setEvidence(undefined)
+    setEvidenceError("")
     if (!uncertain()) setDraft("")
     setSelectedFiles([])
     setSelectedSkills([])
@@ -398,6 +411,7 @@ export default function Chat() {
         <Show when={notice()}><div class="runtime-banner" role="status"><Icon name="clock" size={17} /><span>{notice()}</span></div></Show>
         <Show when={!models().length && !loading()}><div class="runtime-banner">暂无获授权模型，请联系管理员配置。</div></Show>
         <div class="messages-scroll" ref={scroll}>
+          <EvidencePanel summary value={evidence()} onRetry={() => void messageRefresh.request()} />
           <Show
             when={messages().length}
             fallback={<div class="conversation-blank" aria-label="空白研判对话区" />}
@@ -405,7 +419,7 @@ export default function Chat() {
             <div class="messages">
               <For each={messages()}>
                 {(message) => (
-                  <article class={"message " + (message.info.role === "user" ? "user" : "assistant")}>
+                  <article id={"message-" + message.info.id} class={"message " + (message.info.role === "user" ? "user" : "assistant")}>
                     <div class="message-avatar">
                       <Show when={message.info.role === "user"} fallback={<Icon name="skill" size={17} />}>
                         {app.user().username.slice(0, 1).toUpperCase()}
@@ -583,6 +597,7 @@ export default function Chat() {
           </div>
         </div>
       </section>
+      <EvidencePanel value={evidence()} error={evidenceError()} onRetry={() => void messageRefresh.request()} />
 <aside class="related-capabilities">
         <div class="related-capabilities-head"><div><strong>技能与插件</strong><small>个人技能与已获授权插件</small></div><span>{shownCapabilities().length}</span></div>
         <div class="capability-management-actions"><Button onClick={() => manage("skills")}>管理技能</Button><Button onClick={() => manage("plugins")}>管理插件</Button></div>

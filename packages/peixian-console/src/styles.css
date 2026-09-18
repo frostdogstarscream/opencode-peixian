@@ -4915,3 +4915,29 @@ tr:hover td {
 
 /* Management actions belong next to the capability catalog, not at the card footer. */
 .capability-management-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px 0; }
+
+/* Evidence projection: real completed tool data, independent of assistant prose. */
+.chat-layout { display: grid; position: relative; grid-template-columns: 256px minmax(0, 1fr) 300px; }
+.chat-layout > .history-panel { width: 100%; }
+.evidence-panel { border-left: 1px solid #dce7f4; background: #f8fbff; overflow-y: auto; padding: 14px; min-width: 0; }
+.evidence-heading { width: 100%; display: flex; justify-content: space-between; border: 0; background: transparent; color: #123a69; font-size: 17px; font-weight: 700; padding: 8px 0; }
+.evidence-card,.evidence-summary { background: white; border: 1px solid #cfe0f4; border-radius: 10px; padding: 14px; margin: 12px 0; overflow-wrap: anywhere; }
+.evidence-card h3,.evidence-summary h3 { font-size: 15px; margin: 0 0 8px; color: #143d68; }
+.evidence-card p,.evidence-summary p,.evidence-empty { font-size: 13px; line-height: 1.7; color: #425c75; }
+.evidence-card small { display: block; color: #526b84; }
+.evidence-card button { display: block; margin: 10px 0 0 auto; color: #0860ce; background: white; border: 1px solid #9cbfea; border-radius: 5px; padding: 5px 10px; }
+.evidence-summary { max-width: 950px; margin: 12px auto; }
+.evidence-summary li { padding: 5px; font-size: 13px; }
+.evidence-summary li span { float: right; color: #275e91; }
+.evidence-counts { display: flex; flex-wrap: wrap; gap: 10px; }
+.evidence-counts > div { display: grid; min-width: 140px; flex: 1; padding: 12px; background: #f1f7ff; border-radius: 8px; }
+.evidence-counts strong { font-size: 25px; color: #164d83; }
+.evidence-counts small { color: #526b84; font-size: 12px; }
+.evidence-drawer { margin: 0 0 0 auto; width: min(480px,100vw); height: 100dvh; max-height: 100dvh; max-width: 100vw; border: 0; padding: 22px; color: #193d64; overflow-wrap: anywhere; }
+.evidence-drawer::backdrop { background: #09294766; }
+.evidence-drawer header { display: flex; justify-content: space-between; align-items: center; }
+.evidence-drawer p { line-height: 1.8; }
+.evidence-drawer dt { font-weight: bold; margin-top: 12px; }
+.evidence-drawer dd { margin: 5px 0; }
+@media(max-width: 1450px) { .chat-layout { grid-template-columns: 220px minmax(0,1fr) 270px; } }
+@media(max-width: 1050px) { .chat-layout { grid-template-columns: minmax(0,1fr); } .evidence-panel { position: absolute; bottom: 0; right: 0; width: 280px; z-index: 12; max-height: 60vh; box-shadow: 0 -3px 18px #143d6820; } .evidence-content { display: none; } .evidence-panel.expanded .evidence-content { display: block; } .evidence-summary { margin: 8px; } .conversation { padding-bottom: 50px; } }

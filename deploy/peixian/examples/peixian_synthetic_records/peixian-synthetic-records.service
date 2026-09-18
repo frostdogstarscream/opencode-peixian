@@ -1,0 +1,21 @@
+[Unit]
+Description=Peixian Agent seven-module synthetic records service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+EnvironmentFile=/srv/peixian-alignment-20260917/peixian-synthetic-records.env
+ExecStart=/usr/bin/python3 /srv/peixian-alignment-20260917/peixian-synthetic-records/records_service.py
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+CPUQuota=25%
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

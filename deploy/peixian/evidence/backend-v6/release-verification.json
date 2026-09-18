@@ -1,0 +1,15 @@
+{
+  "alignment-a": {
+    "capabilities": 12,
+    "sessions": 24,
+    "runtime_ready": true
+  },
+  "alignment-b": {
+    "capabilities": 12,
+    "sessions": 11,
+    "runtime_ready": true
+  },
+  "schema": 6,
+  "frontend_files_unchanged": 16,
+  "paid_model_requests": 0
+}

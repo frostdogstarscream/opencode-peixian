@@ -1,0 +1,14 @@
+{
+  "run": "completed",
+  "idempotency": "passed",
+  "steps": 2,
+  "report": "passed",
+  "cross_account": "passed",
+  "rerun": "passed",
+  "draft": "passed",
+  "admin_metadata": "passed",
+  "paid_model_requests": 0,
+  "model_type": "controlled-http-service",
+  "run_id": "fdb0ed31fdc84a8cbb4378fae6d79b65",
+  "session_id": "ses_f4c33a89cffegn7OJY5APUc4nq"
+}

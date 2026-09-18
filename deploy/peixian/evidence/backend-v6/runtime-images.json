@@ -1,0 +1,38 @@
+[
+  {
+    "account": "alignment-a",
+    "component": "gateway",
+    "image": "sha256:b4f287a7c7706f5c7d246169af81ac3c46fc23dd204a77daa0d398d81d577e7c",
+    "running": true
+  },
+  {
+    "account": "alignment-a",
+    "component": "agent",
+    "image": "sha256:bc328ad2659b8967a2a6f16e654aa214e0538f8a2018b3e1f3869a6350639737",
+    "running": true
+  },
+  {
+    "account": "alignment-a",
+    "component": "model-relay",
+    "image": "sha256:b4f287a7c7706f5c7d246169af81ac3c46fc23dd204a77daa0d398d81d577e7c",
+    "running": true
+  },
+  {
+    "account": "alignment-b",
+    "component": "gateway",
+    "image": "sha256:b4f287a7c7706f5c7d246169af81ac3c46fc23dd204a77daa0d398d81d577e7c",
+    "running": true
+  },
+  {
+    "account": "alignment-b",
+    "component": "model-relay",
+    "image": "sha256:b4f287a7c7706f5c7d246169af81ac3c46fc23dd204a77daa0d398d81d577e7c",
+    "running": true
+  },
+  {
+    "account": "alignment-b",
+    "component": "agent",
+    "image": "sha256:bc328ad2659b8967a2a6f16e654aa214e0538f8a2018b3e1f3869a6350639737",
+    "running": true
+  }
+]

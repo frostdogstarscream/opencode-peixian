@@ -156,3 +156,20 @@ def test_interrupted_native_stream_does_not_report_normal_completion(config):
     with TestClient(app, headers={"X-Peixian-Key": config.token}) as client:
         with pytest.raises(RuntimeError, match="^Upstream stream interrupted$"):
             client.get("/global/event")
+
+
+def test_durable_receipt_route_is_private_fixed_and_sanitized(config):
+    seen=[]
+    rid='a'*32
+    def upstream(request):
+        seen.append(request)
+        return httpx.Response(200,json={'boot_id':'demo-boot','capabilities':['durable_run_v1'],'receipt':{'id':rid,'session_id':'ses_demo','message_id':'msg_demo','state':'finished'},'internal':'not exposed'})
+    with TestClient(create_app(config,transport=httpx.MockTransport(upstream))) as client:
+        assert client.get('/internal/runtime/runs/'+rid).status_code==401
+        client.headers['X-Peixian-Key']=config.token
+        value=client.get('/internal/runtime/runs/'+rid)
+        assert value.status_code==200,value.text
+        assert value.json()['protocol']=='durable_run_v1'
+        assert 'internal' not in value.json()
+        assert seen[-1].url.params['run_id']==rid
+        assert client.get('/internal/runtime/runs/bad').status_code==404

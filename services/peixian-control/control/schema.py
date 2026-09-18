@@ -5,6 +5,8 @@ def validate(db):
         from .migrations_v4 import validate as check
     elif version == 5:
         from .pool_schema import validate as check
+    elif version == 6:
+        from .migrations_v6 import validate as check
     else:
         raise ValueError("Unsupported Control database schema")
     check(db)

@@ -252,7 +252,7 @@ def backup(cfg, destination):
                 if meta["schema_version"] >= 4 and (meta.get("maintenance_mode") != "frozen" or meta.get("runtime_unsafe")):
                     raise BackupError("freeze_and_resolve_runtime_responsibility_before_backup")
                 manifest["database"] = meta
-                if meta["schema_version"] == 5:
+                if meta.get("runtime_policy"):
                     manifest["runtime_mapping"] = pool_backup_mapping(cfg, meta["runtime_metadata"], identities, volumes)
             file = destination / (name + ".tar.gz")
             with file.open("xb") as out:
@@ -452,7 +452,7 @@ def database_meta(root):
                 result["maintenance_mode"] = db.execute("SELECT maintenance_mode FROM platform_state WHERE id=1").fetchone()[0]
                 result["runtime_unsafe"] = bool(db.execute(
                     "SELECT 1 FROM runtimes WHERE recovery_required=1 OR drain_job_id IS NOT NULL OR status IN ('updating','draining') LIMIT 1").fetchone())
-                if result["schema_version"] == 5:
+                if any(column[1]=='runtime_mode' for column in db.execute('PRAGMA table_info(platform_state)')):
                     result["runtime_policy"] = dict(db.execute("SELECT runtime_mode,capacity_wait_enabled,idle_pause_enabled,pool_policy_version FROM platform_state WHERE id=1").fetchone())
                     result["runtime_metadata"] = [dict(row) for row in db.execute(
                         "SELECT id,status,revision,desired,reserved,manual_stop_reason,provisioned_at,"
@@ -461,6 +461,9 @@ def database_meta(root):
                         "AND NOT EXISTS(SELECT 1 FROM jobs j JOIN job_attempts a ON a.job_id=j.id WHERE j.uid=r.uid) "
                         "AND NOT EXISTS(SELECT 1 FROM jobs j WHERE j.uid=r.uid AND (j.attempts>0 OR j.recovery_required=1 OR j.status='running')) "
                         "THEN 1 ELSE 0 END AS never_provisioned FROM runtimes r ORDER BY id")]
+            if result['schema_version']>=6:
+                result['active_runs']=db.execute("SELECT count(*) FROM business_runs WHERE status IN ('queued','running','cancelling','reconciling')").fetchone()[0]
+                result['busy']=result['busy'] or bool(result['active_runs'])
             return result
 
 
@@ -468,10 +471,14 @@ def pause_database(path):
     with closing(sqlite3.connect(str(path))) as db, db:
         version = db.execute("PRAGMA user_version").fetchone()[0]
         db.execute("UPDATE runtimes SET status='paused',reserved=0,error=NULL")
-        if version == 5:
+        if any(column[1]=='runtime_mode' for column in db.execute('PRAGMA table_info(platform_state)')):
             db.execute("DELETE FROM runtime_pool_inventory")
             db.execute("UPDATE runtimes SET status='unprovisioned' WHERE provisioned_at IS NULL AND revision=0 AND recovery_required=0 AND NOT EXISTS(SELECT 1 FROM jobs j JOIN job_attempts a ON a.job_id=j.id WHERE j.uid=runtimes.uid)")
             db.execute("UPDATE jobs SET status='cancelled',phase='finished',error='recovery_reconfirmation_required' WHERE status='waiting_capacity'")
+        if version>=6:
+            # Restored environments cannot infer that old external work terminated.
+            db.execute("UPDATE business_runs SET status='reconciling',phase='restored_requires_confirmation',cancel_requested=1,error_code='restored_execution_unknown' WHERE status IN ('queued','running','cancelling','reconciling')")
+            db.execute("UPDATE run_deliveries SET state='sending' WHERE run_id IN (SELECT id FROM business_runs WHERE status='reconciling')")
         db.execute("UPDATE users SET auth_version=auth_version+1")
         db.execute("DELETE FROM auth")
         if version >= 4:

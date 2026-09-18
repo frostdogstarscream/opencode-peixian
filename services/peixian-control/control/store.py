@@ -13,7 +13,7 @@ from argon2 import PasswordHasher, extract_parameters
 from cryptography.fernet import Fernet
 
 SCHEMA_VERSION = 4  # Legacy initialization remains v4 unless on_demand is explicit.
-MAX_SCHEMA_VERSION = 5
+MAX_SCHEMA_VERSION = 6
 
 
 def ident():
@@ -58,7 +58,7 @@ class Store:
             fresh = version == 0 and not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'").fetchone()
             if version > MAX_SCHEMA_VERSION:
                 raise ValueError("Control database schema is newer than this application")
-            if version in (4, 5):
+            if version in (4, 5, 6):
                 from .schema import validate
                 validate(db)
             schema = """
@@ -124,6 +124,10 @@ class Store:
                         raise ValueError('Idle policy change requires frozen offline approval')
                     db.execute('UPDATE platform_state SET idle_pause_enabled=?,pool_policy_version=3 WHERE id=1',(int(idle),))
                 validate(db)
+
+            if db.execute("PRAGMA user_version").fetchone()[0] < 6 and os.getenv("PX_BACKEND_V6") == "1":
+                from .migrations_v6 import migrate as backend_migrate
+                backend_migrate(db, fresh=fresh, timestamp=now())
 
     def on_demand(self, db=None):
         return self.maintenance_status(db).get("runtime_mode", "eager") == "on_demand"
@@ -446,6 +450,10 @@ class Store:
                 if self.on_demand(db):
                     from .runtime_pool import public_status
                     user["runtime"].update(public_status(self, db, uid))
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 6:
+                from .backend_contract import profile
+                user.update(profile(db, uid))
+            user["system_role"] = user["role"]
             return user
 
     def create_browser_auth(self, uid, *, expected_password, expected_auth_version,
@@ -457,6 +465,8 @@ class Store:
                 return False
             db.execute("INSERT INTO auth VALUES(?,?,?,?,?,?,?,?)",
                        (token_hash, uid, "session", "browser", csrf, expires, expected_auth_version, now()))
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 6:
+                db.execute("INSERT INTO user_profiles(uid,last_login) VALUES(?,?) ON CONFLICT(uid) DO UPDATE SET last_login=excluded.last_login", (uid,now()))
             return True
 
     def change_password(self, uid, *, expected_password, expected_auth_version,

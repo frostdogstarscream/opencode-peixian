@@ -20,7 +20,7 @@ def register_catalog(app):
             fail(str(exc), 409)
 
     def skill_data(data, old=None):
-        body_fields(data, ("name", "description", "content", "enabled"))
+        body_fields(data, ("name", "description", "content", "enabled", "dependency_ids"))
         result = {**(old or {}), **data}
         if not isinstance(result.get("name"), str) or not re.fullmatch(r"[^/\\\r\n\x00]{1,60}", result["name"]):
             fail("技能名称应为 1 至 60 个字符，不能包含路径或换行")
@@ -33,7 +33,13 @@ def register_catalog(app):
     @app.get(PREFIX + "/skills")
     @blocking_endpoint(app)
     def skills(request: Request, user=Depends(normal)):
-        return {"items": app.state.store.rows("SELECT id,name,description,content,enabled,version FROM skills WHERE uid=? ORDER BY name", (user["uid"],))}
+        s=app.state.store
+        values=s.rows("SELECT id,name,description,content,enabled,version FROM skills WHERE uid=? ORDER BY name", (user["uid"],))
+        if s.schema_version()>=6:
+            from .capabilities import dependencies
+            with s.read() as db:
+                for value in values:value['dependency_ids']=dependencies(db,value['id'])
+        return {"items":values}
 
     @app.post(PREFIX + "/skills")
     @blocking_endpoint(app, json_body=True)
@@ -45,6 +51,10 @@ def register_catalog(app):
             if db.execute("SELECT 1 FROM skills WHERE uid=? AND name=?", (user["uid"], data["name"])).fetchone():
                 fail("你已有同名技能，请修改名称", 409)
             db.execute("INSERT INTO skills VALUES(?,?,?,?,?,?,1,'[]')", (sid, user["uid"], data["name"], data["description"], data["content"], data["enabled"]))
+            if 'dependency_ids' in data:
+                from .capabilities import save_dependencies
+                from .backend_contract import require_v6
+                require_v6(s);save_dependencies(db,user['uid'],sid,data)
         return {"id": sid, **data, "version": 1, "job": changed(user["uid"])}
 
     @app.patch(PREFIX + "/skills/{sid}")
@@ -58,10 +68,17 @@ def register_catalog(app):
                 fail("技能不存在", 404)
             data = skill_data(request.state.json_body, old)
             history = json.loads(old["history"])
-            history.append({k: old[k] for k in ("name", "description", "content", "enabled", "version")})
+            if s.schema_version()>=6:
+                from .capabilities import dependencies
+                old['dependency_ids']=dependencies(db,sid)
+            history.append({k: old[k] for k in ("name", "description", "content", "enabled", "version", "dependency_ids") if k in old})
             if db.execute("SELECT 1 FROM skills WHERE uid=? AND name=? AND id<>?", (user["uid"], data["name"], sid)).fetchone():
                 fail("你已有同名技能", 409)
             db.execute("UPDATE skills SET name=?,description=?,content=?,enabled=?,version=version+1,history=? WHERE id=? AND uid=?", (data["name"], data["description"], data["content"], data["enabled"], encode(history[-20:]), sid, user["uid"]))
+            if 'dependency_ids' in data:
+                from .capabilities import save_dependencies
+                from .backend_contract import require_v6
+                require_v6(s);save_dependencies(db,user['uid'],sid,data)
         return {"ok": True, "job": changed(user["uid"])}
 
     @app.delete(PREFIX + "/skills/{sid}")
@@ -86,6 +103,9 @@ def register_catalog(app):
             if not history:
                 fail("暂无可恢复的历史版本", 409)
             previous = history.pop()
+            if s.schema_version()>=6:
+                from .capabilities import save_dependencies
+                save_dependencies(db,user['uid'],sid,{'dependency_ids':previous.get('dependency_ids',[])})
             if db.execute("SELECT 1 FROM skills WHERE uid=? AND name=? AND id<>?", (user["uid"], previous["name"], sid)).fetchone():
                 fail("原技能名称已被使用，请先修改同名技能后再恢复", 409)
             db.execute("UPDATE skills SET name=?,description=?,content=?,enabled=?,version=version+1,history=? WHERE id=?", (previous["name"], previous["description"], previous["content"], previous["enabled"], encode(history), sid))

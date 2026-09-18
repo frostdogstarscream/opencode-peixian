@@ -429,6 +429,10 @@ def annotate_response(operation, schema):
         }
 
 
+from .openapi_v6 import contracts as backend_contracts
+CONTRACTS.update(backend_contracts())
+
+
 def build_openapi(app):
     """Build a fresh, sanitized contract without entering the app lifespan."""
     routes = [route for route in app.routes if getattr(route, "path", "") == "/health"
@@ -440,7 +444,8 @@ def build_openapi(app):
                     "内部 Worker API 使用独立宿主密钥，禁止业务客户端调用。")
     document.pop("servers", None)
     document.pop("security", None)
-    document.setdefault("components", {})["schemas"] = schemas()
+    from .openapi_v6 import extend_schemas
+    document.setdefault("components", {})["schemas"] = extend_schemas(schemas())
     document["components"]["securitySchemes"] = {
         "SessionCookie": {"type": "apiKey", "in": "cookie", "name": "px_session",
                           "description": "auth/login 设置的 HttpOnly Cookie；不是可放入请求体的账号选择参数。"},
@@ -499,12 +504,13 @@ def build_openapi(app):
                 common = path in (P + "/me", P + "/me/password", P + "/auth/logout") or path.startswith(P + "/tokens")
                 management = path.startswith(P + "/admin/")
                 super_only = management and (path.startswith((P + "/admin/plugins", P + "/admin/templates", P + "/admin/jobs", P + "/admin/connections", P + "/admin/maintenance", P + "/admin/recovery/", P + "/admin/diagnostics/")) or "/runtime/" in path)
+                super_only = super_only or (path.startswith(P + "/admin/departments") and method != "get")
                 operation["x-role"] = "anonymous" if anonymous else "super_admin" if super_only else "super_admin|admin" if management else "authenticated" if common else "user"
                 if management:
                     operation["x-roles"] = ["super_admin"] if super_only else ["super_admin", "admin"]
                     capability = ("connections.manage" if "/admin/connections" in path or path.endswith("/connections") else "plugins.manage" if "/admin/plugins" in path else "templates.manage" if "/admin/templates" in path
                                   else "jobs.read" if "/admin/jobs" in path else "runtimes.manage" if "/runtime/" in path or "/admin/maintenance" in path or "/admin/recovery/" in path or "/admin/diagnostics/" in path
-                                  else "models.manage" if "/admin/models" in path else "audit.read" if "/admin/audit" in path else "users.manage")
+                                  else "departments.manage" if "/admin/departments" in path and method != "get" else "invocations.read" if "/admin/invocations" in path else "models.manage" if "/admin/models" in path else "audit.read" if "/admin/audit" in path else "users.manage")
                     operation["x-capability"] = capability
                 operation["security"] = [] if anonymous else [{"BearerToken": []}, {"SessionCookie": [], **({"CsrfToken": []} if method not in ("get", "head", "options") else {})}]
                 annotate_body(operation, body)
@@ -518,9 +524,15 @@ def build_openapi(app):
                         "description": "同账号、同接口、同键与同内容返回首次提交结果；内容冲突返回409。已闭合记录保留至少7天。消息生成与外部工具执行不属于自动重试保证。"})
                 if path == P + "/events":
                     operation["responses"] = {"200": response(STRING, "持续的 SSE 变更通知流", "text/event-stream")}
-                    operation["x-sse-event"] = {"event": "change", "data": obj({"type": {"type": "string", "enum": ["connected", "updated"]},
-                        "resources": array({"type": "string", "enum": ["messages", "sessions", "files", "models", "skills", "plugins", "runtime", "permissions", "questions"]}),
-                        "session_id": ID}, ("type",))}
+                    operation["x-sse-event"] = {"event": "change", "data": obj({"type": {"type": "string", "enum": ["connected", "updated", "run.updated"]},
+                        "resources": array({"type": "string", "enum": ["messages", "sessions", "files", "models", "skills", "plugins", "runtime", "permissions", "questions", "runs"]}),
+                        "session_id": ID, "run_id": ID}, ("type",))}
+                if path in (P+'/admin/invocations',P+'/admin/invocations/export'):
+                    operation.setdefault('parameters',[]).extend({'name':key,'in':'query','required':False,'schema':STRING} for key in ('query','start','end','uid','department_id','model_id','skill_id','status'))
+                if path.endswith('/report'):
+                    operation['responses']['200']=response(STRING,'Markdown 文件','text/markdown; charset=utf-8')
+                if path == P+'/admin/invocations/export':
+                    operation['responses']['200']=response(STRING,'UTF-8 BOM CSV','text/csv; charset=utf-8')
                 if path == P + "/auth/login":
                     operation["responses"]["200"]["headers"] = {"Set-Cookie": {"schema": STRING, "description": "px_session 的 HttpOnly/SameSite=Strict Cookie，最长 8 小时；部署启用 TLS 时配置 Secure。"}}
                 if not anonymous and method not in ("get", "head", "options"):

@@ -12,9 +12,9 @@ from .store import now
 KEY = re.compile(r"^[A-Za-z0-9_-]{8,100}$")
 MUTATIONS = re.compile(
     r"^/api/console/v1/(?:admin/(?:users(?:/[^/]+(?:/runtime/[^/]+|/reset-password)?)?"
-    r"|models(?:/[^/]+)?|plugins(?:/[^/]+/[^/]+(?:/connections)?)?"
-    r"|connections(?:/[^/]+)?|templates(?:/[^/]+)?|maintenance|recovery/[^/]+)"
-    r"|skills(?:/[^/]+(?:/rollback)?)?|plugins/[^/]+(?:/rollback)?|templates/[^/]+/copy|me/runtime/(?:start|stop))$"
+    r"|models(?:/(?!test$)[^/]+)?|plugins(?:/[^/]+/[^/]+(?:/connections)?)?"
+    r"|departments(?:/[^/]+)?|connections(?:/[^/]+)?|templates(?:/[^/]+)?|maintenance|recovery/[^/]+)"
+    r"|skill-drafts/(?!from-requirement$|from-session$)[^/]+(?:/save)?|skills(?:/[^/]+(?:/rollback)?)?|plugins/[^/]+(?:/rollback)?|templates/[^/]+/copy|me/runtime/(?:start|stop))$"
 )
 
 

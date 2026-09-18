@@ -131,8 +131,9 @@ export const SessionApi = HttpApi.make("session")
           }),
         ),
         HttpApiEndpoint.get("managedActivity", SessionPaths.managedActivity, {
-          query: WorkspaceRoutingQuery,
+          query: Schema.Struct({ ...WorkspaceRoutingQuery.fields, run_id: Schema.optional(Schema.String) }),
           success: Schema.Struct({
+            receipt: Schema.NullOr(Schema.Struct({ id: Schema.String, session_id: Schema.String, message_id: Schema.String, state: Schema.String })),
             protocol_version: Schema.Number,
             boot_id: Schema.String,
             activity_sequence: Schema.Number,

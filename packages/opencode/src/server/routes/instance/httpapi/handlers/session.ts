@@ -12,6 +12,7 @@ import { SessionPrompt } from "@/session/prompt"
 import { SessionRevert } from "@/session/revert"
 import { SessionRunState } from "@/session/run-state"
 import { SessionStatus } from "@/session/status"
+import { receipts } from "@/session/managed-receipt"
 import { ManagedActivity } from "@/session/managed-activity"
 import { Question } from "@/question"
 import { BackgroundJob } from "@/background/job"
@@ -85,6 +86,8 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
 
     const managedActivity = Effect.fn("SessionHttpApi.managedActivity")(function* () {
       if (!ManagedActivity.enabled()) return yield* new HttpApiError.Forbidden({})
+      const receiptRequest = yield* HttpServerRequest.HttpServerRequest
+      const receiptID = new URL(receiptRequest.url, "http://internal").searchParams.get("run_id")
       const native = yield* statusSvc.list()
       const permissions = yield* permissionSvc.list()
       const questions = yield* questionSvc.list()
@@ -95,7 +98,8 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
         protocol_version: 2,
         boot_id: snapshot.boot_id,
         activity_sequence: snapshot.activity_sequence,
-        capabilities: ["idle_activity_v1"],
+        capabilities: ["idle_activity_v1", "durable_run_v1"],
+        receipt: receiptID ? receipts().read(receiptID) : null,
         complete: true,
         counts: {
           native_running: Math.max(native.size, running.length),
@@ -357,6 +361,17 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
     }) {
       yield* requireSession(ctx.params.sessionID)
       const request = yield* HttpServerRequest.HttpServerRequest
+      const runID = request.headers["x-peixian-run-id"]
+      if (runID && ManagedActivity.enabled()) {
+        const admitted = yield* Effect.try({
+          try: () => receipts().admit(runID, ctx.params.sessionID, ctx.payload.messageID ?? "", ctx.payload),
+          catch: () => new HttpApiError.BadRequest({}),
+        })
+        if (!admitted) {
+          ManagedActivity.acknowledge(ctx.params.sessionID, request.headers["x-peixian-activity-id"])
+          return HttpApiSchema.NoContent.make()
+        }
+      }
       yield* ManagedActivity.fork(
         promptSvc.prompt({ ...ctx.payload, sessionID: ctx.params.sessionID }).pipe(
           Effect.catchCause((cause) =>
@@ -373,6 +388,7 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
         scope,
         request.headers["x-peixian-activity-id"],
         true,
+        () => { if (runID && ManagedActivity.enabled()) receipts().finish(runID) },
       )
       return HttpApiSchema.NoContent.make()
     })

@@ -57,7 +57,7 @@ def test_openapi_is_valid_and_every_reference_resolves(document):
 
 def test_message_body_is_the_restricted_console_contract(document):
     body = document["components"]["schemas"]["MessageBody"]
-    assert set(body["properties"]) == {"text", "model_id", "skill_ids", "file_ids"}
+    assert set(body["properties"]) == {"text", "model_id", "skill_ids", "file_ids", "plugin_ids", "mode", "client_request_id"}
     assert body["required"] == ["text"]
     assert body["additionalProperties"] is False
     valid = {"text": "A synthetic question", "model_id": "opaque-model-id", "skill_ids": ["own-skill"], "file_ids": ["own-file"]}
@@ -71,7 +71,7 @@ def test_message_body_is_the_restricted_console_contract(document):
         assert list(validator(document, "MessageBody").iter_errors(invalid))
     operation = document["paths"][P + "/sessions/{sid}/messages"]["post"]
     assert set(operation["requestBody"]["content"]) == {"application/json"}
-    assert operation["responses"]["202"]["content"]["application/json"]["schema"]["$ref"].endswith("/MessageAccepted")
+    assert operation["responses"]["202"]["content"]["application/json"]["schema"]["$ref"].endswith("/RunAccepted")
     assert "run_id" in operation["description"]
 
 
@@ -97,7 +97,19 @@ def test_login_password_and_all_json_bodies_are_explicit(application, document):
                 tree = ast.parse(textwrap.dedent(inspect.getsource(endpoint)))
                 for node in ast.walk(tree):
                     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "body_fields":
-                        allowed = ast.literal_eval(node.args[1])
+                        def literal_fields(value):
+                            if isinstance(value,ast.Name):
+                                fields=inspect.unwrap(endpoint).__globals__[value.id]
+                                assert isinstance(fields,tuple) and all(isinstance(x,str) for x in fields)
+                                return fields
+                            if isinstance(value,ast.Tuple):
+                                result=[]
+                                for element in value.elts:
+                                    if isinstance(element,ast.Starred):result.extend(literal_fields(element.value))
+                                    else:result.append(ast.literal_eval(element))
+                                return tuple(result)
+                            return ast.literal_eval(value)
+                        allowed = literal_fields(node.args[1])
                         assert set(allowed) == set(documented), (path, method)
 
 

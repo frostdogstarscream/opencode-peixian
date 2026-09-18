@@ -1,9 +1,9 @@
 """Server-owned console capabilities; role names never come from a request header."""
 
 CAPABILITIES = {
-    "super_admin": ("users.manage", "admins.manage", "models.manage", "audit.read",
+    "super_admin": ("departments.manage", "invocations.read", "users.manage", "admins.manage", "models.manage", "audit.read",
                     "plugins.manage", "templates.manage", "runtimes.manage", "jobs.read", "connections.manage"),
-    "admin": ("users.manage", "models.manage", "audit.read"),
+    "admin": ("invocations.read", "users.manage", "models.manage", "audit.read"),
     "user": ("business.use",),
 }
 

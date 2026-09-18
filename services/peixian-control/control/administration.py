@@ -5,6 +5,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import secrets
+import time
 import stat
 from urllib.parse import urlsplit
 import zipfile
@@ -17,6 +18,7 @@ from fastapi import Depends, Request, UploadFile, File
 from .store import ident, now, encode
 from .plugin_schema import validate_form
 from .connections import aliases
+from .backend_contract import PROFILE_FIELDS, MODEL_FIELDS, save_profile, save_model_profile, model_profile, require_v6, error
 
 
 def register_admin(app):
@@ -30,7 +32,7 @@ def register_admin(app):
         return target
 
     def user_fields(data, actor, target_role="user"):
-        if actor["role"] != "super_admin" and ("plugin_ids" in data or "role" in data or target_role != "user"):
+        if actor["role"] != "super_admin" and ("department_id" in data or "plugin_ids" in data or "role" in data or target_role != "user"):
             fail("无权修改此角色或插件授权", 403)
         if target_role == "admin" and ("model_ids" in data or "plugin_ids" in data):
             fail("管理员账号不接受业务授权", 400)
@@ -73,7 +75,7 @@ def register_admin(app):
         from .idempotency import key, execute
         key(request)
         request.state.json_body = await request.json()
-        data = body_fields(request.state.json_body, ("username", "password", "role", "model_ids", "plugin_ids"))
+        data = body_fields(request.state.json_body, ("username", "password", "role", "model_ids", "plugin_ids", *PROFILE_FIELDS))
         role = data.get("role", "user")
         if role not in ("user", "admin"):
             fail("仅可创建普通用户或管理员", 403)
@@ -92,6 +94,10 @@ def register_admin(app):
                                              plugin_ids=data.get("plugin_ids"), authorize=lambda db: current_authority(db, user))
             except ValueError as exc:
                 fail(str(exc), 409)
+            if any(k in data for k in PROFILE_FIELDS):
+                require_v6(s)
+                with s.tx() as db: save_profile(db,created["id"],data,user)
+                created=s.user(created["id"])
             request.state.management_target = created["id"]
             return {"user": public_user(created, user), "job": public_job(job, user), "password": password}
         return await app.state.db_work.run(execute, request, user, create)
@@ -102,14 +108,18 @@ def register_admin(app):
         raw = request.state.json_body
         if isinstance(raw, dict) and "role" in raw:
             fail("账号角色不可通过此接口修改", 403)
-        data = body_fields(raw, ("active", "model_ids", "plugin_ids"))
+        data = body_fields(raw, ("active", "model_ids", "plugin_ids", *PROFILE_FIELDS))
         s = app.state.store
         target = target_user(uid, user)
         user_fields(data, user, target["role"])
         if not data:
             fail("请提供需要修改的字段")
         try:
-            updated, job = s.update_user(uid, data, allow_admin=user["role"] == "super_admin")
+            with s.tx() as db:
+                if any(k in data for k in PROFILE_FIELDS):
+                    require_v6(s); save_profile(db,uid,data,user)
+                base={k:v for k,v in data.items() if k not in PROFILE_FIELDS}
+                updated, job = s.update_user(uid, base, allow_admin=user["role"] == "super_admin") if base else (s.user(uid),None)
         except ValueError as exc:
             fail(str(exc), 409)
         return {"user": public_user(updated, user), "job": public_job(job, user)}
@@ -226,10 +236,10 @@ def register_admin(app):
     @app.get(PREFIX + "/admin/models")
     @blocking_endpoint(app)
     def models(request: Request, user=Depends(require_capability("models.manage"))):
-        return {"items": [model_public(row) for row in app.state.store.rows("SELECT * FROM models ORDER BY name")]}
+        return {"items": [{**model_public(row), **model_profile(app.state.store,row["id"])} for row in app.state.store.rows("SELECT * FROM models ORDER BY name")]}
 
     def model_data(data, old=None):
-        body_fields(data, ("name", "description", "base_url", "model_id", "api_key", "enabled", "is_default"))
+        body_fields(data, ("name", "description", "base_url", "model_id", "api_key", "enabled", "is_default", *MODEL_FIELDS))
         result = {**(old or {}), **data}
         for key in ("name", "base_url", "model_id"):
             if not isinstance(result.get(key), str) or not result[key].strip() or len(result[key]) > 500:
@@ -242,6 +252,29 @@ def register_admin(app):
         result["secret"] = app.state.store.encrypt(data["api_key"]) if data.get("api_key") else (old["secret"] if old else app.state.store.encrypt(""))
         result["enabled"] = bool(result.get("enabled", True))
         result["is_default"] = bool(result.get("is_default", False))
+        if result['is_default'] and not result['enabled']:
+            result['is_default']=False
+        return result
+
+    async def test_connection(data):
+        started=time.monotonic();found=False
+        try:
+            async with app.state.http.stream('GET',data['base_url']+'/models',headers={'Authorization':'Bearer '+app.state.store.decrypt(data['secret'])},follow_redirects=False,timeout=15) as response:
+                content=bytearray()
+                async for chunk in response.aiter_bytes():
+                    content.extend(chunk)
+                    if len(content)>1048576:break
+                if response.status_code==200 and len(content)<=1048576:
+                    payload=json.loads(content)
+                    found=isinstance(payload,dict) and isinstance(payload.get('data'),list) and any(isinstance(v,dict) and v.get('id')==data['model_id'] for v in payload['data'])
+        except (httpx.HTTPError,ValueError,TypeError):pass
+        return {'ok':found,'message':'连接成功，模型 ID 已确认' if found else '未能确认模型，请检查地址、凭据和模型 ID','elapsed_ms':round((time.monotonic()-started)*1000)}
+
+    @app.post(PREFIX+'/admin/models/test')
+    async def model_test_unsaved(request:Request,user=Depends(require_capability('models.manage'))):
+        data=model_data(await request.json())
+        result=await test_connection(data)
+        await app.state.db_work.run(app.state.store.audit,user['uid'],'model.test.unsaved','unsaved',actor_role=user['role'])
         return result
 
     @app.post(PREFIX + "/admin/models")
@@ -254,8 +287,10 @@ def register_admin(app):
             if data["is_default"]:
                 db.execute("UPDATE models SET is_default=0")
             db.execute("INSERT INTO models VALUES(?,?,?,?,?,?,?,?)", (mid, data["name"], data["description"], data["base_url"], data["model_id"], data["secret"], data["enabled"], data["is_default"]))
+            if s.schema_version()>=6:save_model_profile(db,mid,data,now())
+            elif any(k in data for k in MODEL_FIELDS):require_v6(s)
         request.state.management_target = mid
-        return model_public(s.one("SELECT * FROM models WHERE id=?", (mid,)))
+        return {**model_public(s.one("SELECT * FROM models WHERE id=?", (mid,))),**model_profile(s,mid)}
 
     @app.patch(PREFIX + "/admin/models/{mid}")
     @blocking_endpoint(app, json_body=True)
@@ -271,6 +306,8 @@ def register_admin(app):
             if data["is_default"]:
                 db.execute("UPDATE models SET is_default=0")
             db.execute("UPDATE models SET name=?,description=?,base_url=?,model_id=?,secret=?,enabled=?,is_default=? WHERE id=?", (data["name"], data["description"], data["base_url"], data["model_id"], data["secret"], data["enabled"], data["is_default"], mid))
+            if s.schema_version()>=6:save_model_profile(db,mid,data,now())
+            elif any(k in data for k in MODEL_FIELDS):require_v6(s)
             if old["enabled"] and not data["enabled"]:
                 for row in db.execute("SELECT uid FROM grants WHERE kind='model' AND resource=?", (mid,)).fetchall():
                     block_runtime(s, db, row["uid"], reason="model_disabled")
@@ -280,7 +317,7 @@ def register_admin(app):
                 queued.append(s.queue(row["uid"]))
             except ValueError:
                 pass
-        return {"model": model_public(s.one("SELECT * FROM models WHERE id=?", (mid,))), "jobs": [public_job(job, user) for job in queued]}
+        return {"model": {**model_public(s.one("SELECT * FROM models WHERE id=?", (mid,))), **model_profile(s,mid)}, "jobs": [public_job(job, user) for job in queued]}
 
     @app.post(PREFIX + "/admin/models/{mid}/test")
     async def model_test(mid: str, request: Request, user=Depends(require_capability("models.manage"))):
@@ -288,12 +325,16 @@ def register_admin(app):
         m = await app.state.db_work.run(s.one, "SELECT * FROM models WHERE id=?", (own_id(mid),))
         if not m:
             fail("模型不存在", 404)
-        try:
-            r = await app.state.http.get(m["base_url"] + "/models", headers={"Authorization": "Bearer " + s.decrypt(m["secret"])}, follow_redirects=False, timeout=15)
-            found = r.status_code == 200 and any(v.get("id") == m["model_id"] for v in r.json().get("data", []))
-        except (httpx.HTTPError, ValueError, AttributeError):
-            found = False
-        return {"ok": found, "message": "连接成功，模型 ID 已确认" if found else "未能确认模型，请检查地址、凭据和模型 ID"}
+        result=await test_connection(m)
+        def recorded():
+            if s.schema_version()<6:return
+            with s.tx() as db:
+                # Do not attach a stale test to an edited endpoint or credential.
+                current=db.execute('SELECT base_url,model_id,secret FROM models WHERE id=?',(mid,)).fetchone()
+                if current and all(current[k]==m[k] for k in ('base_url','model_id','secret')):
+                    db.execute("INSERT INTO model_profiles(mid,updated,test_status) VALUES(?,?,?) ON CONFLICT(mid) DO UPDATE SET test_status=excluded.test_status",(mid,now(),'passed' if result['ok'] else 'failed'))
+        await app.state.db_work.run(recorded)
+        return result
 
     @app.get(PREFIX + "/admin/plugins")
     @blocking_endpoint(app)

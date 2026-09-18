@@ -282,6 +282,16 @@ def create_app(settings=None, *, transport=None, management_transport=None):
         async with app.state.plugin_lock:
             return await run_plugin_test(app.state.settings.managed_root, identity)
 
+    @app.get("/internal/runtime/runs/{run_id}")
+    async def run_receipt(run_id: str):
+        if not re.fullmatch(r"[a-f0-9]{32}", run_id):raise HTTPException(404, "Receipt not found")
+        config=app.state.settings
+        headers={"Authorization":"Basic "+base64.b64encode(("opencode:"+config.opencode_password).encode()).decode("ascii"),"x-opencode-directory":"/workspace"}
+        response=await app.state.client.get(config.opencode_url+"/internal/peixian/activity",params={"run_id":run_id,"directory":"/workspace"},headers=headers,timeout=5)
+        response.raise_for_status();value=response.json()
+        if 'durable_run_v1' not in value.get('capabilities',[]):raise HTTPException(409,"Runtime upgrade required")
+        return {"protocol":"durable_run_v1","receipt":value.get('receipt'),"boot_id":value['boot_id']}
+
     @app.api_route("/{path:path}", methods=["GET", "POST", "PATCH", "PUT", "DELETE"])
     async def native(path: str, request: Request):
         path = "/" + path
@@ -306,13 +316,20 @@ def create_app(settings=None, *, transport=None, management_transport=None):
                      "x-opencode-directory": "/workspace"},
         )
         upstream.headers["Authorization"] = "Basic " + base64.b64encode(("opencode:" + config.opencode_password).encode()).decode("ascii")
+        run_id=request.headers.get('x-peixian-run-id')
+        if run_id:
+            if not re.fullmatch(r'[a-f0-9]{32}',run_id) or request.method!='POST' or not path.endswith('/prompt_async'):
+                raise HTTPException(400,'Invalid run identity')
+            upstream.headers['X-Peixian-Run-ID']=run_id
         gate = getattr(app.state, "admission", None)
         identity = None
         if gate and request.method == "POST" and path.endswith(("/message", "/prompt_async")):
             identity = gate.register("pending_start", resource=path.split("/")[2])
             upstream.headers["X-Peixian-Activity-ID"] = identity
         try:
-            return await upstream_response(app.state.client, upstream)
+            response=await upstream_response(app.state.client, upstream)
+            if identity and 400<=response.status_code<500:gate.finish(identity)
+            return response
         except BaseException:
             if identity:
                 gate.unknown(identity)

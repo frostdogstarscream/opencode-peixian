@@ -62,6 +62,7 @@ export function fork<A, E, R>(
   scope: Scope.Scope,
   identity?: string,
   startImmediately = false,
+  onExit?: () => void,
 ) {
   if (!enabled()) return work.pipe(Effect.forkIn(scope, { startImmediately }))
   return Effect.uninterruptibleMask((restore) =>
@@ -73,10 +74,15 @@ export function fork<A, E, R>(
       fiber.addObserver(() => {
         registry.finish(id)
         children.delete(id)
+        onExit?.()
       })
       return fiber
     }),
   )
+}
+
+export function acknowledge(sessionID: string, identity?: string) {
+  if (enabled()) registry.finish(registry.begin(sessionID, identity))
 }
 
 export const cancel = (sessionID: string) =>

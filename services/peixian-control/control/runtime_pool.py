@@ -228,6 +228,12 @@ def start(store, db, uid, *, admin=False):
         if row["status"] == "ready" and row["gate_policy"] == "open" and row["manual_stop_reason"] == "none":
             return {"accepted": False, "job": None, "runtime": public_status(store, db, uid)}
         reject("runtime_recovery_required", "已有运行责任尚未完成核对")
+    # A later verified pause closes older terminal recovery responsibility.
+    # Preserve history/outcomes, newer jobs, and any still-open attempt.
+    if row["status"] == "paused" and confirmed_stopped(db, row):
+        db.execute("UPDATE jobs SET recovery_required=0 WHERE uid=? AND status IN ('failed','cancelled') "
+                   "AND enqueue_seq < (SELECT MAX(enqueue_seq) FROM jobs WHERE uid=? AND action='pause' AND status='succeeded') "
+                   "AND NOT EXISTS(SELECT 1 FROM job_attempts a WHERE a.job_id=jobs.id AND a.outcome IS NULL)", (uid, uid))
     if db.execute("SELECT 1 FROM jobs WHERE uid=? AND recovery_required=1 UNION ALL SELECT 1 FROM job_attempts a JOIN jobs j ON j.id=a.job_id WHERE j.uid=? AND a.outcome IS NULL", (uid, uid)).fetchone():
         reject("runtime_recovery_required", "已有运行责任尚未完成核对")
     if not platform.get('capacity_wait_enabled') and db.execute("SELECT 1 FROM jobs WHERE status='waiting_capacity' LIMIT 1").fetchone():

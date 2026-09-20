@@ -192,3 +192,19 @@ def test_admin_connection_test_returns_no_upstream_body(context):
     finally:
         admin.portal.call(app.state.http.aclose)
         app.state.http = original
+
+
+def test_fixed_request_rule_survives_runtime_spec(context):
+    s,app,admin=context
+    rules=[{'method':'GET','path':'/health'},{'method':'POST','path':'/v1/demo/records/query','json':{'module':'funds'}}]
+    connection=create_connection(admin,allowed_methods=['GET','POST'],allowed_paths=['/health','/v1/demo/records/query'],request_rules=rules)
+    assert connection['request_rules']==rules
+    assert publish(admin).status_code==200
+    response=admin.put(P+'/admin/plugins/service-fixture/1.0.0/connections',json={'bindings':{'records':connection['id']}})
+    assert response.status_code==200,response.text
+    account,user=install(context)
+    try:
+        runtime=s.one('SELECT desired FROM runtimes WHERE uid=?',(account['id'],))
+        spec=runtime_spec(s,account['id'],runtime['desired'])
+        assert spec['connections'][0]['request_rules']==rules
+    finally:user.__exit__(None,None,None)

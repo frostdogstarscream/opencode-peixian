@@ -10,7 +10,7 @@ from .store import encode, ident
 
 ALIAS = re.compile(r"^[a-z][a-z0-9_-]{0,39}$")
 FIELDS = {"name", "base_url", "auth_type", "secret", "header_name", "allowed_methods", "allowed_paths",
-          "timeout_seconds", "max_response_bytes", "enabled"}
+          "timeout_seconds", "max_response_bytes", "enabled", "request_rules"}
 DEFAULTS = {"auth_type": "none", "header_name": "", "allowed_methods": ["GET"], "allowed_paths": ["/health"],
             "timeout_seconds": 15, "max_response_bytes": 1048576, "enabled": True}
 
@@ -127,7 +127,8 @@ def register_connections(app):
             restricted = (previous["enabled"] and not config["enabled"]
                           or any(previous[k] != config[k] for k in ("base_url", "auth_type", "header_name"))
                           or bool(set(previous["allowed_methods"]) - set(config["allowed_methods"]))
-                          or bool(set(previous["allowed_paths"]) - set(config["allowed_paths"])))
+                          or bool(set(previous["allowed_paths"]) - set(config["allowed_paths"]))
+                          or previous.get("request_rules") != config.get("request_rules"))
             db.execute("UPDATE connections SET config=?,secret=?,revision=revision+1 WHERE id=?", (encode(config), secret, cid))
             if restricted:
                 for uid in users:

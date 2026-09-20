@@ -1,0 +1,33 @@
+{
+  "id": "peixian-records-composite",
+  "version": "1.0.0",
+  "name": "综合关联资料",
+  "description": "查询已接入的综合关联资料，不扩大查询对象或范围。",
+  "opencode_version": "1.18.30",
+  "entry": "entry.mjs",
+  "tools": [
+    "peixian_get_composite_records"
+  ],
+  "connections": {
+    "records": {
+      "description": "综合关联资料专属只读连接"
+    }
+  },
+  "display": {
+    "input_fields": [],
+    "output_fields": [
+      "module",
+      "data_status",
+      "returned_count",
+      "total_count",
+      "snapshot_id",
+      "source",
+      "synthetic"
+    ]
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
+}

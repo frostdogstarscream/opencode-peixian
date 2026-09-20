@@ -60,6 +60,26 @@ def policy(value):
         raise ConnectionFailure("连接超时必须为 1 至 60 秒")
     if type(size) is not int or not 1024 <= size <= 10 * 1024 * 1024:
         raise ConnectionFailure("响应上限必须为 1 KiB 至 10 MiB")
+    if "request_rules" in result:
+        rules = result["request_rules"]
+        if not isinstance(rules, list) or not 1 <= len(rules) <= 20:
+            raise ConnectionFailure("固定请求规则必须为1至20项；省略字段沿用原策略")
+        seen = set()
+        for rule in rules:
+            if not isinstance(rule, dict) or set(rule) - {"method", "path", "json"}:
+                raise ConnectionFailure("固定请求规则包含不支持字段")
+            method, path = rule.get("method"), safe_path(rule.get("path"))
+            if method not in result["allowed_methods"] or not any(path.startswith(p[:-1]) if p.endswith("/*") else path == p for p in result["allowed_paths"]):
+                raise ConnectionFailure("固定规则超出方法或路径许可")
+            if (method, path) in seen or method == "GET" and "json" in rule:
+                raise ConnectionFailure("固定规则重复或GET包含正文")
+            seen.add((method, path))
+            try:
+                raw = json.dumps(rule, ensure_ascii=False, allow_nan=False)
+            except (ValueError, TypeError, RecursionError):
+                raise ConnectionFailure("固定规则必须是有效JSON") from None
+            if len(raw.encode()) > 16384:
+                raise ConnectionFailure("固定规则超过大小限制")
     return result
 
 
@@ -84,6 +104,14 @@ def request_data(connection, value):
         raise ConnectionFailure("查询参数必须为有限的键值对")
     if method == "GET" and "json" in value:
         raise ConnectionFailure("GET 请求不接受 JSON 正文")
+    if "request_rules" in connection:
+        rule = next((r for r in connection["request_rules"] if r["method"] == method and r["path"] == path), None)
+        # Canonical JSON distinguishes booleans/numbers and exact object shape.
+        same = rule is not None and ("json" in rule) == ("json" in value)
+        if same and "json" in value:
+            same = json.dumps(rule["json"], sort_keys=True, allow_nan=False) == json.dumps(value["json"], sort_keys=True, allow_nan=False)
+        if not same or query:
+            raise ConnectionFailure("请求不符合此连接的固定模块规则", 403)
     return method, connection["base_url"] + path, query
 
 

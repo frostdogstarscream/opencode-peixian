@@ -1,0 +1,23 @@
+{
+  "allowed_methods": [
+    "GET",
+    "POST"
+  ],
+  "allowed_paths": [
+    "/health",
+    "/v1/demo/records/query"
+  ],
+  "request_rules": [
+    {
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/demo/records/query",
+      "json": {
+        "module": "vehicle"
+      }
+    }
+  ]
+}

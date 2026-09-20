@@ -257,6 +257,7 @@ def schemas():
         "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 60, "default": 15},
         "max_response_bytes": {"type": "integer", "minimum": 1024, "maximum": 10485760, "default": 1048576},
     }
+    connection_fields["request_rules"] = array(obj({"method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, "path": STRING, "json": {}}, ("method", "path")), minItems=1, maxItems=20)
     result["Platform"] = obj({"name": STRING, "short_name": STRING, "description": STRING}, ("name", "short_name", "description"))
     result["ServiceConnectionCreate"] = obj(connection_fields, ("name", "base_url"))
     result["ServiceConnectionUpdate"] = obj(connection_fields)

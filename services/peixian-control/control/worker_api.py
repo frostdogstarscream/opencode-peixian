@@ -53,6 +53,7 @@ def runtime_spec(s, uid, revision, *, db=None):
             value = json.loads(row["config"])
             connections.append({"id": binding_id, "plugin_id": installed["plugin"], "alias": alias,
                                 "allowed_user": uid, "token": token, "headers": connection_headers(s, row),
+                                **({"request_rules": value["request_rules"]} if "request_rules" in value else {}),
                                 **{k: value[k] for k in ("base_url", "allowed_methods", "allowed_paths", "timeout_seconds", "max_response_bytes")}})
             platform_connections[alias] = {"id": binding_id, "token": token}
         plugins.append({"id": installed["plugin"], "version": installed["version"], "manifest": manifest, "digest": installed["digest"], "options": s.decrypt(installed["config"]), "platform_connections": platform_connections})

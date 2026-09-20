@@ -62,6 +62,11 @@ def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,cha
         body={'session_id':'ses_facts','message_id':'msg_assistant','tool':'peixian_prepare_scenario_facts','args':{'scenario_id':'DEMO-CASE-GAMBLING','methods':['night']}}
         assert client.post('/internal/facts/execute',json=body).status_code==401
         assert client.get('/health',headers={'X-Facts-Key':token}).status_code==401
+        direct=client.post('/internal/facts/execute',json={**body,'tool':tool('night'),'args':{}},headers={'X-Facts-Key':token})
+        assert direct.status_code==200,direct.text
+        assert direct.json()['facts_table']['facts'] and calls==['night']
+        persisted=store.decrypt(store.one('SELECT request_ciphertext FROM business_runs WHERE id=?',(rid,))['request_ciphertext'])
+        assert persisted['facts_state']['table']['facts']
         reply=client.post('/internal/facts/execute',json=body,headers={'X-Facts-Key':token})
         assert reply.status_code==200,reply.text
         table=reply.json();assert table['data_status']=='complete' and table['summary'][0]['module']=='night'

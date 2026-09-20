@@ -112,11 +112,12 @@ def register(app):
             if selected in TOOLS:
                 item=current['modules'].get(TOOLS[selected],{})
                 if item.get('status')!='completed':raise HTTPException(409,'资料结果尚未确认，本轮不会重试')
-                return item['response']
             responses={m:{**current['modules'][m]['response'],'records':current['modules'][m]['response']['items']} for m in modules if current['modules'].get(m,{}).get('status')=='completed'}
             table=await watched({'action':'compile','engine':str(config.managed_root/'platform-facts/engine.mjs'),
                 'context':{**plan['scenario'],'required_modules':modules},'responses':responses})
             await call('table',table=table)
-            return table
+            # Even a direct query produces code-derived facts in this same Run.
+            # Preserve the query payload while keeping fact computation out of the model.
+            return {**item['response'],'facts_table':table} if selected in TOOLS else table
         finally:
             with contextlib.suppress(httpx.HTTPError,HTTPException):await call('finish')

@@ -4,6 +4,7 @@ from pathlib import Path
 
 TABLES = json.loads(Path(__file__).with_name("scenario_fact_tables.json").read_text())
 TABLES += json.loads(Path(__file__).with_name("scenario_fact_tables_v14.json").read_text())
+TABLES += json.loads(Path(__file__).with_name("scenario_fact_tables_v151.json").read_text())
 PREPARE = "peixian_prepare_scenario_facts"
 CHECK = "peixian_check_scenario_summary"
 

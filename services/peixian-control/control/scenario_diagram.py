@@ -107,7 +107,7 @@ def build(result, table, data, places):
                           'subject': subject, 'subject_ref': context['subject_ref'], 'event': event, 'category': module,
                           'source_ids': list(dict.fromkeys(references)), 'message_id': card['message_id'], 'notes': notes})
     # Registration window is a contextual range, not an observed person event.
-    case_fact = next((f for f in context['facts'] if f['record_id'] in cards and f['record_id'] == ('demo54' if context['snapshot_id'] == 'demo1003' else 'DEMO-CTX-T01')), None)
+    case_fact = next((f for f in context['facts'] if f['record_id'] in cards and f['record_id'] == ('demo54' if context['snapshot_id'] in ('demo1003', 'demo1005') else 'DEMO-CTX-T01')), None)
     base['case_window'] = context['case_window'] if context['scenario_id'] == 'DEMO-CASE-THEFT' and case_fact else []
     base['case_source_ids'] = [case_fact['record_id'], case_fact['source_document']] if base['case_window'] else []
     base['pages'] = compile_pages(nodes); base['total_nodes'] = len(nodes)

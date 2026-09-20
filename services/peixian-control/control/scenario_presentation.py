@@ -117,5 +117,5 @@ def presentation(result, messages):
         clues.append({"id":"finding-observation","type":"trajectory","title":"观测状态","headline":summary,"summary":summary,"discoveries":["独行仅限有明确来源的该次观测片段。"],"evidence":[{"type":"trajectory","label":x,"content":cards[x]["time"],"source_ids":cards[x]["source_ids"]} for x in refs]})
         if result.get("summary_check")=="checked": conclusions.append({"text":summary,"clue_id":"finding-observation","source_ids":refs})
     missing=["部分资料未取得或核对未完成，请查看步骤状态。"] if result['status']!='complete' else []
-    missing += ["观察范围仅覆盖两个日期。", "地点无距离测量依据。" if theft else "流水缺少跨账户唯一配对依据。"]
+    missing += ["观察范围："+window+"。", "地点无距离测量依据。" if theft else "流水缺少跨账户唯一配对依据。"]
     return {"diagram":result.get("diagram"),"version":"1.0","turn_id":result.get('turn_id',messages[starts[-1]].get('info',{}).get('id','')),"title":NAMES[sid],"process":process,"conclusions":conclusions[:5],"evidence":evidence,"clues":clues,"missing":missing,"subject_ref":subject}

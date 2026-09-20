@@ -42,10 +42,19 @@ try {
   try {await page.locator('.event-diagram-svg svg').first().waitFor({timeout:15000})} catch(e){console.log((await page.locator('body').innerText()).slice(-6000));console.log(errors);throw e}
   const svgText=await page.locator('.event-diagram-svg svg').first().textContent();assert.ok(svgText.includes('2026-09-14'));assert.ok(svgText.includes('晚间'));assert.ok(!svgText.includes('#58;'));const before=await page.locator('.event-diagram').innerText();assert.ok(before.includes('虚线箭头仅表示时间先后'));assert.ok(!before.includes('时间不详推断'))
   await page.locator('.event-diagram-scroll').first().scrollIntoViewIfNeeded();await page.locator('.event-diagram-scroll').first().screenshot({path:path.join(out,width+'-'+scenario+'-light.png')})
-  await page.getByRole('button',{name:'放大事件图',exact:true}).click();assert.ok((await page.locator('.event-diagram-toolbar').innerText()).includes('125%'))
+  await page.getByRole('button',{name:'放大事件图',exact:true}).click();assert.ok((await page.locator('.event-diagram-toolbar').first().innerText()).includes('125%'))
   await page.getByRole('button',{name:'查看大图',exact:true}).click();await page.getByRole('button',{name:'关闭大图',exact:true}).waitFor();await page.keyboard.press('Escape');await page.getByRole('button',{name:'关闭大图',exact:true}).waitFor({state:'detached'})
   await page.locator('.event-diagram-list button').first().click();await page.getByRole('dialog',{name:'线索详情',exact:true}).waitFor();await page.keyboard.press('Escape')
   for(const format of ['SVG','PNG']){const download=page.waitForEvent('download');await page.getByRole('button',{name:'导出 '+format,exact:true}).click();const value=await download;assert.equal(await value.failure(),null);await value.saveAs(path.join(out,width+'-'+scenario+'.'+format.toLowerCase()))}
+  if(fixtures[scenario].presentation.diagram.pages.length>1){
+   await page.getByRole('button',{name:'下一页',exact:true}).click()
+   await page.locator('.event-diagram-svg svg').first().waitFor()
+   assert.ok((await page.locator('.event-diagram-toolbar').last().innerText()).includes('第 2/'))
+   const expected=fixtures[scenario].presentation.diagram.pages[1].nodes[0].number
+   assert.ok((await page.locator('.event-diagram-list').innerText()).includes(expected))
+   await page.getByRole('button',{name:'上一页',exact:true}).click()
+   await page.locator('.event-diagram-svg svg').first().waitFor()
+  }
   await page.evaluate(()=>document.documentElement.dataset.theme='dark');await page.waitForTimeout(600);await page.locator('.event-diagram-svg svg').first().waitFor();await page.locator('.event-diagram-scroll').first().scrollIntoViewIfNeeded();await page.locator('.event-diagram-scroll').first().screenshot({path:path.join(out,width+'-'+scenario+'-dark.png')})
   assert.deepEqual(errors,[]);report.push({width,scenario,render:true,zoom:true,drawer:true,escape:true,exports:['SVG','PNG'],page_errors:0})
   await context.close()

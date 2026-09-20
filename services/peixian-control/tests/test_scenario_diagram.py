@@ -78,3 +78,24 @@ def test_v14_exact_snapshot_registry(scenario):
     forged=copy.deepcopy(table);forged["records_snapshot_id"]="DEMO-SNAPSHOT-20260918-01"
     v[1]["parts"][0]["state"]["output"]=json.dumps(forged)
     assert not project(v,True).get("diagram")
+
+
+@pytest.mark.parametrize("scenario", ["DEMO-CASE-THEFT", "DEMO-CASE-GAMBLING"])
+def test_expanded_v151_frozen_projection(scenario):
+    from control.scenario_presentation import presentation
+    table=next(t for t in TABLES if t["scenario_id"]==scenario and t["scenario_snapshot_id"]=="demo1005" and t["data_status"]=="complete")
+    v=values(scenario);v[1]["parts"][0]["state"]["output"]=json.dumps(table)
+    result=project(v,True);d=result["diagram"];p=presentation(result,v)
+    assert d["status"]=="ready" and d["total_nodes"]>20
+    assert d["records_snapshot_id"]=="demo1004" and d["scenario_snapshot_id"]=="demo1005"
+    nodes=[n for page in d["pages"] for n in page["nodes"]]
+    assert len(nodes)==d["total_nodes"]==len({n["id"] for n in nodes})
+    assert all(len(page["nodes"])<=20 for page in d["pages"])
+    assert p["evidence"][0]["summary"].startswith("2026-09-10 至 2026-09-17")
+    assert not any("两个日期" in text for text in p["missing"])
+    if scenario.endswith("THEFT"):
+        assert d["case_source_ids"]==["demo54","demo60"]
+        assert p["evidence"][-1]["value"]==1
+    table=copy.deepcopy(table);table["scenario_snapshot_id"]="demo1003";table["records_snapshot_id"]="demo1001"
+    v[1]["parts"][0]["state"]["output"]=json.dumps(table)
+    assert not project(v,True).get("diagram")

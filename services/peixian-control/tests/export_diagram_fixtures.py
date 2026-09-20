@@ -7,7 +7,7 @@ from control.scenario_presentation import presentation
 if __name__ == "__main__":
     fixtures={}
     for sid in ("DEMO-CASE-THEFT", "DEMO-CASE-GAMBLING"):
-        table=next(t for t in TABLES if t["scenario_id"]==sid and t["scenario_snapshot_id"]=="demo1003" and t["data_status"]=="complete")
+        table=next(t for t in TABLES if t["scenario_id"]==sid and t["scenario_snapshot_id"]=="demo1005" and t["data_status"]=="complete")
         claims=[{k:f[k] for k in ("fact_id","statement","source_ids")} for f in table["facts"][:5]]
         messages=[{"info":{"id":"request","role":"user"}},{"info":{"id":"tool-message","role":"assistant"},"parts":[
             {"type":"tool","tool":PREPARE,"state":{"status":"completed","input":{"scenario_id":sid},"output":json.dumps(table)}},

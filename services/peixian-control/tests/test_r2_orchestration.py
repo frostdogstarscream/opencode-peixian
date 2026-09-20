@@ -576,3 +576,28 @@ def test_expired_worker_stage_never_frees_slot_or_opens_gate(state, stage):
     assert replacement["attempt"] == job["attempt"] + 1
     assert replacement["phase"] == ("reconciling" if stage in ("closing", "applying") else "claimed")
     assert store.one("SELECT reserved,gate_policy FROM runtimes WHERE uid=?", (uid,)) == {"reserved": 1, "gate_policy": "closed"}
+
+
+def test_verified_pause_settles_older_failed_attempt_without_success_claim(state):
+    store, engine, clock, args = state
+    uid=account(state)
+    old=engine.claim(runtime_spec)["job"]
+    with store.tx() as db:
+        db.execute("UPDATE jobs SET status='failed',recovery_required=1 WHERE id=?",(old["id"],))
+        db.execute("UPDATE runtimes SET recovery_required=1 WHERE uid=?",(uid,))
+    other=account(state,"other-account")
+    other_job=store.one("SELECT id FROM jobs WHERE uid=?",(other,))["id"]
+    store.queue(uid,"pause",bump_desired=False,reason="admin")
+    pause=engine.claim(runtime_spec)["job"]
+    assert pause["action"]=="pause"
+    applying(engine,pause)
+    before=store.one("SELECT outcome FROM job_attempts WHERE job_id=?",(old["id"],))
+    assert before["outcome"] is None
+    with pytest.raises(HTTPException):
+        complete(engine,pause,ok=True,observation_id=observation(engine,pause,complete=False))
+    assert store.one("SELECT outcome FROM job_attempts WHERE job_id=?",(old["id"],))["outcome"] is None
+    complete(engine,pause,ok=True,observation_id=observation(engine,pause))
+    settled=json.loads(store.one("SELECT outcome FROM job_attempts WHERE job_id=?",(old["id"],))["outcome"])
+    assert settled["result"]=="stopped_by_later_pause" and settled["pause_job_id"]==pause["id"]
+    assert store.one("SELECT status,recovery_required FROM jobs WHERE id=?",(old["id"],))=={"status":"failed","recovery_required":0}
+    assert store.one("SELECT status FROM jobs WHERE id=?",(other_job,))["status"]=="queued"

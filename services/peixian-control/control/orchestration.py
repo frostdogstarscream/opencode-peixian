@@ -417,6 +417,18 @@ class Orchestration:
                 db.execute("UPDATE jobs SET status='cancelled',phase='finished',cancel_requested=1,recovery_required=0,updated=? WHERE uid=? AND id<>? AND status='queued'", (current, job["uid"], jid))
                 db.execute("UPDATE job_attempts SET outcome=?,outcome_hash=?,phase='finished',updated=? WHERE job_id IN (SELECT id FROM jobs WHERE uid=? AND id<>? AND status='cancelled') AND outcome IS NULL",
                            (canonical({"result": "stopped_by_repair"}), hashed({"result": "stopped_by_repair"}), current, job["uid"], jid))
+                # A verified full stop settles older failed attempts without claiming their work succeeded.
+                # Never settle later jobs or another account; preserve already-recorded outcomes.
+                settled = {"result": "stopped_by_later_pause", "pause_job_id": jid,
+                           "observation_id": observed["observation_id"]}
+                db.execute("UPDATE job_attempts SET outcome=?,outcome_hash=?,phase='finished',updated=? "
+                           "WHERE outcome IS NULL AND job_id IN (SELECT id FROM jobs WHERE uid=? "
+                           "AND enqueue_seq<? AND status IN ('failed','cancelled'))",
+                           (canonical(settled), hashed(settled), current, job["uid"], job["enqueue_seq"]))
+                db.execute("UPDATE jobs SET recovery_required=0 WHERE uid=? AND enqueue_seq<? "
+                           "AND status IN ('failed','cancelled') AND NOT EXISTS "
+                           "(SELECT 1 FROM job_attempts a WHERE a.job_id=jobs.id AND a.outcome IS NULL)",
+                           (job["uid"], job["enqueue_seq"]))
                 active = db.execute("SELECT active FROM users WHERE id=?", (job["uid"],)).fetchone()[0]
                 repair = (runtime["security_blocked"] and runtime["stop_reason"] != "account_disabled"
                           and active and runtime["reserved"] and runtime["applied_spec_ciphertext"] and job["reason"] == "security"

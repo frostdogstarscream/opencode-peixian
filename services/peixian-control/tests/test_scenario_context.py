@@ -128,3 +128,19 @@ def test_explicit_agent_scope_and_validation(v6,monkeypatch):
         with s.tx() as db:db.execute('UPDATE skills SET enabled=0 WHERE id=?',('skill-g',))
         with pytest.raises(HTTPException):sc.resolve(s,user['uid'],'new',data,applied)
     finally:client.__exit__(None,None,None)
+
+
+def test_inherited_scene_prefers_total_flow_not_sorted_special_method(v6,monkeypatch):
+    from control.official_methods import BY_ID
+    from control import capabilities
+    s,app,c,client,user,data,payload,applied=configured(v6,monkeypatch)
+    try:
+        checked=[]
+        monkeypatch.setattr(capabilities,'check_selection',lambda store,uid,value:checked.append(value['skill_ids']))
+        for identity,method in [('aaa-flow','gambling'),('zzz-special','relations')]:
+            applied['skills'].append({'id':identity,'content':BY_ID['peixian.method.'+method]['content'],'version':3})
+        value=sc.resolve(s,user['uid'],'s',{**data,'text':'分析涉赌'},applied)
+        assert value['effective_skill_ids']==['aaa-flow'] and checked[-1]==['aaa-flow']
+        value=sc.resolve(s,user['uid'],'s',{**data,'text':'分析涉赌','skill_ids':['zzz-special']},applied)
+        assert value['effective_skill_ids']==['zzz-special'] and checked[-1]==['zzz-special']
+    finally:client.__exit__(None,None,None)

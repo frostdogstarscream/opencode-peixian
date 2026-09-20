@@ -59,7 +59,12 @@ def resolve(store,uid,sid,data,applied,historical=None):
     if scene:
         matching=[x for x in applied.get('skills',[]) if skill_scenario(x)==scene]
         selected=[x for x in matching if x['id'] in effective]
-        preferred=selected or sorted(matching,key=lambda x:('peixian_prepare_scenario_facts' in x['content'],x.get('version',0),x['id']),reverse=True)
+        from .official_methods import identify
+        flow='gambling' if scene=='DEMO-CASE-GAMBLING' else 'theft'
+        # An inherited scene must not arbitrarily select a narrow method by ID.
+        # Explicit user selection stays authoritative; legacy registered flows remain supported.
+        candidates=[x for x in matching if not identify(x['content']) or identify(x['content'])['method']==flow]
+        preferred=selected or sorted(candidates,key=lambda x:(bool(identify(x['content'])), 'peixian_prepare_scenario_facts' in x['content'],x.get('version',0),x['id']),reverse=True)
         if not preferred:error('scenario_skill_unavailable','当前场景技能尚未配置或生效，请在我的技能中检查。',409)
         skill=preferred[0]
         if skill['id'] not in effective:effective.append(skill['id'])

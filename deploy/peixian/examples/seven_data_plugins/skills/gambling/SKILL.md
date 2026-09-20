@@ -1,12 +1,12 @@
 ---
-name: 资金往来整理
+name: 涉赌案件资料整理
 description: 使用平台固定方法整理当前已授权资料，提供来源和可执行的后续选项。
 ---
-稳定方法ID：peixian.method.funds
+稳定方法ID：peixian.method.gambling
 内容版本：3.0.0
 发布状态：published
-方法标识：funds
-依赖插件：peixian-records-funds
+方法标识：night, companions, funds, relations
+依赖插件：peixian-records-night, peixian-records-portrait, peixian-records-funds, peixian-records-lookup, peixian-records-composite
 
 ## 前置条件
 平台已确定当前场景、对象和观察范围，并将本轮已应用能力冻结。以平台提供的场景为准，不要求用户输入内部编号，不通过技能显示名称授予权限。依赖未授权、停用或未生效时提示具体缺口，不绕过。
@@ -18,7 +18,7 @@ description: 使用平台固定方法整理当前已授权资料，提供来源�
 普通术语解释不取数；解释历史结果时仅采用明确关联的已核对结果，不把模型历史文字当新事实。需要最新资料时由用户明确发起新Run。
 
 ## 方法边界
-逐条保留原始流水，金额由代码将整数分转换为元；无可靠交易配对依据不合并双边或相似流水，不将资金往来称为赌资。
+根据问题从night、companions、funds、relations选择必要方法；单项追问只选一项，综合资料整理最多选择这四项。不依据交往、夜间活动或资金生成犯罪倾向、嫌疑排名、风险分数或违法结论。
 缺失、失败、拒绝、未知与查询成功零条分别表达。来源快照和场景快照分别保存，不互相替换。不要补写对象、时间、同行状态、位置关系或交易用途。
 
 ## 回答

@@ -8,15 +8,18 @@ from .store import now
 
 
 def evidence(store,row):
-    from .scenario_evidence import permitted
-    if not permitted(store,row['uid']):return {'run_id':row['id'],'status':'unavailable','cards':[],'summary':[]}
-    return {'run_id':row['id'],**(store.decrypt(row['evidence_ciphertext']) if row['evidence_ciphertext'] else {'status':'pending','cards':[],'summary':[]})}
+    # Caller has already verified Run ownership. Historical encrypted evidence
+    # is not conditional on the old plugin remaining installed today.
+    if row['evidence_ciphertext']:return {'run_id':row['id'],**store.decrypt(row['evidence_ciphertext'])}
+    snapshot=store.decrypt(row['request_ciphertext'])
+    if snapshot.get('facts_plan'):
+        from .facts_evidence import evidence as project
+        return project(snapshot,row)
+    return {'run_id':row['id'],'status':'pending','cards':[],'summary':[]}
 
 
 def attach_results(store,uid,values):
     if store.schema_version()<6:return values
-    from .scenario_evidence import permitted
-    if not permitted(store,uid):return values
     for message in values:
         mid=message['info'].get('id')
         row=store.one('SELECT id,result_ciphertext FROM business_runs WHERE uid=? AND assistant_id=? AND result_ciphertext IS NOT NULL',(uid,mid))

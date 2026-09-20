@@ -12,7 +12,7 @@ def test_frozen_identity_and_safe_method_boundary():
     context={'scenario_id':'DEMO-CASE-GAMBLING'}
     payload={'system':'中文','tools':{'custom':False}}
     bind(payload,context,[skill])
-    assert context['agent']['version']=='3.0.0'
+    assert context['agent']['version']=='3.1.0'
     assert context['agent']['prompt_sha256']==hashlib.sha256(PROMPT.encode()).hexdigest()
     assert context['agent']['skills'][0]['content_sha256']==hashlib.sha256(skill['content'].encode()).hexdigest()
     assert skill['content'] not in payload['system']

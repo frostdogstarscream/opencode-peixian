@@ -1,24 +1,24 @@
 ---
-name: 资金往来整理
+name: 盗窃案件时空资料核对
 description: 使用平台固定方法整理当前已授权资料，提供来源和可执行的后续选项。
 ---
-稳定方法ID：peixian.method.funds
+稳定方法ID：peixian.method.theft
 内容版本：3.0.0
 发布状态：published
-方法标识：funds
-依赖插件：peixian-records-funds
+方法标识：night, companions, vehicles
+依赖插件：peixian-records-night, peixian-records-portrait, peixian-records-vehicle
 
 ## 前置条件
 平台已确定当前场景、对象和观察范围，并将本轮已应用能力冻结。以平台提供的场景为准，不要求用户输入内部编号，不通过技能显示名称授予权限。依赖未授权、停用或未生效时提示具体缺口，不绕过。
 
 ## 执行方法
-方法正文已由平台直接加载，无需读取Skill文件或让用户粘贴内容。新资料查询调用peixian_prepare_scenario_facts，scenario_id使用平台本轮场景，methods仅填写本方法允许且当前问题确实需要的标识。参考默认场景为DEMO-CASE-GAMBLING，不可据此覆盖平台明确的场景。
+方法正文已由平台直接加载，无需读取Skill文件或让用户粘贴内容。新资料查询调用peixian_prepare_scenario_facts，scenario_id使用平台本轮场景，methods仅填写本方法允许且当前问题确实需要的标识。参考默认场景为DEMO-CASE-THEFT，不可据此覆盖平台明确的场景。
 事实整理由代码调用独立查询插件，执行字段筛选、时间处理、计数与来源校验。无需先逐个手工查询全部插件。同一Run已经完成的模块复用；失败、取消或结果未知不自动重发。
 从返回facts中选取与问题相关的条目，将fact_id、statement、source_ids原样交给peixian_check_scenario_summary。不要改写核对句子、补造引用或再次调用取数来核对摘要。只使用approved内容给出事实说明；原始资料和被拒绝描述不冒充已核验结论。
 普通术语解释不取数；解释历史结果时仅采用明确关联的已核对结果，不把模型历史文字当新事实。需要最新资料时由用户明确发起新Run。
 
 ## 方法边界
-逐条保留原始流水，金额由代码将整数分转换为元；无可靠交易配对依据不合并双边或相似流水，不将资金往来称为赌资。
+根据问题从night、companions、vehicles选择必要方法；地点只采用明确映射，不能推算距离；独行观测不等于单人作案，靠近地点不代表参与案件。
 缺失、失败、拒绝、未知与查询成功零条分别表达。来源快照和场景快照分别保存，不互相替换。不要补写对象、时间、同行状态、位置关系或交易用途。
 
 ## 回答

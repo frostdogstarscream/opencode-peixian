@@ -1,0 +1,113 @@
+{
+  "version": "official-methods-v3",
+  "skills": [
+    {
+      "id": "peixian.method.night",
+      "method": "night",
+      "methods": [
+        "night"
+      ],
+      "name": "夜间活动整理",
+      "version": "3.0.0",
+      "state": "published",
+      "scenario_id": "DEMO-CASE-GAMBLING",
+      "dependency_ids": [
+        "peixian-records-night"
+      ],
+      "sha256": "39e9a691b9e433687df7a2fc11a717e7bf6219ac27c0a15aaee980feaae25464",
+      "content": "---\nname: 夜间活动整理\ndescription: 使用平台固定方法整理当前已授权资料，提供来源和可执行的后续选项。\n---\n稳定方法ID：peixian.method.night\n内容版本：3.0.0\n发布状态：published\n方法标识：night\n依赖插件：peixian-records-night\n\n## 前置条件\n平台已确定当前场景、对象和观察范围，并将本轮已应用能力冻结。以平台提供的场景为准，不要求用户输入内部编号，不通过技能显示名称授予权限。依赖未授权、停用或未生效时提示具体缺口，不绕过。\n\n## 执行方法\n方法正文已由平台直接加载，无需读取Skill文件或让用户粘贴内容。新资料查询调用peixian_prepare_scenario_facts，scenario_id使用平台本轮场景，methods仅填写本方法允许且当前问题确实需要的标识。参考默认场景为DEMO-CASE-GAMBLING，不可据此覆盖平台明确的场景。\n事实整理由代码调用独立查询插件，执行字段筛选、时间处理、计数与来源校验。无需先逐个手工查询全部插件。同一Run已经完成的模块复用；失败、取消或结果未知不自动重发。\n从返回facts中选取与问题相关的条目，将fact_id、statement、source_ids原样交给peixian_check_scenario_summary。不要改写核对句子、补造引用或再次调用取数来核对摘要。只使用approved内容给出事实说明；原始资料和被拒绝描述不冒充已核验结论。\n普通术语解释不取数；解释历史结果时仅采用明确关联的已核对结果，不把模型历史文字当新事实。需要最新资料时由用户明确发起新Run。\n\n## 方法边界\n北京时间22:00至次日06:00；跨日注明日期；展示记录数、涉及日期数和时间分布，不自行设定“经常”阈值。\n缺失、失败、拒绝、未知与查询成功零条分别表达。来源快照和场景快照分别保存，不互相替换。不要补写对象、时间、同行状态、位置关系或交易用途。\n\n## 回答\n使用简体中文，先回答当前问题，再列来源以及最多两项现有能力支持的后续选择。准备失败时说清哪类资料尚未取得及可以怎样继续，不机械只说“未通过核对”。不自动执行下一步，不承诺不支持的人员查询。\n卡片和事件图由平台根据本轮可信事实生成，不自行编造analysis_result、截图数字或Mermaid事实。保留正确的数据性质，不将虚构资料表述为真实业务记录。\n\n## 验证用例\n正常资料、未授权依赖、未知结果、来源不匹配、跨日、字段缺失均保持代码校验边界；计数和事实原句不能由模型改写。用户编辑后的副本不作为官方方法身份依据。\n"
+    },
+    {
+      "id": "peixian.method.companions",
+      "method": "companions",
+      "methods": [
+        "companions"
+      ],
+      "name": "同行与共现核对",
+      "version": "3.0.0",
+      "state": "published",
+      "scenario_id": "DEMO-CASE-GAMBLING",
+      "dependency_ids": [
+        "peixian-records-portrait"
+      ],
+      "sha256": "ed00078db0840610e4729300ccc9cdaa721a3aa4291cbfaca6ba15f7aff80b66",
+      "content": "---\nname: 同行与共现核对\ndescription: 使用平台固定方法整理当前已授权资料，提供来源和可执行的后续选项。\n---\n稳定方法ID：peixian.method.companions\n内容版本：3.0.0\n发布状态：published\n方法标识：companions\n依赖插件：peixian-records-portrait\n\n## 前置条件\n平台已确定当前场景、对象和观察范围，并将本轮已应用能力冻结。以平台提供的场景为准，不要求用户输入内部编号，不通过技能显示名称授予权限。依赖未授权、停用或未生效时提示具体缺口，不绕过。\n\n## 执行方法\n方法正文已由平台直接加载，无需读取Skill文件或让用户粘贴内容。新资料查询调用peixian_prepare_scenario_facts，scenario_id使用平台本轮场景，methods仅填写本方法允许且当前问题确实需要的标识。参考默认场景为DEMO-CASE-GAMBLING，不可据此覆盖平台明确的场景。\n事实整理由代码调用独立查询插件，执行字段筛选、时间处理、计数与来源校验。无需先逐个手工查询全部插件。同一Run已经完成的模块复用；失败、取消或结果未知不自动重发。\n从返回facts中选取与问题相关的条目，将fact_id、statement、source_ids原样交给peixian_check_scenario_summary。不要改写核对句子、补造引用或再次调用取数来核对摘要。只使用approved内容给出事实说明；原始资料和被拒绝描述不冒充已核验结论。\n普通术语解释不取数；解释历史结果时仅采用明确关联的已核对结果，不把模型历史文字当新事实。需要最新资料时由用户明确发起新Run。\n\n## 方法边界\n同框、明确同行、同乘分别列出；无法判断保持未知；没有同行记录不能写成独行。\n缺失、失败、拒绝、未知与查询成功零条分别表达。来源快照和场景快照分别保存，不互相替换。不要补写对象、时间、同行状态、位置关系或交易用途。\n\n## 回答\n使用简体中文，先回答当前问题，再列来源以及最多两项现有能力支持的后续选择。准备失败时说清哪类资料尚未取得及可以怎样继续，不机械只说“未通过核对”。不自动执行下一步，不承诺不支持的人员查询。\n卡片和事件图由平台根据本轮可信事实生成，不自行编造analysis_result、截图数字或Mermaid事实。保留正确的数据性质，不将虚构资料表述为真实业务记录。\n\n## 验证用例\n正常资料、未授权依赖、未知结果、来源不匹配、跨日、字段缺失均保持代码校验边界；计数和事实原句不能由模型改写。用户编辑后的副本不作为官方方法身份依据。\n"
+    },
+    {
+      "id": "peixian.method.funds",
+      "method": "funds",
+      "methods": [
+        "funds"
+      ],
+      "name": "资金往来整理",
+      "version": "3.0.0",
+      "state": "published",
+      "scenario_id": "DEMO-CASE-GAMBLING",
+      "dependency_ids": [
+        "peixian-records-funds"
+      ],
+      "sha256": "9de9b027ff4deec0540a2fe8de7d320f9524462e80f7c81749a0c4a4e4683f57",
+      "content": "---\nname: 资金往来整理\ndescription: 使用平台固定方法整理当前已授权资料，提供来源和可执行的后续选项。\n---\n稳定方法ID：peixian.method.funds\n内容版本：3.0.0\n发布状态：published\n方法标识：funds\n依赖插件：peixian-records-funds\n\n## 前置条件\n平台已确定当前场景、对象和观察范围，并将本轮已应用能力冻结。以平台提供的场景为准，不要求用户输入内部编号，不通过技能显示名称授予权限。依赖未授权、停用或未生效时提示具体缺口，不绕过。\n\n## 执行方法\n方法正文已由平台直接加载，无需读取Skill文件或让用户粘贴内容。新资料查询调用peixian_prepare_scenario_facts，scenario_id使用平台本轮场景，methods仅填写本方法允许且当前问题确实需要的标识。参考默认场景为DEMO-CASE-GAMBLING，不可据此覆盖平台明确的场景。\n事实整理由代码调用独立查询插件，执行字段筛选、时间处理、计数与来源校验。无需先逐个手工查询全部插件。同一Run已经完成的模块复用；失败、取消或结果未知不自动重发。\n从返回facts中选取与问题相关的条目，将fact_id、statement、source_ids原样交给peixian_check_scenario_summary。不要改写核对句子、补造引用或再次调用取数来核对摘要。只使用approved内容给出事实说明；原始资料和被拒绝描述不冒充已核验结论。\n普通术语解释不取数；解释历史结果时仅采用明确关联的已核对结果，不把模型历史文字当新事实。需要最新资料时由用户明确发起新Run。\n\n## 方法边界\n逐条保留原始流水，金额由代码将整数分转换为元；无可靠交易配对依据不合并双边或相似流水，不将资金往来称为赌资。\n缺失、失败、拒绝、未知与查询成功零条分别表达。来源快照和场景快照分别保存，不互相替换。不要补写对象、时间、同行状态、位置关系或交易用途。\n\n## 回答\n使用简体中文，先回答当前问题，再列来源以及最多两项现有能力支持的后续选择。准备失败时说清哪类资料尚未取得及可以怎样继续，不机械只说“未通过核对”。不自动执行下一步，不承诺不支持的人员查询。\n卡片和事件图由平台根据本轮可信事实生成，不自行编造analysis_result、截图数字或Mermaid事实。保留正确的数据性质，不将虚构资料表述为真实业务记录。\n\n## 验证用例\n正常资料、未授权依赖、未知结果、来源不匹配、跨日、字段缺失均保持代码校验边界；计数和事实原句不能由模型改写。用户编辑后的副本不作为官方方法身份依据。\n"
+    },
+    {
+      "id": "peixian.method.relations",
+      "method": "relations",
+      "methods": [
+        "relations"
+      ],
+      "name": "已有关系核对",
+      "version": "3.0.0",
+      "state": "published",
+      "scenario_id": "DEMO-CASE-GAMBLING",
+      "dependency_ids": [
+        "peixian-records-lookup",
+        "peixian-records-composite"
+      ],
+      "sha256": "1df49f2958f78e2d384b681b801c0fbc49f7dc364fb6210eeaee7d89454d1eb4",
+      "content": "---\nname: 已有关系核对\ndescription: 使用平台固定方法整理当前已授权资料，提供来源和可执行的后续选项。\n---\n稳定方法ID：peixian.method.relations\n内容版本：3.0.0\n发布状态：published\n方法标识：relations\n依赖插件：peixian-records-lookup, peixian-records-composite\n\n## 前置条件\n平台已确定当前场景、对象和观察范围，并将本轮已应用能力冻结。以平台提供的场景为准，不要求用户输入内部编号，不通过技能显示名称授予权限。依赖未授权、停用或未生效时提示具体缺口，不绕过。\n\n## 执行方法\n方法正文已由平台直接加载，无需读取Skill文件或让用户粘贴内容。新资料查询调用peixian_prepare_scenario_facts，scenario_id使用平台本轮场景，methods仅填写本方法允许且当前问题确实需要的标识。参考默认场景为DEMO-CASE-GAMBLING，不可据此覆盖平台明确的场景。\n事实整理由代码调用独立查询插件，执行字段筛选、时间处理、计数与来源校验。无需先逐个手工查询全部插件。同一Run已经完成的模块复用；失败、取消或结果未知不自动重发。\n从返回facts中选取与问题相关的条目，将fact_id、statement、source_ids原样交给peixian_check_scenario_summary。不要改写核对句子、补造引用或再次调用取数来核对摘要。只使用approved内容给出事实说明；原始资料和被拒绝描述不冒充已核验结论。\n普通术语解释不取数；解释历史结果时仅采用明确关联的已核对结果，不把模型历史文字当新事实。需要最新资料时由用户明确发起新Run。\n\n## 方法边界\n只整理已有明确关系和跨资料引用；引用编号存在不等于已读取其原始内容；缺少原始资料时说明未核对，不扩展对象范围。\n缺失、失败、拒绝、未知与查询成功零条分别表达。来源快照和场景快照分别保存，不互相替换。不要补写对象、时间、同行状态、位置关系或交易用途。\n\n## 回答\n使用简体中文，先回答当前问题，再列来源以及最多两项现有能力支持的后续选择。准备失败时说清哪类资料尚未取得及可以怎样继续，不机械只说“未通过核对”。不自动执行下一步，不承诺不支持的人员查询。\n卡片和事件图由平台根据本轮可信事实生成，不自行编造analysis_result、截图数字或Mermaid事实。保留正确的数据性质，不将虚构资料表述为真实业务记录。\n\n## 验证用例\n正常资料、未授权依赖、未知结果、来源不匹配、跨日、字段缺失均保持代码校验边界；计数和事实原句不能由模型改写。用户编辑后的副本不作为官方方法身份依据。\n"
+    },
+    {
+      "id": "peixian.method.gambling",
+      "method": "gambling",
+      "methods": [
+        "night",
+        "companions",
+        "funds",
+        "relations"
+      ],
+      "name": "涉赌案件资料整理",
+      "version": "3.0.0",
+      "state": "published",
+      "scenario_id": "DEMO-CASE-GAMBLING",
+      "dependency_ids": [
+        "peixian-records-night",
+        "peixian-records-portrait",
+        "peixian-records-funds",
+        "peixian-records-lookup",
+        "peixian-records-composite"
+      ],
+      "sha256": "8cc1df0eec0a344f0eb3fce9a9ee0ad139f06dd632227ca6358d7db89f687972",
+      "content": "---\nname: 涉赌案件资料整理\ndescription: 使用平台固定方法整理当前已授权资料，提供来源和可执行的后续选项。\n---\n稳定方法ID：peixian.method.gambling\n内容版本：3.0.0\n发布状态：published\n方法标识：night, companions, funds, relations\n依赖插件：peixian-records-night, peixian-records-portrait, peixian-records-funds, peixian-records-lookup, peixian-records-composite\n\n## 前置条件\n平台已确定当前场景、对象和观察范围，并将本轮已应用能力冻结。以平台提供的场景为准，不要求用户输入内部编号，不通过技能显示名称授予权限。依赖未授权、停用或未生效时提示具体缺口，不绕过。\n\n## 执行方法\n方法正文已由平台直接加载，无需读取Skill文件或让用户粘贴内容。新资料查询调用peixian_prepare_scenario_facts，scenario_id使用平台本轮场景，methods仅填写本方法允许且当前问题确实需要的标识。参考默认场景为DEMO-CASE-GAMBLING，不可据此覆盖平台明确的场景。\n事实整理由代码调用独立查询插件，执行字段筛选、时间处理、计数与来源校验。无需先逐个手工查询全部插件。同一Run已经完成的模块复用；失败、取消或结果未知不自动重发。\n从返回facts中选取与问题相关的条目，将fact_id、statement、source_ids原样交给peixian_check_scenario_summary。不要改写核对句子、补造引用或再次调用取数来核对摘要。只使用approved内容给出事实说明；原始资料和被拒绝描述不冒充已核验结论。\n普通术语解释不取数；解释历史结果时仅采用明确关联的已核对结果，不把模型历史文字当新事实。需要最新资料时由用户明确发起新Run。\n\n## 方法边界\n根据问题从night、companions、funds、relations选择必要方法；单项追问只选一项，综合资料整理最多选择这四项。不依据交往、夜间活动或资金生成犯罪倾向、嫌疑排名、风险分数或违法结论。\n缺失、失败、拒绝、未知与查询成功零条分别表达。来源快照和场景快照分别保存，不互相替换。不要补写对象、时间、同行状态、位置关系或交易用途。\n\n## 回答\n使用简体中文，先回答当前问题，再列来源以及最多两项现有能力支持的后续选择。准备失败时说清哪类资料尚未取得及可以怎样继续，不机械只说“未通过核对”。不自动执行下一步，不承诺不支持的人员查询。\n卡片和事件图由平台根据本轮可信事实生成，不自行编造analysis_result、截图数字或Mermaid事实。保留正确的数据性质，不将虚构资料表述为真实业务记录。\n\n## 验证用例\n正常资料、未授权依赖、未知结果、来源不匹配、跨日、字段缺失均保持代码校验边界；计数和事实原句不能由模型改写。用户编辑后的副本不作为官方方法身份依据。\n"
+    },
+    {
+      "id": "peixian.method.theft",
+      "method": "theft",
+      "methods": [
+        "night",
+        "companions",
+        "vehicles"
+      ],
+      "name": "盗窃案件时空资料核对",
+      "version": "3.0.0",
+      "state": "published",
+      "scenario_id": "DEMO-CASE-THEFT",
+      "dependency_ids": [
+        "peixian-records-night",
+        "peixian-records-portrait",
+        "peixian-records-vehicle"
+      ],
+      "sha256": "c901b6b52784fef26c277c88b6fc01632c0db30e5bc8c0c76cc55f3ca1125d7f",
+      "content": "---\nname: 盗窃案件时空资料核对\ndescription: 使用平台固定方法整理当前已授权资料，提供来源和可执行的后续选项。\n---\n稳定方法ID：peixian.method.theft\n内容版本：3.0.0\n发布状态：published\n方法标识：night, companions, vehicles\n依赖插件：peixian-records-night, peixian-records-portrait, peixian-records-vehicle\n\n## 前置条件\n平台已确定当前场景、对象和观察范围，并将本轮已应用能力冻结。以平台提供的场景为准，不要求用户输入内部编号，不通过技能显示名称授予权限。依赖未授权、停用或未生效时提示具体缺口，不绕过。\n\n## 执行方法\n方法正文已由平台直接加载，无需读取Skill文件或让用户粘贴内容。新资料查询调用peixian_prepare_scenario_facts，scenario_id使用平台本轮场景，methods仅填写本方法允许且当前问题确实需要的标识。参考默认场景为DEMO-CASE-THEFT，不可据此覆盖平台明确的场景。\n事实整理由代码调用独立查询插件，执行字段筛选、时间处理、计数与来源校验。无需先逐个手工查询全部插件。同一Run已经完成的模块复用；失败、取消或结果未知不自动重发。\n从返回facts中选取与问题相关的条目，将fact_id、statement、source_ids原样交给peixian_check_scenario_summary。不要改写核对句子、补造引用或再次调用取数来核对摘要。只使用approved内容给出事实说明；原始资料和被拒绝描述不冒充已核验结论。\n普通术语解释不取数；解释历史结果时仅采用明确关联的已核对结果，不把模型历史文字当新事实。需要最新资料时由用户明确发起新Run。\n\n## 方法边界\n根据问题从night、companions、vehicles选择必要方法；地点只采用明确映射，不能推算距离；独行观测不等于单人作案，靠近地点不代表参与案件。\n缺失、失败、拒绝、未知与查询成功零条分别表达。来源快照和场景快照分别保存，不互相替换。不要补写对象、时间、同行状态、位置关系或交易用途。\n\n## 回答\n使用简体中文，先回答当前问题，再列来源以及最多两项现有能力支持的后续选择。准备失败时说清哪类资料尚未取得及可以怎样继续，不机械只说“未通过核对”。不自动执行下一步，不承诺不支持的人员查询。\n卡片和事件图由平台根据本轮可信事实生成，不自行编造analysis_result、截图数字或Mermaid事实。保留正确的数据性质，不将虚构资料表述为真实业务记录。\n\n## 验证用例\n正常资料、未授权依赖、未知结果、来源不匹配、跨日、字段缺失均保持代码校验边界；计数和事实原句不能由模型改写。用户编辑后的副本不作为官方方法身份依据。\n"
+    }
+  ]
+}

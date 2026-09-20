@@ -35,12 +35,15 @@ def catalog(store,uid):
             reason='not_installed' if not installed else 'disabled' if not installed['enabled'] or not p['enabled'] else 'connection_unavailable' if missing else 'configuration_pending' if p['id'] not in plugins or plugins[p['id']]['version']!=p['version'] or plugins[p['id']].get('options')!=store.decrypt(installed['config']) else 'runtime_unavailable' if not ready else None
             items.append({'id':p['id'],'kind':'plugin','name':p['name'],'description':p['description'],'version':p['version'],'category':'plugin','recommended':False,'enabled':bool(installed and installed['enabled'] and p['enabled']),'owned':bool(installed),'scope':'personal','available':reason is None,'unavailable_reason':reason,'dependency_ids':[]})
         byid={x['id']:x for x in items}
+        from .official_methods import identify,public as official_public
         for p in db.execute('SELECT * FROM skills WHERE uid=? ORDER BY name',(uid,)):
-            deps=dependencies(db,p['id'])
-            reason='disabled' if not p['enabled'] else 'dependency_unavailable' if any(not byid.get(x,{}).get('available') for x in deps) else 'configuration_pending' if p['id'] not in skills or skills[p['id']]['content']!=p['content'] else 'runtime_unavailable' if not ready else None
-            items.append({'id':p['id'],'kind':'personal_skill','name':p['name'],'description':p['description'],'version':str(p['version']),'category':'skill','recommended':False,'enabled':bool(p['enabled']),'owned':True,'scope':'personal','available':reason is None,'unavailable_reason':reason,'dependency_ids':deps})
+            official=identify(p['content'])
+            deps=list(dict.fromkeys(dependencies(db,p['id'])+(official['dependency_ids'] if official else [])))
+            reason='unpublished_method' if official and official['state']!='published' else 'disabled' if not p['enabled'] else 'dependency_unavailable' if any(not byid.get(x,{}).get('available') for x in deps) else 'configuration_pending' if p['id'] not in skills or skills[p['id']]['content']!=p['content'] else 'runtime_unavailable' if not ready else None
+            items.append({'id':p['id'],'kind':'personal_skill','name':p['name'],'description':p['description'],'version':str(p['version']),'category':'skill','recommended':False,'enabled':bool(p['enabled']),'owned':True,'scope':'personal','available':reason is None,'unavailable_reason':reason,'dependency_ids':deps,'official_method':official_public(official) if official else None})
         for p in db.execute('SELECT * FROM templates ORDER BY name'):
-            items.append({'id':p['id'],'kind':'official_skill','name':p['name'],'description':p['description'],'version':None,'category':'template','recommended':False,'enabled':True,'owned':False,'scope':'official','available':False,'unavailable_reason':'copy_required','dependency_ids':[]})
+            official=identify(p['content'])
+            items.append({'id':p['id'],'kind':'official_skill','name':p['name'],'description':p['description'],'version':None,'category':'template','recommended':False,'enabled':True,'owned':False,'scope':'official','available':False,'unavailable_reason':'unpublished_method' if official and official['state']!='published' else 'copy_required','dependency_ids':official['dependency_ids'] if official else [],'official_method':official_public(official) if official else None})
         return items
 
 

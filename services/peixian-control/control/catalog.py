@@ -137,7 +137,12 @@ def register_catalog(app):
         with s.tx() as db:
             if db.execute("SELECT 1 FROM skills WHERE uid=? AND name=?", (user["uid"], name)).fetchone():
                 name = name[:50] + "-" + sid[:6]
+            from .official_methods import identify
+            from .capabilities import save_dependencies
+            method=identify(template['content'])
+            if method and method['state']!='published':fail('该官方方法尚未发布或已停用',409)
             db.execute("INSERT INTO skills VALUES(?,?,?,?,?,1,1,'[]')", (sid, user["uid"], name, template["description"], template["content"]))
+            if method:save_dependencies(db,user['uid'],sid,{'dependency_ids':method['dependency_ids']})
         return {"id": sid, "job": changed(user["uid"])}
 
     def published(uid, pid, version=None, db=None):

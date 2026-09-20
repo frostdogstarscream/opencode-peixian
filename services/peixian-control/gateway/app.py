@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import asyncio
 import base64
 import hmac
+import hashlib
 import json
 import os
 import re
@@ -54,6 +55,10 @@ class RequestGuard:
         if relay_permit and settings is not None:
             key = dict(scope.get("headers", [])).get(b"x-relay-management-key", b"")
         expected = settings.relay_management_key if relay_permit and settings else settings.token if settings else ""
+        if scope.get("path") == "/internal/facts/execute" and settings:
+            key = dict(scope.get("headers", [])).get(b"x-facts-key", b"")
+            expected = hmac.new(settings.token.encode(), b"facts-agent-v1", hashlib.sha256).hexdigest()
+
         if settings is None or not expected or not hmac.compare_digest(key, expected.encode()):
             return await JSONResponse({"detail": "Unauthorized"}, 401)(scope, receive, send)
         # Count actual bytes, including chunked requests. Upload gets 1 MiB for
@@ -142,6 +147,8 @@ def create_app(settings=None, *, transport=None, management_transport=None):
     app.add_middleware(ActivityMiddleware, owner=app)
     app.add_middleware(RequestGuard, owner=app)
     register_management(app)
+    from .facts_execution import register as register_facts
+    register_facts(app)
 
     @app.exception_handler(QuotaExceeded)
     async def quota_exceeded(request, exception):

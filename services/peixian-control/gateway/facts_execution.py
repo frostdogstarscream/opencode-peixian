@@ -1,0 +1,122 @@
+"""Authenticated fixed facts bridge; no caller-selected URLs, files or commands."""
+import asyncio
+import base64
+import contextlib
+import json
+import os
+from pathlib import Path
+import signal
+import tempfile
+import httpx
+from fastapi import HTTPException, Request
+from .http_utils import json_body
+from .plugin_test import specification
+
+HELPERS={'peixian_get_scenario_context','peixian_prepare_scenario_facts','peixian_check_scenario_summary'}
+MODULES=('funds','calls','portrait','composite','night','vehicle','lookup')
+TOOLS={'peixian_get_'+m+'_records':m for m in MODULES}
+
+async def process(input):
+    with tempfile.TemporaryDirectory(prefix='px-facts-') as temporary:
+        child=await asyncio.create_subprocess_exec(os.environ.get('BUN_EXECUTABLE','/usr/local/bin/bun'),str(Path(__file__).with_name('facts_worker.mjs')),
+            stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.DEVNULL,
+            env={'PATH':os.defpath,'HOME':temporary,'TMPDIR':temporary,'LANG':'C.UTF-8'},cwd=temporary,start_new_session=os.name=='posix')
+        try:
+            child.stdin.write(json.dumps(input).encode());await child.stdin.drain();child.stdin.close()
+            async with asyncio.timeout(70):
+                raw=bytearray()
+                while chunk:=await child.stdout.read(16384):
+                    raw.extend(chunk)
+                    if len(raw)>2*1024*1024:raise ValueError('facts_output_limit')
+                await child.wait()
+            value=json.loads(raw)
+            if child.returncode or value.get('ok') is not True:raise ValueError('facts_execution_failed')
+            return value['value']
+        finally:
+            if os.name=='posix':
+                with contextlib.suppress(ProcessLookupError):os.killpg(child.pid,signal.SIGKILL)
+            elif child.returncode is None:child.kill()
+            await child.wait()
+
+def register(app):
+    @app.get('/internal/facts/status')
+    async def status():
+        root=app.state.settings.managed_root
+        try:
+            plugins=json.loads((root/'plugin-tests.json').read_text())
+            modules=[m for m in MODULES if 'peixian-records-'+m in plugins]
+            ready=(root/'platform-facts/engine.mjs').is_file() and bool(modules)
+        except (OSError,ValueError):modules=[];ready=False
+        return {'protocol':'facts-coordinator-v1','ready':ready,'modules':modules}
+    @app.post('/internal/facts/execute')
+    async def execute(request:Request):
+        value=await json_body(request,16384)
+        if not isinstance(value,dict) or set(value)!={'session_id','message_id','tool','args'} or not isinstance(value['tool'],str) or value['tool'] not in HELPERS|set(TOOLS):raise HTTPException(422,'资料调用无效')
+        for name in ('session_id','message_id'):
+            if not isinstance(value[name],str) or not value[name] or len(value[name])>150 or any(not(c.isalnum() or c in '_-') for c in value[name]):raise HTTPException(422,'执行身份无效')
+        config=app.state.settings;manager=getattr(app.state,'runtime_management',None)
+        if not manager:raise HTTPException(409,'资料运行协议未启用')
+        gate=manager.gate
+        gate.require_egress()
+        # ToolContext.messageID is an assistant message. Resolve its parent from
+        # the authenticated Agent, never from model arguments or newest-session guesses.
+        authorization=base64.b64encode(('opencode:'+config.opencode_password).encode()).decode()
+        result=await app.state.client.get(config.opencode_url+'/session/'+value['session_id']+'/message/'+value['message_id'],
+            params={'directory':'/workspace'},headers={'Authorization':'Basic '+authorization,'x-opencode-directory':'/workspace'},timeout=5)
+        result.raise_for_status();info=result.json().get('info',{})
+        if info.get('role')!='assistant' or info.get('sessionID')!=value['session_id'] or not isinstance(info.get('parentID'),str):raise HTTPException(409,'执行身份无法核对')
+        async def rpc(action,**fields):
+            response=await app.state.client.post(config.control_url+'/internal/runtime/facts',headers={'X-Runtime-Key':config.runtime_key},
+                json={'action':action,'runtime_id':config.runtime_id,'revision':config.revision,**fields},timeout=5)
+            if response.status_code>=400:raise HTTPException(409,'当前资料能力不可用或执行已停止')
+            return response.json()
+        admitted=await rpc('begin',session_id=value['session_id'],message_id=info['parentID'])
+        identity={'run_id':admitted['run_id'],'operation':admitted['operation']}
+        plan=admitted['plan'];args=value['args'];selected=value['tool']
+        async def call(action,**fields):return await rpc(action,**identity,**fields)
+        async def watched(input):
+            task=asyncio.create_task(process(input))
+            try:
+                while not task.done():
+                    done,_=await asyncio.wait({task},timeout=0.5)
+                    if done:break
+                    gate.require_egress()
+                    await call('authorize')
+                    if await request.is_disconnected():raise asyncio.CancelledError()
+                return await task
+            finally:
+                if not task.done():task.cancel()
+                await asyncio.gather(task,return_exceptions=True)
+        try:
+            scene=plan['scenario']['scenario_id']
+            if selected in HELPERS:
+                expected={'scenario_id','claims'} if selected.endswith('summary') else {'scenario_id','methods'} if selected.endswith('facts') and isinstance(args,dict) and 'methods' in args else {'scenario_id'}
+                if not isinstance(args,dict) or set(args)!=expected or args.get('scenario_id')!=scene:raise HTTPException(422,'本轮场景参数不一致')
+            elif args!={}:raise HTTPException(422,'资料查询不接受额外参数')
+            if selected=='peixian_get_scenario_context':return plan['scenario']
+            if selected=='peixian_check_scenario_summary':return await call('check',claims=args['claims'])
+            methods=args.get('methods',plan['methods']) if selected in HELPERS else []
+            if selected in HELPERS and (not isinstance(methods,list) or not methods or any(not isinstance(m,str) for m in methods) or len(set(methods))!=len(methods) or any(m not in plan['methods'] for m in methods)):raise HTTPException(422,'方法不在本轮计划内')
+            mapping={'night':['night'],'companions':['portrait'],'funds':['funds'],'relations':['lookup','composite'],'calls':['calls'],'vehicles':['vehicle']}
+            modules=list(dict.fromkeys(m for method in methods for m in mapping[method])) if selected in HELPERS else [TOOLS[selected]]
+            for module in modules:
+                await call('authorize',module=module)
+                if not (await call('reserve',module=module))['reserved']:continue
+                try:
+                    spec=specification(config.managed_root,'peixian-records-'+module)
+                    response=await watched({**spec,'action':'invoke','tool':'peixian_get_'+module+'_records'})
+                    await call('complete',module=module,status='completed',response=response)
+                except (ValueError,httpx.HTTPError,TimeoutError):
+                    await call('complete',module=module,status='unknown')
+            current=(await call('read'))['state']
+            if selected in TOOLS:
+                item=current['modules'].get(TOOLS[selected],{})
+                if item.get('status')!='completed':raise HTTPException(409,'资料结果尚未确认，本轮不会重试')
+                return item['response']
+            responses={m:{**current['modules'][m]['response'],'records':current['modules'][m]['response']['items']} for m in modules if current['modules'].get(m,{}).get('status')=='completed'}
+            table=await watched({'action':'compile','engine':str(config.managed_root/'platform-facts/engine.mjs'),
+                'context':{**plan['scenario'],'required_modules':modules},'responses':responses})
+            await call('table',table=table)
+            return table
+        finally:
+            with contextlib.suppress(httpx.HTTPError,HTTPException):await call('finish')

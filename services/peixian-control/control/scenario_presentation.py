@@ -13,7 +13,7 @@ def clock(ms):
     return datetime.fromtimestamp(ms / 1000, timezone(timedelta(hours=8))).strftime("%H:%M:%S")
 
 
-def presentation(result, messages):
+def presentation(result, messages, frozen_data=None):
     starts = [i for i,m in enumerate(messages) if m.get("info", {}).get("role") == "user"]
     if not starts:
         return None
@@ -28,7 +28,7 @@ def presentation(result, messages):
     sid = next(iter(ids))
     from .scenario_versions import select, sources, supported_sources
     meta = result.get("scenario") or {}
-    data = select(sid, meta.get("snapshot_id"), meta.get("records_snapshot_id"), DATA) if meta else DATA
+    data = frozen_data if frozen_data is not None else select(sid, meta.get("snapshot_id"), meta.get("records_snapshot_id"), DATA) if meta else DATA
     if data is None: return None
     source_map = sources(data, SOURCES)
     context = data["scenarios"][sid]; subject = context["subject_ref"]

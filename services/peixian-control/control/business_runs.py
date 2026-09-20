@@ -67,6 +67,16 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         from .capabilities import check_selection
         check_selection(store,user['uid'],{**data,'skill_ids':context['effective_skill_ids']} if context is not None else data)
         if not db.execute("SELECT 1 FROM models m JOIN grants g ON g.resource=m.id AND g.kind='model' WHERE g.uid=? AND m.id=? AND m.enabled=1",(user['uid'],payload['model']['modelID'])).fetchone():error('model_unavailable','所选模型授权已变化',403)
+        from .facts_plan import build, bind_payload
+        plan = build(applied, context, data)
+        if plan:
+            # Verify every planned dependency, not only the user's preferences.
+            check_selection(store,user['uid'],{'skill_ids':context['effective_skill_ids'],'plugin_ids':plan['allowed_capabilities']})
+            bind_payload(payload,plan,applied)
+            snapshot['facts_plan']=plan
+            snapshot['execution_plan']={k:plan[k] for k in ('plan_version','methods','modules','steps')}
+            snapshot['allowed_capabilities']=plan['allowed_capabilities']
+            snapshot['allowed_tools']=plan['allowed_tools']
         # Admission freezes encrypted inputs; SQL never holds a network operation.
         db.execute("INSERT INTO business_runs(id,uid,session_id,request_key,request_hash,message_id,parent_id,status,phase,model_id,revision,auth_version,request_ciphertext,created,updated) VALUES(?,?,?,?,?,?,?,'queued','pending_dispatch',?,?,?,?,?,?)",(identity,user['uid'],sid,data['client_request_id'],fingerprint(store,data),message,parent,payload['model']['modelID'],revision,user['version'],store.encrypt(snapshot),timestamp,timestamp))
         db.execute("INSERT INTO run_deliveries(run_id,state) VALUES(?,'pending')",(identity,))

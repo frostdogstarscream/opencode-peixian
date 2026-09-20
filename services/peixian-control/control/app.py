@@ -672,6 +672,19 @@ def create_app(store=None):
     async def session_evidence(sid: str, request: Request, user=Depends(normal)):
         from .scenario_evidence import permitted, project
         await session_owned(request, user, sid)
+        def durable():
+            store=app.state.store
+            if store.schema_version()<6:return None
+            row=store.one('SELECT * FROM business_runs WHERE uid=? AND session_id=? ORDER BY rowid DESC LIMIT 1',(user['uid'],sid))
+            if not row:return None
+            if row['evidence_ciphertext']:return store.decrypt(row['evidence_ciphertext'])
+            snapshot=store.decrypt(row['request_ciphertext'])
+            if snapshot.get('facts_plan'):
+                from .facts_evidence import evidence
+                return evidence(snapshot,row)
+            return None
+        saved=await app.state.db_work.run(durable)
+        if saved is not None:return saved
         authorized = await app.state.db_work.run(permitted, app.state.store, user["uid"])
         if not authorized:
             return project([], False)
@@ -804,6 +817,8 @@ def create_app(store=None):
     register_runtime(app)
     from .runtime_security import register_runtime_security
     register_runtime_security(app)
+    from .facts_api import register as register_facts
+    register_facts(app)
     register_files(app)
     static = Path(os.getenv("CONSOLE_STATIC", "/app/static"))
     if static.is_dir():

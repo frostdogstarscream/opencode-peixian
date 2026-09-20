@@ -31,7 +31,12 @@ def track_messages(store,row,values,receipt):
     selected=values[starts[0]:];end=next((i for i,m in enumerate(selected[1:],1) if m.get('info',{}).get('role')=='user'),len(selected));selected=selected[:end]
     usertime=selected[0]['info'].get('time',{}).get('created')
     runs.event(store,row['id'],'accepted','requirement','接收请求','completed',usertime//1000 if usertime else row['created'],usertime//1000 if usertime else row['created'])
-    actual=set();assistants=[]
+    prior=store.one('SELECT actual_plugins FROM invocations WHERE run_id=?',(row['id'],))
+    actual=set(json.loads(prior['actual_plugins'])) if prior else set();assistants=[];violations=[]
+    plan=snapshot.get('facts_plan')
+    if plan:
+        from .facts_plan import HELPERS
+        permitted_tools=set(plan['allowed_tools']) | set(HELPERS) | {'question'}
     for message in selected:
         info=message.get('info',{})
         if info.get('role')!='assistant':continue
@@ -39,11 +44,17 @@ def track_messages(store,row,values,receipt):
         for part in message.get('parts',[]):
             if part.get('type')!='tool':continue
             state=part.get('state',{});tool=part.get('tool');pid=tools.get(tool)
+            if plan and tool not in permitted_tools:violations.append(str(part.get('id') or part.get('callID')))
             if pid:actual.add(pid)
             kind='skill' if tool=='skill' else 'plugin' if pid else 'analysis'
             timing=state.get('time',{});status={'completed':'completed','error':'failed','running':'running','pending':'pending'}.get(state.get('status'),'pending')
             runs.event(store,row['id'],str(part.get('id') or part.get('callID')),kind,'使用技能' if kind=='skill' else '调用已授权插件' if pid else '执行辅助操作',status,timing.get('start')//1000 if type(timing.get('start')) is int else None,timing.get('end')//1000 if type(timing.get('end')) is int else None,pid)
     with store.tx() as db:db.execute('UPDATE invocations SET actual_plugins=? WHERE run_id=?',(encode(sorted(actual)),row['id']))
+    if violations:
+        with store.tx() as db:
+            for key in violations:runs.event(store,row['id'],'plan-denied.'+key,'authorization','发现非计划工具，停止并核对','rejected',completed=now())
+            db.execute("UPDATE business_runs SET cancel_requested=1,error_code='facts_plan_violation' WHERE id=?",(row['id'],))
+        row={**row,'cancel_requested':1}
     if not assistants:return False
     last=assistants[-1];info=last['info'];timing=info.get('time',{})
     finished=timing.get('completed') is not None and (info.get('finish') in ('stop','end_turn','length') or info.get('error'))
@@ -51,14 +62,26 @@ def track_messages(store,row,values,receipt):
     # Persist evidence from canonical plugin facts only, never model-authored result parts.
     from .scenario_evidence import project,permitted
     from .scenario_presentation import presentation
-    evidence=project(selected,permitted(store,row['uid']))
-    view=presentation(evidence,selected)
+    if plan and (row['cancel_requested'] or violations):
+        from .facts_runtime import FactsState
+        FactsState(store).terminate(row['uid'],row['id'],row['revision'])
+    latest=store.one('SELECT request_ciphertext FROM business_runs WHERE id=?',(row['id'],))
+    frozen=store.decrypt(latest['request_ciphertext'])
+    if frozen.get('facts_plan'):
+        from .facts_evidence import evidence as durable_evidence
+        evidence=durable_evidence(frozen,{**row,'assistant_id':info['id']})
+        view=evidence.get('presentation')
+        if violations:
+            evidence={'version':'1.0','status':'empty','cards':[],'missing':['执行计划不一致，结果暂不可核验。']};view=None
+    else:
+        evidence=project(selected,permitted(store,row['uid']))
+        view=presentation(evidence,selected)
     result=None
     if view:
         if view.get('diagram'): view['diagram']['run_id']=row['id']
         evidence['presentation']=view
         result={'schema':'peixian.analysis-result','version':'1.0','run_id':row['id'],'generated_at':iso(now()),'intro':'','process':view['process'],'subjects':[],'conclusions':[x['text'] for x in view['conclusions']],'evidence':view['evidence'],'next_steps':'','clues':view['clues'],'conclusion_sources':view['conclusions'],'source_metadata':evidence.get('scenario',{}),'presentation_version':view['version'],'diagram':view.get('diagram')}
-    failure=info.get('error',{}).get('name')
+    failure='FactsPlanViolation' if violations else info.get('error',{}).get('name')
     status='cancelled' if failure=='MessageAbortedError' else 'failed' if failure else 'completed'
     with store.tx() as db:
         db.execute('UPDATE business_runs SET assistant_id=?,evidence_ciphertext=?,result_ciphertext=? WHERE id=?',(info['id'],store.encrypt(evidence),store.encrypt(result) if result else None,row['id']))

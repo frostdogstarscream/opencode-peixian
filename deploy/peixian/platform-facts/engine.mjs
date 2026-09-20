@@ -36,9 +36,7 @@ export function compile(context, responses) {
         const states=[...new Set(annotations.map(f=>f.observation))];
         const state=states.length===1&&states[0]==='alone'?'明确独行观测（仅此观测片段，不代表作案）':states.length===1&&states[0]==='accompanied'?'明确同行观测':'同行状态无法判断';
         detail=`${state}；设备 ${row.device_ref}。`;
-        if(module==='calls')detail=`通话原始记录；来源 ${row.record_id}。`;
-      if(module==='composite')detail=`已有跨资料引用；来源 ${row.record_id}，引用 ${(row.source_record_ids||[]).join('、')}；未取得引用原始资料时不证明其内容。`;
-      add(row.record_id,`${subject}，${at}，${detail}`,[row.record_id,...annotations.map(f=>f.source_document)],row.occurred_at);continue;
+        add(row.record_id,`${subject}，${at}，${detail}`,[row.record_id,...annotations.map(f=>f.source_document)],row.occurred_at);continue;
       }
       if(module==='portrait')detail=`${row.kind==='same_trip'?'明确同行':row.kind==='same_frame'?'同框（不据此推导同行）':'关系类型未知'}；记录主体 ${row.member_ref}，共同出现对象 ${row.co_member_ref}，设备 ${row.device_ref}。`;
       if(module==='funds')detail=`原始流水 ${row.transaction_ref}，${row.direction}，金额 ${row.amount_minor} 分，对手账户 ${row.counterparty_ref}；不配对合并，不认定资金用途。`;

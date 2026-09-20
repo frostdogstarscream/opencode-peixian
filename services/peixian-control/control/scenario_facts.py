@@ -65,6 +65,11 @@ def project_facts(turn, result, data):
     data = select(table["scenario_id"], table["scenario_snapshot_id"], table["records_snapshot_id"], data)
     if data is None:
         return {**result, "status": "unavailable", "cards": [], "missing": ["资料版本无法核对。"]}
+    return render_table(result,table,mid,checked,data)
+
+
+def render_table(result,table,mid,checked,data):
+    from .scenario_versions import sources
     context = data["scenarios"][table["scenario_id"]]
     result["scenario"] = {k: context[k] for k in ("scenario_id", "title", "subject_ref", "snapshot_id", "records_snapshot_id", "rule_version", "timezone", "night_window", "case_window")}
     result["summary"] = [{k: row[k] for k in ("label", "count", "dates", "night_count")} for row in table["summary"]]

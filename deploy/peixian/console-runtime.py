@@ -6,6 +6,7 @@ arrays and every durable path is beneath the explicitly configured state root.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import importlib.util
 import ipaddress
 import io
@@ -687,6 +688,12 @@ class RuntimeManager:
                 native = self.private_get(spec, "/global/health")
                 # This instance route initializes managed Config, Skills and Plugin services.
                 skills = self.private_get(spec, "/skill")
+                if revision == spec['revision']:
+                    expected={p['id'].removeprefix('peixian-records-') for p in spec.get('plugins',[]) if p['id'].startswith('peixian-records-')}
+                    if expected:
+                        facts=self.private_get(spec,'/internal/facts/status')
+                        if facts.get('protocol')!='facts-coordinator-v1' or facts.get('ready') is not True or set(facts.get('modules',[]))!=expected:
+                            raise RuntimeFailure('runtime_facts_protocol_mismatch')
                 if (health.get("ok") is True and health.get("revision") == revision and
                         health.get("runtime_id") == spec["runtime_id"] and native.get("healthy") is True and
                         native.get("version") == "1.18.30" and isinstance(skills, list)):
@@ -781,6 +788,18 @@ class RuntimeManager:
         config = json.loads(json.dumps(spec["config"]))
         config["plugin"] = []
         config["skills"] = {"paths": ["/managed/skills"]}
+        seven_ids = {"peixian-records-" + m for m in ("funds","calls","portrait","composite","night","vehicle","lookup")}
+        has_seven = any(p["id"] in seven_ids for p in spec["plugins"])
+        if has_seven and any(p["id"] == "peixian-synthetic-records" for p in spec["plugins"]):
+            raise RuntimeFailure("ambiguous_records_plugin_chain")
+        facts_token = hmac.new(spec["private"]["gateway_key"].encode(), b"facts-agent-v1", hashlib.sha256).hexdigest()
+        if has_seven:
+            source = Path(__file__).with_name("platform-facts")
+            shutil.copytree(source, stage / "gateway/platform-facts", ignore=shutil.ignore_patterns("*.test.mjs", "fixtures.json", "coordinator.mjs"))
+            shutil.copyfile(source / "agent-client.mjs", stage / "agent/facts-client.mjs")
+            (stage / "agent/loaders/platform-facts.mjs").write_text(
+                "import { helpers } from '../facts-client.mjs';\nexport default async () => helpers(" + json.dumps(facts_token) + ");\n", encoding="utf-8")
+            config["plugin"].append("file:///managed/loaders/platform-facts.mjs")
         tests = {}
         seen = set()
         for plugin in spec["plugins"]:
@@ -807,6 +826,14 @@ class RuntimeManager:
                 "const options = " + json.dumps(plugin["options"], ensure_ascii=False) + ";\n"
                 "const platform = createPlatform(" + json.dumps(bindings) + ");\n"
                 "export default async (context) => plugin(context, options, platform);\n", encoding="utf-8")
+            if plugin["id"] in seven_ids:
+                # Only Gateway holds the service connection bindings. Model-facing
+                # tools delegate through the account/Run checked facts endpoint.
+                loader.write_text(
+                    "import plugin from " + json.dumps("../" + relative.as_posix() + "/entry.mjs") + ";\n"
+                    "import { remoteTool } from '../facts-client.mjs';\n"
+                    "export default async (context) => { const loaded = await plugin(context, {}, undefined); return {...loaded, tool:Object.fromEntries(Object.entries(loaded.tool).map(([name,def])=>[name,remoteTool("
+                    + json.dumps(facts_token) + ",name,def)]))}; };\n", encoding="utf-8")
             config["plugin"].append("file:///managed/loaders/" + plugin["id"] + ".mjs")
         for skill in spec["skills"]:
             check_id(skill["id"])

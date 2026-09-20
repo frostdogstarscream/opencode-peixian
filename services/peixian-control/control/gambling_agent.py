@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 ID = "gambling-assistant"
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 SCENARIO = "DEMO-CASE-GAMBLING"
 PROMPT = Path(__file__).with_name("gambling_agent_prompt.md").read_text(encoding="utf-8")
 

@@ -245,8 +245,19 @@ class ActivityMiddleware:
         if scope["type"] != "http" or gate is None:
             return await self.app(scope, receive, send)
         path, method = scope["path"], scope["method"]
-        if path.startswith("/internal/runtime/") or path in ("/health", "/global/health", "/skill"):
+        if path.startswith("/internal/runtime/") or path in ("/health", "/global/health", "/skill", "/internal/facts/status"):
             return await self.app(scope, receive, send)
+        if path == "/internal/facts/execute" and not self.relay:
+            try:
+                gate.require_egress()
+                identity = gate.register("facts", task=asyncio.current_task())
+            except HTTPException as error:
+                from starlette.responses import JSONResponse
+                return await JSONResponse({"detail": error.detail}, error.status_code)(scope, receive, send)
+            try:
+                return await self.app(scope, receive, send)
+            finally:
+                gate.finish(identity)
         continuation = path.endswith(("/abort", "/reply", "/reject"))
         kind = "relay_http" if self.relay else "receiving"
         if not self.relay:

@@ -12,6 +12,7 @@ def select(scenario_id, scenario_snapshot, records_snapshot, legacy):
             return data
     return None
 def sources(data, legacy):
-    return SOURCES14 if data is DATA14 or data is DATA151 else legacy
+    versioned={(c['snapshot_id'],c['records_snapshot_id']) for version in (DATA14,DATA151) for c in version['scenarios'].values()}
+    return SOURCES14 if any((c.get('snapshot_id'),c.get('records_snapshot_id')) in versioned for c in data.get('scenarios',{}).values()) else legacy
 def supported_sources(context, cards):
     return set(cards) | {f["source_document"] for f in context["facts"] if f["record_id"] in cards and f.get("source_document")}

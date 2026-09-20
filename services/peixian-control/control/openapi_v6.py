@@ -28,6 +28,10 @@ def extend_schemas(result):
     part=result['Message']['properties']['parts']['items']['properties']
     part['type']['enum'].append('analysis_result');part['data']=ref('AnalysisResult')
     result['Capability']=obj({'id':ID,'kind':{'enum':['personal_skill','plugin','official_skill']},'name':STRING,'description':STRING,'version':nullable({}),'category':STRING,'recommended':BOOL,'enabled':BOOL,'owned':BOOL,'scope':STRING,'available':BOOL,'unavailable_reason':nullable(STRING),'dependency_ids':array(ID)},('id','kind','name','available'))
+    result['OfficialMethod']=obj({'id':STRING,'version':STRING,'state':{'enum':['draft','published','disabled']},'method':STRING,'dependency_ids':array(ID),'sha256':STRING},('id','version','state','method','dependency_ids','sha256'))
+    result['Capability']['properties']['official_method']=nullable(ref('OfficialMethod'))
+    for name in ('ScenarioEvidence','RunEvidence'):
+        result[name]['properties'].update(processing_version=STRING,execution_methods=array(STRING),plugin_versions={'type':'object','additionalProperties':STRING})
     result['Invocation']=obj({'id':ID,'run_id':ID,'session_id':ID,'username':STRING,'display_name':nullable(STRING),'department_name':nullable(STRING),'model_id':ID,'model_name':nullable(STRING),'status':STRING,'query_summary':STRING,'created_at':dt,'duration_ms':nullable(integer),'record_count':integer,'skill_ids':array(ID),'plugin_ids':array(ID),'actual_plugin_ids':array(ID),'steps':array(ref('RunEvent'))},('id','run_id','status','query_summary','created_at'))
     for name in ('Run','RunEvent','Capability','Invocation'):result[name+'Page']=paginated(name)
     result['MessageBody']['properties'].update({'client_request_id':{'type':'string','format':'uuid','description':'新客户端必须发送。旧客户端省略时服务端生成，不具备客户端重试去重保证。'},'plugin_ids':array(ID,maxItems=5),'agent_id':{'type':'string','enum':['gambling-assistant'],'description':'可选。固定使用涉赌助手；与盗窃场景选择冲突时返回422。不增加任何授权。'},'mode':{'enum':['standard']}})
@@ -65,7 +69,7 @@ def contracts():
     add('get','/sessions/{sid}/runs',None,ref('RunPage'),'查询会话执行记录')
     add('get','/sessions/{sid}/runs/{rid}',None,ref('Run'),'查询执行状态')
     add('get','/sessions/{sid}/runs/{rid}/events',None,ref('RunEventPage'),'增量查询持久步骤')
-    add('get','/sessions/{sid}/runs/{rid}/evidence',None,ref('RunEvidence'),'查询固定执行证据')
+    add('get','/sessions/{sid}/runs/{rid}/evidence',None,ref('RunEvidence'),'查询固定执行证据',desc='按本人账号/会话/Run鉴权读取已保存证据；旧插件卸载不删除历史证据，读取不重新取数。')
     add('post','/sessions/{sid}/runs/{rid}/abort',None,ref('Run'),'请求停止执行')
     add('post','/sessions/{sid}/runs/{rid}/rerun','RerunBody',ref('RunAccepted'),'明确创建关联重跑')
     add('get','/sessions/{sid}/runs/{rid}/report',None,{'type':'string'},'导出 Markdown 执行报告')

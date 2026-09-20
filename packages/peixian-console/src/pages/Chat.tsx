@@ -1,19 +1,19 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
-import { api, ApiError, list, patch, post, remove, safeMessage } from "../api"
+import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
+import { api, ApiError, download, list, patch, post, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, Markdown, Modal, Spinner, Status } from "../components"
 import { useConsole } from "../context"
 import BusinessConfirmations from "../BusinessConfirmations"
 import { AnalysisResultView, ClueDrawer, CluePanel } from "../TrustedAnalysis"
 import type { TrustedEvidence } from "../TrustedAnalysis"
+import { acceptedRun, isAnalysisResult, legacyPresentation } from "../result-contract"
 import { displayName } from "../analysis-display"
-import { capabilityCatalog } from "../capability-catalog"
 import { canObserve, canSend } from "../runtime-view"
-import type { AnalysisClue, CapabilityItem, Evidence, FileItem, Message, Model, Plugin, RunEvent, Session, Skill, SkillDraft } from "../types"
+import { useResourceRefresh } from "../resource-refresh"
+import type { AnalysisClue, AnalysisResult, CapabilityItem, FileItem, Message, Model, Plugin, Run, RunEvent, RunEvidence, Session, Skill, SkillDraft } from "../types"
 export default function Chat() {
   const app = useConsole()
   const [sessions, setSessions] = createSignal<Session[]>([])
   const [messages, setMessages] = createSignal<Message[]>([])
-  const [expandedTools, setExpandedTools] = createSignal<Record<string, boolean>>({})
   const [models, setModels] = createSignal<Model[]>([])
   const [files, setFiles] = createSignal<FileItem[]>([])
   const [skills, setSkills] = createSignal<Skill[]>([])
@@ -32,21 +32,29 @@ export default function Chat() {
   const [error, setError] = createSignal("")
   const [picker, setPicker] = createSignal<"files" | "capabilities">()
   const [search, setSearch] = createSignal("")
+  const [slashFilter, setSlashFilter] = createSignal("")
   const [capabilityKind, setCapabilityKind] = createSignal<"all" | "skill" | "plugin">("all")
   const [creator, setCreator] = createSignal<"choose" | "source" | "edit">()
   const [creatorSource, setCreatorSource] = createSignal<"requirement" | "conversation">("requirement")
   const [skillDraft, setSkillDraft] = createSignal<SkillDraft>()
   const [skillEditor, setSkillEditor] = createSignal<Skill>()
   const [latestRun, setLatestRun] = createSignal<string>()
+  const [currentRun, setCurrentRun] = createSignal<Run>()
   const [runEvents, setRunEvents] = createSignal<RunEvent[]>([])
-  const [evidence, setEvidence] = createSignal<Evidence>()
+  const [runEventRun, setRunEventRun] = createSignal<string>()
+  const [runEvidence, setRunEvidence] = createSignal<RunEvidence>()
   const [trusted, setTrusted] = createSignal<TrustedEvidence>()
   const [selectedClue, setSelectedClue] = createSignal<AnalysisClue>()
+  const [showClues, setShowClues] = createSignal(true)
   const [showHistory, setShowHistory] = createSignal(false)
   const [rename, setRename] = createSignal<Session>()
   const [title, setTitle] = createSignal("")
+  const [skillRequirement, setSkillRequirement] = createSignal("")
+  const [draftTestText, setDraftTestText] = createSignal("")
+  const [draftBusy, setDraftBusy] = createSignal(false)
   let scroll!: HTMLDivElement
   let textarea!: HTMLTextAreaElement
+  let scrollFrame = 0
   let selectionRevision = 0
   let messageFlight: { id: string; revision: number; trailing: boolean; promise: Promise<void> } | undefined
   const shownSessions = createMemo(() => sessions())
@@ -55,18 +63,27 @@ export default function Chat() {
   const shownCapabilities = createMemo(() => capabilities().filter((item) => item.enabled).map(item=>({...item,name:displayName(item.name),description:displayName(item.name)!==item.name?"整理相关资料并核对来源。":item.description})))
   const slashQuery = createMemo(() => draft().match(/^\s*\/([^\s]*)$/)?.[1]?.toLowerCase())
   const slashCapabilities = createMemo(() => {
-    const query = slashQuery()
-    if (query === undefined) return []
+    if (slashQuery() === undefined) return []
+    const query = slashFilter().trim().toLowerCase() || slashQuery() || ""
     return shownCapabilities().filter((item) => !query || `${item.name}${item.description ?? ""}`.toLowerCase().includes(query)).slice(0, 7)
   })
-  const latestAnalysis = createMemo(() => trusted()?.presentation)
-  const shownMessages = createMemo(() => {
-    const values=messages(), turn=values.findIndex(x=>x.info.id===trusted()?.turn_id);
-    return latestAnalysis()&&turn>=0?values.filter((x,i)=>i<=turn||x.info.role!=="assistant"):values
+  const messageAnalysis = createMemo(() => [...messages().flatMap((message) => message.parts)].reverse().find((part) => part.type === "analysis_result" && isAnalysisResult(part.data))?.data as AnalysisResult | undefined)
+  const latestAnalysis = createMemo(() => {
+    const result = messageAnalysis() ?? legacyPresentation(trusted()?.presentation)
+    if (!result) return
+    const gaps = result.run_id && runEvidence()?.run_id === result.run_id ? runEvidence()?.missing : undefined
+    return { ...result, missing: [...new Set([...(result.missing ?? []), ...(gaps ?? [])])] }
   })
+  function analysisWithGaps(result: AnalysisResult): AnalysisResult {
+    return result.run_id && result.run_id === latestAnalysis()?.run_id ? latestAnalysis()! : result
+  }
+  const shownMessages = createMemo(() => messages())
   createEffect(() => {
     const clue = selectedClue()
     if (clue && !latestAnalysis()?.clues.some((item) => item.id === clue.id)) setSelectedClue(undefined)
+  })
+  createEffect(() => {
+    if (slashQuery() === undefined && slashFilter()) setSlashFilter("")
   })
   const ready = createMemo(() => canSend(app.user().runtime))
   const available = createMemo(() => canObserve(app.user().runtime))
@@ -86,18 +103,50 @@ export default function Chat() {
         const data = await list<Message>("/sessions/" + id + "/messages")
         if (!current()) return
         setMessages(data)
-        if(trusted()?.turn_id!==data.filter(x=>x.info.role==="user").at(-1)?.info.id)setTrusted(undefined)
-        try {
-          const view=await api<TrustedEvidence>("/sessions/"+id+"/evidence")
-          if(current())setTrusted(view)
-        } catch {
-          if(current()){setTrusted(undefined);setError("研判结果暂时无法读取，请刷新重试。")}
+        const hasAnalysis = data.some((message) => message.parts.some((part) => part.type === "analysis_result" && isAnalysisResult(part.data)))
+        if (hasAnalysis) setTrusted(undefined)
+        if (!hasAnalysis) {
+          try {
+            const view=await api<TrustedEvidence>("/sessions/"+id+"/evidence")
+            if(current())setTrusted(view)
+          } catch {
+            if(current())setTrusted(undefined)
+          }
         }
+        await fetchRunState(id, current)
       } while (flight.trailing && current())
     })().finally(() => {
       if (messageFlight === flight) messageFlight = undefined
     })
     return flight.promise
+  }
+  async function fetchRunState(id: string, current = () => selected() === id) {
+    const page = await api<{ items: Run[] }>("/sessions/" + id + "/runs?page=1&page_size=20")
+    if (!current()) return
+    const run = page.items.find((item) => item.id === latestRun()) ?? page.items.find((item) => !terminalRun(item.status)) ?? page.items[0]
+    if (!run) {
+      setCurrentRun(undefined)
+      setLatestRun(undefined)
+      setRunEvents([])
+      setRunEventRun(undefined)
+      setRunEvidence(undefined)
+      return
+    }
+    setLatestRun(run.id)
+    setCurrentRun(run)
+    setBusy(!terminalRun(run.status))
+    const sameRun = runEventRun() === run.id
+    const after = sameRun ? Math.max(0, ...runEvents().map((item) => item.sequence)) : 0
+    const [eventsResult, evidenceResult] = await Promise.allSettled([
+      api<{ items: RunEvent[] }>("/sessions/" + id + "/runs/" + run.id + "/events?page=1&page_size=100&after=" + after),
+      api<RunEvidence>("/sessions/" + id + "/runs/" + run.id + "/evidence"),
+    ])
+    if (!current()) return
+    if (eventsResult.status === "fulfilled") {
+      setRunEvents(mergeRunEvents(sameRun ? runEvents() : [], eventsResult.value.items))
+      setRunEventRun(run.id)
+    }
+    if (evidenceResult.status === "fulfilled") setRunEvidence(evidenceResult.value)
   }
   async function refresh() {
     if (!available()) {
@@ -127,6 +176,7 @@ export default function Chat() {
       list<Skill>("/skills"),
       list<Session>("/sessions"),
       list<Plugin>("/plugins"),
+      list<Omit<CapabilityItem, "kind"> & { kind: "personal_skill" | "plugin" | "official_skill" }>("/capabilities?page=1&page_size=100"),
     ])
     if (result[0].status === "fulfilled") {
       setModels(result[0].value as Model[])
@@ -137,46 +187,56 @@ export default function Chat() {
     if (result[2].status === "fulfilled") setSkills(result[2].value as Skill[])
     if (result[3].status === "fulfilled") setSessions(result[3].value as Session[])
     if (result[4].status === "fulfilled") setPlugins(result[4].value as Plugin[])
-    setCapabilities(
-      capabilityCatalog(
-        result[2].status === "fulfilled" ? (result[2].value as Skill[]) : skills(),
-        result[4].status === "fulfilled" ? (result[4].value as Plugin[]) : plugins(),
-      ).map((item) => ({
-        ...item,
-        category: item.kind === "skill" ? "个人 Skill" : "插件工具",
-        recommended: false,
-        enabled: true,
-        owned: item.kind === "skill",
-        scope: item.kind === "skill" ? "personal" : "authorized",
-      })),
-    )
+    if (result[5].status === "fulfilled") setCapabilities((result[5].value as (Omit<CapabilityItem, "kind"> & { kind: "personal_skill" | "plugin" | "official_skill" })[]).map((item) => ({
+      ...item,
+      source_kind: item.kind,
+      kind: item.kind === "plugin" ? "plugin" : "skill",
+      version: String(item.version ?? ""),
+      category: item.category ?? (item.kind === "plugin" ? "插件工具" : "个人 Skill"),
+      recommended: item.recommended ?? false,
+      enabled: item.enabled ?? false,
+      owned: item.owned ?? item.kind === "personal_skill",
+      scope: item.scope ?? (item.kind === "plugin" ? "authorized" : "personal"),
+    })))
+    else setCapabilities([])
     setLoading(false)
   }
-  onMount(() => {
-    void resources()
-  })
   createEffect(() => {
     app.changed()
     void refresh()
     void resources()
   })
+  useResourceRefresh(["messages", "sessions", "runs"], refresh, 10000)
   const poll = setInterval(() => {
     if (busy()) void refresh()
   }, 1800)
-  onCleanup(() => { selectionRevision++; clearInterval(poll) })
+  onCleanup(() => {
+    selectionRevision++
+    clearInterval(poll)
+    cancelAnimationFrame(scrollFrame)
+  })
   createEffect(()=>{if(!available()){selectionRevision++;setTrusted(undefined);setSelectedClue(undefined)}})
   createEffect(() => {
     messages()
     busy()
-    queueMicrotask(() => {
+    cancelAnimationFrame(scrollFrame)
+    scrollFrame = requestAnimationFrame(() => {
       if (scroll) scroll.scrollTop = scroll.scrollHeight
     })
   })
   async function choose(id: string) {
     selectionRevision++
     setSelected(id)
+    setSelectedFiles([])
+    setSelectedSkills([])
+    setSelectedPlugins([])
     setMessages([])
     setTrusted(undefined)
+    setCurrentRun(undefined)
+    setLatestRun(undefined)
+    setRunEvents([])
+    setRunEventRun(undefined)
+    setRunEvidence(undefined)
     setSelectedClue(undefined)
     setError("")
     setShowHistory(false)
@@ -192,6 +252,11 @@ export default function Chat() {
     setSelected(undefined)
     setMessages([])
     setTrusted(undefined)
+    setCurrentRun(undefined)
+    setLatestRun(undefined)
+    setRunEvents([])
+    setRunEventRun(undefined)
+    setRunEvidence(undefined)
     setSelectedClue(undefined)
     if (!uncertain()) setDraft("")
     setSelectedFiles([])
@@ -209,7 +274,10 @@ export default function Chat() {
       text: text.trim(),
       model_id: model() || undefined,
       skill_ids: [...selectedSkills()],
+      plugin_ids: [...selectedPlugins()],
       file_ids: [...selectedFiles()],
+      mode: "standard",
+      client_request_id: crypto.randomUUID(),
     }
     const uid = app.user().id
     setSending(true)
@@ -227,13 +295,18 @@ export default function Chat() {
       }
       if (!ready()) return
       submitting = true
-      const result = await post<{ accepted: boolean; run_id: string }>("/sessions/" + id + "/messages", payload)
+      const result = await post<{ accepted: boolean; run_id: string; message_id: string }>("/sessions/" + id + "/messages", payload)
       if (app.user().id !== uid) return
       if (result.accepted !== true) throw new ApiError("提交结果待确认，请核对历史记录。", 0, "unknown_submission")
       accepted = true
       setLatestRun(result.run_id)
+      setCurrentRun({ id: result.run_id, session_id: id, status: "queued", phase: "accepted", user_message_id: result.message_id, created_at: new Date().toISOString() })
       setRunEvents([])
+      setRunEventRun(result.run_id)
       if (draft() === text) setDraft("")
+      if (JSON.stringify(selectedFiles()) === JSON.stringify(payload.file_ids)) setSelectedFiles([])
+      if (JSON.stringify(selectedSkills()) === JSON.stringify(payload.skill_ids)) setSelectedSkills([])
+      if (JSON.stringify(selectedPlugins()) === JSON.stringify(payload.plugin_ids)) setSelectedPlugins([])
       setBusy(true)
       await refresh()
     } catch (error) {
@@ -250,10 +323,13 @@ export default function Chat() {
   async function abort() {
     if (!selected()) return
     try {
-      await post("/sessions/" + selected() + "/abort")
-      setBusy(false)
+      const path = currentRun() && !terminalRun(currentRun()!.status)
+        ? "/sessions/" + selected() + "/runs/" + currentRun()!.id + "/abort"
+        : "/sessions/" + selected() + "/abort"
+      const run = await post<Run>(path)
+      if (run?.id) setCurrentRun(run)
       await refresh()
-      app.notify("已停止本次生成。")
+      app.notify(run?.status === "cancelled" ? "执行已停止。" : "停止请求已受理，正在等待执行状态确认。")
     } catch (error) {
       setError((error as Error).message)
     }
@@ -288,15 +364,25 @@ export default function Chat() {
     setter(current.includes(id) ? current.filter((value) => value !== id) : [...current, id])
   }
   function toggleCapability(item: CapabilityItem) {
+    if (item.available === false) {
+      app.notify(item.unavailable_reason || "该能力当前不可用。", "error")
+      return
+    }
     if (item.kind === "skill") {
       toggle(item.id, "skills")
       return
     }
-    app.notify("当前后端不支持随消息选择插件；已授权插件由助手按需调用。", "error")
+    const current = selectedPlugins()
+    if (!current.includes(item.id) && current.length >= 5) {
+      app.notify("每次最多选择五个插件。", "error")
+      return
+    }
+    setSelectedPlugins(current.includes(item.id) ? current.filter((value) => value !== item.id) : [...current, item.id])
   }
   function chooseSlashCapability(item: CapabilityItem) {
     toggleCapability(item)
     setDraft("")
+    setSlashFilter("")
     queueMicrotask(() => textarea?.focus())
   }
   async function generateSkill(source: "requirement" | "conversation") {
@@ -305,18 +391,74 @@ export default function Chat() {
       return
     }
     setCreatorSource(source)
-    app.notify("当前后端尚未提供 Skill 草稿生成接口。", "error")
+    if (source === "requirement" && !skillRequirement().trim()) {
+      app.notify("请先填写研判需求。", "error")
+      return
+    }
+    setDraftBusy(true)
+    try {
+      const body = source === "conversation"
+        ? { session_id: selected(), model_id: model() || undefined, client_request_id: crypto.randomUUID() }
+        : { requirement: skillRequirement().trim(), model_id: model() || undefined, client_request_id: crypto.randomUUID() }
+      const value = await post<SkillDraft>("/skill-drafts/from-" + (source === "conversation" ? "session" : "requirement"), body)
+      setSkillDraft(normalizeSkillDraft(value))
+      setCreator("edit")
+      void pollDraft(value.id)
+    } catch (cause) {
+      app.notify((cause as Error).message, "error")
+    } finally {
+      setDraftBusy(false)
+    }
+  }
+  async function pollDraft(id: string) {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const value = await api<SkillDraft>("/skill-drafts/" + id)
+      setSkillDraft(normalizeSkillDraft(value))
+      if (!["preparing", "generating"].includes(value.status)) return
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+    }
   }
   async function updateDraft() {
-    return skillDraft()
+    const value = skillDraft()
+    if (!value) return
+    const updated = await patch<SkillDraft>("/skill-drafts/" + value.id, {
+      name: value.name,
+      description: value.description,
+      content: value.content,
+      dependency_ids: value.dependency_ids,
+      input_schema: value.input_schema,
+      default_rules: value.default_rules,
+    })
+    setSkillDraft(normalizeSkillDraft(updated))
+    return updated
   }
-  async function testDraft() {
-    await updateDraft()
-    app.notify("当前后端尚未提供 Skill 草稿测试接口。", "error")
+  async function testDraft(mode: "validation" | "model") {
+    const value = await updateDraft()
+    if (!value) return
+    if (mode === "model" && !draftTestText().trim()) {
+      app.notify("请填写模型试运行输入。", "error")
+      return
+    }
+    try {
+      const result = await post<{ ok?: boolean; field_errors?: Record<string, string>; accepted?: boolean; session_id?: string; run_id?: string }>("/skill-drafts/" + value.id + "/test", mode === "validation" ? { mode } : { mode, text: draftTestText().trim(), model_id: model() || undefined, client_request_id: crypto.randomUUID() })
+      if (mode === "validation") app.notify(result.ok ? "草稿结构检查通过。" : Object.values(result.field_errors ?? {}).join("；") || "草稿结构检查未通过。", result.ok ? "success" : "error")
+      else app.notify(result.accepted ? `试运行已受理${result.run_id ? `（${result.run_id}）` : ""}。` : "试运行未受理。", result.accepted ? "success" : "error")
+    } catch (cause) {
+      app.notify((cause as Error).message, "error")
+    }
   }
   async function saveDraft() {
-    await updateDraft()
-    app.notify("当前后端尚未提供 Skill 草稿保存接口。", "error")
+    const value = await updateDraft()
+    if (!value) return
+    try {
+      const result = await post<{ skill_id: string; enabled?: boolean; already_saved: boolean }>("/skill-drafts/" + value.id + "/save", {})
+      setCreator(undefined)
+      setSkillDraft(undefined)
+      await resources()
+      app.notify(result.already_saved ? "该草稿此前已保存为个人 Skill。" : "已保存为个人 Skill；启用并等待配置生效后即可使用。")
+    } catch (cause) {
+      app.notify((cause as Error).message, "error")
+    }
   }
   async function savePersonalSkill() {
     const value = skillEditor()
@@ -361,11 +503,60 @@ export default function Chat() {
   async function showEvidence() {
     if (!selected() || !latestRun()) return
     try {
-      setEvidence(await api<Evidence>("/sessions/" + selected() + "/evidence"))
+      setRunEvidence(await api<RunEvidence>("/sessions/" + selected() + "/runs/" + latestRun() + "/evidence"))
     } catch (cause) {
       app.notify((cause as Error).message, "error")
     }
   }
+  async function rerun() {
+    const sid = selected()
+    const previous = currentRun()
+    if (!sid || !previous || !terminalRun(previous.status) || sending() || uncertain()) return
+    const owner = app.user().id
+    const revision = selectionRevision
+    const current = () => selected() === sid && selectionRevision === revision && app.user().id === owner
+    setSending(true)
+    let accepted = false
+    try {
+      const response = await post<unknown>("/sessions/" + sid + "/runs/" + previous.id + "/rerun", { client_request_id: crypto.randomUUID() })
+      if (!current()) return
+      const run = acceptedRun(response, sid)
+      accepted = true
+      setCurrentRun(run)
+      setLatestRun(run.id)
+      setRunEvents([])
+      setRunEventRun(run.id)
+      setRunEvidence(undefined)
+      setBusy(true)
+      app.notify("已受理关联重跑。")
+      await fetchMessages(sid)
+    } catch (cause) {
+      if (!current()) return
+      if (accepted) setError("重跑已受理，执行记录暂未刷新；请等待恢复，不要重复提交。")
+      else if (!(cause instanceof ApiError) || cause.status === 0 || cause.status >= 500) {
+        setUncertain(true)
+        setError("重跑结果待确认，请核对执行记录，不要重复提交。")
+      } else app.notify(cause.message, "error")
+    } finally {
+      if (app.user().id === owner) setSending(false)
+    }
+  }
+  const RelatedCapabilities = () => (
+    <aside class="related-capabilities">
+      <Show when={latestAnalysis()?.clues.length}>
+        <button class="clue-reopen" onClick={() => setShowClues(true)}>
+          <span><Icon name="star" size={16} />智能发现线索</span>
+          <b>{latestAnalysis()?.clues.length} 项 · 展开</b>
+        </button>
+      </Show>
+      <div class="related-capabilities-head"><div><strong>相关插件技能</strong><small>当前账号全部可用能力</small></div><span>{shownCapabilities().length}</span></div>
+      <div class="related-capabilities-list">
+        <For each={shownCapabilities()}>
+          {(item, index) => <button class={(item.kind === "skill" ? selectedSkills() : selectedPlugins()).includes(item.id) ? "selected" : ""} onClick={() => toggleCapability(item)}><span class={"capability-icon tone-" + (index() % 5)}><Icon name={item.kind === "skill" ? "skill" : "plugin"} size={18} /></span><span><strong>{item.name}<em>v{item.version}</em></strong><small>{item.description}</small><i>{item.kind === "skill" ? (item.owned ? "个人 Skill" : "官方 Skill") : "插件工具"}</i></span><b>{(item.kind === "skill" ? selectedSkills() : selectedPlugins()).includes(item.id) ? "已选" : "使用"}</b></button>}
+        </For>
+      </div>
+    </aside>
+  )
   return (
     <div class="chat-layout">
       <aside class={"history-panel " + (showHistory() ? "visible" : "")}>
@@ -481,6 +672,19 @@ export default function Chat() {
             <Status value={app.user().runtime?.status} />
           </div>
         </Show>
+        <Show when={currentRun()}>{(run) => <div class="run-status-bar" role="status">
+          <div><strong>执行状态</strong><Status value={run().status}/><span>{runStatusText(run().status)}</span><Show when={run().phase}><small>{run().phase}</small></Show></div>
+          <div class="run-status-actions">
+            <Show when={runEvidence()}>{value => <span class="run-evidence-state">证据：{value().status}</span>}</Show>
+            <Button variant="ghost" onClick={() => void showEvidence()}>刷新证据</Button>
+            <Show when={terminalRun(run().status)}>
+              <Button variant="ghost" onClick={() => void rerun()}>重新执行</Button>
+              <a class="button" href={download("/sessions/" + run().session_id + "/runs/" + run().id + "/report")} download="">导出报告</a>
+            </Show>
+            <Show when={!terminalRun(run().status)}><Button icon="stop" onClick={() => void abort()}>停止执行</Button></Show>
+          </div>
+          <Show when={runEvents().length}><details class="run-events"><summary>查看执行步骤（{runEvents().length}）</summary><For each={runEvents()}>{event => <div><Status value={event.status}/><strong>{event.name}</strong><span>{event.output_summary || event.input_summary}</span></div>}</For></details></Show>
+        </div>}</Show>
         <div class="messages-scroll" ref={scroll}>
           <Show
             when={messages().length}
@@ -488,7 +692,11 @@ export default function Chat() {
           >
             <div class="messages">
               <For each={shownMessages()}>
-                {(message) => (
+                {(message) => {
+                  const textParts = () => message.parts.filter((part) => part.type === "text" && part.text)
+                  const toolParts = () => message.parts.filter((part) => part.type === "tool")
+                  const analysisParts = () => message.parts.filter((part) => part.type === "analysis_result" && isAnalysisResult(part.data))
+                  return (
                   <article class={"message " + (message.info.role === "user" ? "user" : "assistant")}>
                     <div class="message-avatar">
                       <Show when={message.info.role === "user"} fallback={<Icon name="skill" size={17} />}>
@@ -497,68 +705,66 @@ export default function Chat() {
                     </div>
                     <div class="message-content">
                       <div class="message-author">{message.info.role === "user" ? "你" : "智能助手"}</div>
-                      <For each={message.parts}>
-                        {(part) => {
-                          const structured = undefined
-                          return (
-                          <>
-                            <Show when={part.type === "text" && part.text}>
-                              <Markdown text={part.text ?? ""} />
-                            </Show>
-                            <Show when={part.type === "tool"}>
-                              <details
-                                class="tool-detail"
-                                open={expandedTools()[message.info.id + ":" + (part.id ?? part.tool)] ?? false}
-                                onToggle={(event) => {
-                                  const key = message.info.id + ":" + (part.id ?? part.tool)
-                                  const open = event.currentTarget.open
-                                  setExpandedTools((current) =>
-                                    current[key] === open ? current : { ...current, [key]: open },
-                                  )
-                                }}
-                              >
-                                <summary>
-                                  <Icon name={part.state?.status === "completed" ? "check" : "clock"} size={14} />
-                                  <span>{safeMessage(part.state?.title || part.tool, "处理业务资料")}</span>
-                                  <Status value={part.state?.status} />
-                                </summary>
-                                <For
-                                  each={[
-                                    { title: "输入条件", fields: part.details?.inputs },
-                                    { title: "处理结果", fields: part.details?.outputs },
-                                  ]}
-                                >
-                                  {(section) => (
-                                    <Show when={Object.keys(section.fields ?? {}).length}>
-                                      <div class="business-detail">
-                                        <strong>{section.title}</strong>
-                                        <dl>
-                                          <For each={Object.entries(section.fields ?? {})}>
-                                            {([name, value]) => (
-                                              <div>
-                                                <dt>{safeMessage(name)}</dt>
-                                                <dd>
-                                                  {safeMessage(
-                                                    typeof value === "boolean" ? (value ? "是" : "否") : String(value),
-                                                  )}
-                                                </dd>
-                                              </div>
-                                            )}
-                                          </For>
-                                        </dl>
-                                      </div>
-                                    </Show>
-                                  )}
-                                </For>
-                                <Show when={part.state?.error}>
-                                  <ErrorLine message={part.state?.error} />
-                                </Show>
-                              </details>
-                            </Show>
-                          </>
-                          )
-                        }}
-                      </For>
+                      <For each={textParts()}>{(part) => <Markdown text={part.text ?? ""} />}</For>
+                      <For each={analysisParts()}>{(part) => <AnalysisResultView result={analysisWithGaps(part.data as AnalysisResult)} onSelect={setSelectedClue}/>}</For>
+                      <Show when={toolParts().length}>
+                        <details class="tool-trace">
+                          <summary>
+                            <Icon
+                              name={toolParts().every((part) => part.state?.status === "completed") ? "check" : "clock"}
+                              size={14}
+                            />
+                            <span>查看执行过程（{toolParts().length} 项）</span>
+                            <Status
+                              value={toolParts().every((part) => part.state?.status === "completed") ? "completed" : "running"}
+                            />
+                          </summary>
+                          <div class="tool-trace-list">
+                            <For each={toolParts()}>
+                              {(part) => (
+                                <section class="tool-trace-item">
+                                  <header>
+                                    <Icon name={part.state?.status === "completed" ? "check" : "clock"} size={14} />
+                                    <span>{safeMessage(part.state?.title || part.tool, "处理业务资料")}</span>
+                                    <Status value={part.state?.status} />
+                                  </header>
+                                  <For
+                                    each={[
+                                      { title: "输入条件", fields: part.details?.inputs },
+                                      { title: "处理结果", fields: part.details?.outputs },
+                                    ]}
+                                  >
+                                    {(section) => (
+                                      <Show when={Object.keys(section.fields ?? {}).length}>
+                                        <div class="business-detail">
+                                          <strong>{section.title}</strong>
+                                          <dl>
+                                            <For each={Object.entries(section.fields ?? {})}>
+                                              {([name, value]) => (
+                                                <div>
+                                                  <dt>{safeMessage(name)}</dt>
+                                                  <dd>
+                                                    {safeMessage(
+                                                      typeof value === "boolean" ? (value ? "是" : "否") : String(value),
+                                                    )}
+                                                  </dd>
+                                                </div>
+                                              )}
+                                            </For>
+                                          </dl>
+                                        </div>
+                                      </Show>
+                                    )}
+                                  </For>
+                                  <Show when={part.state?.error}>
+                                    <ErrorLine message={part.state?.error} />
+                                  </Show>
+                                </section>
+                              )}
+                            </For>
+                          </div>
+                        </details>
+                      </Show>
                       <Show when={message.info.error}>
                         <ErrorLine
                           message={
@@ -570,9 +776,10 @@ export default function Chat() {
                       </Show>
                     </div>
                   </article>
-                )}
+                  )
+                }}
               </For>
-              <Show when={latestAnalysis()}>{result=><article class="message assistant"><div class="message-avatar"><Icon name="skill" size={17}/></div><div class="message-content"><div class="message-author">智能助手</div><AnalysisResultView result={result()} onSelect={setSelectedClue}/></div></article>}</Show>
+              <Show when={!messageAnalysis() && latestAnalysis()}>{result=><article class="message assistant"><div class="message-avatar"><Icon name="skill" size={17}/></div><div class="message-content"><div class="message-author">智能助手</div><AnalysisResultView result={result()} onSelect={setSelectedClue}/></div></article>}</Show>
               <Show when={busy()}>
                 <div class="thinking">
                   <Spinner />
@@ -631,7 +838,7 @@ export default function Chat() {
           </Show>
           <Show when={slashQuery() !== undefined}>
             <div class="slash-command-menu">
-              <div class="slash-command-head"><strong>/ 选择技能或插件</strong><span>输入名称可筛选</span></div>
+              <div class="slash-command-head"><strong>/ 选择技能或插件</strong><input aria-label="筛选技能或插件" placeholder="输入名称可筛选" value={slashFilter()} onInput={(event) => setSlashFilter(event.currentTarget.value)} /></div>
               <For each={slashCapabilities()} fallback={<p>没有匹配的可用能力</p>}>
                 {(item) => <button onClick={() => chooseSlashCapability(item)}><span class={"slash-kind " + item.kind}><Icon name={item.kind === "skill" ? "skill" : "plugin"} size={16} /></span><span><strong>{item.name}</strong><small>{item.description}</small></span><em>{item.kind === "skill" ? "Skill" : "插件"}</em></button>}
               </For>
@@ -689,15 +896,8 @@ export default function Chat() {
           </div>
         </div>
       </section>
-      <Show when={latestAnalysis()?.clues.length} fallback={<aside class="related-capabilities">
-        <div class="related-capabilities-head"><div><strong>相关插件技能</strong><small>当前账号全部可用能力</small></div><span>{shownCapabilities().length}</span></div>
-        <div class="related-capabilities-list">
-          <For each={shownCapabilities()}>
-            {(item, index) => <button class={(item.kind === "skill" ? selectedSkills() : selectedPlugins()).includes(item.id) ? "selected" : ""} onClick={() => toggleCapability(item)}><span class={"capability-icon tone-" + (index() % 5)}><Icon name={item.kind === "skill" ? "skill" : "plugin"} size={18} /></span><span><strong>{item.name}<em>v{item.version}</em></strong><small>{item.description}</small><i>{item.kind === "skill" ? (item.owned ? "个人 Skill" : "官方 Skill") : "插件工具"}</i></span><b>{(item.kind === "skill" ? selectedSkills() : selectedPlugins()).includes(item.id) ? "已选" : "使用"}</b></button>}
-          </For>
-        </div>
-      </aside>}>
-        <CluePanel clues={latestAnalysis()?.clues ?? []} onSelect={setSelectedClue} />
+      <Show when={latestAnalysis()?.clues.length && showClues()} fallback={<RelatedCapabilities />}>
+        <CluePanel clues={latestAnalysis()?.clues ?? []} expanded={showClues()} onExpandedChange={setShowClues} onSelect={setSelectedClue} />
       </Show>
       <Show when={selectedClue()}>{(clue) => <ClueDrawer clue={clue()} onClose={() => setSelectedClue(undefined)} />}</Show>
       <Show when={picker()}>
@@ -728,7 +928,7 @@ export default function Chat() {
                   <div class="pick-row capability-row">
                     <input
                       type="checkbox"
-                      disabled={type() === "files" && "status" in item && item.status === "partial"}
+                      disabled={(type() === "files" && "status" in item && item.status === "partial") || (type() === "capabilities" && "available" in item && item.available === false)}
                       checked={(type() === "files" ? selectedFiles() : "kind" in item && item.kind === "plugin" ? selectedPlugins() : selectedSkills()).includes(item.id)}
                       onChange={() => type() === "files" ? toggle(item.id, "files") : "kind" in item && toggleCapability(item)}
                     />
@@ -736,6 +936,7 @@ export default function Chat() {
                     <span>
                       {item.name}
                       <Show when={type() === "capabilities" && "description" in item}><small>{("description" in item ? item.description : "") || "可用于当前研判任务"}</small></Show>
+                      <Show when={type() === "capabilities" && "available" in item && item.available === false}><br/><small class="muted">当前不可用：{"unavailable_reason" in item ? item.unavailable_reason : "配置尚未生效"}</small></Show>
                       <Show when={type() === "files" && "status" in item && item.status === "partial"}>
                         <br />
                         <small class="muted">部分解析 · 请拆分重传</small>
@@ -766,8 +967,8 @@ export default function Chat() {
         )}
       </Show>
       <Show when={creator() === "choose"}><Modal title="选择创建方式" onClose={() => setCreator(undefined)}><div class="creator-choice"><button onClick={() => { setCreatorSource("requirement"); setCreator("source") }}><Icon name="file" /><strong>从需求创建</strong><span>通过自然语言描述，由系统生成 Skill 草稿</span></button><button onClick={() => void generateSkill("conversation")}><Icon name="chat" /><strong>从当前对话生成</strong><span>提炼当前研判对话中的有效流程</span></button></div></Modal></Show>
-      <Show when={creator() === "source"}><Modal title="从需求创建 Skill" text="描述需要固化的研判目标、数据范围和输出要求。" wide onClose={() => setCreator(undefined)}><Field label="研判需求" required><textarea rows={8} value={draft()} onInput={(event) => setDraft(event.currentTarget.value)} placeholder="例如：分析目标人员最近30天夜间活动和共同出现人员" /></Field><div class="modal-actions"><Button onClick={() => setCreator("choose")}>上一步</Button><Button variant="primary" onClick={() => void generateSkill("requirement")}>AI 提炼生成</Button></div></Modal></Show>
-      <Show when={creator() === "edit" && skillDraft()}>{(value) => <Modal title="编辑 Skill" text={`来源：${creatorSource() === "conversation" ? "当前对话" : "需求描述"}`} wide onClose={() => setCreator(undefined)}><div class="form-grid"><Field label="Skill 名称" required><input value={value().name} onInput={(event) => setSkillDraft({ ...value(), name: event.currentTarget.value })} /></Field><Field label="使用场景"><input value={value().description} onInput={(event) => setSkillDraft({ ...value(), description: event.currentTarget.value })} /></Field></div><Field label="Skill 内容（SKILL.md）" required><textarea class="skill-editor" value={value().content} onInput={(event) => setSkillDraft({ ...value(), content: event.currentTarget.value })} /></Field><div class="modal-actions"><Button onClick={() => void testDraft()}>测试运行</Button><Button variant="primary" onClick={() => void saveDraft()}>保存到个人 Skill</Button></div></Modal>}</Show>
+      <Show when={creator() === "source"}><Modal title="从需求创建 Skill" text="描述需要固化的研判目标、数据范围和输出要求。" wide onClose={() => setCreator(undefined)}><Field label="研判需求" required><textarea rows={8} value={skillRequirement()} onInput={(event) => setSkillRequirement(event.currentTarget.value)} placeholder="例如：分析目标人员最近30天夜间活动和共同出现人员" /></Field><div class="modal-actions"><Button onClick={() => setCreator("choose")}>上一步</Button><Button variant="primary" busy={draftBusy()} onClick={() => void generateSkill("requirement")}>AI 提炼生成</Button></div></Modal></Show>
+      <Show when={creator() === "edit" && skillDraft()}>{(value) => <Modal title="编辑 Skill" text={`来源：${creatorSource() === "conversation" ? "当前对话" : "需求描述"} · 状态：${draftStatusText(value().status)}`} wide onClose={() => setCreator(undefined)}><Show when={["preparing","generating"].includes(value().status)}><div class="runtime-banner"><Spinner/><span>系统正在生成草稿，完成后将自动刷新。</span></div></Show><div class="form-grid"><Field label="Skill 名称" required><input disabled={["preparing","generating"].includes(value().status)} value={value().name} onInput={(event) => setSkillDraft({ ...value(), name: event.currentTarget.value })} /></Field><Field label="使用场景"><input disabled={["preparing","generating"].includes(value().status)} value={value().description} onInput={(event) => setSkillDraft({ ...value(), description: event.currentTarget.value })} /></Field></div><Field label="Skill 内容（SKILL.md）" required><textarea disabled={["preparing","generating"].includes(value().status)} class="skill-editor" value={value().content} onInput={(event) => setSkillDraft({ ...value(), content: event.currentTarget.value })} /></Field><Field label="模型试运行输入"><input value={draftTestText()} onInput={(event) => setDraftTestText(event.currentTarget.value)} placeholder="填写合成测试输入；不会使用当前对话原文" /></Field><Show when={value().error}><ErrorLine message={value().error?.message}/></Show><div class="modal-actions"><Button disabled={!['ready','needs_review'].includes(value().status)} onClick={() => void testDraft("validation")}>结构检查</Button><Button disabled={value().status !== "ready"} onClick={() => void testDraft("model")}>模型试运行</Button><Button variant="primary" disabled={value().status !== "ready"} onClick={() => void saveDraft()}>保存到个人 Skill</Button></div></Modal>}</Show>
       <Show when={skillEditor()}>{(value) => <Modal title="编辑个人 Skill" text="个人 Skill 仅当前账号可见，可在能力选择弹窗中继续使用。" wide onClose={() => setSkillEditor(undefined)}><div class="form-grid"><Field label="Skill 名称" required><input value={value().name} onInput={(event) => setSkillEditor({ ...value(), name: event.currentTarget.value })} /></Field><Field label="使用场景"><input value={value().description ?? ""} onInput={(event) => setSkillEditor({ ...value(), description: event.currentTarget.value })} /></Field></div><Field label="Skill 内容（SKILL.md）" required><textarea class="skill-editor" value={value().content ?? ""} onInput={(event) => setSkillEditor({ ...value(), content: event.currentTarget.value })} /></Field><div class="modal-actions split"><Button variant="danger" onClick={() => void deletePersonalSkill()}>删除</Button><span /><Button onClick={() => void testPersonalSkill()}>测试运行</Button><Button variant="primary" onClick={() => void savePersonalSkill()}>保存</Button></div></Modal>}</Show>
       <Show when={rename()}>
         <Modal title="重命名对话" onClose={() => setRename(undefined)}>
@@ -790,4 +991,20 @@ export default function Chat() {
       </Show>
     </div>
   )
+}
+
+function terminalRun(status: Run["status"]) {
+  return ["completed", "failed", "cancelled"].includes(status)
+}
+function runStatusText(status: Run["status"]) {
+  return ({ queued: "已受理，等待投递", running: "执行中", cancelling: "正在请求停止", reconciling: "执行状态待核对，请勿重复提交", completed: "执行已完成", failed: "执行失败，已保留现有内容", cancelled: "执行已确认停止" } as Record<Run["status"], string>)[status]
+}
+function mergeRunEvents(current: RunEvent[], incoming: RunEvent[]) {
+  return [...new Map([...current, ...incoming].sort((a, b) => a.sequence - b.sequence).map((item) => [item.id, item])).values()]
+}
+function normalizeSkillDraft(value: SkillDraft): SkillDraft {
+  return { ...value, name: value.name ?? "", description: value.description ?? "", content: value.content ?? "", dependency_ids: value.dependency_ids ?? [], input_schema: value.input_schema ?? {}, default_rules: value.default_rules ?? [] }
+}
+function draftStatusText(status: SkillDraft["status"]) {
+  return ({ preparing: "准备中", generating: "生成中", ready: "可编辑", needs_review: "需要人工复核", failed: "生成失败", saved: "已保存" } as Record<SkillDraft["status"], string>)[status]
 }

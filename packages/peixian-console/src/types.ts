@@ -33,7 +33,7 @@ export type User = {
   department?: { id: string; name: string; code?: string }
   position?: string
   system_role?: Role
-  last_login_at?: number
+  last_login_at?: string | number
 }
 export type Auth = { user: User; csrf_token: string; capabilities: Capability[] }
 export type Session = { id: string; title: string; status?: string; updated_at?: string; time?: { updated?: number } }
@@ -117,6 +117,7 @@ export type AnalysisEvidenceCard = {
   unit?: string
   summary?: string
   items?: string[]
+  clue_id?: string
 }
 export type AnalysisClue = {
   id: string
@@ -141,11 +142,16 @@ export type AnalysisResult = {
   conclusions: string[]
   evidence: AnalysisEvidenceCard[]
   next_steps?: string
+  conclusion_sources?: { text: string; clue_id?: string; source_ids: string[] }[]
+  source_metadata?: Record<string, Json>
+  missing?: string[]
+  presentation_version?: string
   clues: AnalysisClue[]
 }
 export type CapabilityItem = {
   id: string
   kind: "skill" | "plugin"
+  source_kind?: "personal_skill" | "plugin" | "official_skill"
   name: string
   description?: string
   version: string
@@ -154,6 +160,9 @@ export type CapabilityItem = {
   enabled: boolean
   owned: boolean
   scope: string
+  available?: boolean
+  unavailable_reason?: string | null
+  dependency_ids?: string[]
 }
 export type SkillDraft = {
   id: string
@@ -165,6 +174,13 @@ export type SkillDraft = {
   dependency_ids: string[]
   input_schema: Record<string, Json>
   default_rules: string[]
+  status: "preparing" | "generating" | "ready" | "needs_review" | "failed" | "saved"
+  run_id?: string | null
+  saved_skill_id?: string | null
+  scope: "personal"
+  error?: { code: string; message: string } | null
+  created_at: string
+  updated_at: string
 }
 export type RunEvent = {
   id: string
@@ -172,12 +188,39 @@ export type RunEvent = {
   step_type: string
   name: string
   status: string
-  started?: number
-  completed?: number
+  started_at?: string | null
+  completed_at?: string | null
+  elapsed_ms?: number | null
+  capability_id?: string | null
   input_summary?: string
   output_summary?: string
   record_count?: number
-  error?: string
+  evidence_refs?: string[]
+  error_message?: string | null
+}
+export type Run = {
+  id: string
+  session_id: string
+  status: "queued" | "running" | "cancelling" | "reconciling" | "completed" | "failed" | "cancelled"
+  phase: string
+  cancel_requested?: boolean
+  model_id?: string
+  message_id?: string | null
+  user_message_id?: string
+  parent_run_id?: string | null
+  created_at: string
+  started_at?: string | null
+  completed_at?: string | null
+  updated_at?: string
+  error?: { code: string; message: string } | null
+}
+export type RunEvidence = {
+  run_id: string
+  status: "pending" | "empty" | "partial" | "complete" | "unavailable"
+  notice?: string
+  cards: Json[]
+  summary: Json[]
+  missing?: string[]
 }
 export type Evidence = {
   conclusion: { confidence: string; summary: string }
@@ -186,7 +229,7 @@ export type Evidence = {
   conditions: Record<string, Json>
   mock?: boolean
 }
-export type Department = { id: string; name: string; parent_id?: string; code?: string; sort_order: number }
+export type Department = { id: string; name: string; parent_id?: string | null; code?: string; sort_order: number; updated_at?: string; children?: Department[] }
 export type Invocation = {
   id: string
   run_id: string
@@ -199,6 +242,8 @@ export type Invocation = {
   model_name?: string
   skill_ids: string[]
   plugin_ids: string[]
+  actual_plugin_ids?: string[]
+  model_id?: string
   status: string
   duration_ms?: number
   record_count: number

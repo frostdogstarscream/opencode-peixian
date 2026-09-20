@@ -1,5 +1,6 @@
 export const resources = [
   "messages",
+  "runs",
   "sessions",
   "files",
   "models",

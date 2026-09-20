@@ -14,7 +14,11 @@ import { defaultPlatform, platformMetadata } from "./platform"
 import type { Platform } from "./platform"
 import { connectEvents, createChangeBus, parseChange, resources } from "./events"
 import RuntimeStatus from "./RuntimeStatus"
-import loginPrototype from "./assets/peixian-login-prototype.png"
+import loginStory from "./assets/peixian-dialogue-background.webp"
+import loginFeatureAnalysis from "./assets/login-feature-analysis.svg"
+import loginFeatureCapability from "./assets/login-feature-capability.svg"
+import loginFeatureKnowledge from "./assets/login-feature-knowledge.svg"
+import loginFeatureCollaboration from "./assets/login-feature-collaboration.svg"
 const pages = [
   { id: "chat", name: "智能研判", icon: "chat" },
   { id: "files", name: "我的文件", icon: "file" },
@@ -329,15 +333,36 @@ function Login(props: {
   }
   return (
     <div class="login-shell">
-      <div class="login-story" style={{ "--login-prototype": `url(${loginPrototype})` }}>
+      <div class="login-story" style={{ "--login-story": `url(${loginStory})` }}>
         <span class="login-story-accessible">沛警智枢，沛县公安智能研判平台。汉风古韵，平安沛县。</span>
+        <div class="login-story-features">
+          <div class="login-story-feature">
+            <img src={loginFeatureAnalysis} alt="" />
+            <strong>智能研判</strong>
+            <span>让数据更有价值</span>
+          </div>
+          <div class="login-story-feature">
+            <img src={loginFeatureCapability} alt="" />
+            <strong>能力聚合</strong>
+            <span>汇聚公安业务能力</span>
+          </div>
+          <div class="login-story-feature">
+            <img src={loginFeatureKnowledge} alt="" />
+            <strong>知识沉淀</strong>
+            <span>让经验持续传承</span>
+          </div>
+          <div class="login-story-feature">
+            <img src={loginFeatureCollaboration} alt="" />
+            <strong>协同高效</strong>
+            <span>助力实战一线</span>
+          </div>
+        </div>
       </div>
       <div class="login-side">
         <div class="login-corner-copy">汉风古韵 · 平安沛县</div>
         <form class="login-card" onSubmit={submit}>
           <div class="login-welcome"><span>欢迎登录</span><strong>沛警智枢</strong></div>
           <p class="login-subtitle">沛 县 公 安 智 能 研 判 平 台</p>
-          <div class="login-account-tab">账号登录</div>
           <ErrorLine message={error() || props.initialError} />
           <Field label="账号">
             <div class="login-field-control">

@@ -88,11 +88,11 @@ def register(app):
         s=app.state.store;row=runs.owned(s,user['uid'],sid,rid)
         if row['status'] not in runs.TERMINAL:error('run_not_finished','执行尚未结束，暂不能导出',409)
         data=evidence(s,row);view=data.get('presentation',{});state=runs.public(row)
-        lines=['# 执行报告','',f"- 执行编号：{rid}",f"- 状态：{state['status']}",f"- 创建时间：{state['created_at']}",'']
+        lines=['# 执行报告','',f"- 执行编号：{rid}",f"- 状态：{ {'completed':'已完成','failed':'未完成','cancelled':'已取消'}.get(state['status'],'状态待确认')}",f"- 创建时间：{state['created_at']}",'']
         if data.get('synthetic') is True or data.get('scenario'):lines += ['资料性质：合成测试资料，不代表真实业务事实。','']
         lines += ['## 已核对结论','']+[('- '+x['text']) for x in view.get('conclusions',[])]
         if not view.get('conclusions'):lines+=['暂无可导出的已核对结论。']
-        lines+=['','## 过程','']+[f"- {x['name']}：{x['status']}" for x in s.rows('SELECT name,status FROM run_events WHERE run_id=? ORDER BY sequence',(rid,))]
+        lines+=['','## 过程','']+[f"- {x['name']}：{ {'completed':'已完成','failed':'未完成','cancelled':'已取消','pending':'等待处理','running':'执行中'}.get(x['status'],'状态待确认')}" for x in s.rows('SELECT name,status FROM run_events WHERE run_id=? ORDER BY sequence',(rid,))]
         lines+=['','## 来源','']
         for clue in view.get('clues',[]):
             for item in clue.get('evidence',[]):lines.append('- '+item['label']+'：'+item['content'])

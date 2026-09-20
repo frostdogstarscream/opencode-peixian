@@ -41,25 +41,29 @@ def replay(store, uid, sid, data):
         return receipt(row)
 
 
-def submit(store, user, sid, data, payload, applied, revision, parent=None, draft=None, trial=None):
+def submit(store, user, sid, data, payload, applied, revision, parent=None, draft=None, trial=None, context=None):
     from .app import current_authority
     require_v6(store)
     identity=ident();message='msg_'+ident();timestamp=now();payload={**payload,'messageID':message}
     snapshot={'request':data,'payload':payload,'models':[x['id'] for x in applied.get('models',[])],
               'plugins':[{'id':x['id'],'version':x.get('version'),'tools':x.get('manifest',{}).get('tools',[])} for x in applied.get('plugins',[])],
               'skills':[{'id':x['id'],'name':x['name'],'version':x.get('version')} for x in applied.get('skills',[])]}
+    if context is not None:snapshot['scenario_context']={**context,'revision':revision}
     with store.tx() as db:
         current_authority(db,user)
         row=db.execute('SELECT * FROM business_runs WHERE uid=? AND session_id=? AND request_key=?',(user['uid'],sid,data['client_request_id'])).fetchone()
         if row:
             if row['request_hash']!=fingerprint(store,data):error('request_conflict','同一请求标识对应不同内容',409)
             return receipt(row)
+        if context is not None:
+            from .scenario_context import boundary
+            if boundary(store,user['uid'],sid)[0]!=context['generation']:error('scenario_context_changed','场景已被清除，请刷新后重新确认。',409)
         runtime=db.execute('SELECT * FROM runtimes WHERE uid=?',(user['uid'],)).fetchone()
         if not runtime or runtime['status']!='ready' or runtime['gate_policy']!='open' or runtime['security_blocked'] or runtime['recovery_required'] or runtime['revision']!=revision:
             error('runtime_changed','运行环境或配置已变化，请刷新后重新确认',409)
         if db.execute("SELECT 1 FROM business_runs WHERE uid=? AND session_id=? AND status IN ('queued','running','cancelling','reconciling')",(user['uid'],sid)).fetchone():error('session_busy','此会话已有未结束的执行',409)
         from .capabilities import check_selection
-        check_selection(store,user['uid'],data)
+        check_selection(store,user['uid'],{**data,'skill_ids':context['effective_skill_ids']} if context is not None else data)
         if not db.execute("SELECT 1 FROM models m JOIN grants g ON g.resource=m.id AND g.kind='model' WHERE g.uid=? AND m.id=? AND m.enabled=1",(user['uid'],payload['model']['modelID'])).fetchone():error('model_unavailable','所选模型授权已变化',403)
         # Admission freezes encrypted inputs; SQL never holds a network operation.
         db.execute("INSERT INTO business_runs(id,uid,session_id,request_key,request_hash,message_id,parent_id,status,phase,model_id,revision,auth_version,request_ciphertext,created,updated) VALUES(?,?,?,?,?,?,?,'queued','pending_dispatch',?,?,?,?,?,?)",(identity,user['uid'],sid,data['client_request_id'],fingerprint(store,data),message,parent,payload['model']['modelID'],revision,user['version'],store.encrypt(snapshot),timestamp,timestamp))

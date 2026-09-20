@@ -712,7 +712,10 @@ def create_app(store=None):
         if not isinstance(text, str) or not text.strip() or len(text) > 32000:
             from .backend_contract import error
             error('invalid_text','请输入问题，且单次文字不超过32000个字符',422,{'text':'1至32000个字符且不能全为空白'})
-        skills = data.get("skill_ids", [])
+        from .scenario_context import resolve, LANGUAGE, instruction, historical
+        old_scene = await historical(request,user,sid) if modern and not getattr(request.state,'draft_no_tools',False) else None
+        context = await app.state.db_work.run(resolve,s,user['uid'],sid,data,applied,old_scene) if modern and not getattr(request.state,'draft_no_tools',False) else None
+        skills = context['effective_skill_ids'] if context else data.get("skill_ids", [])
         files = data.get("file_ids", [])
         if not isinstance(skills, list) or not isinstance(files, list) or len(skills) > 5 or len(files) > 5:
             fail("每次最多选择五个技能和五个文件")
@@ -749,13 +752,15 @@ def create_app(store=None):
             from .backend_contract import error
             error('message_budget_exceeded','文字、技能与文件合计超过当前模型引用预算，请缩短问题或拆分资料后重试',413,{'text':'UTF-8合计最多18000字节'})
         parts = [{"type": "text", "text": value, "synthetic": True} for value in prelude] + [{"type": "text", "text": text}]
-        payload={"model": {"providerID": "peixian", "modelID": model["id"]}, "parts": parts}
+        payload={"model": {"providerID": "peixian", "modelID": model["id"]}, "parts": parts, "system": LANGUAGE + ("\n" + instruction(context) if context else "")}
+        if context and not context['scenario_id']:
+            payload['tools']={'skill':False,'peixian_prepare_scenario_facts':False,'peixian_check_scenario_summary':False,'peixian_get_scenario_context':False}
         if getattr(request.state,'draft_no_tools',False):payload['tools']={'*':False}
         if modern:
             # Gate capability is checked before admitting a durable Run.
             probe=(await upstream(request,user,'GET','/internal/runtime/runs/'+'0'*32)).json()
             if probe.get('protocol')!='durable_run_v1':fail('运行环境需要升级后才能受理执行',409)
-            return await app.state.db_work.run(business_runs.submit,s,user,sid,data,payload,applied,applied_row['revision'],getattr(request.state,"run_parent",None),getattr(request.state,"draft_id",None),getattr(request.state,"trial_id",None))
+            return await app.state.db_work.run(business_runs.submit,s,user,sid,data,payload,applied,applied_row['revision'],getattr(request.state,"run_parent",None),getattr(request.state,"draft_id",None),getattr(request.state,"trial_id",None),context)
         await upstream(request, user, "POST", f"/session/{sid}/prompt_async", json=payload)
         return {"accepted": True, "run_id": ident()}
 
@@ -776,6 +781,8 @@ def create_app(store=None):
 
     from .capabilities import register as register_capabilities
     register_capabilities(app)
+    from .scenario_context import register as register_context
+    register_context(app)
     from .run_api import register as register_runs
     from .invocations import register as register_invocations
     from .skill_drafts import register as register_drafts

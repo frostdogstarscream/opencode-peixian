@@ -58,6 +58,8 @@ def contracts():
     def add(method,path,body,out,title,tag='执行记录',desc='当前账号资源；不属于本人返回404。'):
         result[(method,path)]=(body,out,title,tag,desc)
     add('post','/sessions/{sid}/messages','MessageBody',ref('RunAccepted'),'提交消息并受理持久执行',desc='HTTP 202返回持久run_id和固定message_id；plugin_ids 是偏好；同 client_request_id 同内容返回首次受理，不自动重发未知执行。')
+    add('get','/sessions/{sid}/context',None,{'type':'object','properties':{'scenario_id':{'type':['string','null']},'name':{'type':['string','null']},'source':{'type':'string'},'generation':{'type':['string','null']}}},'读取本人会话场景')
+    add('delete','/sessions/{sid}/context',None,{'type':'object'},'清除本人会话场景',desc='需要 Idempotency-Key；执行未结束返回409；持久清除边界不删除历史。')
     add('get','/capabilities',None,ref('CapabilityPage'),'查询当前可用能力','能力目录')
     add('get','/sessions/{sid}/runs',None,ref('RunPage'),'查询会话执行记录')
     add('get','/sessions/{sid}/runs/{rid}',None,ref('Run'),'查询执行状态')

@@ -1,3 +1,4 @@
+import { executionLabel } from "../execution-label"
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
 import { api, ApiError, download, list, patch, post, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, Markdown, Modal, Spinner, Status } from "../components"
@@ -43,6 +44,8 @@ export default function Chat() {
   const [runEvents, setRunEvents] = createSignal<RunEvent[]>([])
   const [runEventRun, setRunEventRun] = createSignal<string>()
   const [runEvidence, setRunEvidence] = createSignal<RunEvidence>()
+  const [scene, setScene] = createSignal<{ scenario_id: string | null; name: string | null; source: string }>()
+  const [clearingScene, setClearingScene] = createSignal(false)
   const [trusted, setTrusted] = createSignal<TrustedEvidence>()
   const [selectedClue, setSelectedClue] = createSignal<AnalysisClue>()
   const [showClues, setShowClues] = createSignal(true)
@@ -114,6 +117,8 @@ export default function Chat() {
           }
         }
         await fetchRunState(id, current)
+        const context = await api<{scenario_id: string | null; name: string | null; source: string}>("/sessions/" + id + "/context")
+        if (current()) setScene(context)
       } while (flight.trailing && current())
     })().finally(() => {
       if (messageFlight === flight) messageFlight = undefined
@@ -228,6 +233,7 @@ export default function Chat() {
     selectionRevision++
     setSelected(id)
     setSelectedFiles([])
+    setScene(undefined)
     setSelectedSkills([])
     setSelectedPlugins([])
     setMessages([])
@@ -260,12 +266,28 @@ export default function Chat() {
     setSelectedClue(undefined)
     if (!uncertain()) setDraft("")
     setSelectedFiles([])
+    setScene(undefined)
     setSelectedSkills([])
     setSelectedPlugins([])
     setError("")
     setShowHistory(false)
     setBusy(false)
     textarea?.focus()
+  }
+  async function clearScene() {
+    const id = selected(), owner = app.user().id
+    if (!id || busy() || sending() || clearingScene()) return
+    const revision = ++selectionRevision
+    setClearingScene(true)
+    try {
+      await remove("/sessions/" + id + "/context")
+      if (selected() === id && selectionRevision === revision && app.user().id === owner) {
+        setScene(undefined)
+        setSelectedSkills([])
+        app.notify("当前场景已清除，下一次分析请重新选择场景。")
+      }
+    } catch (cause) { if (selected() === id) app.notify((cause as Error).message, "error") }
+    finally { if (app.user().id === owner) setClearingScene(false) }
   }
   async function send() {
     if (!draft().trim() || sending() || uncertain() || busy() || !ready() || !shownModels().length) return
@@ -673,9 +695,9 @@ export default function Chat() {
           </div>
         </Show>
         <Show when={currentRun()}>{(run) => <div class="run-status-bar" role="status">
-          <div><strong>执行状态</strong><Status value={run().status}/><span>{runStatusText(run().status)}</span><Show when={run().phase}><small>{run().phase}</small></Show></div>
+          <div><strong>执行状态</strong><Status value={run().status}/><span>{runStatusText(run().status)}</span><Show when={run().phase}><small>{executionLabel(run().phase)}</small></Show></div>
           <div class="run-status-actions">
-            <Show when={runEvidence()}>{value => <span class="run-evidence-state">证据：{value().status}</span>}</Show>
+            <Show when={runEvidence()}>{value => <span class="run-evidence-state">证据：{executionLabel(value().status)}</span>}</Show>
             <Button variant="ghost" onClick={() => void showEvidence()}>刷新证据</Button>
             <Show when={terminalRun(run().status)}>
               <Button variant="ghost" onClick={() => void rerun()}>重新执行</Button>
@@ -805,6 +827,7 @@ export default function Chat() {
               }}>已核对，解除保护</Button>
             </div>
           </Show>
+          <Show when={scene()?.scenario_id}><div class="selection-chips" role="status"><span>当前场景：{scene()?.name} · 追问将沿用</span><button disabled={busy() || sending() || clearingScene()} onClick={() => void clearScene()} aria-label="清除当前场景">清除场景 <Icon name="close" size={12}/></button></div></Show>
           <Show when={selectedFiles().length || selectedSkills().length || selectedPlugins().length}>
             <div class="selection-chips">
               <For each={selectedFiles()}>

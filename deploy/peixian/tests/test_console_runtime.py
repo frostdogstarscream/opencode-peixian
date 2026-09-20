@@ -317,3 +317,25 @@ class WorkerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StopConfirmationTests(unittest.TestCase):
+    def test_daemon_exit_visibility_is_polled(self):
+        manager = object.__new__(runtime.RuntimeManager)
+        from unittest.mock import Mock
+        manager.compose = Mock()
+        manager.running = Mock(side_effect=[["synthetic"], []])
+        with patch.object(runtime.time, "sleep") as sleep:
+            manager.stop_checked(RID, Path("synthetic.json"))
+        self.assertEqual(manager.running.call_count, 2)
+        sleep.assert_called_once_with(0.2)
+
+    def test_unconfirmed_exit_fails_closed(self):
+        manager = object.__new__(runtime.RuntimeManager)
+        from unittest.mock import Mock
+        manager.compose = Mock()
+        manager.running = Mock(return_value=["synthetic"])
+        with patch.object(runtime.time, "monotonic", side_effect=[0, 6]):
+            with self.assertRaises(runtime.RuntimeFailure) as result:
+                manager.stop_checked(RID, Path("synthetic.json"))
+        self.assertEqual(result.exception.code, "runtime_stop_unconfirmed")

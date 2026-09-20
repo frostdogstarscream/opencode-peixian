@@ -1,12 +1,12 @@
-import { executionLabel } from "../execution-label"
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
-import { api, ApiError, download, list, patch, post, remove, safeMessage } from "../api"
+import { api, ApiError, list, patch, post, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, Markdown, Modal, Spinner, Status } from "../components"
 import { useConsole } from "../context"
 import BusinessConfirmations from "../BusinessConfirmations"
 import { AnalysisResultView, ClueDrawer, CluePanel } from "../TrustedAnalysis"
 import type { TrustedEvidence } from "../TrustedAnalysis"
-import { acceptedRun, isAnalysisResult, legacyPresentation } from "../result-contract"
+import { isAnalysisResult, legacyPresentation } from "../result-contract"
+import RuntimeStatus from "../RuntimeStatus"
 import { displayName } from "../analysis-display"
 import { canObserve, canSend } from "../runtime-view"
 import { useResourceRefresh } from "../resource-refresh"
@@ -62,7 +62,6 @@ export default function Chat() {
   let selectionRevision = 0
   let messageFlight: { id: string; revision: number; trailing: boolean; promise: Promise<void> } | undefined
   const shownSessions = createMemo(() => sessions())
-  const active = createMemo(() => shownSessions().find((s) => s.id === selected()))
   const shownModels = createMemo(() => models())
   const shownCapabilities = createMemo(() => capabilities().filter((item) => item.enabled).map(item=>({...item,name:displayName(item.name),description:displayName(item.name)!==item.name?"整理相关资料并核对来源。":item.description})))
   const slashQuery = createMemo(() => draft().match(/^\s*\/([^\s]*)$/)?.[1]?.toLowerCase())
@@ -541,47 +540,6 @@ export default function Chat() {
       app.notify((cause as Error).message, "error")
     }
   }
-  async function showEvidence() {
-    if (!selected() || !latestRun()) return
-    try {
-      setRunEvidence(await api<RunEvidence>("/sessions/" + selected() + "/runs/" + latestRun() + "/evidence"))
-    } catch (cause) {
-      app.notify((cause as Error).message, "error")
-    }
-  }
-  async function rerun() {
-    const sid = selected()
-    const previous = currentRun()
-    if (!sid || !previous || !terminalRun(previous.status) || sending() || uncertain()) return
-    const owner = app.user().id
-    const revision = selectionRevision
-    const current = () => selected() === sid && selectionRevision === revision && app.user().id === owner
-    setSending(true)
-    let accepted = false
-    try {
-      const response = await post<unknown>("/sessions/" + sid + "/runs/" + previous.id + "/rerun", { client_request_id: crypto.randomUUID() })
-      if (!current()) return
-      const run = acceptedRun(response, sid)
-      accepted = true
-      setCurrentRun(run)
-      setLatestRun(run.id)
-      setRunEvents([])
-      setRunEventRun(run.id)
-      setRunEvidence(undefined)
-      setBusy(true)
-      app.notify("已受理关联重跑。")
-      await fetchMessages(sid)
-    } catch (cause) {
-      if (!current()) return
-      if (accepted) setError("重跑已受理，执行记录暂未刷新；请等待恢复，不要重复提交。")
-      else if (!(cause instanceof ApiError) || cause.status === 0 || cause.status >= 500) {
-        setUncertain(true)
-        setError("重跑结果待确认，请核对执行记录，不要重复提交。")
-      } else app.notify(cause.message, "error")
-    } finally {
-      if (app.user().id === owner) setSending(false)
-    }
-  }
   const RelatedCapabilities = () => (
     <aside class="related-capabilities">
       <Show when={latestAnalysis()?.clues.length}>
@@ -664,39 +622,6 @@ export default function Chat() {
         </div>
       </aside>
       <section class="conversation">
-        <div class="conversation-head">
-          <div>
-            <button
-              class="icon-button history-toggle"
-              aria-label="显示对话记录"
-              onClick={() => setShowHistory(!showHistory())}
-            >
-              <Icon name="clock" />
-            </button>
-            <h2>{displayName(active()?.title) || "新建研判"}</h2>
-          </div>
-          <div class="conversation-head-actions">
-            <div class="model-choice">
-              <span class="model-dot" />
-              <select
-                aria-label="选择授权模型"
-                value={model() || shownModels()[0]?.id}
-                disabled={busy()}
-                onChange={(event) => setModel(event.currentTarget.value)}
-              >
-                <For each={shownModels()}>
-                  {(item) => (
-                    <option value={item.id}>
-                      {item.name}
-                      {item.is_default ? " · 默认" : ""}
-                    </option>
-                  )}
-                </For>
-              </select>
-            </div>
-            <Button class="distill-skill" icon="skill" onClick={() => setCreator("choose")}>沉淀为 Skill</Button>
-          </div>
-        </div>
         <Show when={!ready()}>
           <div class="runtime-banner">
             <Icon name="clock" size={17} />
@@ -713,18 +638,6 @@ export default function Chat() {
             <Status value={app.user().runtime?.status} />
           </div>
         </Show>
-        <Show when={currentRun()}>{(run) => <div class="run-status-bar" role="status">
-          <div><strong>执行状态</strong><Status value={run().status}/><span>{runStatusText(run().status)}</span><Show when={run().phase}><small>{executionLabel(run().phase)}</small></Show></div>
-          <div class="run-status-actions">
-            <Show when={runEvidence()}>{value => <span class="run-evidence-state">证据：{executionLabel(value().status)}</span>}</Show>
-            <Button variant="ghost" onClick={() => void showEvidence()}>刷新证据</Button>
-            <Show when={terminalRun(run().status)}>
-              <Button variant="ghost" onClick={() => void rerun()}>重新执行</Button>
-              <a class="button" href={download("/sessions/" + run().session_id + "/runs/" + run().id + "/report")} download="">导出报告</a>
-            </Show>
-            <Show when={!terminalRun(run().status)}><Button icon="stop" onClick={() => void abort()}>停止执行</Button></Show>
-          </div>
-        </div>}</Show>
         <div class="messages-scroll" ref={scroll} onScroll={() => { followOutput = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 96 }}>
           <Show
             when={messages().length}
@@ -837,6 +750,7 @@ export default function Chat() {
           </Show>
         </div>
         <div class="composer-area">
+          <RuntimeStatus compact />
           <BusinessConfirmations sessionID={selected()} available={available()} onAnswered={() => void refresh()} />
           <ErrorLine message={error()} />
           <Show when={uncertain()}>
@@ -908,15 +822,21 @@ export default function Chat() {
               }}
             />
             <div class="composer-tools">
-              <div>
+              <div class="composer-shortcuts">
+                <button class="history-toggle" aria-label="显示对话记录" title="显示对话记录" onClick={() => setShowHistory(!showHistory())}><Icon name="clock" size={17} /></button>
                 <button onClick={() => setPicker("capabilities")}>
                   <Icon name="skill" size={17} />
                   能力
                 </button>
-                <button onClick={() => setPicker("files")}>
-                  <Icon name="file" size={17} />
-                  文件
+                <button aria-label="关联文件" title="关联文件" onClick={() => setPicker("files")}>
+                  <Icon name="paperclip" size={19} />
                 </button>
+              </div>
+              <div class="model-choice">
+                <span class="model-dot" />
+                <select aria-label="选择授权模型" value={model() || shownModels()[0]?.id} disabled={busy()} onChange={(event) => setModel(event.currentTarget.value)}>
+                  <For each={shownModels()}>{(item) => <option value={item.id}>{item.name}{item.is_default ? " · 默认" : ""}</option>}</For>
+                </select>
               </div>
               <Show
                 when={busy()}
@@ -1042,9 +962,6 @@ export default function Chat() {
 
 function terminalRun(status: Run["status"]) {
   return ["completed", "failed", "cancelled"].includes(status)
-}
-function runStatusText(status: Run["status"]) {
-  return ({ queued: "已受理，等待投递", running: "执行中", cancelling: "正在请求停止", reconciling: "执行状态待核对，请勿重复提交", completed: "执行已完成", failed: "执行失败，已保留现有内容", cancelled: "执行已确认停止" } as Record<Run["status"], string>)[status]
 }
 function mergeRunEvents(current: RunEvent[], incoming: RunEvent[]) {
   return [...new Map([...current, ...incoming].sort((a, b) => a.sequence - b.sequence).map((item) => [item.id, item])).values()]

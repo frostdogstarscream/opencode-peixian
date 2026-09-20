@@ -1,0 +1,31 @@
+services:
+  peixian-data-adapter:
+    image: peixian-data-adapter:1.0.0
+    container_name: peixian-data-adapter
+    restart: unless-stopped
+    read_only: true
+    user: "10001:10001"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=32m,mode=1777
+    environment:
+      PEIXIAN_ADAPTER_MODE: mock
+      PEIXIAN_ADAPTER_TOKEN_FILE: /run/secrets/adapter-token
+      PEIXIAN_AUDIT_HMAC_KEY_FILE: /run/secrets/audit-hmac-key
+      PEIXIAN_MAX_QUERY_DAYS: "366"
+    volumes:
+      - "${PEIXIAN_DEPLOYMENT_ROOT:?set PEIXIAN_DEPLOYMENT_ROOT}/runtime/secrets/peixian-data-adapter.token:/run/secrets/adapter-token:ro"
+      - "${PEIXIAN_DEPLOYMENT_ROOT:?set PEIXIAN_DEPLOYMENT_ROOT}/runtime/secrets/peixian-data-adapter-audit.key:/run/secrets/audit-hmac-key:ro"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8091/health', headers={'Authorization': 'Bearer ' + open('/run/secrets/adapter-token').read().strip()}), timeout=3).read()"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

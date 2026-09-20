@@ -28,10 +28,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.respond(400, {'error': 'invalid_limit'})
                 return
             keyword = query.get('q', [''])[0]
-            items = [{'id': 'sample-' + str(i), 'name': name, 'content': content} for i, (name, content) in enumerate([
-                ('资料甲', '合成记录：设备维护于周一完成。'),
-                ('资料乙', '合成记录：培训材料已整理。'),
-                ('资料丙', '合成记录：本周计划已更新。'),
+            items = [{'id': 'demo' + str(i), 'name': name, 'content': content} for i, (name, content) in enumerate([
+                ('资料甲', '合成记录：青梧县柳溪镇云杉路卡口周一完成演示设备巡检，不对应真实点位。'),
+                ('资料乙', '合成记录：南埠夜市口卡口培训材料已按演示口径整理，仅供对练。'),
+                ('资料丙', '合成记录：东津巷口卡口本周演示计划已更新，不含真实案件。'),
+                ('资料丁', '合成记录：西津农贸市场卡口演示巡检已登记。'),
+                ('资料戊', '合成记录：柳溪镇车站卡口演示值守表已替换。'),
+                ('资料己', '合成记录：南埠步行街卡口演示设备在线。'),
             ], 1)]
             self.respond(200, {'items': [item for item in items if keyword in item['name'] or keyword in item['content']][:limit]})
             return

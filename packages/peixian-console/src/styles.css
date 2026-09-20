@@ -5425,5 +5425,34 @@ tr:hover td {
  .trusted-clues .clue-panel-head strong { font-size: 14px; }
 }
 
+/* The conversation begins directly below the global masthead; controls live by the composer. */
+.business-shell .conversation { min-height: 0; }
+.business-shell .composer-tools { gap: 8px; }
+.business-shell .composer-tools > .composer-shortcuts { flex: 0 0 auto; align-items: center; }
+.business-shell .composer-shortcuts > button[aria-label="关联文件"] { width: 34px; justify-content: center; }
+.business-shell .composer-tools > .model-choice {
+  margin-left: auto;
+  min-width: 0;
+  max-width: min(42%, 190px);
+  flex: 0 1 190px;
+}
+.business-shell .composer-tools > .model-choice select { min-width: 0; width: 100%; }
+.business-shell .composer-tools > .button { flex: 0 0 auto; }
+.business-shell .runtime-controls-compact {
+  margin-bottom: 8px;
+  padding: 7px 10px;
+  border: 1px solid #d4e1f0;
+  border-radius: 8px;
+}
+.business-shell .runtime-controls-compact p { margin: 0; }
+.markdown-flowchart { overflow: auto; max-width: 100%; margin: 12px 0; padding: 12px; border: 1px solid #d4e4f6; border-radius: 8px; background: #fbfdff; }
+.markdown-flowchart svg { display: block; max-width: 100%; height: auto; margin: auto; }
+.markdown-flowchart-source { margin-top: 8px; font-size: 12px; color: #617d98; }
+.markdown-flowchart-source pre { max-height: 220px; overflow: auto; }
+@media (max-width: 680px) {
+ .business-shell .composer-tools > .model-choice { max-width: min(43%, 150px); }
+ .business-shell .composer-tools > .model-choice select { max-width: 100%; }
+}
+
 /* Trusted chronological diagrams: scroll the canvas, never shrink the page text. */
 .event-diagram{min-width:0}.event-diagram-note{padding:8px 16px;color:var(--text-secondary,#52677f);font-size:13px;overflow-wrap:anywhere}.event-diagram-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 16px}.event-diagram-toolbar button{padding:6px 12px;border:1px solid #b9d3ef;border-radius:6px;background:var(--surface,#f1f7ff);color:var(--text,#154976);cursor:pointer}.event-diagram button:focus-visible{outline:3px solid #2379e8;outline-offset:2px}.event-diagram-scroll{overflow:auto;max-height:650px;max-width:100%;padding:16px;background:var(--surface,#f8fbff)}.event-diagram-svg{width:max-content;min-width:100%;text-align:center}.event-diagram-svg svg{max-width:none!important;min-width:420px}.event-diagram-list{display:grid;gap:8px;padding:12px 16px}.event-diagram-list button{display:flex;flex-direction:column;gap:5px;text-align:left;padding:12px;border:1px solid #c9ddf4;border-radius:8px;background:transparent;color:inherit;overflow-wrap:anywhere}.event-diagram-list small{color:#3474be}.event-diagram-dialog{width:min(1200px,95vw);max-height:94vh;border:1px solid #aecde9;border-radius:12px;background:var(--surface,#fff);color:var(--text,#183e64)}.event-diagram-dialog::backdrop{background:#102c4b88}.event-diagram-dialog header{display:flex;justify-content:space-between;align-items:center}.event-diagram-dialog .event-diagram-scroll{max-height:75vh}@media(max-width:600px){.event-diagram-toolbar{padding:8px;gap:6px}.event-diagram-scroll{padding:8px;max-height:520px}.event-diagram-list{padding:8px}.event-diagram-dialog{padding:8px}}

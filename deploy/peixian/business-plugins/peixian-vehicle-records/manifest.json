@@ -1,0 +1,20 @@
+{
+  "id": "peixian-vehicle-records",
+  "version": "1.0.0",
+  "name": "车辆档案查询",
+  "description": "查询人员名下机动车和非机动车档案。",
+  "opencode_version": "1.18.30",
+  "entry": "entry.mjs",
+  "tools": ["peixian_query_vehicles", "peixian_query_non_motor_vehicles"],
+  "connections": { "peixian_data": { "description": "沛县公安统一数据适配服务" } },
+  "display": {
+    "input_fields": [],
+    "output_fields": ["source", "returned_count", "total_count", "queried_at", "trace_id", "truncated", "warning_count", "version"]
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": { "max_items": { "type": "integer", "title": "单次最多返回条数", "minimum": 1, "maximum": 100, "default": 50 } },
+    "required": ["max_items"],
+    "additionalProperties": false
+  }
+}

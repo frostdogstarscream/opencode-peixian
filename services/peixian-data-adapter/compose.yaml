@@ -1,0 +1,20 @@
+services:
+  peixian-data-adapter:
+    container_name: peixian-data-adapter
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8091:8091"
+    environment:
+      PEIXIAN_ADAPTER_MODE: "${PEIXIAN_ADAPTER_MODE:-mock}"
+      PEIXIAN_ADAPTER_TOKEN_FILE: "/run/secrets/adapter-token"
+      PEIXIAN_AUDIT_HMAC_KEY_FILE: "/run/secrets/audit-hmac-key"
+      PEIXIAN_MAX_QUERY_DAYS: "${PEIXIAN_MAX_QUERY_DAYS:-366}"
+      PEIXIAN_PROFILE_BASE_URL: "${PEIXIAN_PROFILE_BASE_URL:-}"
+      PEIXIAN_FAMILY_URL: "${PEIXIAN_FAMILY_URL:-}"
+      PEIXIAN_TRACKS_URL: "${PEIXIAN_TRACKS_URL:-}"
+      PEIXIAN_CASES_URL: "${PEIXIAN_CASES_URL:-}"
+      PEIXIAN_INCIDENTS_URL: "${PEIXIAN_INCIDENTS_URL:-}"
+    volumes:
+      - "${PEIXIAN_ADAPTER_TOKEN_FILE:?set PEIXIAN_ADAPTER_TOKEN_FILE}:/run/secrets/adapter-token:ro"
+      - "${PEIXIAN_AUDIT_HMAC_KEY_FILE:?set PEIXIAN_AUDIT_HMAC_KEY_FILE}:/run/secrets/audit-hmac-key:ro"

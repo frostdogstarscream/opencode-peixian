@@ -1,0 +1,156 @@
+{
+  "profile": [
+    {
+      "name": "测试人员甲",
+      "certificate_no": "999999199001010001",
+      "household_address": "沛县测试路***号",
+      "household_type": "家庭户",
+      "household_status": "正常",
+      "relation_to_head": "本人",
+      "occupation": "测试职业",
+      "source_record_id": "mock-profile-001"
+    }
+  ],
+  "houses": [
+    {
+      "source_record_id": "mock-house-001",
+      "address": "沛县测试路***号",
+      "room_count": "3",
+      "property_type": "住宅",
+      "usage": "居住",
+      "status": "在用",
+      "rented": false
+    }
+  ],
+  "companies": [
+    {
+      "source_record_id": "mock-company-001",
+      "name": "沛县合成数据单位",
+      "address": "沛县测试产业园",
+      "telephone": "0516-****0000",
+      "business_scope": "合成测试",
+      "employee_count": 12,
+      "issued_at": "2020-01-01"
+    }
+  ],
+  "family": [
+    {
+      "related_name": "测试人员乙",
+      "related_certificate_no": "999999199202020002",
+      "relation": "配偶",
+      "age": 34,
+      "collected_at": "2026-01-01 00:00:00",
+      "data_source": "脱敏合成数据",
+      "source_record_id": "mock-family-001"
+    }
+  ],
+  "cases": [
+    {
+      "source_record_id": "MOCK-CASE-001",
+      "case_name": "合成测试案件",
+      "category": "测试类别",
+      "status": "已归档",
+      "occurred_at": "2026-08-01 20:00:00",
+      "address": "沛县测试地点",
+      "summary": "仅用于验证插件数据结构的合成记录。",
+      "unit": "测试单位",
+      "person_role": "测试对象"
+    }
+  ],
+  "incidents": [
+    {
+      "source_record_id": "MOCK-INCIDENT-001",
+      "category": "测试警情",
+      "occurred_at": "2026-08-02 21:00:00",
+      "address": "沛县测试地点",
+      "summary": "仅用于验证插件数据结构的合成记录。",
+      "unit": "测试单位",
+      "person_role": "相关人员"
+    }
+  ],
+  "disputes": [
+    {
+      "source_record_id": "MOCK-DISPUTE-001",
+      "category": "测试纠纷",
+      "registered_at": "2026-08-03 09:00:00",
+      "mediation_at": "2026-08-03 15:00:00",
+      "location": "测试调解室",
+      "result": "已完成测试调解",
+      "agreement": "合成测试协议",
+      "unit": "测试单位"
+    }
+  ],
+  "tracks": [
+    {
+      "source_record_id": "mock-track-001",
+      "captured_at": "2026-09-10 22:18:00",
+      "track_type": "人像抓拍",
+      "location_name": "测试工业园",
+      "location_code": "MOCK-POINT-01",
+      "device_id": "MOCK-DEVICE-01"
+    },
+    {
+      "source_record_id": "mock-track-002",
+      "captured_at": "2026-09-11 00:37:00",
+      "track_type": "机动车抓拍",
+      "location_name": "测试路口",
+      "location_code": "MOCK-POINT-02",
+      "device_id": "MOCK-DEVICE-02",
+      "plate_no": "苏C·TEST1"
+    }
+  ],
+  "hotels": [
+    {
+      "source_record_id": "mock-hotel-001",
+      "hotel_name": "合成测试旅馆",
+      "hotel_address": "沛县测试路",
+      "room_no": "TEST-01",
+      "checked_in_at": "2026-08-10 20:00:00",
+      "checked_out_at": "2026-08-11 08:00:00"
+    }
+  ],
+  "railway": [
+    {
+      "source_record_id": "mock-railway-001",
+      "name": "测试人员甲",
+      "train_no": "GTEST",
+      "departure_station": "测试始发站",
+      "arrival_station": "测试到达站",
+      "departure_date": "2026-08-12",
+      "entered_at": "2026-08-12 09:00:00"
+    }
+  ],
+  "netbar": [
+    {
+      "source_record_id": "mock-netbar-001",
+      "venue_name": "合成测试场所",
+      "venue_address": "沛县测试路",
+      "seat_no": "TEST-08",
+      "started_at": "2026-08-13 22:00:00",
+      "ended_at": "2026-08-14 01:00:00"
+    }
+  ],
+  "motor": [
+    {
+      "source_record_id": "mock-motor-001",
+      "plate_no": "苏C·TEST1",
+      "plate_type": "小型汽车",
+      "vehicle_type": "轿车",
+      "brand": "测试品牌",
+      "color": "蓝色",
+      "vin": "MOCKVIN00000000001",
+      "registered_at": "2024-01-01",
+      "status": "正常"
+    }
+  ],
+  "non_motor": [
+    {
+      "source_record_id": "mock-non-motor-001",
+      "plate_no": "TEST-E001",
+      "brand": "测试品牌",
+      "color": "白色",
+      "registered_at": "2025-01-01",
+      "status": "正常"
+    }
+  ]
+}

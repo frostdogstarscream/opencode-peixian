@@ -1,0 +1,191 @@
+{
+  "source_commit": "630a0929d037812d43e418ae5539471d5e5c755e",
+  "deployment": "peixian-alignment-20260917",
+  "recorded_at": "2026-09-17T08:45:02.738138+00:00",
+  "images": {
+    "agent-platform-control:alignment-630a0929d": {
+      "id": "sha256:72410e707f63f8cc58242d8a36f00815173947bf47290e3ff7b623633f4134a5",
+      "revision": "630a0929d037812d43e418ae5539471d5e5c755e"
+    },
+    "agent-platform-gateway:alignment-630a0929d": {
+      "id": "sha256:86292272820acb2624c55fd9dba83660f7a6abe38ec522bf1629c8bdf4544634",
+      "revision": "630a0929d037812d43e418ae5539471d5e5c755e"
+    },
+    "peixian-opencode:alignment-630a0929d": {
+      "id": "sha256:bbd995b424503d014c58486cbd3f7b8c60bcee93e23db55e34f9f9245dbc4ed3",
+      "revision": "630a0929d037812d43e418ae5539471d5e5c755e"
+    },
+    "agent-platform-proxy:nginx-1.28.0": {
+      "id": "sha256:c318e336065b17ff460aeac6d14bce5d0b13e35f25d5cb1843b635359fc00c9a",
+      "revision": null
+    }
+  },
+  "worker_source_sha256": "2437fcc67782da6ecb0e0423962609ead9d8e7b91a5f1e31841c5fca1dc9fc8d",
+  "agent_binary_sha256": "4d12ecb2edc6bbc5a0d06e62fb4cfd358165e4a073d0cac2fb1734f13af721a9",
+  "live": {
+    "scope": "small_real_runtime",
+    "checks": [
+      {
+        "name": "alignment-a_real_runtime_ready",
+        "status": "passed",
+        "revision": 5
+      },
+      {
+        "name": "alignment-b_real_runtime_ready",
+        "status": "passed",
+        "revision": 3
+      },
+      {
+        "name": "four_accounts_prepared_two_real_runtimes",
+        "status": "passed"
+      },
+      {
+        "name": "alignment-a_plugin_connection_passed",
+        "status": "passed"
+      },
+      {
+        "name": "alignment-a_skill_loaded",
+        "status": "passed"
+      },
+      {
+        "name": "alignment-b_plugin_connection_passed",
+        "status": "passed"
+      },
+      {
+        "name": "alignment-b_skill_loaded",
+        "status": "passed"
+      },
+      {
+        "name": "manager_platform_governance_denied",
+        "status": "passed"
+      },
+      {
+        "name": "real_upload_parse_and_cross_account_denial",
+        "status": "passed"
+      },
+      {
+        "name": "real_session_cross_account_denial",
+        "status": "passed"
+      },
+      {
+        "name": "real_deepseek_file_answer",
+        "status": "passed",
+        "seconds": 8.78,
+        "tool_count": 2
+      },
+      {
+        "name": "real_deepseek_plugin_call",
+        "status": "passed",
+        "seconds": 4.13,
+        "tool_count": 2
+      },
+      {
+        "name": "plugin_upgrade_applied_B_remained_available",
+        "status": "passed",
+        "b_checks": 18
+      },
+      {
+        "name": "plugin_rollback_applied_B_remained_available",
+        "status": "passed",
+        "b_checks": 18
+      },
+      {
+        "name": "A_manual_review_then_real_resume",
+        "status": "passed"
+      },
+      {
+        "name": "A_stop_start_persistence_B_available",
+        "status": "passed"
+      },
+      {
+        "name": "plugin_upgrade_applied_B_remained_available",
+        "status": "passed",
+        "b_checks": 18
+      },
+      {
+        "name": "plugin_rollback_applied_B_remained_available",
+        "status": "passed",
+        "b_checks": 17
+      },
+      {
+        "name": "A_stop_start_persistence_B_available",
+        "status": "passed"
+      },
+      {
+        "name": "final_two_accounts_ready",
+        "status": "passed",
+        "accounts": {
+          "alignment-a": {
+            "ready": true,
+            "desired": 9,
+            "applied": 9
+          },
+          "alignment-b": {
+            "ready": true,
+            "desired": 3,
+            "applied": 3
+          }
+        }
+      }
+    ],
+    "model_requests": []
+  },
+  "browser": {
+    "real_api": true,
+    "route_mocking": false,
+    "tls_note": "Temporary self-signed certificate accepted by test browser; Python verifies certificate",
+    "results": [
+      {
+        "username": "admin",
+        "role": "super_admin",
+        "width": 1920,
+        "cookie_secure": true,
+        "page_errors": 0
+      },
+      {
+        "username": "alignment-manager",
+        "role": "admin",
+        "width": 1366,
+        "cookie_secure": true,
+        "page_errors": 0
+      },
+      {
+        "username": "alignment-a",
+        "role": "user",
+        "width": 1366,
+        "cookie_secure": true,
+        "page_errors": 0
+      },
+      {
+        "username": "alignment-b",
+        "role": "user",
+        "width": 390,
+        "cookie_secure": true,
+        "page_errors": 0
+      }
+    ]
+  },
+  "regression": {
+    "python": "3.12",
+    "passed": 266,
+    "subtests_passed": 163,
+    "network": "none",
+    "source_mount": "readonly",
+    "docker_socket": false
+  },
+  "limitations": [
+    "Public HTTPS from Windows fails TLS handshake; external reachability NOT accepted",
+    "Temporary self-signed TLS certificate",
+    "First pause failed stop confirmation, recovered manually with DB and host journal backup; later two stop/resume checks passed",
+    "No high concurrency, sustained load, actual intranet vLLM, production business API or complete disaster restore test"
+  ],
+  "deployment_properties": {
+    "os": "BigCloud Enterprise Linux V25",
+    "schema": 5,
+    "config": 4,
+    "worker_protocol": 2,
+    "ordinary_accounts": 2,
+    "runtime_containers": 6,
+    "real_paid_model_requests": 2
+  }
+}

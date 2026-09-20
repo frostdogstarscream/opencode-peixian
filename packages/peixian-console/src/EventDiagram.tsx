@@ -1,9 +1,9 @@
 import {createEffect, createMemo, createSignal, For, onCleanup, Show} from "solid-js"
 import DOMPurify from "dompurify"
 import {exportName, isDiagram} from "./event-diagram"
+import {queueDiagram} from "./diagram-queue"
 import type {DiagramNode} from "./event-diagram"
 import type {AnalysisClue} from "./types"
-let serial: Promise<unknown> = Promise.resolve()
 let renderId = 0
 export function EventDiagramView(props: {value: unknown; onSelect: (clue: AnalysisClue) => void}) {
  const diagram = createMemo(() => isDiagram(props.value) ? props.value : undefined, undefined, {equals:(a,b)=>JSON.stringify(a)===JSON.stringify(b)})
@@ -30,7 +30,7 @@ export function EventDiagramView(props: {value: unknown; onSelect: (clue: Analys
     if(token===generation)setSvg(clean)
    }catch {if(token===generation)setError("图形暂时无法显示，可重试或查看下方事件列表。")}
   }
-  serial=serial.then(work,work)
+  queueDiagram(work)
  })
  onCleanup(()=>{generation++;dialog?.close()})
  const close=()=>{setLarge(false);queueMicrotask(()=>origin?.isConnected&&origin.focus())}

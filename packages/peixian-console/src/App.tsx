@@ -266,7 +266,7 @@ export default function App() {
                       </Show>
                     </div>
                   </header>
-                  <Show when={can("business.use")}><RuntimeStatus /></Show>
+                  <Show when={can("business.use") && page() !== "chat"}><RuntimeStatus /></Show>
                   <div class={"page-body " + (page() === "chat" ? "chat-page-body" : "")}>
                     <Show when={can("business.use")}>
                       <div class="chat-preserved" hidden={page() !== "chat"}>

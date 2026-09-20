@@ -1,0 +1,412 @@
+{
+  "scope": "two_accounts_seven_requests",
+  "model_retries": 0,
+  "registry": {
+    "alignment-a": {
+      "registered": [
+        "peixian_get_funds_records",
+        "peixian_get_calls_records",
+        "peixian_get_portrait_records",
+        "peixian_get_composite_records",
+        "peixian_get_night_records",
+        "peixian_get_vehicle_records",
+        "peixian_get_lookup_records"
+      ],
+      "models": [
+        {
+          "provider": "peixian",
+          "model": "19d72ecb8ac546d1a1712d5f69248a23",
+          "tools": [
+            {
+              "id": "peixian_get_funds_records",
+              "description": "查询资金碰撞模块的完整合成原始记录。仅在用户明确要求资金资料或资金碰撞资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_calls_records",
+              "description": "查询话单碰撞模块的完整合成原始记录。仅在用户明确要求话单或通话碰撞资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_portrait_records",
+              "description": "查询预先标注的人像事件模块合成原始记录。仅在用户明确要求人像、同框、同行或同乘资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_composite_records",
+              "description": "查询综合碰撞模块的合成原始记录。仅用于按既有对象对应关系查看分来源资料，不生成综合评分。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_night_records",
+              "description": "查询夜间活动模块的完整合成原始记录。仅在用户明确要求夜间活动资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_vehicle_records",
+              "description": "查询驾乘车辆模块的完整合成原始记录。仅在用户明确要求车辆使用资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_lookup_records",
+              "description": "查询关联互查模块的完整合成原始记录。仅在用户明确要求已有对应关系或已有交集资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            }
+          ]
+        }
+      ],
+      "permissions": {
+        "peixian_get_calls_records": "allow",
+        "peixian_get_composite_records": "allow",
+        "peixian_get_funds_records": "allow",
+        "peixian_get_lookup_records": "allow",
+        "peixian_get_night_records": "allow",
+        "peixian_get_portrait_records": "allow",
+        "peixian_get_vehicle_records": "allow"
+      }
+    },
+    "alignment-b": {
+      "registered": [
+        "peixian_get_funds_records",
+        "peixian_get_calls_records",
+        "peixian_get_portrait_records",
+        "peixian_get_composite_records",
+        "peixian_get_night_records",
+        "peixian_get_vehicle_records",
+        "peixian_get_lookup_records"
+      ],
+      "models": [
+        {
+          "provider": "peixian",
+          "model": "19d72ecb8ac546d1a1712d5f69248a23",
+          "tools": [
+            {
+              "id": "peixian_get_funds_records",
+              "description": "查询资金碰撞模块的完整合成原始记录。仅在用户明确要求资金资料或资金碰撞资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_calls_records",
+              "description": "查询话单碰撞模块的完整合成原始记录。仅在用户明确要求话单或通话碰撞资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_portrait_records",
+              "description": "查询预先标注的人像事件模块合成原始记录。仅在用户明确要求人像、同框、同行或同乘资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_composite_records",
+              "description": "查询综合碰撞模块的合成原始记录。仅用于按既有对象对应关系查看分来源资料，不生成综合评分。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_night_records",
+              "description": "查询夜间活动模块的完整合成原始记录。仅在用户明确要求夜间活动资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_vehicle_records",
+              "description": "查询驾乘车辆模块的完整合成原始记录。仅在用户明确要求车辆使用资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "id": "peixian_get_lookup_records",
+              "description": "查询关联互查模块的完整合成原始记录。仅在用户明确要求已有对应关系或已有交集资料时调用。",
+              "parameters": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            }
+          ]
+        }
+      ],
+      "permissions": {
+        "peixian_get_calls_records": "allow",
+        "peixian_get_composite_records": "allow",
+        "peixian_get_funds_records": "allow",
+        "peixian_get_lookup_records": "allow",
+        "peixian_get_night_records": "allow",
+        "peixian_get_portrait_records": "allow",
+        "peixian_get_vehicle_records": "allow"
+      }
+    }
+  },
+  "cases": [
+    {
+      "account": "alignment-a",
+      "module": "funds",
+      "session_id": "ses_f4dc48ca7ffef3BObCdsbA9JmM",
+      "status": "passed",
+      "seconds": 4.82,
+      "synthetic": true,
+      "snapshot_id": "DEMO-SNAPSHOT-001",
+      "data_status": "complete",
+      "returned_count": 5,
+      "tool_chain": [
+        "skill",
+        "peixian_get_funds_records"
+      ],
+      "cited_record_ids": [
+        "DEMO-E1",
+        "DEMO-E2",
+        "DEMO-E3",
+        "DEMO-E4"
+      ],
+      "answer": "这是合成演示资料（synthetic demo），不可用于真实身份推断或风险评分。\n\n- module: funds\n- synthetic: true\n- snapshot_id: DEMO-SNAPSHOT-001\n- data_status: complete\n- returned_count: 5\n- record_id: DEMO-E1、DEMO-E2、DEMO-E3、DEMO-E4、DEMO-E1（E1 重复出现）"
+    },
+    {
+      "account": "alignment-a",
+      "module": "calls",
+      "session_id": "ses_f4dc479b6ffe5F417bJb3mWgtb",
+      "status": "passed",
+      "seconds": 4.29,
+      "synthetic": true,
+      "snapshot_id": "DEMO-SNAPSHOT-001",
+      "data_status": "complete",
+      "returned_count": 4,
+      "tool_chain": [
+        "skill",
+        "peixian_get_calls_records"
+      ],
+      "cited_record_ids": [
+        "DEMO-E11",
+        "DEMO-E12",
+        "DEMO-E13",
+        "DEMO-E14"
+      ],
+      "answer": "这是合成演示资料。\n\n- module: calls\n- synthetic: true\n- snapshot_id: DEMO-SNAPSHOT-001\n- data_status: complete\n- returned_count: 4\n- record_id: DEMO-E11、DEMO-E12、DEMO-E13、DEMO-E14"
+    },
+    {
+      "account": "alignment-a",
+      "module": "portrait",
+      "session_id": "ses_f4dc468dcffeDjeXi8S4piYa1d",
+      "status": "passed",
+      "seconds": 4.33,
+      "synthetic": true,
+      "snapshot_id": "DEMO-SNAPSHOT-001",
+      "data_status": "complete",
+      "returned_count": 4,
+      "tool_chain": [
+        "skill",
+        "peixian_get_portrait_records"
+      ],
+      "cited_record_ids": [
+        "DEMO-E21",
+        "DEMO-E22",
+        "DEMO-E23",
+        "DEMO-E24"
+      ],
+      "answer": "这是合成演示资料，仅用于工具验收，不构成真实身份或事实判断。\n\n- module: `portrait`\n- synthetic: `true`\n- snapshot_id: `DEMO-SNAPSHOT-001`\n- data_status: `complete`\n- returned_count: `4`\n- record_id: `DEMO-E21`、`DEMO-E22`、`DEMO-E23`、`DEMO-E24`"
+    },
+    {
+      "account": "alignment-a",
+      "module": "composite",
+      "session_id": "ses_f4dc457e1ffeYgufUe6cAeZvx0",
+      "status": "passed",
+      "seconds": 4.3,
+      "synthetic": true,
+      "snapshot_id": "DEMO-SNAPSHOT-001",
+      "data_status": "complete",
+      "returned_count": 4,
+      "tool_chain": [
+        "skill",
+        "peixian_get_composite_records"
+      ],
+      "cited_record_ids": [
+        "DEMO-E31",
+        "DEMO-E32",
+        "DEMO-E33",
+        "DEMO-E34"
+      ],
+      "answer": "这是合成演示资料，非真实身份或案件事实。\n\n- module: composite\n- synthetic: true\n- snapshot_id: DEMO-SNAPSHOT-001\n- data_status: complete\n- returned_count: 4\n- record_id: DEMO-E31、DEMO-E32、DEMO-E33、DEMO-E34"
+    },
+    {
+      "account": "alignment-b",
+      "module": "night",
+      "session_id": "ses_f4dc446f3ffeRicxb4IkWL2Zan",
+      "status": "passed",
+      "seconds": 4.81,
+      "synthetic": true,
+      "snapshot_id": "DEMO-SNAPSHOT-001",
+      "data_status": "complete",
+      "returned_count": 5,
+      "tool_chain": [
+        "skill",
+        "peixian_get_night_records"
+      ],
+      "cited_record_ids": [
+        "DEMO-E41",
+        "DEMO-E42",
+        "DEMO-E43",
+        "DEMO-E44",
+        "DEMO-E45"
+      ],
+      "answer": "合成演示资料，非真实身份或案件事实。\n\n- module: night\n- synthetic: true\n- snapshot_id: DEMO-SNAPSHOT-001\n- data_status: complete\n- returned_count: 5\n- record_id: DEMO-E41、DEMO-E42、DEMO-E43、DEMO-E44、DEMO-E45\n\n不生成风险评分或真实身份推断。"
+    },
+    {
+      "account": "alignment-b",
+      "module": "vehicle",
+      "session_id": "ses_f4dc43401ffeNSPB2oMyhzLHDk",
+      "status": "passed",
+      "seconds": 2.27,
+      "synthetic": true,
+      "snapshot_id": "DEMO-SNAPSHOT-001",
+      "data_status": "complete",
+      "returned_count": 5,
+      "tool_chain": [
+        "skill",
+        "peixian_get_vehicle_records"
+      ],
+      "cited_record_ids": [
+        "DEMO-E51",
+        "DEMO-E52",
+        "DEMO-E53",
+        "DEMO-E54"
+      ],
+      "answer": "合成演示资料（非真实身份/风险结论）。\n\n- module: vehicle\n- synthetic: true\n- snapshot_id: DEMO-SNAPSHOT-001\n- data_status: complete\n- returned_count: 5\n- record_id: DEMO-E51、DEMO-E52、DEMO-E53、DEMO-E54、DEMO-E51"
+    },
+    {
+      "account": "alignment-b",
+      "module": "lookup",
+      "session_id": "ses_f4dc42b0cffeED5JnDqkj8FCI3",
+      "status": "passed",
+      "seconds": 4.29,
+      "synthetic": true,
+      "snapshot_id": "DEMO-SNAPSHOT-001",
+      "data_status": "complete",
+      "returned_count": 3,
+      "tool_chain": [
+        "skill",
+        "peixian_get_lookup_records"
+      ],
+      "cited_record_ids": [
+        "DEMO-E61",
+        "DEMO-E62",
+        "DEMO-E63"
+      ],
+      "answer": "这是合成演示资料（synthetic=true），仅用于只读验收，非真实身份或案件事实。\n\n- module: `lookup`\n- synthetic: `true`\n- snapshot_id: `DEMO-SNAPSHOT-001`\n- data_status: `complete`\n- returned_count: `3`\n- record_id: `DEMO-E61`、`DEMO-E62`、`DEMO-E63`\n\n不生成风险评分或真实身份推断。"
+    }
+  ],
+  "temporary_skills": {
+    "alignment-a": {
+      "id": "4b04a65cb1e047608fa14713ab0c4785",
+      "status": "loaded",
+      "name": "沛县七项合成资料研判（合成演示）"
+    },
+    "alignment-b": {
+      "id": "ba8e5d3647ae46729970e65bd6e3de63",
+      "status": "loaded",
+      "name": "沛县七项合成资料研判（合成演示）"
+    }
+  },
+  "cleanup": {
+    "alignment-a": "temporary_deleted_existing_preserved_runtime_ready",
+    "alignment-b": "temporary_deleted_existing_preserved_runtime_ready"
+  },
+  "passed": true,
+  "source_commit": "630a0929d037812d43e418ae5539471d5e5c755e",
+  "uncommitted_changes": true,
+  "regressions": {
+    "python_passed": 25,
+    "python_subtests_passed": 15,
+    "bun_passed": 3,
+    "bun_expectations": 26
+  },
+  "offline_allowlist": {
+    "entries": 17,
+    "all_sources_valid": true,
+    "full_offline_release_assembled": false
+  },
+  "previous_acceptance_reassessment": [
+    {
+      "run": "without_skill",
+      "account": "alignment-a",
+      "actual_tool_chain": [
+        "peixian_get_funds_records"
+      ],
+      "last_message_only_check_missed_prior_call": true
+    },
+    {
+      "run": "with_template",
+      "account": "alignment-a",
+      "actual_tool_chain": [
+        "skill",
+        "peixian_get_funds_records"
+      ],
+      "last_message_only_check_missed_prior_calls": true
+    }
+  ],
+  "source_files": {
+    "deploy/peixian/examples/peixian_synthetic_records/records_service.py": "ac317089cc66c1e06505b31ee01aa2f788e1a065738e917ca6c041388861cfa3",
+    "deploy/peixian/examples/peixian_synthetic_records/openapi.json": "392e870a1d1d9ef02866cabc3a80f36881e4fa7696625fb6e3d56f6718b772b0",
+    "deploy/peixian/examples/peixian_synthetic_records/peixian-synthetic-records.service": "fe814d9fb08f4ef5854c3f11288f44a675f80e9ef58d40c8896f0f0713dddecf",
+    "deploy/peixian/examples/peixian_synthetic_records/package_plugin.py": "00978a0e3e1f62f0204dbf6e0fe0f9244ea97b8166d2fc71f19dc90f75c16f3f",
+    "deploy/peixian/examples/peixian_synthetic_records/provision_platform.py": "5bc18bd4360f1ffbbe81180c956f5fc116805f1601780d90b49a8e9792386691",
+    "deploy/peixian/examples/peixian_synthetic_records/README.md": "856d2d0cbd5773d660960ef9c7afe872afbf78d5817ac72eba48aa6d20550de9",
+    "deploy/peixian/examples/peixian_synthetic_records/plugin/entry.mjs": "1a62f755dcaf5f9c3d452c6f312bf43de333c5a97e03d236023fe0f45b5a9dfa",
+    "deploy/peixian/examples/peixian_synthetic_records/plugin/manifest.json": "bcb494aeefbe7d006c4783c50f84b67e63776677f76ccdcdbb992ce0cd1043b9",
+    "deploy/peixian/examples/peixian_synthetic_records/plugin/SKILL.md": "f7d9505c7fe9d07614e6445086bc339dd55f8daf5ecede909fa2573493648a57",
+    "deploy/peixian/examples/peixian_synthetic_records/accept_registered_tools.py": "b365580e2fb7ead642e15e45ecdb75a045af184d591ef619335ec47f1a4e87c7",
+    "deploy/peixian/examples/peixian_synthetic_records/agent_acceptance_evidence.py": "a1e725666362108139302c84ec9ddc73e4f3629c1757bac47d6e56f2167a2f4a",
+    "deploy/peixian/examples/peixian_synthetic_records/accept_agent_behavior_with_template.py": "a9231f7ad9fe02b0e9c9653dba5cf434283eb01c45f10ddacb7f882c20dd736b",
+    "deploy/peixian/examples/peixian_synthetic_records/accept_agent_behavior.py": "4f5790590fbc05a8ec083d788e2f06a8e280f37c917d961c7d423cc8f8009d47",
+    "deploy/peixian/examples/peixian_synthetic_records/plugin.test.mjs": "85a23f16eb4dee47ab05c09a3bdf6636a0e90e14d6b89292f70e430f6d763352",
+    "deploy/peixian/examples/peixian_synthetic_records/test_records_service.py": "666123c7f36aede1736d3d3e854ea8d01792163d798248d1d6bc503a38cf506a",
+    "deploy/peixian/examples/peixian_synthetic_records/test_package_plugin.py": "558c8548f95b476ec2f263ad9f4180578dbdf49d902c2ab024b8b700dc9c6a0e",
+    "deploy/peixian/examples/peixian_synthetic_records/test_agent_acceptance_evidence.py": "26d94e641f2b6c7af93cc228221ffc91ff69a749816cd8c659e9c149843fa835"
+  }
+}

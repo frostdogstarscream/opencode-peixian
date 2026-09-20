@@ -1,58 +1,44 @@
-const VERSION = "1.0.0";
-const CONNECTION = "peixian_records";
-const SOURCE = "沛县七项合成资料服务";
-
-const TOOLS = {
-  peixian_get_funds_records: { module: "funds", description: "查询资金碰撞模块的完整合成原始记录。仅在用户明确要求资金资料或资金碰撞资料时调用。" },
-  peixian_get_calls_records: { module: "calls", description: "查询话单碰撞模块的完整合成原始记录。仅在用户明确要求话单或通话碰撞资料时调用。" },
-  peixian_get_portrait_records: { module: "portrait", description: "查询预先标注的人像事件模块合成原始记录。仅在用户明确要求人像、同框、同行或同乘资料时调用。" },
-  peixian_get_composite_records: { module: "composite", description: "查询综合碰撞模块的合成原始记录。仅用于按既有对象对应关系查看分来源资料，不生成综合评分。" },
-  peixian_get_night_records: { module: "night", description: "查询夜间活动模块的完整合成原始记录。仅在用户明确要求夜间活动资料时调用。" },
-  peixian_get_vehicle_records: { module: "vehicle", description: "查询驾乘车辆模块的完整合成原始记录。仅在用户明确要求车辆使用资料时调用。" },
-  peixian_get_lookup_records: { module: "lookup", description: "查询关联互查模块的完整合成原始记录。仅在用户明确要求已有对应关系或已有交集资料时调用。" },
-};
-
-function output(module, data) {
-  if (data?.synthetic !== true || data?.module !== module || data?.data_status !== "complete" || !Array.isArray(data?.records)) {
-    throw new Error("合成资料服务未返回可用结果，请稍后重试。");
+import legacy, { test } from './legacy.mjs';
+import { readFile } from 'node:fs/promises';
+import { compile, canonical, checkClaims } from './engine.mjs';
+export { test };
+const data=JSON.parse(await readFile(new URL('./fixtures.json',import.meta.url),'utf8'));
+const scenario={type:'string',enum:Object.keys(data.scenarios)};
+export default async function plugin(context,options,platform){
+ const result=await legacy(context,options,platform);
+ async function prepare(id, emit){
+  if(!Object.hasOwn(data.scenarios,id))throw new Error('请选择固定合成场景。');
+  const responses={};
+  emit("scope","completed");
+  for(const module of data.scenarios[id].required_modules){
+   emit(module,"running");
+   try {
+    const response=await platform.connections.request('peixian_records',{method:'POST',path:'/v1/demo/records/query',json:{module}});
+    if(response.status!==200||canonical(response.data)!==canonical(data.records[module])) {emit(module,'failed');continue;}
+    responses[module]=response.data;
+    emit(module,"completed");
+   } catch { emit(module,"failed"); }
   }
-  if (data.returned_count !== data.records.length || data.total_count !== data.records.length || data.has_more !== false) {
-    throw new Error("合成资料服务返回不完整，请稍后重试。");
-  }
-  return JSON.stringify({
-    items: data.records,
-    module: data.module,
-    data_status: data.data_status,
-    returned_count: data.returned_count,
-    total_count: data.total_count,
-    has_more: data.has_more,
-    snapshot_id: data.snapshot_id,
-    source: SOURCE,
-    synthetic: true,
-    rule_version: data.rule_version,
-    rule_status: data.rule_status,
-  });
-}
-
-export default async function plugin(_context, _options, platform) {
-  return {
-    tool: Object.fromEntries(Object.entries(TOOLS).map(([name, definition]) => [name, {
-      description: definition.description,
-      args: {},
-      async execute() {
-        const result = await platform.connections.request(CONNECTION, {
-          method: "POST",
-          path: "/v1/demo/records/query",
-          json: { module: definition.module },
-        });
-        if (result.status !== 200) throw new Error("合成资料服务暂时不可用，请稍后重试。");
-        return output(definition.module, result.data);
-      },
-    }])),
-  };
-}
-
-export async function test(_options, platform) {
-  const result = await platform.connections.request(CONNECTION, { method: "GET", path: "/health" });
-  return { ok: result.status === 200 && result.data?.ok === true && result.data?.synthetic === true, message: "合成资料连接测试完成" };
+  return compile(data.scenarios[id],responses);
+ }
+ result.tool.peixian_get_scenario_context={description:'读取指定虚构演示场景的资料范围、身份来源、观测说明与缺失项。只整理事实，不判定人员犯罪。',args:{scenario_id:scenario},async execute(args){
+  if(!args||Object.keys(args).length!==1||!Object.hasOwn(data.scenarios,args.scenario_id))throw new Error('请选择固定合成场景。');
+  return JSON.stringify(data.scenarios[args.scenario_id]);
+ }};
+ result.tool.peixian_prepare_scenario_facts={description:'代码固定取数、按字段筛选对象、统计时间和数量、核对独行来源，返回已整理事实表。场景 Skill 必须优先调用，不自行汇总混合资料。',args:{scenario_id:scenario},async execute(args, ctx){
+  if(Object.keys(args).join(',')!=='scenario_id')throw new Error('invalid_arguments');
+  const trace=[];
+  const emit=(code,status)=>{trace.push({code,status,at:Date.now()});ctx?.metadata?.({title:'整理研判资料',metadata:{peixian_trace:trace}});};
+  return JSON.stringify({...await prepare(args.scenario_id,emit),execution_trace:trace});
+ }};
+ result.tool.peixian_check_scenario_summary={description:'核对所选事实表原句与精确来源；引用存在但不支持表述仍拒绝。只把 approved 原句作为已核对摘要。',args:{scenario_id:scenario,claims:{type:'array',maxItems:40,items:{type:'object',additionalProperties:false,required:['fact_id','statement','source_ids'],properties:{fact_id:{type:'string'},statement:{type:'string',maxLength:2000},source_ids:{type:'array',maxItems:50,items:{type:'string'}}}}}},async execute(args, ctx){
+  if(Object.keys(args).sort().join(',')!=='claims,scenario_id')throw new Error('invalid_arguments');
+  const trace=[];
+  const emit=(code,status)=>{trace.push({code,status,at:Date.now()});ctx?.metadata?.({title:'生成研判结果',metadata:{peixian_trace:trace}});};
+  emit('check','running');
+  const output=checkClaims(await prepare(args.scenario_id,()=>{}),args.claims);
+  emit('check',output.rejected.length||output.data_status!=='complete'?'failed':'completed');
+  return JSON.stringify({...output,execution_trace:trace});
+ }};
+ return result;
 }

@@ -1,0 +1,2988 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "沛县公安统一数据适配服务",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/person/profile/query": {
+      "post": {
+        "summary": "Person Profile",
+        "operationId": "person_profile_v1_person_profile_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_PersonProfile_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/person/houses/query": {
+      "post": {
+        "summary": "Person Houses",
+        "operationId": "person_houses_v1_person_houses_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_HouseRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/person/companies/query": {
+      "post": {
+        "summary": "Person Companies",
+        "operationId": "person_companies_v1_person_companies_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_CompanyRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/person/family/query": {
+      "post": {
+        "summary": "Person Family",
+        "operationId": "person_family_v1_person_family_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_FamilyRelation_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/police/cases/query": {
+      "post": {
+        "summary": "Police Cases",
+        "operationId": "police_cases_v1_police_cases_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_CaseRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/police/incidents/query": {
+      "post": {
+        "summary": "Police Incidents",
+        "operationId": "police_incidents_v1_police_incidents_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_IncidentRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/police/disputes/query": {
+      "post": {
+        "summary": "Police Disputes",
+        "operationId": "police_disputes_v1_police_disputes_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_DisputeRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mobility/tracks/query": {
+      "post": {
+        "summary": "Mobility Tracks",
+        "operationId": "mobility_tracks_v1_mobility_tracks_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_TrackRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mobility/hotels/query": {
+      "post": {
+        "summary": "Mobility Hotels",
+        "operationId": "mobility_hotels_v1_mobility_hotels_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_HotelRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mobility/railway/query": {
+      "post": {
+        "summary": "Mobility Railway",
+        "operationId": "mobility_railway_v1_mobility_railway_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_RailwayRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mobility/netbar/query": {
+      "post": {
+        "summary": "Mobility Netbar",
+        "operationId": "mobility_netbar_v1_mobility_netbar_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_NetbarRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/vehicle/motor/query": {
+      "post": {
+        "summary": "Vehicle Motor",
+        "operationId": "vehicle_motor_v1_vehicle_motor_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_MotorVehicleRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/vehicle/non-motor/query": {
+      "post": {
+        "summary": "Vehicle Non Motor",
+        "operationId": "vehicle_non_motor_v1_vehicle_non_motor_query_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse_NonMotorVehicleRecord_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CaseRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "case_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Name"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "person_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person Role"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CaseRecord"
+      },
+      "CompanyRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "telephone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telephone"
+          },
+          "business_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Scope"
+          },
+          "employee_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Count"
+          },
+          "issued_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CompanyRecord"
+      },
+      "DisputeRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "registered_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registered At"
+          },
+          "mediation_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mediation At"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "agreement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agreement"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DisputeRecord"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "trace_id"
+        ],
+        "title": "ErrorDetail"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse"
+      },
+      "FamilyRelation": {
+        "properties": {
+          "related_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Name"
+          },
+          "related_certificate_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Certificate No"
+          },
+          "relation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relation"
+          },
+          "age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age"
+          },
+          "collected_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collected At"
+          },
+          "data_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Source"
+          },
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "FamilyRelation"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HotelRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "hotel_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hotel Name"
+          },
+          "hotel_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hotel Address"
+          },
+          "room_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room No"
+          },
+          "checked_in_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked In At"
+          },
+          "checked_out_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked Out At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "HotelRecord"
+      },
+      "HouseRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "room_count": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room Count"
+          },
+          "property_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Type"
+          },
+          "usage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "rented": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rented"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "HouseRecord"
+      },
+      "IncidentRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "person_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person Role"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "IncidentRecord"
+      },
+      "MotorVehicleRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "plate_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plate No"
+          },
+          "plate_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plate Type"
+          },
+          "vehicle_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Type"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "vin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vin"
+          },
+          "registered_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registered At"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MotorVehicleRecord"
+      },
+      "NetbarRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "venue_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue Name"
+          },
+          "venue_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue Address"
+          },
+          "seat_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seat No"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "NetbarRecord"
+      },
+      "NonMotorVehicleRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "plate_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plate No"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "registered_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registered At"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "NonMotorVehicleRecord"
+      },
+      "PageRequest": {
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Number",
+            "default": 1
+          },
+          "size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Size",
+            "default": 50
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PageRequest"
+      },
+      "PageResult": {
+        "properties": {
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "number",
+          "size",
+          "has_more"
+        ],
+        "title": "PageResult"
+      },
+      "PersonProfile": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "certificate_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Certificate No"
+          },
+          "household_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Household Address"
+          },
+          "household_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Household Type"
+          },
+          "household_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Household Status"
+          },
+          "relation_to_head": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relation To Head"
+          },
+          "father_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Father Name"
+          },
+          "father_certificate_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Father Certificate No"
+          },
+          "mother_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mother Name"
+          },
+          "mother_certificate_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mother Certificate No"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occupation"
+          },
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PersonProfile"
+      },
+      "PersonQuery": {
+        "properties": {
+          "certificate_no": {
+            "type": "string",
+            "pattern": "^[0-9]{17}[0-9Xx]$",
+            "title": "Certificate No"
+          },
+          "begin_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Begin Time"
+          },
+          "end_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Time"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageRequest"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "certificate_no"
+        ],
+        "title": "PersonQuery"
+      },
+      "QueryResponse_CaseRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CaseRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[CaseRecord]"
+      },
+      "QueryResponse_CompanyRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[CompanyRecord]"
+      },
+      "QueryResponse_DisputeRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DisputeRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[DisputeRecord]"
+      },
+      "QueryResponse_FamilyRelation_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyRelation"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[FamilyRelation]"
+      },
+      "QueryResponse_HotelRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HotelRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[HotelRecord]"
+      },
+      "QueryResponse_HouseRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HouseRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[HouseRecord]"
+      },
+      "QueryResponse_IncidentRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IncidentRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[IncidentRecord]"
+      },
+      "QueryResponse_MotorVehicleRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MotorVehicleRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[MotorVehicleRecord]"
+      },
+      "QueryResponse_NetbarRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NetbarRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[NetbarRecord]"
+      },
+      "QueryResponse_NonMotorVehicleRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NonMotorVehicleRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[NonMotorVehicleRecord]"
+      },
+      "QueryResponse_PersonProfile_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PersonProfile"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[PersonProfile]"
+      },
+      "QueryResponse_RailwayRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RailwayRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[RailwayRecord]"
+      },
+      "QueryResponse_TrackRecord_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Queried At"
+          },
+          "returned_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Returned Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageResult"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TrackRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "source",
+          "queried_at",
+          "returned_count",
+          "total_count",
+          "page",
+          "items"
+        ],
+        "title": "QueryResponse[TrackRecord]"
+      },
+      "RailwayRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "train_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Train No"
+          },
+          "departure_station": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departure Station"
+          },
+          "arrival_station": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arrival Station"
+          },
+          "departure_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departure Date"
+          },
+          "entered_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entered At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RailwayRecord"
+      },
+      "TrackQuery": {
+        "properties": {
+          "certificate_no": {
+            "type": "string",
+            "pattern": "^[0-9]{17}[0-9Xx]$",
+            "title": "Certificate No"
+          },
+          "begin_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Begin Time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End Time"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageRequest"
+          },
+          "track_types": {
+            "items": {
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2
+              ]
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Track Types"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "certificate_no",
+          "begin_time",
+          "end_time"
+        ],
+        "title": "TrackQuery"
+      },
+      "TrackRecord": {
+        "properties": {
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
+          },
+          "track_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Type"
+          },
+          "location_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Name"
+          },
+          "location_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Code"
+          },
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "plate_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plate No"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TrackRecord"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

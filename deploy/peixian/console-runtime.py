@@ -882,8 +882,14 @@ class RuntimeManager:
 
     def stop_checked(self, runtime_id, file):
         self.compose(file, "stop", timeout=90)
-        if self.running(runtime_id):
-            raise RuntimeFailure("runtime_stop_unconfirmed")
+        # Compose completion and daemon visibility can briefly differ. Require
+        # observed exit, with a bounded grace period; never infer stopped from
+        # the successful command alone or release capacity on timeout.
+        deadline = time.monotonic() + 5
+        while self.running(runtime_id):
+            if time.monotonic() >= deadline:
+                raise RuntimeFailure("runtime_stop_unconfirmed")
+            time.sleep(0.2)
 
     def check_images(self):
         # Fail locally when images are absent; never pull at account creation.

@@ -3,10 +3,12 @@ import type { JSX } from "solid-js"
 import { marked } from "marked"
 import DOMPurify from "dompurify"
 import { safeMessage } from "./api"
+import { queueDiagram } from "./diagram-queue"
 import { operationNote } from "./operation-note"
 const icons: Record<string, string> = {
   chat: "M4 4h16v12H9l-5 4V4",
   file: "M6 3h8l4 4v14H6V3m8 0v5h4",
+  paperclip: "M21 11.5 12.3 20.2a5 5 0 0 1-7.1-7.1l9.2-9.2a3.5 3.5 0 0 1 5 5l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5",
   skill: "m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3",
   plugin: "M9 3v4H5v5h4v4h5v-4h4V7h-4V3H9",
   settings: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8m0-5v3m0 12v3M3 12h3m12 0h3M5.5 5.5l2 2m9 9 2 2m0-13-2 2m-9 9-2 2",
@@ -158,7 +160,11 @@ export function Status(props: { value?: string }) {
     </span>
   )
 }
+let markdownDiagramId = 0
 export function Markdown(props: { text: string }) {
+  let host!: HTMLDivElement
+  let generation = 0
+  const cache = new Map<string, string>()
   const html = createMemo(() =>
     DOMPurify.sanitize(marked.parse(props.text, { async: false, breaks: true }) as string, {
       USE_PROFILES: { html: true },
@@ -166,7 +172,58 @@ export function Markdown(props: { text: string }) {
       FORBID_ATTR: ["style"],
     }),
   )
-  return <div class="markdown" innerHTML={html()} />
+  createEffect(() => {
+    html()
+    const current = ++generation
+    queueMicrotask(() => {
+      if (current !== generation || !host?.isConnected) return
+      host.querySelectorAll<HTMLElement>("pre > code.language-mermaid, pre > code.language-flowchart").forEach((code) => {
+        const source = code.textContent?.trim() ?? ""
+        const pre = code.parentElement
+        if (!pre || !/^(?:flowchart|graph)\s+(?:TB|TD|BT|LR|RL)\s*\r?\n/i.test(source) || source.length > 4096 || source.split(/\r?\n/).length > 60 || /%%|<|\b(?:click|href|classDef|linkStyle|style|subgraph|accTitle|accDescr)\b|https?:\/\/|javascript:/i.test(source)) return
+        const display = (svg: string) => {
+          if (current !== generation || !pre.isConnected) return
+          const container = document.createElement("div")
+          container.className = "markdown-flowchart"
+          container.setAttribute("aria-label", "流程图")
+          container.innerHTML = svg
+          const details = document.createElement("details")
+          details.className = "markdown-flowchart-source"
+          const summary = document.createElement("summary")
+          summary.textContent = "查看流程图源码"
+          const codeBlock = document.createElement("pre")
+          codeBlock.textContent = source
+          details.append(summary, codeBlock)
+          container.append(details)
+          pre.replaceWith(container)
+        }
+        const cached = cache.get(source)
+        if (cached) return display(cached)
+        queueDiagram(async () => {
+          if (current !== generation || !pre.isConnected) return
+          try {
+            const { default: mermaid } = await import("mermaid")
+            if (current !== generation || !pre.isConnected) return
+            mermaid.initialize({ startOnLoad: false, securityLevel: "strict", htmlLabels: false, theme: "default", maxTextSize: 4096, flowchart: { htmlLabels: false, useMaxWidth: true } })
+            const rendered = await mermaid.render(`markdownFlowchart${++markdownDiagramId}`, source)
+            const clean = DOMPurify.sanitize(rendered.svg, { USE_PROFILES: { svg: true, svgFilters: true }, FORBID_TAGS: ["foreignObject", "script", "image", "a", "animate", "set"], FORBID_ATTR: ["href", "xlink:href"] })
+            if (current !== generation || !pre.isConnected) return
+            if (cache.size >= 20) cache.clear()
+            cache.set(source, clean)
+            display(clean)
+          } catch {
+            if (current !== generation || !pre.isConnected) return
+            const note = document.createElement("p")
+            note.className = "markdown-flowchart-source"
+            note.textContent = "流程图无法解析，已保留原始代码。"
+            pre.after(note)
+          }
+        })
+      })
+    })
+  })
+  onCleanup(() => generation++)
+  return <div ref={host} class="markdown" innerHTML={html()} />
 }
 export function Modal(props: {
   title: string

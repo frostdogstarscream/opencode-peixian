@@ -1,0 +1,2498 @@
+{
+  "scenarios": {
+    "DEMO-CASE-GAMBLING": {
+      "synthetic": true,
+      "snapshot_id": "demo1003",
+      "records_snapshot_id": "demo1001",
+      "rule_version": "demo-scenarios-v3",
+      "data_status": "complete",
+      "timezone": "Asia/Shanghai",
+      "window_start": "2026-09-10T00:00:00+08:00",
+      "window_end": "2026-09-17T00:00:00+08:00",
+      "night_window": "22:00-06:00",
+      "scenario_id": "DEMO-CASE-GAMBLING",
+      "title": "涉赌案件资料整理（合成演示）",
+      "subject_ref": "林晓舟",
+      "required_modules": [
+        "night",
+        "portrait",
+        "funds",
+        "lookup"
+      ],
+      "case_window": [
+        "2026-09-14T22:00:00+08:00",
+        "2026-09-15T06:00:00+08:00"
+      ],
+      "facts": [
+        {
+          "record_id": "demo51",
+          "title": "独立身份资料来源",
+          "description": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+          "source_record_ids": [],
+          "source_document": "demo59",
+          "occurred_at": "2026-09-01T09:00:00+08:00"
+        },
+        {
+          "record_id": "demo52",
+          "title": "明确同行观测",
+          "description": "资料明确标注同行；仅表示该次同行观测，不表示参与共同活动。",
+          "source_record_ids": [
+            "demo21",
+            "demo22"
+          ],
+          "occurred_at": "2026-09-14T23:55:00+08:00"
+        },
+        {
+          "record_id": "demo53",
+          "title": "合成地点映射",
+          "description": "南埠夜市口卡口对应虚构地点青梧县南埠夜市「夜泊棋牌室」门口，无真实坐标。",
+          "source_record_ids": [
+            "demo21"
+          ],
+          "occurred_at": "2026-09-14T23:55:00+08:00"
+        }
+      ],
+      "limitations": [
+        "资料覆盖 9月10日至16日，不能据此概括长期频繁行为。",
+        "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。"
+      ]
+    },
+    "DEMO-CASE-THEFT": {
+      "synthetic": true,
+      "snapshot_id": "demo1003",
+      "records_snapshot_id": "demo1001",
+      "rule_version": "demo-scenarios-v3",
+      "data_status": "complete",
+      "timezone": "Asia/Shanghai",
+      "window_start": "2026-09-10T00:00:00+08:00",
+      "window_end": "2026-09-17T00:00:00+08:00",
+      "night_window": "22:00-06:00",
+      "scenario_id": "DEMO-CASE-THEFT",
+      "title": "盗窃案件时空资料核对（合成演示）",
+      "subject_ref": "林晓舟",
+      "required_modules": [
+        "night",
+        "portrait",
+        "vehicle"
+      ],
+      "case_window": [
+        "2026-09-15T00:30:00+08:00",
+        "2026-09-15T01:30:00+08:00"
+      ],
+      "facts": [
+        {
+          "record_id": "demo54",
+          "title": "合成案件登记",
+          "description": "虚构事件发生范围为 00:30 至 01:30，地点为青梧县东津巷 18 号（演示地点）；这是场景设定，不是人员行为结论。",
+          "source_record_ids": [],
+          "source_document": "demo60",
+          "occurred_at": "2026-09-15T00:30:00+08:00"
+        },
+        {
+          "record_id": "demo55",
+          "title": "明确独行观测",
+          "description": "补充观测仅在 01:12 的该段画面标注一人经过；不证明作案，也不证明其他时段没有同行者。",
+          "source_record_ids": [
+            "demo35"
+          ],
+          "source_document": "demo61",
+          "occurred_at": "2026-09-15T01:12:00+08:00",
+          "observation": "alone"
+        },
+        {
+          "record_id": "demo56",
+          "title": "明确空间关系来源",
+          "description": "虚构地点表将东津巷口卡口标注为东津巷 18 号的相邻点；没有距离测量值，不推算米数。",
+          "source_record_ids": [
+            "demo35"
+          ],
+          "source_document": "demo62",
+          "occurred_at": "2026-09-15T01:12:00+08:00"
+        },
+        {
+          "record_id": "demo57",
+          "title": "无法判断的观测",
+          "description": "22:16 资料没有同行覆盖信息，独行状态无法判断。",
+          "source_record_ids": [
+            "demo29"
+          ],
+          "occurred_at": "2026-09-14T22:16:00+08:00",
+          "observation": "unknown"
+        },
+        {
+          "record_id": "demo58",
+          "title": "明确同行观测",
+          "description": "23:55 有明确同行记录；不能把其余时间无同行记录解释为独行。",
+          "source_record_ids": [
+            "demo21"
+          ],
+          "occurred_at": "2026-09-14T23:55:00+08:00",
+          "observation": "accompanied"
+        }
+      ],
+      "limitations": [
+        "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+        "出现在相邻点不证明实施盗窃。",
+        "车辆记录只表示各次使用，不证明同车同行。"
+      ]
+    }
+  },
+  "records": {
+    "funds": {
+      "schema_version": "1.0",
+      "synthetic": true,
+      "module": "funds",
+      "snapshot_id": "demo1001",
+      "scope": {
+        "material_batch": "demo1002",
+        "timezone": "Asia/Shanghai",
+        "query_scope": "embedded_fixture_only"
+      },
+      "data_status": "complete",
+      "records": [
+        {
+          "record_id": "demo1",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo71",
+          "occurred_at": "2026-09-14T20:14:00+08:00",
+          "direction": "credit",
+          "amount_minor": 12800,
+          "channel": "演示扫码",
+          "counterparty_ref": "赵衡演示账户"
+        },
+        {
+          "record_id": "demo2",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo72",
+          "occurred_at": "2026-09-14T20:17:00+08:00",
+          "direction": "debit",
+          "amount_minor": 12600,
+          "channel": "演示转账",
+          "counterparty_ref": "周晚晴演示账户"
+        },
+        {
+          "record_id": "demo3",
+          "source_type": "funds",
+          "group_ref": "赵衡演示账户",
+          "member_ref": "赵衡",
+          "transaction_ref": "demo73",
+          "occurred_at": "2026-09-14T20:18:00+08:00",
+          "direction": "credit",
+          "amount_minor": 7800,
+          "channel": "演示扫码",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo4",
+          "source_type": "funds",
+          "group_ref": "赵衡演示账户",
+          "member_ref": "赵衡",
+          "transaction_ref": "demo74",
+          "occurred_at": "2026-09-14T20:24:00+08:00",
+          "direction": "debit",
+          "amount_minor": 7600,
+          "channel": "演示转账",
+          "counterparty_ref": "周晚晴演示账户"
+        },
+        {
+          "record_id": "demo5",
+          "source_type": "funds",
+          "group_ref": "周晚晴演示账户",
+          "member_ref": "周晚晴",
+          "transaction_ref": "demo75",
+          "occurred_at": "2026-09-14T20:26:00+08:00",
+          "direction": "credit",
+          "amount_minor": 12600,
+          "channel": "演示转账",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo6",
+          "source_type": "funds",
+          "group_ref": "周晚晴演示账户",
+          "member_ref": "周晚晴",
+          "transaction_ref": "demo76",
+          "occurred_at": "2026-09-14T20:31:00+08:00",
+          "direction": "credit",
+          "amount_minor": 7600,
+          "channel": "演示转账",
+          "counterparty_ref": "赵衡演示账户"
+        },
+        {
+          "record_id": "demo7",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo77",
+          "occurred_at": "2026-09-15T00:42:00+08:00",
+          "direction": "debit",
+          "amount_minor": 3200,
+          "channel": "演示扫码",
+          "counterparty_ref": "陈北秋演示账户"
+        },
+        {
+          "record_id": "demo8",
+          "source_type": "funds",
+          "group_ref": "陈北秋演示账户",
+          "member_ref": "陈北秋",
+          "transaction_ref": "demo78",
+          "occurred_at": "2026-09-15T00:44:00+08:00",
+          "direction": "credit",
+          "amount_minor": 3200,
+          "channel": "演示扫码",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo63",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo301",
+          "occurred_at": "2026-09-10T09:12:00+08:00",
+          "direction": "debit",
+          "amount_minor": 4500,
+          "channel": "演示转账",
+          "counterparty_ref": "吴秋白演示账户"
+        },
+        {
+          "record_id": "demo64",
+          "source_type": "funds",
+          "group_ref": "吴秋白演示账户",
+          "member_ref": "吴秋白",
+          "transaction_ref": "demo302",
+          "occurred_at": "2026-09-10T09:13:00+08:00",
+          "direction": "credit",
+          "amount_minor": 4500,
+          "channel": "演示转账",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo65",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo303",
+          "occurred_at": "2026-09-10T18:33:00+08:00",
+          "direction": "credit",
+          "amount_minor": 8800,
+          "channel": "演示扫码",
+          "counterparty_ref": "赵衡演示账户"
+        },
+        {
+          "record_id": "demo66",
+          "source_type": "funds",
+          "group_ref": "赵衡演示账户",
+          "member_ref": "赵衡",
+          "transaction_ref": "demo304",
+          "occurred_at": "2026-09-10T18:33:00+08:00",
+          "direction": "debit",
+          "amount_minor": 8800,
+          "channel": "演示扫码",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo67",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo305",
+          "occurred_at": "2026-09-11T08:20:00+08:00",
+          "direction": "debit",
+          "amount_minor": 1200,
+          "channel": "演示扫码",
+          "counterparty_ref": "周晚晴演示账户"
+        },
+        {
+          "record_id": "demo68",
+          "source_type": "funds",
+          "group_ref": "周晚晴演示账户",
+          "member_ref": "周晚晴",
+          "transaction_ref": "demo306",
+          "occurred_at": "2026-09-11T08:21:00+08:00",
+          "direction": "credit",
+          "amount_minor": 1200,
+          "channel": "演示扫码",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo69",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo307",
+          "occurred_at": "2026-09-11T19:05:00+08:00",
+          "direction": "credit",
+          "amount_minor": 5600,
+          "channel": "演示转账",
+          "counterparty_ref": "郑南溪演示账户"
+        },
+        {
+          "record_id": "demo70",
+          "source_type": "funds",
+          "group_ref": "郑南溪演示账户",
+          "member_ref": "郑南溪",
+          "transaction_ref": "demo308",
+          "occurred_at": "2026-09-11T19:06:00+08:00",
+          "direction": "debit",
+          "amount_minor": 5600,
+          "channel": "演示转账",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo71",
+          "source_type": "funds",
+          "group_ref": "赵衡演示账户",
+          "member_ref": "赵衡",
+          "transaction_ref": "demo309",
+          "occurred_at": "2026-09-11T21:10:00+08:00",
+          "direction": "debit",
+          "amount_minor": 3400,
+          "channel": "演示转账",
+          "counterparty_ref": "吴秋白演示账户"
+        },
+        {
+          "record_id": "demo72",
+          "source_type": "funds",
+          "group_ref": "吴秋白演示账户",
+          "member_ref": "吴秋白",
+          "transaction_ref": "demo310",
+          "occurred_at": "2026-09-11T21:11:00+08:00",
+          "direction": "credit",
+          "amount_minor": 3400,
+          "channel": "演示转账",
+          "counterparty_ref": "赵衡演示账户"
+        },
+        {
+          "record_id": "demo73",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo311",
+          "occurred_at": "2026-09-12T12:40:00+08:00",
+          "direction": "debit",
+          "amount_minor": 2100,
+          "channel": "演示扫码",
+          "counterparty_ref": "赵衡演示账户"
+        },
+        {
+          "record_id": "demo74",
+          "source_type": "funds",
+          "group_ref": "赵衡演示账户",
+          "member_ref": "赵衡",
+          "transaction_ref": "demo312",
+          "occurred_at": "2026-09-12T12:41:00+08:00",
+          "direction": "credit",
+          "amount_minor": 2100,
+          "channel": "演示扫码",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo75",
+          "source_type": "funds",
+          "group_ref": "周晚晴演示账户",
+          "member_ref": "周晚晴",
+          "transaction_ref": "demo313",
+          "occurred_at": "2026-09-12T16:18:00+08:00",
+          "direction": "credit",
+          "amount_minor": 900,
+          "channel": "演示转账",
+          "counterparty_ref": "郑南溪演示账户"
+        },
+        {
+          "record_id": "demo76",
+          "source_type": "funds",
+          "group_ref": "郑南溪演示账户",
+          "member_ref": "郑南溪",
+          "transaction_ref": "demo314",
+          "occurred_at": "2026-09-12T16:19:00+08:00",
+          "direction": "debit",
+          "amount_minor": 900,
+          "channel": "演示转账",
+          "counterparty_ref": "周晚晴演示账户"
+        },
+        {
+          "record_id": "demo77",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo315",
+          "occurred_at": "2026-09-13T10:02:00+08:00",
+          "direction": "debit",
+          "amount_minor": 15000,
+          "channel": "演示转账",
+          "counterparty_ref": "陈北秋演示账户"
+        },
+        {
+          "record_id": "demo78",
+          "source_type": "funds",
+          "group_ref": "陈北秋演示账户",
+          "member_ref": "陈北秋",
+          "transaction_ref": "demo316",
+          "occurred_at": "2026-09-13T10:03:00+08:00",
+          "direction": "credit",
+          "amount_minor": 15000,
+          "channel": "演示转账",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo79",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo317",
+          "occurred_at": "2026-09-13T20:55:00+08:00",
+          "direction": "credit",
+          "amount_minor": 6700,
+          "channel": "演示扫码",
+          "counterparty_ref": "吴秋白演示账户"
+        },
+        {
+          "record_id": "demo80",
+          "source_type": "funds",
+          "group_ref": "吴秋白演示账户",
+          "member_ref": "吴秋白",
+          "transaction_ref": "demo318",
+          "occurred_at": "2026-09-13T20:56:00+08:00",
+          "direction": "debit",
+          "amount_minor": 6700,
+          "channel": "演示扫码",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo81",
+          "source_type": "funds",
+          "group_ref": "郑南溪演示账户",
+          "member_ref": "郑南溪",
+          "transaction_ref": "demo319",
+          "occurred_at": "2026-09-15T09:30:00+08:00",
+          "direction": "debit",
+          "amount_minor": 4100,
+          "channel": "演示转账",
+          "counterparty_ref": "赵衡演示账户"
+        },
+        {
+          "record_id": "demo82",
+          "source_type": "funds",
+          "group_ref": "赵衡演示账户",
+          "member_ref": "赵衡",
+          "transaction_ref": "demo320",
+          "occurred_at": "2026-09-15T09:31:00+08:00",
+          "direction": "credit",
+          "amount_minor": 4100,
+          "channel": "演示转账",
+          "counterparty_ref": "郑南溪演示账户"
+        },
+        {
+          "record_id": "demo83",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo321",
+          "occurred_at": "2026-09-15T14:22:00+08:00",
+          "direction": "debit",
+          "amount_minor": 800,
+          "channel": "演示扫码",
+          "counterparty_ref": "周晚晴演示账户"
+        },
+        {
+          "record_id": "demo84",
+          "source_type": "funds",
+          "group_ref": "周晚晴演示账户",
+          "member_ref": "周晚晴",
+          "transaction_ref": "demo322",
+          "occurred_at": "2026-09-15T14:23:00+08:00",
+          "direction": "credit",
+          "amount_minor": 800,
+          "channel": "演示扫码",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo85",
+          "source_type": "funds",
+          "group_ref": "吴秋白演示账户",
+          "member_ref": "吴秋白",
+          "transaction_ref": "demo323",
+          "occurred_at": "2026-09-15T19:40:00+08:00",
+          "direction": "credit",
+          "amount_minor": 2500,
+          "channel": "演示转账",
+          "counterparty_ref": "郑南溪演示账户"
+        },
+        {
+          "record_id": "demo86",
+          "source_type": "funds",
+          "group_ref": "郑南溪演示账户",
+          "member_ref": "郑南溪",
+          "transaction_ref": "demo324",
+          "occurred_at": "2026-09-15T19:41:00+08:00",
+          "direction": "debit",
+          "amount_minor": 2500,
+          "channel": "演示转账",
+          "counterparty_ref": "吴秋白演示账户"
+        },
+        {
+          "record_id": "demo87",
+          "source_type": "funds",
+          "group_ref": "林晓舟演示账户",
+          "member_ref": "林晓舟",
+          "transaction_ref": "demo325",
+          "occurred_at": "2026-09-16T11:08:00+08:00",
+          "direction": "credit",
+          "amount_minor": 9900,
+          "channel": "演示转账",
+          "counterparty_ref": "赵衡演示账户"
+        },
+        {
+          "record_id": "demo88",
+          "source_type": "funds",
+          "group_ref": "赵衡演示账户",
+          "member_ref": "赵衡",
+          "transaction_ref": "demo326",
+          "occurred_at": "2026-09-16T11:09:00+08:00",
+          "direction": "debit",
+          "amount_minor": 9900,
+          "channel": "演示转账",
+          "counterparty_ref": "林晓舟演示账户"
+        },
+        {
+          "record_id": "demo89",
+          "source_type": "funds",
+          "group_ref": "陈北秋演示账户",
+          "member_ref": "陈北秋",
+          "transaction_ref": "demo327",
+          "occurred_at": "2026-09-16T21:50:00+08:00",
+          "direction": "debit",
+          "amount_minor": 1800,
+          "channel": "演示扫码",
+          "counterparty_ref": "吴秋白演示账户"
+        },
+        {
+          "record_id": "demo90",
+          "source_type": "funds",
+          "group_ref": "吴秋白演示账户",
+          "member_ref": "吴秋白",
+          "transaction_ref": "demo328",
+          "occurred_at": "2026-09-16T21:51:00+08:00",
+          "direction": "credit",
+          "amount_minor": 1800,
+          "channel": "演示扫码",
+          "counterparty_ref": "陈北秋演示账户"
+        }
+      ],
+      "returned_count": 36,
+      "total_count": 36,
+      "has_more": false,
+      "missing_sources": [],
+      "errors": [],
+      "rule_version": "demo-v3",
+      "rule_status": "demo_only"
+    },
+    "calls": {
+      "schema_version": "1.0",
+      "synthetic": true,
+      "module": "calls",
+      "snapshot_id": "demo1001",
+      "scope": {
+        "material_batch": "demo1002",
+        "timezone": "Asia/Shanghai",
+        "query_scope": "embedded_fixture_only"
+      },
+      "data_status": "complete",
+      "records": [
+        {
+          "record_id": "demo9",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo81",
+          "occurred_at": "2026-09-14T20:05:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "赵衡演示号码",
+          "duration_seconds": 94,
+          "cell_ref": "青梧县柳溪镇云杉路基站"
+        },
+        {
+          "record_id": "demo10",
+          "source_type": "calls",
+          "group_ref": "赵衡演示号码",
+          "member_ref": "赵衡",
+          "call_ref": "demo82",
+          "occurred_at": "2026-09-14T20:05:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 94,
+          "cell_ref": "青梧县南埠夜市基站"
+        },
+        {
+          "record_id": "demo11",
+          "source_type": "calls",
+          "group_ref": "赵衡演示号码",
+          "member_ref": "赵衡",
+          "call_ref": "demo83",
+          "occurred_at": "2026-09-14T20:12:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "周晚晴演示号码",
+          "duration_seconds": 61,
+          "cell_ref": "青梧县南埠夜市基站"
+        },
+        {
+          "record_id": "demo12",
+          "source_type": "calls",
+          "group_ref": "周晚晴演示号码",
+          "member_ref": "周晚晴",
+          "call_ref": "demo84",
+          "occurred_at": "2026-09-14T20:12:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "赵衡演示号码",
+          "duration_seconds": 61,
+          "cell_ref": "青梧县东津巷基站"
+        },
+        {
+          "record_id": "demo13",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo85",
+          "occurred_at": "2026-09-14T23:48:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "陈北秋演示号码",
+          "duration_seconds": 46,
+          "cell_ref": "青梧县柳溪镇云杉路北段基站"
+        },
+        {
+          "record_id": "demo14",
+          "source_type": "calls",
+          "group_ref": "陈北秋演示号码",
+          "member_ref": "陈北秋",
+          "call_ref": "demo86",
+          "occurred_at": "2026-09-14T23:48:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 46,
+          "cell_ref": "青梧县南埠夜市基站"
+        },
+        {
+          "record_id": "demo15",
+          "source_type": "calls",
+          "group_ref": "周晚晴演示号码",
+          "member_ref": "周晚晴",
+          "call_ref": "demo87",
+          "occurred_at": "2026-09-15T00:30:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 73,
+          "cell_ref": "青梧县东津巷基站"
+        },
+        {
+          "record_id": "demo16",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo88",
+          "occurred_at": "2026-09-15T00:30:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "周晚晴演示号码",
+          "duration_seconds": 73,
+          "cell_ref": "青梧县柳溪镇云杉路北段基站"
+        },
+        {
+          "record_id": "demo91",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo329",
+          "occurred_at": "2026-09-10T08:55:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "吴秋白演示号码",
+          "duration_seconds": 71,
+          "cell_ref": "青梧县柳溪镇云杉路基站"
+        },
+        {
+          "record_id": "demo92",
+          "source_type": "calls",
+          "group_ref": "吴秋白演示号码",
+          "member_ref": "吴秋白",
+          "call_ref": "demo330",
+          "occurred_at": "2026-09-10T08:55:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 71,
+          "cell_ref": "青梧县西津基站"
+        },
+        {
+          "record_id": "demo93",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo331",
+          "occurred_at": "2026-09-10T19:12:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "赵衡演示号码",
+          "duration_seconds": 128,
+          "cell_ref": "青梧县柳溪镇云杉路基站"
+        },
+        {
+          "record_id": "demo94",
+          "source_type": "calls",
+          "group_ref": "赵衡演示号码",
+          "member_ref": "赵衡",
+          "call_ref": "demo332",
+          "occurred_at": "2026-09-10T19:12:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 128,
+          "cell_ref": "青梧县南埠夜市基站"
+        },
+        {
+          "record_id": "demo95",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo333",
+          "occurred_at": "2026-09-11T11:40:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "郑南溪演示号码",
+          "duration_seconds": 54,
+          "cell_ref": "青梧县车站基站"
+        },
+        {
+          "record_id": "demo96",
+          "source_type": "calls",
+          "group_ref": "郑南溪演示号码",
+          "member_ref": "郑南溪",
+          "call_ref": "demo334",
+          "occurred_at": "2026-09-11T11:40:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 54,
+          "cell_ref": "青梧县车站基站"
+        },
+        {
+          "record_id": "demo97",
+          "source_type": "calls",
+          "group_ref": "赵衡演示号码",
+          "member_ref": "赵衡",
+          "call_ref": "demo335",
+          "occurred_at": "2026-09-11T16:08:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "吴秋白演示号码",
+          "duration_seconds": 39,
+          "cell_ref": "青梧县南埠夜市基站"
+        },
+        {
+          "record_id": "demo98",
+          "source_type": "calls",
+          "group_ref": "吴秋白演示号码",
+          "member_ref": "吴秋白",
+          "call_ref": "demo336",
+          "occurred_at": "2026-09-11T16:08:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "赵衡演示号码",
+          "duration_seconds": 39,
+          "cell_ref": "青梧县西津基站"
+        },
+        {
+          "record_id": "demo99",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo337",
+          "occurred_at": "2026-09-12T09:03:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "周晚晴演示号码",
+          "duration_seconds": 88,
+          "cell_ref": "青梧县柳溪镇云杉路基站"
+        },
+        {
+          "record_id": "demo100",
+          "source_type": "calls",
+          "group_ref": "周晚晴演示号码",
+          "member_ref": "周晚晴",
+          "call_ref": "demo338",
+          "occurred_at": "2026-09-12T09:03:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 88,
+          "cell_ref": "青梧县东津巷基站"
+        },
+        {
+          "record_id": "demo101",
+          "source_type": "calls",
+          "group_ref": "郑南溪演示号码",
+          "member_ref": "郑南溪",
+          "call_ref": "demo339",
+          "occurred_at": "2026-09-12T20:22:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "周晚晴演示号码",
+          "duration_seconds": 47,
+          "cell_ref": "青梧县车站基站"
+        },
+        {
+          "record_id": "demo102",
+          "source_type": "calls",
+          "group_ref": "周晚晴演示号码",
+          "member_ref": "周晚晴",
+          "call_ref": "demo340",
+          "occurred_at": "2026-09-12T20:22:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "郑南溪演示号码",
+          "duration_seconds": 47,
+          "cell_ref": "青梧县东津巷基站"
+        },
+        {
+          "record_id": "demo103",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo341",
+          "occurred_at": "2026-09-13T21:18:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "陈北秋演示号码",
+          "duration_seconds": 62,
+          "cell_ref": "青梧县柳溪镇云杉路北段基站"
+        },
+        {
+          "record_id": "demo104",
+          "source_type": "calls",
+          "group_ref": "陈北秋演示号码",
+          "member_ref": "陈北秋",
+          "call_ref": "demo342",
+          "occurred_at": "2026-09-13T21:18:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 62,
+          "cell_ref": "青梧县南埠夜市基站"
+        },
+        {
+          "record_id": "demo105",
+          "source_type": "calls",
+          "group_ref": "吴秋白演示号码",
+          "member_ref": "吴秋白",
+          "call_ref": "demo343",
+          "occurred_at": "2026-09-13T22:04:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 33,
+          "cell_ref": "青梧县西津基站"
+        },
+        {
+          "record_id": "demo106",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo344",
+          "occurred_at": "2026-09-13T22:04:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "吴秋白演示号码",
+          "duration_seconds": 33,
+          "cell_ref": "青梧县柳溪镇云杉路北段基站"
+        },
+        {
+          "record_id": "demo107",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo345",
+          "occurred_at": "2026-09-15T13:50:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "周晚晴演示号码",
+          "duration_seconds": 41,
+          "cell_ref": "青梧县东津巷基站"
+        },
+        {
+          "record_id": "demo108",
+          "source_type": "calls",
+          "group_ref": "周晚晴演示号码",
+          "member_ref": "周晚晴",
+          "call_ref": "demo346",
+          "occurred_at": "2026-09-15T13:50:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 41,
+          "cell_ref": "青梧县东津巷基站"
+        },
+        {
+          "record_id": "demo109",
+          "source_type": "calls",
+          "group_ref": "赵衡演示号码",
+          "member_ref": "赵衡",
+          "call_ref": "demo347",
+          "occurred_at": "2026-09-15T18:26:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "郑南溪演示号码",
+          "duration_seconds": 95,
+          "cell_ref": "青梧县南埠夜市基站"
+        },
+        {
+          "record_id": "demo110",
+          "source_type": "calls",
+          "group_ref": "郑南溪演示号码",
+          "member_ref": "郑南溪",
+          "call_ref": "demo348",
+          "occurred_at": "2026-09-15T18:26:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "赵衡演示号码",
+          "duration_seconds": 95,
+          "cell_ref": "青梧县车站基站"
+        },
+        {
+          "record_id": "demo111",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo349",
+          "occurred_at": "2026-09-16T10:11:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "赵衡演示号码",
+          "duration_seconds": 77,
+          "cell_ref": "青梧县车站基站"
+        },
+        {
+          "record_id": "demo112",
+          "source_type": "calls",
+          "group_ref": "赵衡演示号码",
+          "member_ref": "赵衡",
+          "call_ref": "demo350",
+          "occurred_at": "2026-09-16T10:11:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 77,
+          "cell_ref": "青梧县柳溪镇云杉路基站"
+        },
+        {
+          "record_id": "demo113",
+          "source_type": "calls",
+          "group_ref": "陈北秋演示号码",
+          "member_ref": "陈北秋",
+          "call_ref": "demo351",
+          "occurred_at": "2026-09-16T21:05:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "吴秋白演示号码",
+          "duration_seconds": 58,
+          "cell_ref": "青梧县南埠夜市基站"
+        },
+        {
+          "record_id": "demo114",
+          "source_type": "calls",
+          "group_ref": "吴秋白演示号码",
+          "member_ref": "吴秋白",
+          "call_ref": "demo352",
+          "occurred_at": "2026-09-16T21:05:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "陈北秋演示号码",
+          "duration_seconds": 58,
+          "cell_ref": "青梧县西津基站"
+        },
+        {
+          "record_id": "demo115",
+          "source_type": "calls",
+          "group_ref": "郑南溪演示号码",
+          "member_ref": "郑南溪",
+          "call_ref": "demo353",
+          "occurred_at": "2026-09-16T22:40:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "林晓舟演示号码",
+          "duration_seconds": 29,
+          "cell_ref": "青梧县车站基站"
+        },
+        {
+          "record_id": "demo116",
+          "source_type": "calls",
+          "group_ref": "林晓舟演示号码",
+          "member_ref": "林晓舟",
+          "call_ref": "demo354",
+          "occurred_at": "2026-09-16T22:40:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "郑南溪演示号码",
+          "duration_seconds": 29,
+          "cell_ref": "青梧县柳溪镇云杉路北段基站"
+        },
+        {
+          "record_id": "demo117",
+          "source_type": "calls",
+          "group_ref": "周晚晴演示号码",
+          "member_ref": "周晚晴",
+          "call_ref": "demo355",
+          "occurred_at": "2026-09-16T23:12:00+08:00",
+          "direction": "outbound",
+          "peer_ref": "赵衡演示号码",
+          "duration_seconds": 44,
+          "cell_ref": "青梧县东津巷基站"
+        },
+        {
+          "record_id": "demo118",
+          "source_type": "calls",
+          "group_ref": "赵衡演示号码",
+          "member_ref": "赵衡",
+          "call_ref": "demo356",
+          "occurred_at": "2026-09-16T23:12:00+08:00",
+          "direction": "inbound",
+          "peer_ref": "周晚晴演示号码",
+          "duration_seconds": 44,
+          "cell_ref": "青梧县南埠夜市基站"
+        }
+      ],
+      "returned_count": 36,
+      "total_count": 36,
+      "has_more": false,
+      "missing_sources": [],
+      "errors": [],
+      "rule_version": "demo-v3",
+      "rule_status": "demo_only"
+    },
+    "portrait": {
+      "schema_version": "1.0",
+      "synthetic": true,
+      "module": "portrait",
+      "snapshot_id": "demo1001",
+      "scope": {
+        "material_batch": "demo1002",
+        "timezone": "Asia/Shanghai",
+        "query_scope": "embedded_fixture_only"
+      },
+      "data_status": "complete",
+      "records": [
+        {
+          "record_id": "demo17",
+          "source_type": "portrait",
+          "group_ref": "云杉路同框片段",
+          "member_ref": "林晓舟",
+          "event_ref": "demo91",
+          "occurred_at": "2026-09-14T20:01:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "赵衡",
+          "device_ref": "青梧县柳溪镇云杉路卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo18",
+          "source_type": "portrait",
+          "group_ref": "云杉路同框片段",
+          "member_ref": "赵衡",
+          "event_ref": "demo92",
+          "occurred_at": "2026-09-14T20:01:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "林晓舟",
+          "device_ref": "青梧县柳溪镇云杉路卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo19",
+          "source_type": "portrait",
+          "group_ref": "南埠夜市同框片段",
+          "member_ref": "赵衡",
+          "event_ref": "demo93",
+          "occurred_at": "2026-09-14T20:10:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "周晚晴",
+          "device_ref": "青梧县南埠夜市口卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo20",
+          "source_type": "portrait",
+          "group_ref": "南埠夜市同框片段",
+          "member_ref": "周晚晴",
+          "event_ref": "demo94",
+          "occurred_at": "2026-09-14T20:10:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "赵衡",
+          "device_ref": "青梧县南埠夜市口卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo21",
+          "source_type": "portrait",
+          "group_ref": "夜泊棋牌室门口同行片段",
+          "member_ref": "林晓舟",
+          "event_ref": "demo95",
+          "occurred_at": "2026-09-14T23:55:00+08:00",
+          "kind": "same_trip",
+          "co_member_ref": "陈北秋",
+          "device_ref": "青梧县南埠夜市夜泊棋牌室门口卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo22",
+          "source_type": "portrait",
+          "group_ref": "夜泊棋牌室门口同行片段",
+          "member_ref": "陈北秋",
+          "event_ref": "demo96",
+          "occurred_at": "2026-09-14T23:55:00+08:00",
+          "kind": "same_trip",
+          "co_member_ref": "林晓舟",
+          "device_ref": "青梧县南埠夜市夜泊棋牌室门口卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo119",
+          "source_type": "portrait",
+          "group_ref": "西津农贸同框片段",
+          "member_ref": "林晓舟",
+          "event_ref": "demo357",
+          "occurred_at": "2026-09-10T17:40:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "吴秋白",
+          "device_ref": "青梧县西津农贸市场卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo120",
+          "source_type": "portrait",
+          "group_ref": "西津农贸同框片段",
+          "member_ref": "吴秋白",
+          "event_ref": "demo358",
+          "occurred_at": "2026-09-10T17:40:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "林晓舟",
+          "device_ref": "青梧县西津农贸市场卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo121",
+          "source_type": "portrait",
+          "group_ref": "柳溪车站同框片段",
+          "member_ref": "林晓舟",
+          "event_ref": "demo359",
+          "occurred_at": "2026-09-11T12:12:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "郑南溪",
+          "device_ref": "青梧县柳溪镇车站卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo122",
+          "source_type": "portrait",
+          "group_ref": "柳溪车站同框片段",
+          "member_ref": "郑南溪",
+          "event_ref": "demo360",
+          "occurred_at": "2026-09-11T12:12:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "林晓舟",
+          "device_ref": "青梧县柳溪镇车站卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo123",
+          "source_type": "portrait",
+          "group_ref": "南埠步行街同框片段",
+          "member_ref": "赵衡",
+          "event_ref": "demo361",
+          "occurred_at": "2026-09-12T18:05:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "吴秋白",
+          "device_ref": "青梧县南埠步行街卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo124",
+          "source_type": "portrait",
+          "group_ref": "南埠步行街同框片段",
+          "member_ref": "吴秋白",
+          "event_ref": "demo362",
+          "occurred_at": "2026-09-12T18:05:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "赵衡",
+          "device_ref": "青梧县南埠步行街卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo125",
+          "source_type": "portrait",
+          "group_ref": "云杉路再次同框片段",
+          "member_ref": "林晓舟",
+          "event_ref": "demo363",
+          "occurred_at": "2026-09-13T19:20:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "赵衡",
+          "device_ref": "青梧县柳溪镇云杉路卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo126",
+          "source_type": "portrait",
+          "group_ref": "云杉路再次同框片段",
+          "member_ref": "赵衡",
+          "event_ref": "demo364",
+          "occurred_at": "2026-09-13T19:20:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "林晓舟",
+          "device_ref": "青梧县柳溪镇云杉路卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo127",
+          "source_type": "portrait",
+          "group_ref": "东津巷口同框片段",
+          "member_ref": "林晓舟",
+          "event_ref": "demo365",
+          "occurred_at": "2026-09-15T14:30:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "周晚晴",
+          "device_ref": "青梧县东津巷口卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo128",
+          "source_type": "portrait",
+          "group_ref": "东津巷口同框片段",
+          "member_ref": "周晚晴",
+          "event_ref": "demo366",
+          "occurred_at": "2026-09-15T14:30:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "林晓舟",
+          "device_ref": "青梧县东津巷口卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo129",
+          "source_type": "portrait",
+          "group_ref": "步行街夜市同框片段",
+          "member_ref": "吴秋白",
+          "event_ref": "demo367",
+          "occurred_at": "2026-09-15T21:10:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "郑南溪",
+          "device_ref": "青梧县南埠步行街卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo130",
+          "source_type": "portrait",
+          "group_ref": "步行街夜市同框片段",
+          "member_ref": "郑南溪",
+          "event_ref": "demo368",
+          "occurred_at": "2026-09-15T21:10:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "吴秋白",
+          "device_ref": "青梧县南埠步行街卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo131",
+          "source_type": "portrait",
+          "group_ref": "柳溪车站同行片段",
+          "member_ref": "林晓舟",
+          "event_ref": "demo369",
+          "occurred_at": "2026-09-16T10:45:00+08:00",
+          "kind": "same_trip",
+          "co_member_ref": "吴秋白",
+          "device_ref": "青梧县柳溪镇车站卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo132",
+          "source_type": "portrait",
+          "group_ref": "柳溪车站同行片段",
+          "member_ref": "吴秋白",
+          "event_ref": "demo370",
+          "occurred_at": "2026-09-16T10:45:00+08:00",
+          "kind": "same_trip",
+          "co_member_ref": "林晓舟",
+          "device_ref": "青梧县柳溪镇车站卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo133",
+          "source_type": "portrait",
+          "group_ref": "南埠夜市口同框片段",
+          "member_ref": "周晚晴",
+          "event_ref": "demo371",
+          "occurred_at": "2026-09-16T18:22:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "郑南溪",
+          "device_ref": "青梧县南埠夜市口卡口",
+          "match_basis": "演示同框标注"
+        },
+        {
+          "record_id": "demo134",
+          "source_type": "portrait",
+          "group_ref": "南埠夜市口同框片段",
+          "member_ref": "郑南溪",
+          "event_ref": "demo372",
+          "occurred_at": "2026-09-16T18:22:00+08:00",
+          "kind": "same_frame",
+          "co_member_ref": "周晚晴",
+          "device_ref": "青梧县南埠夜市口卡口",
+          "match_basis": "演示同框标注"
+        }
+      ],
+      "returned_count": 22,
+      "total_count": 22,
+      "has_more": false,
+      "missing_sources": [],
+      "errors": [],
+      "rule_version": "demo-v3",
+      "rule_status": "demo_only"
+    },
+    "composite": {
+      "schema_version": "1.0",
+      "synthetic": true,
+      "module": "composite",
+      "snapshot_id": "demo1001",
+      "scope": {
+        "material_batch": "demo1002",
+        "timezone": "Asia/Shanghai",
+        "query_scope": "embedded_fixture_only"
+      },
+      "data_status": "complete",
+      "records": [
+        {
+          "record_id": "demo23",
+          "source_type": "funds",
+          "group_ref": "林晓舟",
+          "member_ref": "赵衡",
+          "relation_ref": "demo111",
+          "relation_kind": "shared_transaction_window",
+          "source_record_ids": [
+            "demo1",
+            "demo3"
+          ],
+          "observed_at": "2026-09-14T20:18:00+08:00"
+        },
+        {
+          "record_id": "demo24",
+          "source_type": "calls",
+          "group_ref": "林晓舟",
+          "member_ref": "赵衡",
+          "relation_ref": "demo112",
+          "relation_kind": "paired_call_event",
+          "source_record_ids": [
+            "demo9",
+            "demo10"
+          ],
+          "observed_at": "2026-09-14T20:05:00+08:00"
+        },
+        {
+          "record_id": "demo25",
+          "source_type": "portrait",
+          "group_ref": "林晓舟",
+          "member_ref": "赵衡",
+          "relation_ref": "demo113",
+          "relation_kind": "same_frame_event",
+          "source_record_ids": [
+            "demo17",
+            "demo18"
+          ],
+          "observed_at": "2026-09-14T20:01:00+08:00"
+        },
+        {
+          "record_id": "demo26",
+          "source_type": "funds",
+          "group_ref": "赵衡",
+          "member_ref": "周晚晴",
+          "relation_ref": "demo114",
+          "relation_kind": "shared_transaction_window",
+          "source_record_ids": [
+            "demo4",
+            "demo6"
+          ],
+          "observed_at": "2026-09-14T20:31:00+08:00"
+        },
+        {
+          "record_id": "demo27",
+          "source_type": "calls",
+          "group_ref": "赵衡",
+          "member_ref": "周晚晴",
+          "relation_ref": "demo115",
+          "relation_kind": "paired_call_event",
+          "source_record_ids": [
+            "demo11",
+            "demo12"
+          ],
+          "observed_at": "2026-09-14T20:12:00+08:00"
+        },
+        {
+          "record_id": "demo28",
+          "source_type": "portrait",
+          "group_ref": "林晓舟",
+          "member_ref": "陈北秋",
+          "relation_ref": "demo116",
+          "relation_kind": "same_trip_event",
+          "source_record_ids": [
+            "demo21",
+            "demo22"
+          ],
+          "observed_at": "2026-09-14T23:55:00+08:00"
+        },
+        {
+          "record_id": "demo175",
+          "source_type": "funds",
+          "group_ref": "林晓舟",
+          "member_ref": "吴秋白",
+          "relation_ref": "demo437",
+          "relation_kind": "shared_transaction_window",
+          "source_record_ids": [
+            "demo63",
+            "demo64"
+          ],
+          "observed_at": "2026-09-10T09:13:00+08:00"
+        },
+        {
+          "record_id": "demo176",
+          "source_type": "calls",
+          "group_ref": "林晓舟",
+          "member_ref": "吴秋白",
+          "relation_ref": "demo438",
+          "relation_kind": "paired_call_event",
+          "source_record_ids": [
+            "demo91",
+            "demo92"
+          ],
+          "observed_at": "2026-09-10T08:55:00+08:00"
+        },
+        {
+          "record_id": "demo177",
+          "source_type": "portrait",
+          "group_ref": "林晓舟",
+          "member_ref": "吴秋白",
+          "relation_ref": "demo439",
+          "relation_kind": "same_frame_event",
+          "source_record_ids": [
+            "demo119",
+            "demo120"
+          ],
+          "observed_at": "2026-09-10T17:40:00+08:00"
+        },
+        {
+          "record_id": "demo178",
+          "source_type": "funds",
+          "group_ref": "林晓舟",
+          "member_ref": "郑南溪",
+          "relation_ref": "demo440",
+          "relation_kind": "shared_transaction_window",
+          "source_record_ids": [
+            "demo69",
+            "demo70"
+          ],
+          "observed_at": "2026-09-11T19:06:00+08:00"
+        },
+        {
+          "record_id": "demo179",
+          "source_type": "calls",
+          "group_ref": "林晓舟",
+          "member_ref": "郑南溪",
+          "relation_ref": "demo441",
+          "relation_kind": "paired_call_event",
+          "source_record_ids": [
+            "demo95",
+            "demo96"
+          ],
+          "observed_at": "2026-09-11T11:40:00+08:00"
+        },
+        {
+          "record_id": "demo180",
+          "source_type": "portrait",
+          "group_ref": "林晓舟",
+          "member_ref": "郑南溪",
+          "relation_ref": "demo442",
+          "relation_kind": "same_frame_event",
+          "source_record_ids": [
+            "demo121",
+            "demo122"
+          ],
+          "observed_at": "2026-09-11T12:12:00+08:00"
+        },
+        {
+          "record_id": "demo181",
+          "source_type": "funds",
+          "group_ref": "林晓舟",
+          "member_ref": "陈北秋",
+          "relation_ref": "demo443",
+          "relation_kind": "shared_transaction_window",
+          "source_record_ids": [
+            "demo77",
+            "demo78"
+          ],
+          "observed_at": "2026-09-13T10:03:00+08:00"
+        },
+        {
+          "record_id": "demo182",
+          "source_type": "calls",
+          "group_ref": "林晓舟",
+          "member_ref": "陈北秋",
+          "relation_ref": "demo444",
+          "relation_kind": "paired_call_event",
+          "source_record_ids": [
+            "demo103",
+            "demo104"
+          ],
+          "observed_at": "2026-09-13T21:18:00+08:00"
+        },
+        {
+          "record_id": "demo183",
+          "source_type": "portrait",
+          "group_ref": "林晓舟",
+          "member_ref": "赵衡",
+          "relation_ref": "demo445",
+          "relation_kind": "same_frame_event",
+          "source_record_ids": [
+            "demo125",
+            "demo126"
+          ],
+          "observed_at": "2026-09-13T19:20:00+08:00"
+        },
+        {
+          "record_id": "demo184",
+          "source_type": "portrait",
+          "group_ref": "林晓舟",
+          "member_ref": "周晚晴",
+          "relation_ref": "demo446",
+          "relation_kind": "same_frame_event",
+          "source_record_ids": [
+            "demo127",
+            "demo128"
+          ],
+          "observed_at": "2026-09-15T14:30:00+08:00"
+        },
+        {
+          "record_id": "demo185",
+          "source_type": "portrait",
+          "group_ref": "林晓舟",
+          "member_ref": "吴秋白",
+          "relation_ref": "demo447",
+          "relation_kind": "same_trip_event",
+          "source_record_ids": [
+            "demo131",
+            "demo132"
+          ],
+          "observed_at": "2026-09-16T10:45:00+08:00"
+        },
+        {
+          "record_id": "demo186",
+          "source_type": "calls",
+          "group_ref": "林晓舟",
+          "member_ref": "赵衡",
+          "relation_ref": "demo448",
+          "relation_kind": "paired_call_event",
+          "source_record_ids": [
+            "demo111",
+            "demo112"
+          ],
+          "observed_at": "2026-09-16T10:11:00+08:00"
+        }
+      ],
+      "returned_count": 18,
+      "total_count": 18,
+      "has_more": false,
+      "missing_sources": [],
+      "errors": [],
+      "rule_version": "demo-v3",
+      "rule_status": "demo_only"
+    },
+    "night": {
+      "schema_version": "1.0",
+      "synthetic": true,
+      "module": "night",
+      "snapshot_id": "demo1001",
+      "scope": {
+        "material_batch": "demo1002",
+        "timezone": "Asia/Shanghai",
+        "query_scope": "embedded_fixture_only"
+      },
+      "data_status": "complete",
+      "records": [
+        {
+          "record_id": "demo29",
+          "source_type": "night",
+          "group_ref": "林晓舟",
+          "member_ref": "demo201",
+          "kind": "person",
+          "occurred_at": "2026-09-14T22:16:00+08:00",
+          "event_ref": "demo121",
+          "device_ref": "青梧县柳溪镇云杉路北段卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo30",
+          "source_type": "night",
+          "group_ref": "赵衡",
+          "member_ref": "demo202",
+          "kind": "person",
+          "occurred_at": "2026-09-14T22:18:00+08:00",
+          "event_ref": "demo122",
+          "device_ref": "青梧县柳溪镇云杉路北段卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo31",
+          "source_type": "night",
+          "group_ref": "苏演示A12345",
+          "member_ref": "demo203",
+          "kind": "vehicle",
+          "occurred_at": "2026-09-14T23:51:00+08:00",
+          "event_ref": "demo123",
+          "device_ref": "青梧大桥收费站入口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo32",
+          "source_type": "night",
+          "group_ref": "陈北秋",
+          "member_ref": "demo204",
+          "kind": "person",
+          "occurred_at": "2026-09-14T23:55:00+08:00",
+          "event_ref": "demo124",
+          "device_ref": "青梧县南埠夜市夜泊棋牌室门口卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo33",
+          "source_type": "night",
+          "group_ref": "周晚晴",
+          "member_ref": "demo205",
+          "kind": "person",
+          "occurred_at": "2026-09-15T00:29:00+08:00",
+          "event_ref": "demo125",
+          "device_ref": "青梧县东津巷口卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo34",
+          "source_type": "night",
+          "group_ref": "苏演示A12345",
+          "member_ref": "demo206",
+          "kind": "vehicle",
+          "occurred_at": "2026-09-15T00:47:00+08:00",
+          "event_ref": "demo126",
+          "device_ref": "青梧大桥收费站出口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo35",
+          "source_type": "night",
+          "group_ref": "林晓舟",
+          "member_ref": "demo207",
+          "kind": "person",
+          "occurred_at": "2026-09-15T01:12:00+08:00",
+          "event_ref": "demo127",
+          "device_ref": "青梧县东津巷口卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo36",
+          "source_type": "night",
+          "group_ref": "苏演示B67890",
+          "member_ref": "demo208",
+          "kind": "vehicle",
+          "occurred_at": "2026-09-15T02:08:00+08:00",
+          "event_ref": "demo128",
+          "device_ref": "柳溪镇北出入口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo135",
+          "source_type": "night",
+          "group_ref": "林晓舟",
+          "member_ref": "demo373",
+          "kind": "person",
+          "occurred_at": "2026-09-10T22:40:00+08:00",
+          "event_ref": "demo374",
+          "device_ref": "青梧县柳溪镇车站卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo136",
+          "source_type": "night",
+          "group_ref": "吴秋白",
+          "member_ref": "demo375",
+          "kind": "person",
+          "occurred_at": "2026-09-10T22:44:00+08:00",
+          "event_ref": "demo376",
+          "device_ref": "青梧县西津农贸市场卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo137",
+          "source_type": "night",
+          "group_ref": "苏演示C24680",
+          "member_ref": "demo377",
+          "kind": "vehicle",
+          "occurred_at": "2026-09-10T23:10:00+08:00",
+          "event_ref": "demo378",
+          "device_ref": "柳溪镇北出入口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo138",
+          "source_type": "night",
+          "group_ref": "林晓舟",
+          "member_ref": "demo379",
+          "kind": "person",
+          "occurred_at": "2026-09-11T23:05:00+08:00",
+          "event_ref": "demo380",
+          "device_ref": "青梧县柳溪镇云杉路北段卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo139",
+          "source_type": "night",
+          "group_ref": "郑南溪",
+          "member_ref": "demo381",
+          "kind": "person",
+          "occurred_at": "2026-09-11T23:18:00+08:00",
+          "event_ref": "demo382",
+          "device_ref": "青梧县柳溪镇车站卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo140",
+          "source_type": "night",
+          "group_ref": "赵衡",
+          "member_ref": "demo383",
+          "kind": "person",
+          "occurred_at": "2026-09-11T23:40:00+08:00",
+          "event_ref": "demo384",
+          "device_ref": "青梧县南埠步行街卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo141",
+          "source_type": "night",
+          "group_ref": "林晓舟",
+          "member_ref": "demo385",
+          "kind": "person",
+          "occurred_at": "2026-09-12T00:18:00+08:00",
+          "event_ref": "demo386",
+          "device_ref": "青梧县西津农贸市场卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo142",
+          "source_type": "night",
+          "group_ref": "苏演示A12345",
+          "member_ref": "demo387",
+          "kind": "vehicle",
+          "occurred_at": "2026-09-12T00:31:00+08:00",
+          "event_ref": "demo388",
+          "device_ref": "青梧大桥收费站入口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo143",
+          "source_type": "night",
+          "group_ref": "周晚晴",
+          "member_ref": "demo389",
+          "kind": "person",
+          "occurred_at": "2026-09-12T01:05:00+08:00",
+          "event_ref": "demo390",
+          "device_ref": "青梧县东津巷口卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo144",
+          "source_type": "night",
+          "group_ref": "林晓舟",
+          "member_ref": "demo391",
+          "kind": "person",
+          "occurred_at": "2026-09-13T22:50:00+08:00",
+          "event_ref": "demo392",
+          "device_ref": "青梧县南埠步行街卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo145",
+          "source_type": "night",
+          "group_ref": "陈北秋",
+          "member_ref": "demo393",
+          "kind": "person",
+          "occurred_at": "2026-09-13T23:02:00+08:00",
+          "event_ref": "demo394",
+          "device_ref": "青梧县南埠夜市夜泊棋牌室门口卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo146",
+          "source_type": "night",
+          "group_ref": "苏演示B67890",
+          "member_ref": "demo395",
+          "kind": "vehicle",
+          "occurred_at": "2026-09-13T23:28:00+08:00",
+          "event_ref": "demo396",
+          "device_ref": "青梧大桥收费站出口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo147",
+          "source_type": "night",
+          "group_ref": "吴秋白",
+          "member_ref": "demo397",
+          "kind": "person",
+          "occurred_at": "2026-09-13T23:55:00+08:00",
+          "event_ref": "demo398",
+          "device_ref": "青梧县西津农贸市场卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo148",
+          "source_type": "night",
+          "group_ref": "郑南溪",
+          "member_ref": "demo399",
+          "kind": "person",
+          "occurred_at": "2026-09-15T22:08:00+08:00",
+          "event_ref": "demo400",
+          "device_ref": "青梧县柳溪镇车站卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo149",
+          "source_type": "night",
+          "group_ref": "林晓舟",
+          "member_ref": "demo401",
+          "kind": "person",
+          "occurred_at": "2026-09-15T23:33:00+08:00",
+          "event_ref": "demo402",
+          "device_ref": "青梧县柳溪镇云杉路北段卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo150",
+          "source_type": "night",
+          "group_ref": "赵衡",
+          "member_ref": "demo403",
+          "kind": "person",
+          "occurred_at": "2026-09-15T23:48:00+08:00",
+          "event_ref": "demo404",
+          "device_ref": "青梧县南埠步行街卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo151",
+          "source_type": "night",
+          "group_ref": "苏演示C24680",
+          "member_ref": "demo405",
+          "kind": "vehicle",
+          "occurred_at": "2026-09-16T00:22:00+08:00",
+          "event_ref": "demo406",
+          "device_ref": "东津巷卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo152",
+          "source_type": "night",
+          "group_ref": "林晓舟",
+          "member_ref": "demo407",
+          "kind": "person",
+          "occurred_at": "2026-09-16T01:05:00+08:00",
+          "event_ref": "demo408",
+          "device_ref": "青梧县柳溪镇车站卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo153",
+          "source_type": "night",
+          "group_ref": "周晚晴",
+          "member_ref": "demo409",
+          "kind": "person",
+          "occurred_at": "2026-09-16T01:40:00+08:00",
+          "event_ref": "demo410",
+          "device_ref": "青梧县东津巷口卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo154",
+          "source_type": "night",
+          "group_ref": "陈北秋",
+          "member_ref": "demo411",
+          "kind": "person",
+          "occurred_at": "2026-09-16T02:16:00+08:00",
+          "event_ref": "demo412",
+          "device_ref": "青梧县南埠夜市口卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo155",
+          "source_type": "night",
+          "group_ref": "苏演示A12345",
+          "member_ref": "demo413",
+          "kind": "vehicle",
+          "occurred_at": "2026-09-16T02:44:00+08:00",
+          "event_ref": "demo414",
+          "device_ref": "青梧大桥收费站出口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo156",
+          "source_type": "night",
+          "group_ref": "吴秋白",
+          "member_ref": "demo415",
+          "kind": "person",
+          "occurred_at": "2026-09-16T03:12:00+08:00",
+          "event_ref": "demo416",
+          "device_ref": "青梧县西津农贸市场卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo157",
+          "source_type": "night",
+          "group_ref": "郑南溪",
+          "member_ref": "demo417",
+          "kind": "person",
+          "occurred_at": "2026-09-16T04:05:00+08:00",
+          "event_ref": "demo418",
+          "device_ref": "青梧县柳溪镇车站卡口",
+          "time_window": "22:00-06:00"
+        },
+        {
+          "record_id": "demo158",
+          "source_type": "night",
+          "group_ref": "苏演示B67890",
+          "member_ref": "demo419",
+          "kind": "vehicle",
+          "occurred_at": "2026-09-16T05:20:00+08:00",
+          "event_ref": "demo420",
+          "device_ref": "柳溪镇北出入口",
+          "time_window": "22:00-06:00"
+        }
+      ],
+      "returned_count": 32,
+      "total_count": 32,
+      "has_more": false,
+      "missing_sources": [],
+      "errors": [],
+      "rule_version": "demo-v3",
+      "rule_status": "demo_only"
+    },
+    "vehicle": {
+      "schema_version": "1.0",
+      "synthetic": true,
+      "module": "vehicle",
+      "snapshot_id": "demo1001",
+      "scope": {
+        "material_batch": "demo1002",
+        "timezone": "Asia/Shanghai",
+        "query_scope": "embedded_fixture_only"
+      },
+      "data_status": "complete",
+      "records": [
+        {
+          "record_id": "demo37",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "林晓舟",
+          "passage_ref": "demo131",
+          "occurred_at": "2026-09-14T19:54:00+08:00",
+          "direction": "inbound",
+          "device_ref": "青梧大桥收费站入口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo38",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "赵衡",
+          "passage_ref": "demo132",
+          "occurred_at": "2026-09-14T20:07:00+08:00",
+          "direction": "inbound",
+          "device_ref": "青梧大桥收费站出口",
+          "lane_ref": "演示2车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo39",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "周晚晴",
+          "passage_ref": "demo133",
+          "occurred_at": "2026-09-14T23:51:00+08:00",
+          "direction": "outbound",
+          "device_ref": "青梧大桥收费站入口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo40",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "林晓舟",
+          "passage_ref": "demo134",
+          "occurred_at": "2026-09-15T00:47:00+08:00",
+          "direction": "outbound",
+          "device_ref": "青梧大桥收费站出口",
+          "lane_ref": "演示2车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo41",
+          "source_type": "vehicle",
+          "group_ref": "苏演示B67890",
+          "member_ref": "陈北秋",
+          "passage_ref": "demo135",
+          "occurred_at": "2026-09-15T02:08:00+08:00",
+          "direction": "inbound",
+          "device_ref": "柳溪镇北出入口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示面包车"
+        },
+        {
+          "record_id": "demo42",
+          "source_type": "vehicle",
+          "group_ref": "苏演示B67890",
+          "member_ref": "陈北秋",
+          "passage_ref": "demo136",
+          "occurred_at": "2026-09-15T03:40:00+08:00",
+          "direction": "outbound",
+          "device_ref": "东津巷卡口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示面包车"
+        },
+        {
+          "record_id": "demo159",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "林晓舟",
+          "passage_ref": "demo421",
+          "occurred_at": "2026-09-10T08:10:00+08:00",
+          "direction": "inbound",
+          "device_ref": "青梧大桥收费站入口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo160",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "林晓舟",
+          "passage_ref": "demo422",
+          "occurred_at": "2026-09-10T19:02:00+08:00",
+          "direction": "outbound",
+          "device_ref": "青梧大桥收费站出口",
+          "lane_ref": "演示2车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo161",
+          "source_type": "vehicle",
+          "group_ref": "苏演示C24680",
+          "member_ref": "吴秋白",
+          "passage_ref": "demo423",
+          "occurred_at": "2026-09-10T23:10:00+08:00",
+          "direction": "inbound",
+          "device_ref": "柳溪镇北出入口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo162",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "林晓舟",
+          "passage_ref": "demo424",
+          "occurred_at": "2026-09-12T07:50:00+08:00",
+          "direction": "inbound",
+          "device_ref": "青梧大桥收费站入口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo163",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "赵衡",
+          "passage_ref": "demo425",
+          "occurred_at": "2026-09-12T12:20:00+08:00",
+          "direction": "inbound",
+          "device_ref": "青梧大桥收费站出口",
+          "lane_ref": "演示2车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo164",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "林晓舟",
+          "passage_ref": "demo426",
+          "occurred_at": "2026-09-12T21:15:00+08:00",
+          "direction": "outbound",
+          "device_ref": "青梧大桥收费站出口",
+          "lane_ref": "演示2车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo165",
+          "source_type": "vehicle",
+          "group_ref": "苏演示C24680",
+          "member_ref": "吴秋白",
+          "passage_ref": "demo427",
+          "occurred_at": "2026-09-13T08:40:00+08:00",
+          "direction": "outbound",
+          "device_ref": "东津巷卡口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo166",
+          "source_type": "vehicle",
+          "group_ref": "苏演示B67890",
+          "member_ref": "陈北秋",
+          "passage_ref": "demo428",
+          "occurred_at": "2026-09-13T23:28:00+08:00",
+          "direction": "outbound",
+          "device_ref": "青梧大桥收费站出口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示面包车"
+        },
+        {
+          "record_id": "demo167",
+          "source_type": "vehicle",
+          "group_ref": "苏演示C24680",
+          "member_ref": "郑南溪",
+          "passage_ref": "demo429",
+          "occurred_at": "2026-09-15T09:05:00+08:00",
+          "direction": "inbound",
+          "device_ref": "柳溪镇北出入口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo168",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "周晚晴",
+          "passage_ref": "demo430",
+          "occurred_at": "2026-09-15T14:05:00+08:00",
+          "direction": "inbound",
+          "device_ref": "青梧大桥收费站入口",
+          "lane_ref": "演示2车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo169",
+          "source_type": "vehicle",
+          "group_ref": "苏演示C24680",
+          "member_ref": "吴秋白",
+          "passage_ref": "demo431",
+          "occurred_at": "2026-09-16T00:22:00+08:00",
+          "direction": "outbound",
+          "device_ref": "东津巷卡口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo170",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "林晓舟",
+          "passage_ref": "demo432",
+          "occurred_at": "2026-09-16T09:40:00+08:00",
+          "direction": "inbound",
+          "device_ref": "柳溪镇北出入口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo171",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "林晓舟",
+          "passage_ref": "demo433",
+          "occurred_at": "2026-09-16T18:50:00+08:00",
+          "direction": "outbound",
+          "device_ref": "东津巷卡口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo172",
+          "source_type": "vehicle",
+          "group_ref": "苏演示B67890",
+          "member_ref": "陈北秋",
+          "passage_ref": "demo434",
+          "occurred_at": "2026-09-16T05:20:00+08:00",
+          "direction": "inbound",
+          "device_ref": "柳溪镇北出入口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示面包车"
+        },
+        {
+          "record_id": "demo173",
+          "source_type": "vehicle",
+          "group_ref": "苏演示C24680",
+          "member_ref": "郑南溪",
+          "passage_ref": "demo435",
+          "occurred_at": "2026-09-16T19:30:00+08:00",
+          "direction": "outbound",
+          "device_ref": "青梧大桥收费站出口",
+          "lane_ref": "演示2车道",
+          "vehicle_class": "演示轿车"
+        },
+        {
+          "record_id": "demo174",
+          "source_type": "vehicle",
+          "group_ref": "苏演示A12345",
+          "member_ref": "赵衡",
+          "passage_ref": "demo436",
+          "occurred_at": "2026-09-16T21:00:00+08:00",
+          "direction": "inbound",
+          "device_ref": "青梧大桥收费站入口",
+          "lane_ref": "演示1车道",
+          "vehicle_class": "演示轿车"
+        }
+      ],
+      "returned_count": 22,
+      "total_count": 22,
+      "has_more": false,
+      "missing_sources": [],
+      "errors": [],
+      "rule_version": "demo-v3",
+      "rule_status": "demo_only"
+    },
+    "lookup": {
+      "schema_version": "1.0",
+      "synthetic": true,
+      "module": "lookup",
+      "snapshot_id": "demo1001",
+      "scope": {
+        "material_batch": "demo1002",
+        "timezone": "Asia/Shanghai",
+        "query_scope": "embedded_fixture_only"
+      },
+      "data_status": "complete",
+      "records": [
+        {
+          "record_id": "demo43",
+          "source_type": "lookup",
+          "group_ref": "林晓舟",
+          "member_ref": "林晓舟演示账户",
+          "relation_ref": "demo141",
+          "kind": "member_to_account",
+          "source_record_ids": [
+            "demo1",
+            "demo2"
+          ]
+        },
+        {
+          "record_id": "demo44",
+          "source_type": "lookup",
+          "group_ref": "赵衡",
+          "member_ref": "赵衡演示账户",
+          "relation_ref": "demo142",
+          "kind": "member_to_account",
+          "source_record_ids": [
+            "demo3",
+            "demo4"
+          ]
+        },
+        {
+          "record_id": "demo45",
+          "source_type": "lookup",
+          "group_ref": "周晚晴",
+          "member_ref": "周晚晴演示账户",
+          "relation_ref": "demo143",
+          "kind": "member_to_account",
+          "source_record_ids": [
+            "demo5",
+            "demo6"
+          ]
+        },
+        {
+          "record_id": "demo46",
+          "source_type": "lookup",
+          "group_ref": "林晓舟",
+          "member_ref": "赵衡演示号码",
+          "relation_ref": "demo144",
+          "kind": "member_to_contact",
+          "source_record_ids": [
+            "demo9"
+          ]
+        },
+        {
+          "record_id": "demo47",
+          "source_type": "lookup",
+          "group_ref": "赵衡",
+          "member_ref": "周晚晴演示号码",
+          "relation_ref": "demo145",
+          "kind": "member_to_contact",
+          "source_record_ids": [
+            "demo11"
+          ]
+        },
+        {
+          "record_id": "demo48",
+          "source_type": "lookup",
+          "group_ref": "林晓舟",
+          "member_ref": "苏演示A12345",
+          "relation_ref": "demo146",
+          "kind": "member_to_vehicle",
+          "source_record_ids": [
+            "demo37",
+            "demo40"
+          ]
+        },
+        {
+          "record_id": "demo49",
+          "source_type": "lookup",
+          "group_ref": "陈北秋",
+          "member_ref": "苏演示B67890",
+          "relation_ref": "demo147",
+          "kind": "member_to_vehicle",
+          "source_record_ids": [
+            "demo41",
+            "demo42"
+          ]
+        },
+        {
+          "record_id": "demo50",
+          "source_type": "lookup",
+          "group_ref": "林晓舟",
+          "member_ref": "赵衡",
+          "relation_ref": "demo148",
+          "kind": "shared_capture_event",
+          "source_record_ids": [
+            "demo17",
+            "demo18"
+          ]
+        },
+        {
+          "record_id": "demo187",
+          "source_type": "lookup",
+          "group_ref": "吴秋白",
+          "member_ref": "吴秋白演示账户",
+          "relation_ref": "demo449",
+          "kind": "member_to_account",
+          "source_record_ids": [
+            "demo64"
+          ]
+        },
+        {
+          "record_id": "demo188",
+          "source_type": "lookup",
+          "group_ref": "郑南溪",
+          "member_ref": "郑南溪演示账户",
+          "relation_ref": "demo450",
+          "kind": "member_to_account",
+          "source_record_ids": [
+            "demo70"
+          ]
+        },
+        {
+          "record_id": "demo189",
+          "source_type": "lookup",
+          "group_ref": "林晓舟",
+          "member_ref": "吴秋白演示号码",
+          "relation_ref": "demo451",
+          "kind": "member_to_contact",
+          "source_record_ids": [
+            "demo91"
+          ]
+        },
+        {
+          "record_id": "demo190",
+          "source_type": "lookup",
+          "group_ref": "林晓舟",
+          "member_ref": "郑南溪演示号码",
+          "relation_ref": "demo452",
+          "kind": "member_to_contact",
+          "source_record_ids": [
+            "demo95"
+          ]
+        },
+        {
+          "record_id": "demo191",
+          "source_type": "lookup",
+          "group_ref": "吴秋白",
+          "member_ref": "苏演示C24680",
+          "relation_ref": "demo453",
+          "kind": "member_to_vehicle",
+          "source_record_ids": [
+            "demo161",
+            "demo169"
+          ]
+        },
+        {
+          "record_id": "demo192",
+          "source_type": "lookup",
+          "group_ref": "郑南溪",
+          "member_ref": "苏演示C24680",
+          "relation_ref": "demo454",
+          "kind": "member_to_vehicle",
+          "source_record_ids": [
+            "demo167"
+          ]
+        },
+        {
+          "record_id": "demo193",
+          "source_type": "lookup",
+          "group_ref": "林晓舟",
+          "member_ref": "吴秋白",
+          "relation_ref": "demo455",
+          "kind": "shared_capture_event",
+          "source_record_ids": [
+            "demo119",
+            "demo120"
+          ]
+        },
+        {
+          "record_id": "demo194",
+          "source_type": "lookup",
+          "group_ref": "林晓舟",
+          "member_ref": "郑南溪",
+          "relation_ref": "demo456",
+          "kind": "shared_capture_event",
+          "source_record_ids": [
+            "demo121",
+            "demo122"
+          ]
+        },
+        {
+          "record_id": "demo195",
+          "source_type": "lookup",
+          "group_ref": "林晓舟",
+          "member_ref": "周晚晴",
+          "relation_ref": "demo457",
+          "kind": "shared_capture_event",
+          "source_record_ids": [
+            "demo127",
+            "demo128"
+          ]
+        },
+        {
+          "record_id": "demo196",
+          "source_type": "lookup",
+          "group_ref": "吴秋白",
+          "member_ref": "郑南溪",
+          "relation_ref": "demo458",
+          "kind": "shared_capture_event",
+          "source_record_ids": [
+            "demo129",
+            "demo130"
+          ]
+        },
+        {
+          "record_id": "demo197",
+          "source_type": "lookup",
+          "group_ref": "赵衡",
+          "member_ref": "吴秋白演示号码",
+          "relation_ref": "demo459",
+          "kind": "member_to_contact",
+          "source_record_ids": [
+            "demo97"
+          ]
+        },
+        {
+          "record_id": "demo198",
+          "source_type": "lookup",
+          "group_ref": "周晚晴",
+          "member_ref": "郑南溪演示号码",
+          "relation_ref": "demo460",
+          "kind": "member_to_contact",
+          "source_record_ids": [
+            "demo102"
+          ]
+        }
+      ],
+      "returned_count": 20,
+      "total_count": 20,
+      "has_more": false,
+      "missing_sources": [],
+      "errors": [],
+      "rule_version": "demo-v3",
+      "rule_status": "demo_only"
+    }
+  }
+}

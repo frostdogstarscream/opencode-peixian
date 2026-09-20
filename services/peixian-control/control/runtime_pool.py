@@ -286,7 +286,7 @@ def stop(store, db, uid, *, reason="user", expected_state_version=None, start_jo
         db.execute("UPDATE runtimes SET reserved=0,status='unprovisioned',gate_policy='closed',stop_reason=CASE WHEN security_blocked=1 THEN stop_reason ELSE ? END,state_version=state_version+1,updated=? WHERE uid=?", ("admin" if reason in ("normal", "admin") else "user", now(), uid))
         promote_waiters(store, db)
         return {"accepted": False, "job": None, "runtime": public_status(store, db, uid)}
-    if not row["reserved"] and row["status"] == "paused" and not row["recovery_required"]:
+    if confirmed_stopped(db, row):
         return {"accepted": False, "job": None, "runtime": public_status(store, db, uid)}
     db.execute("UPDATE jobs SET status='cancelled',phase='finished',cancel_requested=1,updated=? WHERE uid=? AND status='queued' AND recovery_required=0", (now(), uid))
     db.execute("UPDATE jobs SET cancel_requested=1 WHERE uid=? AND status='running'", (uid,))

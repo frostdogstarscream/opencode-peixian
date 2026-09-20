@@ -273,3 +273,21 @@ def test_stopping_unused_metadata_is_a_noop(pool):
         before = public_status(s, db, uid)
         result = stop(s, db, uid, expected_state_version=before["state_version"])
     assert not result["accepted"] and result["runtime"] == before
+
+
+def test_paused_runtime_with_open_failed_attempt_gets_verified_stop_job(pool):
+    from control.orchestration import Orchestration
+    from control.worker_api import runtime_spec
+    from r2_helpers import finish
+    s,_=pool;uid=account(s);begin(s,uid)
+    job=Orchestration(s).claim(runtime_spec)["job"]
+    with s.tx() as db:
+        db.execute("UPDATE jobs SET status='failed',recovery_required=1 WHERE id=?",(job["id"],))
+        db.execute("UPDATE runtimes SET status='paused',reserved=0,recovery_required=0 WHERE uid=?",(uid,))
+    with s.tx() as db:result=stop(s,db,uid,reason="admin")
+    assert result["accepted"] and result["job"]["action"]=="pause"
+    pause=Orchestration(s).claim(runtime_spec)["job"]
+    finish(s,pause)
+    assert s.one("SELECT outcome FROM job_attempts WHERE job_id=?",(job["id"],))["outcome"] is not None
+    with s.tx() as db:assert not stop(s,db,uid,reason="admin")["accepted"]
+    assert begin(s,uid,admin=True)["accepted"]

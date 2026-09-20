@@ -131,6 +131,20 @@ ALLOWED_FILES = (
     "deploy/peixian/examples/peixian_synthetic_records/test_package_plugin.py",
     "deploy/peixian/examples/peixian_synthetic_records/test_agent_acceptance_evidence.py",
 )
+# Legacy executables remain in git archive/history, not the active deployment surface.
+LEGACY_EXECUTABLE_DIRS = ('/scenario-plugin/','/facts-plugin/','/presentation-plugin/','/plugin/')
+ALLOWED_FILES = tuple(p for p in ALLOWED_FILES if not
+    (p.startswith('deploy/peixian/examples/peixian_synthetic_records/') and
+     (any(d in p for d in LEGACY_EXECUTABLE_DIRS) or p.endswith('provision_platform.py'))))
+ALLOWED_FILES += tuple('deploy/peixian/examples/seven_data_plugins/'+module+'/'+name
+    for module in ('funds','calls','portrait','composite','night','vehicle','lookup')
+    for name in ('manifest.json','entry.mjs','connection-policy.json'))
+ALLOWED_FILES += tuple('deploy/peixian/examples/seven_data_plugins/skills/'+method+'/SKILL.md'
+    for method in ('funds','night','companions','relations','gambling','theft'))
+ALLOWED_FILES += ('deploy/peixian/examples/seven_data_plugins/package.py',
+    'deploy/peixian/platform-facts/agent-client.mjs','deploy/peixian/platform-facts/engine.mjs',
+    'specs/seven-plugins-pr1-4-operations.md')
+
 OPTIONAL_FILES = ("deploy/peixian/GENERIC_ACCEPTANCE_REPORT.md", "deploy/peixian/examples/openai-fixture.py")
 ARTIFACTS = {"images.tar", "source.tar.gz", "source.tar", "release-manifest.json", "SHA256SUMS", "README.md"}
 FORBIDDEN = {".runtime", ".secrets", ".private", "output", "__pycache__", ".git", "node_modules", ".venv"}

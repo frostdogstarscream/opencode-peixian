@@ -44,6 +44,9 @@ def test_publish_migrate_rollback_preserves_history_and_personal_content(migrati
     assert s.one("SELECT content FROM skills WHERE id='original'")['content']=='personal edited text'
     assert {r['plugin'] for r in s.rows('SELECT plugin FROM installs WHERE uid=?',(uid,))}=={capability(m) for m in MODULES}
     assert len(s.rows("SELECT * FROM skill_profiles WHERE source_type='official_v3'"))==6
+    import re
+    old_ids={x['id'] for x in before['skills']}
+    assert all(re.fullmatch('[a-f0-9]{32}',x['id']) for x in s.rows('SELECT id FROM skills WHERE uid=?',(uid,)) if x['id'] not in old_ids)
     ready(s,uid)
     reverted=rollback(s,uid,receipt);assert reverted['status']=='queued'
     with s.read() as db:assert state(db,uid)==before

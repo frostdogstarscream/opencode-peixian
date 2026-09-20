@@ -112,6 +112,32 @@ class RuntimeTests(unittest.TestCase):
         self.acl.stop()
         self.temp.cleanup()
 
+    def test_facts_status_probe_uses_fixed_authenticated_management_route(self):
+        manager = FakeRuntime(self.root)
+        value = spec()
+        with patch.object(manager, "docker_run", return_value='{"protocol":"facts-coordinator-v1","ready":true,"modules":["night"]}') as request:
+            result = manager.private_get(value, "/internal/facts/status")
+            self.assertTrue(result["ready"])
+            payload = json.loads(request.call_args.kwargs["data"])
+            self.assertTrue(payload["url"].endswith("/internal/facts/status"))
+            self.assertEqual(payload["key"], value["private"]["gateway_key"])
+        with self.assertRaises(runtime.RuntimeFailure):
+            manager.private_get(value, "/internal/facts/arbitrary")
+
+    def test_skill_identity_compatibility_in_real_release_preparation(self):
+        for identity in ("a" * 28, "b" * 32):
+            with self.subTest(identity=identity):
+                value = spec()
+                value["skills"] = [{"id": identity, "name": "method", "description": "method", "content": "text"}]
+                manager = FakeRuntime(self.root / identity)
+                release = manager.prepare(value, lambda digest: b"")
+                self.assertTrue((release / "agent/skills" / identity / "SKILL.md").is_file())
+        for identity in ("../outside", "a" * 27, "a" * 29, "a" * 33):
+            value = spec()
+            value["skills"] = [{"id": identity, "name": "method", "description": "method", "content": "text"}]
+            with self.subTest(identity=identity), self.assertRaises(runtime.RuntimeFailure):
+                FakeRuntime(self.root / str(len(identity))).prepare(value, lambda digest: b"")
+
     def test_compose_has_three_private_services_and_separate_mounts(self):
         value = runtime.compose_spec(spec(), self.root, agent_image="agent", gateway_image="gateway")
         self.assertEqual(value["name"], "px-" + RID)

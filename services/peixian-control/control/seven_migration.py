@@ -106,7 +106,7 @@ def migrate(store,uid,path):
                 for prior in candidates:
                     if prior['id']!=sid:db.execute('UPDATE skills SET enabled=0 WHERE id=?',(prior['id'],))
             else:
-                sid=stable(uid+':'+method['id']);name=method['name']
+                sid=hashlib.sha256((uid+':'+method['id']).encode()).hexdigest()[:32];name=method['name']
                 if db.execute('SELECT 1 FROM skills WHERE uid=? AND name=?',(uid,name)).fetchone():name+='-官方V3'
                 db.execute("INSERT INTO skills VALUES(?,?,?,?,?,1,1,'[]')",(sid,uid,name,'官方V3固定资料方法',method['content']))
             db.execute("INSERT INTO skill_profiles(sid,dependencies,source_type,updated) VALUES(?,?,'official_v3',?) ON CONFLICT(sid) DO UPDATE SET dependencies=excluded.dependencies,source_type=excluded.source_type,updated=excluded.updated",(sid,encode(method['dependency_ids']),now()))

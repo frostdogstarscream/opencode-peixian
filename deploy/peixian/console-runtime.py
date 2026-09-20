@@ -463,7 +463,7 @@ class RuntimeManager:
         return data
 
     def private_get(self, spec, endpoint):
-        if endpoint not in ("/health", "/session/status", "/global/health", "/skill"):
+        if endpoint not in ("/health", "/session/status", "/global/health", "/skill", "/internal/facts/status"):
             raise RuntimeFailure("invalid_private_probe")
         url = "http://px-" + check_id(spec["runtime_id"]) + "-gateway:8080" + endpoint
         text = self.docker_run("exec", "-i", self.control_container, "python3", "-c", CONTROL_GET,
@@ -836,7 +836,10 @@ class RuntimeManager:
                     + json.dumps(facts_token) + ",name,def)]))}; };\n", encoding="utf-8")
             config["plugin"].append("file:///managed/loaders/" + plugin["id"] + ".mjs")
         for skill in spec["skills"]:
-            check_id(skill["id"])
+            # Existing migration snapshots used 28-hex deterministic Skill IDs.
+            # Preserve those immutable snapshots; runtime/user IDs remain 32 hex.
+            if not isinstance(skill.get("id"), str) or not re.fullmatch(r"(?:[a-f0-9]{28}|[a-f0-9]{32})", skill["id"]):
+                raise RuntimeFailure("invalid_skill_identity")
             if not all(isinstance(skill.get(key), str) for key in ("name", "description", "content")):
                 raise RuntimeFailure("invalid_published_skill")
             target = stage / "agent/skills" / skill["id"] / "SKILL.md"

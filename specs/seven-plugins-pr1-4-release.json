@@ -1,0 +1,192 @@
+{
+  "source_revision": "30755c9b212307c7f3322a1498f5242ef1f6dbae",
+  "schema": 6,
+  "images": {
+    "control": {
+      "tag": "agent-platform-control:seven-pr14-r2-20260920",
+      "id": "sha256:a32e32410dcea7d59821cfe9a1dee75d163fa0877c394e2fb4c064f1814d5400",
+      "source_revision": "30755c9b212307c7f3322a1498f5242ef1f6dbae"
+    },
+    "gateway": {
+      "tag": "agent-platform-gateway:seven-pr14-r3-20260920",
+      "id": "sha256:be819f4505b67f088ff2b6f873f885a54a1328733fd2c60be1162e8c2246a65b",
+      "source_revision": "c6dea1584e1823c383c152b6cdcd4d964661b07e"
+    },
+    "agent": {
+      "tag": "agent-platform-agent:backend-v6-release",
+      "id": "sha256:bc328ad2659b8967a2a6f16e654aa214e0538f8a2018b3e1f3869a6350639737",
+      "source_revision": "630a0929d037812d43e418ae5539471d5e5c755e"
+    }
+  },
+  "plugins": [
+    {
+      "file": "peixian-records-calls-1.0.0.zip",
+      "sha256": "d43177ee3a8fab96c97b149c5b086b68febe356b01684e83ffb148cdf22df23a"
+    },
+    {
+      "file": "peixian-records-composite-1.0.0.zip",
+      "sha256": "6324eba6eaa0f361d669aa5f2765504e6e80fc9beeb5c16a107eecaed174f824"
+    },
+    {
+      "file": "peixian-records-funds-1.0.0.zip",
+      "sha256": "35b1fcebbd9be0d2aa8725fcbac68c576940fbc3f23cb16d4369ff098050baa2"
+    },
+    {
+      "file": "peixian-records-lookup-1.0.0.zip",
+      "sha256": "7c7f64c8c0149e5cfb96e293ec198cf1e5f4e18ba994a68765cdf2d7d2dc7301"
+    },
+    {
+      "file": "peixian-records-night-1.0.0.zip",
+      "sha256": "fbb33521201cc02943ae1efc3121bca244abdf305a00c9ed8ed6ee042004fc5c"
+    },
+    {
+      "file": "peixian-records-portrait-1.0.0.zip",
+      "sha256": "4dc3c1b57ba5da51ae7de92be599dc25fa6de0dccec1ef856fcccbed79de7e9e"
+    },
+    {
+      "file": "peixian-records-vehicle-1.0.0.zip",
+      "sha256": "2ea89ebf1628e0bf56b61cc5fd6de9b4960633443f686f7507330191a9ccfa6c"
+    }
+  ],
+  "methods": [
+    {
+      "id": "peixian.method.night",
+      "version": "3.0.0",
+      "state": "published",
+      "content_sha256": "39e9a691b9e433687df7a2fc11a717e7bf6219ac27c0a15aaee980feaae25464"
+    },
+    {
+      "id": "peixian.method.companions",
+      "version": "3.0.0",
+      "state": "published",
+      "content_sha256": "ed00078db0840610e4729300ccc9cdaa721a3aa4291cbfaca6ba15f7aff80b66"
+    },
+    {
+      "id": "peixian.method.funds",
+      "version": "3.0.0",
+      "state": "published",
+      "content_sha256": "9de9b027ff4deec0540a2fe8de7d320f9524462e80f7c81749a0c4a4e4683f57"
+    },
+    {
+      "id": "peixian.method.relations",
+      "version": "3.0.0",
+      "state": "published",
+      "content_sha256": "1df49f2958f78e2d384b681b801c0fbc49f7dc364fb6210eeaee7d89454d1eb4"
+    },
+    {
+      "id": "peixian.method.gambling",
+      "version": "3.0.0",
+      "state": "published",
+      "content_sha256": "8cc1df0eec0a344f0eb3fce9a9ee0ad139f06dd632227ca6358d7db89f687972"
+    },
+    {
+      "id": "peixian.method.theft",
+      "version": "3.0.0",
+      "state": "published",
+      "content_sha256": "c901b6b52784fef26c277c88b6fc01632c0db30e5bc8c0c76cc55f3ca1125d7f"
+    }
+  ],
+  "runtime_states": [
+    {
+      "account": "alignment-a",
+      "status": "ready",
+      "applied": 53,
+      "desired": 53,
+      "recovery_required": 0,
+      "gate_policy": "open"
+    },
+    {
+      "account": "alignment-b",
+      "status": "ready",
+      "applied": 26,
+      "desired": 26,
+      "recovery_required": 0,
+      "gate_policy": "open"
+    }
+  ],
+  "legacy": {
+    "enabled_versions": 0,
+    "installations": 0,
+    "grants": 0
+  },
+  "historical_runs": {
+    "old_runs": 69,
+    "unchanged": 69,
+    "changed": 0,
+    "new_runs": 7
+  },
+  "frontend_static_files": 222,
+  "frontend_static_unchanged": true,
+  "model_budget": {
+    "prior": 21,
+    "this_release": 8,
+    "round_total": 29,
+    "round_limit": 40,
+    "automatically_retried": 0
+  },
+  "api_checks": {
+    "alignment-a": {
+      "legacy_reinstall_status": 404,
+      "connections": {
+        "peixian-records-calls": true,
+        "peixian-records-composite": true,
+        "peixian-records-funds": true,
+        "peixian-records-lookup": true,
+        "peixian-records-night": true,
+        "peixian-records-portrait": true,
+        "peixian-records-vehicle": true
+      },
+      "historical": [
+        {
+          "evidence": 200,
+          "report": 200
+        }
+      ],
+      "cross_account_status": 404
+    },
+    "alignment-b": {
+      "legacy_reinstall_status": 404,
+      "connections": {
+        "peixian-records-calls": true,
+        "peixian-records-composite": true,
+        "peixian-records-funds": true,
+        "peixian-records-lookup": true,
+        "peixian-records-night": true,
+        "peixian-records-portrait": true,
+        "peixian-records-vehicle": true
+      },
+      "historical": [
+        {
+          "evidence": 200,
+          "report": 200
+        }
+      ],
+      "cross_account_status": 404
+    }
+  },
+  "disabled_check": {
+    "http_status": 409,
+    "code": "capability_unavailable",
+    "runs_before": 77,
+    "runs_after": 77,
+    "model_dispatched": false
+  },
+  "tests": {
+    "backend_main": {
+      "passed": 598,
+      "initial_skipped": 4
+    },
+    "bun_supplement": {
+      "passed": 7,
+      "covers_initial_skipped": 4
+    },
+    "deployment": {
+      "passed": 263,
+      "subtests": 167
+    },
+    "package": {
+      "passed": 8,
+      "subtests": 2
+    }
+  }
+}

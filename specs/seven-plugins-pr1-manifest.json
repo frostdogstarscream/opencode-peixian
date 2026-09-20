@@ -1,0 +1,32 @@
+{
+  "version": "seven-contract-v1",
+  "files": {
+    "deploy/peixian/examples/seven_data_plugins/calls/connection-policy.json": "7d89a2507dea05756fc881737f819937689a02cbe5fd27e7e3b2d50fd4e3ace0",
+    "deploy/peixian/examples/seven_data_plugins/calls/entry.mjs": "860c5a4220151da9176008d53bab61c9d037054fd9e1d8f883bde34e0cbf286e",
+    "deploy/peixian/examples/seven_data_plugins/calls/manifest.json": "1ef6edc8b258b613f372b7df7f8e256037a1e8e56243a42505fdcd9aaa7d53d7",
+    "deploy/peixian/examples/seven_data_plugins/composite/connection-policy.json": "dfba39e3ad270d497d7d329bc18b0654b3f2cfa1a19874cf0e515509a00e809e",
+    "deploy/peixian/examples/seven_data_plugins/composite/entry.mjs": "76a959ca6749310445a4d7c56270583048eb69a384777507a449e54ed1da6939",
+    "deploy/peixian/examples/seven_data_plugins/composite/manifest.json": "c5bc40b5ecda26d24a648e346731239b320db8ec65be04825091c5d92808451c",
+    "deploy/peixian/examples/seven_data_plugins/funds/connection-policy.json": "a1977cde333a58c4b996b7f6592ce92490afc7d0c6b53e41a28755eeb0c9f20a",
+    "deploy/peixian/examples/seven_data_plugins/funds/entry.mjs": "6730be47cd9ce3bee7424af14336ed26250310b80870dab83eae8e6e4b5752f8",
+    "deploy/peixian/examples/seven_data_plugins/funds/manifest.json": "24d5c2ac5a95adcaeaf2b4f62fb0554871ef744b0dc56d4e0c4294caef133b95",
+    "deploy/peixian/examples/seven_data_plugins/lookup/connection-policy.json": "788e124fa73782df32202ccbbe7027b8033def069d3f8317ea2b3d7a4c119a21",
+    "deploy/peixian/examples/seven_data_plugins/lookup/entry.mjs": "39a2d0b83ca7c01dcb8e7b18b7ef7db5fa49dd026d3293ab8c45d305bde661d9",
+    "deploy/peixian/examples/seven_data_plugins/lookup/manifest.json": "1bad8c84cdbcd427c42af552a22fec8340b5ea46171d1c7c7aec2073e81f608b",
+    "deploy/peixian/examples/seven_data_plugins/night/connection-policy.json": "f138587be430a94ed4c3d541de750d7953331932996b010374dbad7fd3c71952",
+    "deploy/peixian/examples/seven_data_plugins/night/entry.mjs": "ca6da525f272e9619d11c090ee066e3c4951368b305a67d770b3905832baf1d3",
+    "deploy/peixian/examples/seven_data_plugins/night/manifest.json": "23650b05aeda37227ab8a002119e995b4ced44af6ebaf984bbf6245e342574f5",
+    "deploy/peixian/examples/seven_data_plugins/package.py": "65ce47dd457d7107eec50aa7e5eef2f561d8bf7252694833505c012995cd82e7",
+    "deploy/peixian/examples/seven_data_plugins/plugin.test.mjs": "99ad552d016dd5f34855638e18164e1619ffb30cab987608ff60493ca3c2cd2c",
+    "deploy/peixian/examples/seven_data_plugins/portrait/connection-policy.json": "293354fe0fa67f7ee33db93bcc01a89d1a7f0ca77c6ffa194e368d8e56320946",
+    "deploy/peixian/examples/seven_data_plugins/portrait/entry.mjs": "46fba7e2b81cdcba661cd66ac2e18ec65c2be388f075648505ca824492fcb18e",
+    "deploy/peixian/examples/seven_data_plugins/portrait/manifest.json": "2a0406c335369298e372ef87cf18a5c7dcc2ebcfda4a5eadea041d51ec99fff3",
+    "deploy/peixian/examples/seven_data_plugins/skills/companions/SKILL.md": "b4db3227a467d9dabf0853caa4b90f69a494240befe3fce4a8984691f7fc027e",
+    "deploy/peixian/examples/seven_data_plugins/skills/funds/SKILL.md": "6779203a37dea740ebee623f7085535decdd466abc1079c2cba11940f4e833d0",
+    "deploy/peixian/examples/seven_data_plugins/skills/night/SKILL.md": "a45f51beffd266b61a8d3cb44265973139d2fb6a119dd14f7759a3aa08936533",
+    "deploy/peixian/examples/seven_data_plugins/skills/relations/SKILL.md": "9095919561f597446ee2bb270e4b360e7e12cb36db2b59eaafcc9ddc3ec9d7ef",
+    "deploy/peixian/examples/seven_data_plugins/vehicle/connection-policy.json": "035e867f75a7edc115dc356fb93337d1d5de22bfbbec83dfa397d585739fe2d4",
+    "deploy/peixian/examples/seven_data_plugins/vehicle/entry.mjs": "3b918abbd29107ffcf6b5d5e04889c7897a369536b42500d14d152f7088dcb8b",
+    "deploy/peixian/examples/seven_data_plugins/vehicle/manifest.json": "6f8523af840f19abbfc4419fdfd34a702a86d9da103ec5a0088e326e12883ee4"
+  }
+}

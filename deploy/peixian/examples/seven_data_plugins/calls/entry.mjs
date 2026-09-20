@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 const MODULE = "calls";
 const TOOL = "peixian_get_calls_records";
 function empty(args) {
@@ -14,7 +15,18 @@ export default async function plugin(_context, _options, platform) {
           || data.returned_count !== data.records.length || data.total_count !== data.records.length || data.has_more !== false
           || typeof data.snapshot_id !== 'string' || !data.snapshot_id || typeof data.rule_version !== 'string') throw new Error('资料响应不完整或模块不匹配，本次未取得可核对结果。');
       if (data.records.some(row => !row || typeof row.record_id !== 'string' || !row.record_id) || new Set(data.records.map(row=>row.record_id)).size !== data.records.length) throw new Error('资料编号缺失或重复。');
-      return JSON.stringify({items:data.records,module:MODULE,data_status:data.data_status,returned_count:data.returned_count,total_count:data.total_count,has_more:false,snapshot_id:data.snapshot_id,source:'已接入资料服务',synthetic:true,rule_version:data.rule_version,rule_status:data.rule_status});
+      // Source IDs describe business records. Distinct response rows are retained,
+      // even when a source system repeats its business identifier.
+      const rows = data.records.map(row => ({
+        source_record_id: row.source_record_id ?? row.record_id,
+        source_row_id: row.source_row_id ?? row.record_id,
+        record_id: row.record_id,
+      }));
+      if (rows.some(row => [row.source_record_id, row.source_row_id].some(id => typeof id !== 'string' || !id.trim() || id.length > 256)) || new Set(rows.map(row => row.source_row_id)).size !== rows.length)
+        throw new Error('资料来源行编号无效或重复。');
+      const provenance = rows.map(row => ({...row, snapshot_id:data.snapshot_id,
+        evidence_id:'ev_'+createHash('sha256').update(JSON.stringify([MODULE,data.snapshot_id,row.source_row_id])).digest('hex')}));
+      return JSON.stringify({provenance,identity_version:'source-row-v1',items:data.records,module:MODULE,data_status:data.data_status,returned_count:data.returned_count,total_count:data.total_count,has_more:false,snapshot_id:data.snapshot_id,source:'已接入资料服务',synthetic:true,rule_version:data.rule_version,rule_status:data.rule_status});
     }
   }}};
 }

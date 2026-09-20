@@ -112,6 +112,25 @@ class RuntimeTests(unittest.TestCase):
         self.acl.stop()
         self.temp.cleanup()
 
+    def test_seven_release_explicitly_allows_only_fixed_internal_helpers(self):
+        root = Path(__file__).resolve().parents[1] / "examples/seven_data_plugins/night"
+        manifest = json.loads((root / "manifest.json").read_text())
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as archive:
+            archive.writestr("manifest.json", json.dumps(manifest))
+            archive.writestr("entry.mjs", (root / "entry.mjs").read_bytes())
+        raw = buffer.getvalue()
+        value = spec()
+        value["config"]["permission"] = {"*": "deny"}
+        value["plugins"] = [{"id": manifest["id"], "version": manifest["version"], "manifest": manifest,
+                             "digest": hashlib.sha256(raw).hexdigest(), "options": {}}]
+        release = FakeRuntime(self.root).prepare(value, lambda digest: raw)
+        config = json.loads((release / "agent/opencode.json").read_text())
+        self.assertEqual(config["permission"]["*"], "deny")
+        for name in ("peixian_get_scenario_context", "peixian_prepare_scenario_facts", "peixian_check_scenario_summary"):
+            self.assertEqual(config["permission"][name], "allow")
+        self.assertNotIn("peixian_internal_arbitrary", config["permission"])
+
     def test_facts_status_probe_uses_fixed_authenticated_management_route(self):
         manager = FakeRuntime(self.root)
         value = spec()

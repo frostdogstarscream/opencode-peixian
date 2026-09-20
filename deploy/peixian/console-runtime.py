@@ -794,6 +794,10 @@ class RuntimeManager:
             raise RuntimeFailure("ambiguous_records_plugin_chain")
         facts_token = hmac.new(spec["private"]["gateway_key"].encode(), b"facts-agent-v1", hashlib.sha256).hexdigest()
         if has_seven:
+            # These fixed platform helpers are not user-installed plugin tools.
+            # Gateway still binds every invocation to the authorized durable Run.
+            config.setdefault("permission", {}).update({name: "allow" for name in (
+                "peixian_get_scenario_context", "peixian_prepare_scenario_facts", "peixian_check_scenario_summary")})
             source = Path(__file__).with_name("platform-facts")
             shutil.copytree(source, stage / "gateway/platform-facts", ignore=shutil.ignore_patterns("*.test.mjs", "fixtures.json", "coordinator.mjs"))
             shutil.copyfile(source / "agent-client.mjs", stage / "agent/facts-client.mjs")

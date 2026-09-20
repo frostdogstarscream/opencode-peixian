@@ -1,3 +1,4 @@
+import {isDiagram} from "./event-diagram"
 import type { AnalysisResult, Run } from "./types"
 
 function object(value: unknown): value is Record<string, unknown> {
@@ -19,7 +20,7 @@ export function isAnalysisResult(value: unknown): value is AnalysisResult {
 export function legacyPresentation(value: unknown): AnalysisResult | undefined {
   if (!object(value) || value.schema !== undefined || value.version !== "1.0" || !displayArrays(value) || !Array.isArray(value.conclusions) || !value.conclusions.every(item => object(item) && typeof item.text === "string" && strings(item.source_ids) && (item.clue_id === undefined || typeof item.clue_id === "string")) || !strings(value.missing)) return
   const sources = value.conclusions as NonNullable<AnalysisResult["conclusion_sources"]>
-  return { schema: "peixian.analysis-result", version: "1.0", process: value.process as AnalysisResult["process"], subjects: [], conclusions: sources.map(item => item.text), conclusion_sources: sources, evidence: value.evidence as AnalysisResult["evidence"], clues: value.clues as AnalysisResult["clues"], missing: value.missing, presentation_version: value.version }
+  return { schema: "peixian.analysis-result", version: "1.0", process: value.process as AnalysisResult["process"], subjects: [], conclusions: sources.map(item => item.text), conclusion_sources: sources, evidence: value.evidence as AnalysisResult["evidence"], clues: value.clues as AnalysisResult["clues"], missing: value.missing, presentation_version: value.version, diagram: isDiagram(value.diagram) ? value.diagram : undefined }
 }
 export function acceptedRun(value: unknown, session: string): Run {
   if (!object(value) || value.accepted !== true || typeof value.run_id !== "string" || !value.run_id || typeof value.message_id !== "string" || !value.message_id) throw new Error("提交结果待确认，请核对执行记录，不要重复提交。")

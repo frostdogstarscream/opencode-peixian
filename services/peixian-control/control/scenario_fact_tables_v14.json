@@ -1,0 +1,3308 @@
+[
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [],
+    "facts": [
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。",
+      "demo52 引用资料未取得，不能核对。",
+      "demo53 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。",
+      "demo52 引用资料未取得，不能核对。",
+      "demo53 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo52",
+        "statement": "资料明确标注同行；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "demo21",
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo53",
+        "statement": "南埠夜市口卡口对应虚构地点青梧县南埠夜市「夜泊棋牌室」门口，无真实坐标。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo52",
+        "statement": "资料明确标注同行；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "demo21",
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo53",
+        "statement": "南埠夜市口卡口对应虚构地点青梧县南埠夜市「夜泊棋牌室」门口，无真实坐标。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "林晓舟 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo1",
+          "demo2",
+          "demo7"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo1",
+        "statement": "林晓舟，2026-09-14T20:14:00+08:00，原始流水 demo71，credit，金额 12800 分，对手账户 赵衡演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo1"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo2",
+        "statement": "林晓舟，2026-09-14T20:17:00+08:00，原始流水 demo72，debit，金额 12600 分，对手账户 周晚晴演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo2"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo7",
+        "statement": "林晓舟，2026-09-15T00:42:00+08:00，原始流水 demo77，debit，金额 3200 分，对手账户 陈北秋演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo7"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。",
+      "demo52 引用资料未取得，不能核对。",
+      "demo53 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "林晓舟 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo1",
+          "demo2",
+          "demo7"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo1",
+        "statement": "林晓舟，2026-09-14T20:14:00+08:00，原始流水 demo71，credit，金额 12800 分，对手账户 赵衡演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo1"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo2",
+        "statement": "林晓舟，2026-09-14T20:17:00+08:00，原始流水 demo72，debit，金额 12600 分，对手账户 周晚晴演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo2"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo7",
+        "statement": "林晓舟，2026-09-15T00:42:00+08:00，原始流水 demo77，debit，金额 3200 分，对手账户 陈北秋演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo7"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。",
+      "demo52 引用资料未取得，不能核对。",
+      "demo53 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "林晓舟 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo1",
+          "demo2",
+          "demo7"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo1",
+        "statement": "林晓舟，2026-09-14T20:14:00+08:00，原始流水 demo71，credit，金额 12800 分，对手账户 赵衡演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo1"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo2",
+        "statement": "林晓舟，2026-09-14T20:17:00+08:00，原始流水 demo72，debit，金额 12600 分，对手账户 周晚晴演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo2"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo52",
+        "statement": "资料明确标注同行；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "demo21",
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo53",
+        "statement": "南埠夜市口卡口对应虚构地点青梧县南埠夜市「夜泊棋牌室」门口，无真实坐标。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo7",
+        "statement": "林晓舟，2026-09-15T00:42:00+08:00，原始流水 demo77，debit，金额 3200 分，对手账户 陈北秋演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo7"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "林晓舟 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo1",
+          "demo2",
+          "demo7"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo1",
+        "statement": "林晓舟，2026-09-14T20:14:00+08:00，原始流水 demo71，credit，金额 12800 分，对手账户 赵衡演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo1"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo2",
+        "statement": "林晓舟，2026-09-14T20:17:00+08:00，原始流水 demo72，debit，金额 12600 分，对手账户 周晚晴演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo2"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo52",
+        "statement": "资料明确标注同行；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "demo21",
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo53",
+        "statement": "南埠夜市口卡口对应虚构地点青梧县南埠夜市「夜泊棋牌室」门口，无真实坐标。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo7",
+        "statement": "林晓舟，2026-09-15T00:42:00+08:00，原始流水 demo77，debit，金额 3200 分，对手账户 陈北秋演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo7"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "明确关系未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "林晓舟 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo43",
+          "demo46",
+          "demo48",
+          "demo50"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo43",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_account，林晓舟 → 林晓舟演示账户；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo43",
+          "demo1",
+          "demo2"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo46",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_contact，林晓舟 → 赵衡演示号码；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo46",
+          "demo9"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo48",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_vehicle，林晓舟 → 苏演示A12345；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo48",
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo50",
+        "statement": "林晓舟，资料未提供时间，明确关系 shared_capture_event，林晓舟 → 赵衡；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo50",
+          "demo17",
+          "demo18"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "demo52 引用资料未取得，不能核对。",
+      "demo53 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "林晓舟 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo43",
+          "demo46",
+          "demo48",
+          "demo50"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo43",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_account，林晓舟 → 林晓舟演示账户；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo43",
+          "demo1",
+          "demo2"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo46",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_contact，林晓舟 → 赵衡演示号码；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo46",
+          "demo9"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo48",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_vehicle，林晓舟 → 苏演示A12345；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo48",
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo50",
+        "statement": "林晓舟，资料未提供时间，明确关系 shared_capture_event，林晓舟 → 赵衡；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo50",
+          "demo17",
+          "demo18"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。",
+      "demo52 引用资料未取得，不能核对。",
+      "demo53 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "林晓舟 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo43",
+          "demo46",
+          "demo48",
+          "demo50"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo43",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_account，林晓舟 → 林晓舟演示账户；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo43",
+          "demo1",
+          "demo2"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo46",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_contact，林晓舟 → 赵衡演示号码；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo46",
+          "demo9"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo48",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_vehicle，林晓舟 → 苏演示A12345；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo48",
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo50",
+        "statement": "林晓舟，资料未提供时间，明确关系 shared_capture_event，林晓舟 → 赵衡；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo50",
+          "demo17",
+          "demo18"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo52",
+        "statement": "资料明确标注同行；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "demo21",
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo53",
+        "statement": "南埠夜市口卡口对应虚构地点青梧县南埠夜市「夜泊棋牌室」门口，无真实坐标。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "林晓舟 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo43",
+          "demo46",
+          "demo48",
+          "demo50"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo43",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_account，林晓舟 → 林晓舟演示账户；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo43",
+          "demo1",
+          "demo2"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo46",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_contact，林晓舟 → 赵衡演示号码；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo46",
+          "demo9"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo48",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_vehicle，林晓舟 → 苏演示A12345；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo48",
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo50",
+        "statement": "林晓舟，资料未提供时间，明确关系 shared_capture_event，林晓舟 → 赵衡；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo50",
+          "demo17",
+          "demo18"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo52",
+        "statement": "资料明确标注同行；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "demo21",
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo53",
+        "statement": "南埠夜市口卡口对应虚构地点青梧县南埠夜市「夜泊棋牌室」门口，无真实坐标。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "资金流水未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "林晓舟 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo1",
+          "demo2",
+          "demo7"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "林晓舟 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo43",
+          "demo46",
+          "demo48",
+          "demo50"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo1",
+        "statement": "林晓舟，2026-09-14T20:14:00+08:00，原始流水 demo71，credit，金额 12800 分，对手账户 赵衡演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo1"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo2",
+        "statement": "林晓舟，2026-09-14T20:17:00+08:00，原始流水 demo72，debit，金额 12600 分，对手账户 周晚晴演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo2"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo43",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_account，林晓舟 → 林晓舟演示账户；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo43",
+          "demo1",
+          "demo2"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo46",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_contact，林晓舟 → 赵衡演示号码；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo46",
+          "demo9"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo48",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_vehicle，林晓舟 → 苏演示A12345；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo48",
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo50",
+        "statement": "林晓舟，资料未提供时间，明确关系 shared_capture_event，林晓舟 → 赵衡；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo50",
+          "demo17",
+          "demo18"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo7",
+        "statement": "林晓舟，2026-09-15T00:42:00+08:00，原始流水 demo77，debit，金额 3200 分，对手账户 陈北秋演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo7"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "demo52 引用资料未取得，不能核对。",
+      "demo53 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "林晓舟 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo1",
+          "demo2",
+          "demo7"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "林晓舟 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo43",
+          "demo46",
+          "demo48",
+          "demo50"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo1",
+        "statement": "林晓舟，2026-09-14T20:14:00+08:00，原始流水 demo71，credit，金额 12800 分，对手账户 赵衡演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo1"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo2",
+        "statement": "林晓舟，2026-09-14T20:17:00+08:00，原始流水 demo72，debit，金额 12600 分，对手账户 周晚晴演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo2"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo43",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_account，林晓舟 → 林晓舟演示账户；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo43",
+          "demo1",
+          "demo2"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo46",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_contact，林晓舟 → 赵衡演示号码；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo46",
+          "demo9"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo48",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_vehicle，林晓舟 → 苏演示A12345；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo48",
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo50",
+        "statement": "林晓舟，资料未提供时间，明确关系 shared_capture_event，林晓舟 → 赵衡；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo50",
+          "demo17",
+          "demo18"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo7",
+        "statement": "林晓舟，2026-09-15T00:42:00+08:00，原始流水 demo77，debit，金额 3200 分，对手账户 陈北秋演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo7"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "demo52 引用资料未取得，不能核对。",
+      "demo53 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "林晓舟 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo1",
+          "demo2",
+          "demo7"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "林晓舟 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo43",
+          "demo46",
+          "demo48",
+          "demo50"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo1",
+        "statement": "林晓舟，2026-09-14T20:14:00+08:00，原始流水 demo71，credit，金额 12800 分，对手账户 赵衡演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo1"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo2",
+        "statement": "林晓舟，2026-09-14T20:17:00+08:00，原始流水 demo72，debit，金额 12600 分，对手账户 周晚晴演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo2"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo43",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_account，林晓舟 → 林晓舟演示账户；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo43",
+          "demo1",
+          "demo2"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo46",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_contact，林晓舟 → 赵衡演示号码；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo46",
+          "demo9"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo48",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_vehicle，林晓舟 → 苏演示A12345；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo48",
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo50",
+        "statement": "林晓舟，资料未提供时间，明确关系 shared_capture_event，林晓舟 → 赵衡；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo50",
+          "demo17",
+          "demo18"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo52",
+        "statement": "资料明确标注同行；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "demo21",
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo53",
+        "statement": "南埠夜市口卡口对应虚构地点青梧县南埠夜市「夜泊棋牌室」门口，无真实坐标。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo7",
+        "statement": "林晓舟，2026-09-15T00:42:00+08:00，原始流水 demo77，debit，金额 3200 分，对手账户 陈北秋演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo7"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-GAMBLING",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "complete",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "funds",
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      },
+      {
+        "module": "lookup",
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "林晓舟 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo1",
+          "demo2",
+          "demo7"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "林晓舟 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo43",
+          "demo46",
+          "demo48",
+          "demo50"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo1",
+        "statement": "林晓舟，2026-09-14T20:14:00+08:00，原始流水 demo71，credit，金额 12800 分，对手账户 赵衡演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo1"
+        ],
+        "time": "2026-09-14T20:14:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo2",
+        "statement": "林晓舟，2026-09-14T20:17:00+08:00，原始流水 demo72，debit，金额 12600 分，对手账户 周晚晴演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo2"
+        ],
+        "time": "2026-09-14T20:17:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo43",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_account，林晓舟 → 林晓舟演示账户；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo43",
+          "demo1",
+          "demo2"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo46",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_contact，林晓舟 → 赵衡演示号码；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo46",
+          "demo9"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo48",
+        "statement": "林晓舟，资料未提供时间，明确关系 member_to_vehicle，林晓舟 → 苏演示A12345；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo48",
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo50",
+        "statement": "林晓舟，资料未提供时间，明确关系 shared_capture_event，林晓舟 → 赵衡；无时间的关系只作背景，不纳入时段事件数。",
+        "source_ids": [
+          "demo50",
+          "demo17",
+          "demo18"
+        ],
+        "time": "",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo51",
+        "statement": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "source_ids": [
+          "demo59"
+        ],
+        "time": "2026-09-01T09:00:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo52",
+        "statement": "资料明确标注同行；仅表示该次同行观测，不表示参与共同活动。",
+        "source_ids": [
+          "demo21",
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo53",
+        "statement": "南埠夜市口卡口对应虚构地点青梧县南埠夜市「夜泊棋牌室」门口，无真实坐标。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo7",
+        "statement": "林晓舟，2026-09-15T00:42:00+08:00，原始流水 demo77，debit，金额 3200 分，对手账户 陈北秋演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo7"
+        ],
+        "time": "2026-09-15T00:42:00+08:00",
+        "kind": "record"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [],
+    "facts": [
+      {
+        "fact_id": "demo54",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点为青梧县东津巷 18 号（演示地点）；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "demo60"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "车辆记录未成功取得，不将缺失视为零条或无同行。",
+      "demo55 引用资料未取得，不能核对。",
+      "demo56 引用资料未取得，不能核对。",
+      "demo57 引用资料未取得，不能核对。",
+      "demo58 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，明确独行观测（仅此观测片段，不代表作案）；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35",
+          "demo61"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo54",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点为青梧县东津巷 18 号（演示地点）；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "demo60"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo55",
+        "statement": "补充观测仅在 01:12 的该段画面标注一人经过；不证明作案，也不证明其他时段没有同行者。",
+        "source_ids": [
+          "demo35",
+          "demo61"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo56",
+        "statement": "虚构地点表将东津巷口卡口标注为东津巷 18 号的相邻点；没有距离测量值，不推算米数。",
+        "source_ids": [
+          "demo35",
+          "demo62"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo57",
+        "statement": "22:16 资料没有同行覆盖信息，独行状态无法判断。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "车辆记录未成功取得，不将缺失视为零条或无同行。",
+      "demo58 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo54",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点为青梧县东津巷 18 号（演示地点）；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "demo60"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo58",
+        "statement": "23:55 有明确同行记录；不能把其余时间无同行记录解释为独行。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "车辆记录未成功取得，不将缺失视为零条或无同行。",
+      "demo55 引用资料未取得，不能核对。",
+      "demo56 引用资料未取得，不能核对。",
+      "demo57 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，明确独行观测（仅此观测片段，不代表作案）；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35",
+          "demo61"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo54",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点为青梧县东津巷 18 号（演示地点）；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "demo60"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo55",
+        "statement": "补充观测仅在 01:12 的该段画面标注一人经过；不证明作案，也不证明其他时段没有同行者。",
+        "source_ids": [
+          "demo35",
+          "demo61"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo56",
+        "statement": "虚构地点表将东津巷口卡口标注为东津巷 18 号的相邻点；没有距离测量值，不推算米数。",
+        "source_ids": [
+          "demo35",
+          "demo62"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo57",
+        "statement": "22:16 资料没有同行覆盖信息，独行状态无法判断。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo58",
+        "statement": "23:55 有明确同行记录；不能把其余时间无同行记录解释为独行。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "车辆记录未成功取得，不将缺失视为零条或无同行。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "vehicle",
+        "label": "车辆记录",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-vehicle",
+        "statement": "林晓舟 的车辆记录为 2 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo37",
+        "statement": "林晓舟，2026-09-14T19:54:00+08:00，车辆 苏演示A12345，inbound，设备 青梧大桥收费站入口；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "demo37"
+        ],
+        "time": "2026-09-14T19:54:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo40",
+        "statement": "林晓舟，2026-09-15T00:47:00+08:00，车辆 苏演示A12345，outbound，设备 青梧大桥收费站出口；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "demo40"
+        ],
+        "time": "2026-09-15T00:47:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo54",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点为青梧县东津巷 18 号（演示地点）；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "demo60"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "demo55 引用资料未取得，不能核对。",
+      "demo56 引用资料未取得，不能核对。",
+      "demo57 引用资料未取得，不能核对。",
+      "demo58 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "vehicle",
+        "label": "车辆记录",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-vehicle",
+        "statement": "林晓舟 的车辆记录为 2 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，明确独行观测（仅此观测片段，不代表作案）；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35",
+          "demo61"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo37",
+        "statement": "林晓舟，2026-09-14T19:54:00+08:00，车辆 苏演示A12345，inbound，设备 青梧大桥收费站入口；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "demo37"
+        ],
+        "time": "2026-09-14T19:54:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo40",
+        "statement": "林晓舟，2026-09-15T00:47:00+08:00，车辆 苏演示A12345，outbound，设备 青梧大桥收费站出口；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "demo40"
+        ],
+        "time": "2026-09-15T00:47:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo54",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点为青梧县东津巷 18 号（演示地点）；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "demo60"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo55",
+        "statement": "补充观测仅在 01:12 的该段画面标注一人经过；不证明作案，也不证明其他时段没有同行者。",
+        "source_ids": [
+          "demo35",
+          "demo61"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo56",
+        "statement": "虚构地点表将东津巷口卡口标注为东津巷 18 号的相邻点；没有距离测量值，不推算米数。",
+        "source_ids": [
+          "demo35",
+          "demo62"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo57",
+        "statement": "22:16 资料没有同行覆盖信息，独行状态无法判断。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "同框与同行未成功取得，不将缺失视为零条或无同行。",
+      "demo58 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "partial",
+    "summary": [
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "vehicle",
+        "label": "车辆记录",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-vehicle",
+        "statement": "林晓舟 的车辆记录为 2 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo37",
+        "statement": "林晓舟，2026-09-14T19:54:00+08:00，车辆 苏演示A12345，inbound，设备 青梧大桥收费站入口；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "demo37"
+        ],
+        "time": "2026-09-14T19:54:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo40",
+        "statement": "林晓舟，2026-09-15T00:47:00+08:00，车辆 苏演示A12345，outbound，设备 青梧大桥收费站出口；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "demo40"
+        ],
+        "time": "2026-09-15T00:47:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo54",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点为青梧县东津巷 18 号（演示地点）；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "demo60"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo58",
+        "statement": "23:55 有明确同行记录；不能把其余时间无同行记录解释为独行。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。",
+      "夜间观测未成功取得，不将缺失视为零条或无同行。",
+      "demo55 引用资料未取得，不能核对。",
+      "demo56 引用资料未取得，不能核对。",
+      "demo57 引用资料未取得，不能核对。"
+    ]
+  },
+  {
+    "schema_version": "facts-v1",
+    "synthetic": true,
+    "scenario_id": "DEMO-CASE-THEFT",
+    "subject_ref": "林晓舟",
+    "scenario_snapshot_id": "demo1003",
+    "records_snapshot_id": "demo1001",
+    "rule_version": "deterministic-facts-v1",
+    "window_start": "2026-09-14T00:00:00+08:00",
+    "window_end": "2026-09-16T00:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "night_window": "22:00-06:00",
+    "data_status": "complete",
+    "summary": [
+      {
+        "module": "night",
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "portrait",
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "module": "vehicle",
+        "label": "车辆记录",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "facts": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "COUNT-vehicle",
+        "statement": "林晓舟 的车辆记录为 2 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo37",
+          "demo40"
+        ],
+        "time": "",
+        "kind": "count"
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ],
+        "time": "2026-09-14T20:01:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo21",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo22",
+        "statement": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "source_ids": [
+          "demo22"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo29",
+        "statement": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo35",
+        "statement": "林晓舟，2026-09-15T01:12:00+08:00，明确独行观测（仅此观测片段，不代表作案）；设备 青梧县东津巷口卡口。",
+        "source_ids": [
+          "demo35",
+          "demo61"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo37",
+        "statement": "林晓舟，2026-09-14T19:54:00+08:00，车辆 苏演示A12345，inbound，设备 青梧大桥收费站入口；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "demo37"
+        ],
+        "time": "2026-09-14T19:54:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo40",
+        "statement": "林晓舟，2026-09-15T00:47:00+08:00，车辆 苏演示A12345，outbound，设备 青梧大桥收费站出口；不能据不同时间共用车辆推导同乘。",
+        "source_ids": [
+          "demo40"
+        ],
+        "time": "2026-09-15T00:47:00+08:00",
+        "kind": "record"
+      },
+      {
+        "fact_id": "demo54",
+        "statement": "虚构事件发生范围为 00:30 至 01:30，地点为青梧县东津巷 18 号（演示地点）；这是场景设定，不是人员行为结论。",
+        "source_ids": [
+          "demo60"
+        ],
+        "time": "2026-09-15T00:30:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo55",
+        "statement": "补充观测仅在 01:12 的该段画面标注一人经过；不证明作案，也不证明其他时段没有同行者。",
+        "source_ids": [
+          "demo35",
+          "demo61"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo56",
+        "statement": "虚构地点表将东津巷口卡口标注为东津巷 18 号的相邻点；没有距离测量值，不推算米数。",
+        "source_ids": [
+          "demo35",
+          "demo62"
+        ],
+        "time": "2026-09-15T01:12:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo57",
+        "statement": "22:16 资料没有同行覆盖信息，独行状态无法判断。",
+        "source_ids": [
+          "demo29"
+        ],
+        "time": "2026-09-14T22:16:00+08:00",
+        "kind": "context"
+      },
+      {
+        "fact_id": "demo58",
+        "statement": "23:55 有明确同行记录；不能把其余时间无同行记录解释为独行。",
+        "source_ids": [
+          "demo21"
+        ],
+        "time": "2026-09-14T23:55:00+08:00",
+        "kind": "context"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。"
+    ]
+  }
+]

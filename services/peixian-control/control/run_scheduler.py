@@ -55,8 +55,9 @@ def track_messages(store,row,values,receipt):
     view=presentation(evidence,selected)
     result=None
     if view:
+        if view.get('diagram'): view['diagram']['run_id']=row['id']
         evidence['presentation']=view
-        result={'schema':'peixian.analysis-result','version':'1.0','run_id':row['id'],'generated_at':iso(now()),'intro':'','process':view['process'],'subjects':[],'conclusions':[x['text'] for x in view['conclusions']],'evidence':view['evidence'],'next_steps':'','clues':view['clues'],'conclusion_sources':view['conclusions'],'source_metadata':evidence.get('scenario',{}),'presentation_version':view['version']}
+        result={'schema':'peixian.analysis-result','version':'1.0','run_id':row['id'],'generated_at':iso(now()),'intro':'','process':view['process'],'subjects':[],'conclusions':[x['text'] for x in view['conclusions']],'evidence':view['evidence'],'next_steps':'','clues':view['clues'],'conclusion_sources':view['conclusions'],'source_metadata':evidence.get('scenario',{}),'presentation_version':view['version'],'diagram':view.get('diagram')}
     failure=info.get('error',{}).get('name')
     status='cancelled' if failure=='MessageAbortedError' else 'failed' if failure else 'completed'
     with store.tx() as db:

@@ -41,6 +41,7 @@ def items(schema):
 
 
 def schemas():
+    from .scenario_diagram import schema as diagram_schema
     ids = array(ID, maxItems=100)
     skill_fields = {
         "name": {"type": "string", "minLength": 1, "maxLength": 60,
@@ -137,7 +138,9 @@ def schemas():
                            "id": ID, "enabled": FLAG, "is_default": FLAG, "api_key_configured": BOOL},
                           ("id", "name", "description", "base_url", "model_id", "enabled", "is_default", "api_key_configured")),
         "ModelChanged": obj({"model": ref("AdminModel"), "jobs": array(ref("Job"))}, ("model", "jobs")),
+        "ScenarioDiagram": diagram_schema(),
         "ScenarioPresentation": obj({
+            "diagram": nullable(diagram_schema()),
             "version": {"const": "1.0"}, "turn_id": STRING, "title": STRING, "subject_ref": STRING,
             "process": array(obj({"id": STRING, "title": STRING, "detail": STRING, "status": {"enum": ["pending", "running", "completed", "failed"]}, "time": STRING})),
             "conclusions": array(obj({"text": STRING, "clue_id": STRING, "source_ids": array(STRING)})),
@@ -146,6 +149,7 @@ def schemas():
             "missing": array(STRING),
         }),
         "ScenarioEvidence": obj({
+            "diagram": nullable(diagram_schema()),
             "presentation": ref("ScenarioPresentation"),
             "summary_check": STRING, "verified_summary": array(obj({"fact_id": STRING, "statement": STRING, "source_ids": array(STRING)})),
             "schema_version": {"const": "1"}, "status": {"type": "string", "enum": ["empty", "partial", "complete", "unavailable"]}, "turn_id": STRING, "notice": STRING,

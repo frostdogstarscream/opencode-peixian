@@ -1,0 +1,2419 @@
+{
+  "DEMO-CASE-THEFT": {
+    "schema_version": "1",
+    "status": "complete",
+    "scenario": {
+      "scenario_id": "DEMO-CASE-THEFT",
+      "title": "盗窃案件时空资料核对（合成演示）",
+      "subject_ref": "林晓舟",
+      "snapshot_id": "demo1003",
+      "records_snapshot_id": "demo1001",
+      "rule_version": "demo-scenarios-v2",
+      "timezone": "Asia/Shanghai",
+      "night_window": "22:00-06:00",
+      "case_window": [
+        "2026-09-15T00:30:00+08:00",
+        "2026-09-15T01:30:00+08:00"
+      ]
+    },
+    "steps": [
+      {
+        "label": "代码整理事实",
+        "status": "completed"
+      },
+      {
+        "label": "摘要来源核对",
+        "status": "completed"
+      }
+    ],
+    "cards": [
+      {
+        "id": "COUNT-night",
+        "title": "代码事实 · COUNT-night",
+        "description": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "time": "",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "COUNT-portrait",
+        "title": "代码事实 · COUNT-portrait",
+        "description": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "time": "",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "COUNT-vehicle",
+        "title": "代码事实 · COUNT-vehicle",
+        "description": "林晓舟 的车辆记录为 2 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "time": "",
+        "source_ids": [
+          "demo37",
+          "demo40"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo37",
+        "title": "代码事实 · demo37",
+        "description": "林晓舟，2026-09-14T19:54:00+08:00，车辆 苏演示A12345，inbound，设备 青梧大桥收费站入口；不能据不同时间共用车辆推导同乘。",
+        "time": "2026-09-14T19:54:00+08:00",
+        "source_ids": [
+          "demo37"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo17",
+        "title": "代码事实 · demo17",
+        "description": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "time": "2026-09-14T20:01:00+08:00",
+        "source_ids": [
+          "demo17"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo18",
+        "title": "代码事实 · demo18",
+        "description": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "time": "2026-09-14T20:01:00+08:00",
+        "source_ids": [
+          "demo18"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo29",
+        "title": "代码事实 · demo29",
+        "description": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "time": "2026-09-14T22:16:00+08:00",
+        "source_ids": [
+          "demo29"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo57",
+        "title": "代码事实 · demo57",
+        "description": "22:16 资料没有同行覆盖信息，独行状态无法判断。",
+        "time": "2026-09-14T22:16:00+08:00",
+        "source_ids": [
+          "demo29"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1003"
+      },
+      {
+        "id": "demo21",
+        "title": "代码事实 · demo21",
+        "description": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "time": "2026-09-14T23:55:00+08:00",
+        "source_ids": [
+          "demo21"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo22",
+        "title": "代码事实 · demo22",
+        "description": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "time": "2026-09-14T23:55:00+08:00",
+        "source_ids": [
+          "demo22"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo58",
+        "title": "代码事实 · demo58",
+        "description": "23:55 有明确同行记录；不能把其余时间无同行记录解释为独行。",
+        "time": "2026-09-14T23:55:00+08:00",
+        "source_ids": [
+          "demo21"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1003"
+      },
+      {
+        "id": "demo54",
+        "title": "代码事实 · demo54",
+        "description": "虚构事件发生范围为 00:30 至 01:30，地点为青梧县东津巷 18 号（演示地点）；这是场景设定，不是人员行为结论。",
+        "time": "2026-09-15T00:30:00+08:00",
+        "source_ids": [
+          "demo60"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1003"
+      },
+      {
+        "id": "demo40",
+        "title": "代码事实 · demo40",
+        "description": "林晓舟，2026-09-15T00:47:00+08:00，车辆 苏演示A12345，outbound，设备 青梧大桥收费站出口；不能据不同时间共用车辆推导同乘。",
+        "time": "2026-09-15T00:47:00+08:00",
+        "source_ids": [
+          "demo40"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo35",
+        "title": "代码事实 · demo35",
+        "description": "林晓舟，2026-09-15T01:12:00+08:00，明确独行观测（仅此观测片段，不代表作案）；设备 青梧县东津巷口卡口。",
+        "time": "2026-09-15T01:12:00+08:00",
+        "source_ids": [
+          "demo35",
+          "demo61"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo55",
+        "title": "代码事实 · demo55",
+        "description": "补充观测仅在 01:12 的该段画面标注一人经过；不证明作案，也不证明其他时段没有同行者。",
+        "time": "2026-09-15T01:12:00+08:00",
+        "source_ids": [
+          "demo35",
+          "demo61"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1003"
+      },
+      {
+        "id": "demo56",
+        "title": "代码事实 · demo56",
+        "description": "虚构地点表将东津巷口卡口标注为东津巷 18 号的相邻点；没有距离测量值，不推算米数。",
+        "time": "2026-09-15T01:12:00+08:00",
+        "source_ids": [
+          "demo35",
+          "demo62"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1003"
+      }
+    ],
+    "missing": [
+      "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+      "出现在相邻点不证明实施盗窃。",
+      "车辆记录只表示各次使用，不证明同车同行。"
+    ],
+    "summary": [
+      {
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "label": "车辆记录",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      }
+    ],
+    "notice": "合成演示资料，仅整理已有记录，不判定违法犯罪。",
+    "turn_id": "request",
+    "verified_summary": [
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ]
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ]
+      },
+      {
+        "fact_id": "COUNT-vehicle",
+        "statement": "林晓舟 的车辆记录为 2 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo37",
+          "demo40"
+        ]
+      },
+      {
+        "fact_id": "demo17",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo17"
+        ]
+      },
+      {
+        "fact_id": "demo18",
+        "statement": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "source_ids": [
+          "demo18"
+        ]
+      }
+    ],
+    "summary_check": "checked",
+    "diagram": {
+      "version": "1.0",
+      "status": "ready",
+      "run_id": "run_demo",
+      "scenario_id": "DEMO-CASE-THEFT",
+      "timezone": "Asia/Shanghai",
+      "window_start": "2026-09-14T00:00:00+08:00",
+      "window_end": "2026-09-16T00:00:00+08:00",
+      "scenario_snapshot_id": "demo1003",
+      "records_snapshot_id": "demo1001",
+      "rule_version": "deterministic-facts-v1",
+      "synthetic": true,
+      "pages": [
+        {
+          "number": 1,
+          "groups": [
+            {
+              "title": "2026-09-14 · 晚间",
+              "node_ids": [
+                "n6b1b2501a9cf2724",
+                "n3b5e3ee450c0218b",
+                "n7943dfabe1a8c2a8"
+              ]
+            },
+            {
+              "title": "2026-09-14 · 夜间",
+              "node_ids": [
+                "n49efea2cccf88ed9",
+                "n273f694574910fba",
+                "nc8eb6699bb981d0a"
+              ]
+            },
+            {
+              "title": "2026-09-15 · 凌晨",
+              "node_ids": [
+                "n7187ca0a389a360a",
+                "n3b7321b58bc8b3e2"
+              ]
+            }
+          ],
+          "nodes": [
+            {
+              "id": "n6b1b2501a9cf2724",
+              "time": "2026-09-14T19:54:00+08:00",
+              "group": "2026-09-14 · 晚间",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "车辆驶入",
+              "category": "vehicle",
+              "source_ids": [
+                "demo37"
+              ],
+              "message_id": "tool-message",
+              "notes": [
+                "车辆编号：苏演示A12345",
+                "设备编号：青梧大桥收费站入口",
+                "不同时间使用同一车辆不表示同乘。"
+              ],
+              "number": "事件01"
+            },
+            {
+              "id": "n3b5e3ee450c0218b",
+              "time": "2026-09-14T20:01:00+08:00",
+              "group": "2026-09-14 · 晚间",
+              "subject": "林晓舟 与 赵衡",
+              "subject_ref": "林晓舟",
+              "event": "同框观测",
+              "category": "portrait",
+              "source_ids": [
+                "demo17"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件02"
+            },
+            {
+              "id": "n7943dfabe1a8c2a8",
+              "time": "2026-09-14T20:01:00+08:00",
+              "group": "2026-09-14 · 晚间",
+              "subject": "林晓舟 与 赵衡",
+              "subject_ref": "林晓舟",
+              "event": "同框观测",
+              "category": "portrait",
+              "source_ids": [
+                "demo18"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件03"
+            },
+            {
+              "id": "n49efea2cccf88ed9",
+              "time": "2026-09-14T22:16:00+08:00",
+              "group": "2026-09-14 · 夜间",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "夜间观测；同行状态无法判断",
+              "category": "night",
+              "source_ids": [
+                "demo29",
+                "demo57"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件04"
+            },
+            {
+              "id": "n273f694574910fba",
+              "time": "2026-09-14T23:55:00+08:00",
+              "group": "2026-09-14 · 夜间",
+              "subject": "林晓舟 与 陈北秋",
+              "subject_ref": "林晓舟",
+              "event": "明确同行；明确同行观测",
+              "category": "portrait",
+              "source_ids": [
+                "demo21",
+                "demo58"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件05"
+            },
+            {
+              "id": "nc8eb6699bb981d0a",
+              "time": "2026-09-14T23:55:00+08:00",
+              "group": "2026-09-14 · 夜间",
+              "subject": "林晓舟 与 陈北秋",
+              "subject_ref": "林晓舟",
+              "event": "明确同行",
+              "category": "portrait",
+              "source_ids": [
+                "demo22"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件06"
+            },
+            {
+              "id": "n7187ca0a389a360a",
+              "time": "2026-09-15T00:47:00+08:00",
+              "group": "2026-09-15 · 凌晨",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "车辆驶出",
+              "category": "vehicle",
+              "source_ids": [
+                "demo40"
+              ],
+              "message_id": "tool-message",
+              "notes": [
+                "车辆编号：苏演示A12345",
+                "设备编号：青梧大桥收费站出口",
+                "不同时间使用同一车辆不表示同乘。"
+              ],
+              "number": "事件07"
+            },
+            {
+              "id": "n3b7321b58bc8b3e2",
+              "time": "2026-09-15T01:12:00+08:00",
+              "group": "2026-09-15 · 凌晨",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "夜间观测；明确独行观测（仅本片段）",
+              "category": "night",
+              "source_ids": [
+                "demo35",
+                "demo55",
+                "demo61",
+                "demo56",
+                "demo62"
+              ],
+              "message_id": "tool-message",
+              "notes": [
+                "东津巷18号：相邻点（未提供距离）"
+              ],
+              "number": "事件08"
+            }
+          ],
+          "edges": [
+            {
+              "from": "n6b1b2501a9cf2724",
+              "to": "n3b5e3ee450c0218b",
+              "kind": "chronological"
+            },
+            {
+              "from": "n6b1b2501a9cf2724",
+              "to": "n7943dfabe1a8c2a8",
+              "kind": "chronological"
+            },
+            {
+              "from": "n3b5e3ee450c0218b",
+              "to": "n49efea2cccf88ed9",
+              "kind": "chronological"
+            },
+            {
+              "from": "n7943dfabe1a8c2a8",
+              "to": "n49efea2cccf88ed9",
+              "kind": "chronological"
+            },
+            {
+              "from": "n49efea2cccf88ed9",
+              "to": "n273f694574910fba",
+              "kind": "chronological"
+            },
+            {
+              "from": "n49efea2cccf88ed9",
+              "to": "nc8eb6699bb981d0a",
+              "kind": "chronological"
+            },
+            {
+              "from": "n273f694574910fba",
+              "to": "n7187ca0a389a360a",
+              "kind": "chronological"
+            },
+            {
+              "from": "nc8eb6699bb981d0a",
+              "to": "n7187ca0a389a360a",
+              "kind": "chronological"
+            },
+            {
+              "from": "n7187ca0a389a360a",
+              "to": "n3b7321b58bc8b3e2",
+              "kind": "chronological"
+            }
+          ],
+          "mermaid": "flowchart TB\nsubgraph g0[\"2026-09-14 · 晚间\"]\nn6b1b2501a9cf2724(\"事件01 · 19:54\n林晓舟\n车辆驶入\")\nn3b5e3ee450c0218b(\"事件02 · 20:01\n林晓舟 与 赵衡\n同框观测\")\nn7943dfabe1a8c2a8(\"事件03 · 20:01\n林晓舟 与 赵衡\n同框观测\")\nend\nsubgraph g1[\"2026-09-14 · 夜间\"]\nn49efea2cccf88ed9(\"事件04 · 22:16\n林晓舟\n夜间观测；同行状态无法判断\")\nn273f694574910fba(\"事件05 · 23:55\n林晓舟 与 陈北秋\n明确同行；明确同行观测\")\nnc8eb6699bb981d0a(\"事件06 · 23:55\n林晓舟 与 陈北秋\n明确同行\")\nend\nsubgraph g2[\"2026-09-15 · 凌晨\"]\nn7187ca0a389a360a(\"事件07 · 00:47\n林晓舟\n车辆驶出\")\nn3b7321b58bc8b3e2(\"事件08 · 01:12\n林晓舟\n夜间观测；明确独行观测（仅本片段）\")\nend\nn6b1b2501a9cf2724 -.-> n3b5e3ee450c0218b\nn6b1b2501a9cf2724 -.-> n7943dfabe1a8c2a8\nn3b5e3ee450c0218b -.-> n49efea2cccf88ed9\nn7943dfabe1a8c2a8 -.-> n49efea2cccf88ed9\nn49efea2cccf88ed9 -.-> n273f694574910fba\nn49efea2cccf88ed9 -.-> nc8eb6699bb981d0a\nn273f694574910fba -.-> n7187ca0a389a360a\nnc8eb6699bb981d0a -.-> n7187ca0a389a360a\nn7187ca0a389a360a -.-> n3b7321b58bc8b3e2"
+        }
+      ],
+      "total_nodes": 8,
+      "legend": "虚线箭头仅表示时间先后，不表示因果关系；同一时刻不区分先后。",
+      "aliases": [
+        {
+          "name": "林晓舟",
+          "ref": "林晓舟"
+        }
+      ],
+      "missing": [
+        "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+        "出现在相邻点不证明实施盗窃。",
+        "车辆记录只表示各次使用，不证明同车同行。"
+      ],
+      "case_window": [
+        "2026-09-15T00:30:00+08:00",
+        "2026-09-15T01:30:00+08:00"
+      ],
+      "case_source_ids": [
+        "demo54",
+        "demo60"
+      ]
+    },
+    "presentation": {
+      "diagram": {
+        "version": "1.0",
+        "status": "ready",
+        "run_id": "run_demo",
+        "scenario_id": "DEMO-CASE-THEFT",
+        "timezone": "Asia/Shanghai",
+        "window_start": "2026-09-14T00:00:00+08:00",
+        "window_end": "2026-09-16T00:00:00+08:00",
+        "scenario_snapshot_id": "demo1003",
+        "records_snapshot_id": "demo1001",
+        "rule_version": "deterministic-facts-v1",
+        "synthetic": true,
+        "pages": [
+          {
+            "number": 1,
+            "groups": [
+              {
+                "title": "2026-09-14 · 晚间",
+                "node_ids": [
+                  "n6b1b2501a9cf2724",
+                  "n3b5e3ee450c0218b",
+                  "n7943dfabe1a8c2a8"
+                ]
+              },
+              {
+                "title": "2026-09-14 · 夜间",
+                "node_ids": [
+                  "n49efea2cccf88ed9",
+                  "n273f694574910fba",
+                  "nc8eb6699bb981d0a"
+                ]
+              },
+              {
+                "title": "2026-09-15 · 凌晨",
+                "node_ids": [
+                  "n7187ca0a389a360a",
+                  "n3b7321b58bc8b3e2"
+                ]
+              }
+            ],
+            "nodes": [
+              {
+                "id": "n6b1b2501a9cf2724",
+                "time": "2026-09-14T19:54:00+08:00",
+                "group": "2026-09-14 · 晚间",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "车辆驶入",
+                "category": "vehicle",
+                "source_ids": [
+                  "demo37"
+                ],
+                "message_id": "tool-message",
+                "notes": [
+                  "车辆编号：苏演示A12345",
+                  "设备编号：青梧大桥收费站入口",
+                  "不同时间使用同一车辆不表示同乘。"
+                ],
+                "number": "事件01"
+              },
+              {
+                "id": "n3b5e3ee450c0218b",
+                "time": "2026-09-14T20:01:00+08:00",
+                "group": "2026-09-14 · 晚间",
+                "subject": "林晓舟 与 赵衡",
+                "subject_ref": "林晓舟",
+                "event": "同框观测",
+                "category": "portrait",
+                "source_ids": [
+                  "demo17"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件02"
+              },
+              {
+                "id": "n7943dfabe1a8c2a8",
+                "time": "2026-09-14T20:01:00+08:00",
+                "group": "2026-09-14 · 晚间",
+                "subject": "林晓舟 与 赵衡",
+                "subject_ref": "林晓舟",
+                "event": "同框观测",
+                "category": "portrait",
+                "source_ids": [
+                  "demo18"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件03"
+              },
+              {
+                "id": "n49efea2cccf88ed9",
+                "time": "2026-09-14T22:16:00+08:00",
+                "group": "2026-09-14 · 夜间",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "夜间观测；同行状态无法判断",
+                "category": "night",
+                "source_ids": [
+                  "demo29",
+                  "demo57"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件04"
+              },
+              {
+                "id": "n273f694574910fba",
+                "time": "2026-09-14T23:55:00+08:00",
+                "group": "2026-09-14 · 夜间",
+                "subject": "林晓舟 与 陈北秋",
+                "subject_ref": "林晓舟",
+                "event": "明确同行；明确同行观测",
+                "category": "portrait",
+                "source_ids": [
+                  "demo21",
+                  "demo58"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件05"
+              },
+              {
+                "id": "nc8eb6699bb981d0a",
+                "time": "2026-09-14T23:55:00+08:00",
+                "group": "2026-09-14 · 夜间",
+                "subject": "林晓舟 与 陈北秋",
+                "subject_ref": "林晓舟",
+                "event": "明确同行",
+                "category": "portrait",
+                "source_ids": [
+                  "demo22"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件06"
+              },
+              {
+                "id": "n7187ca0a389a360a",
+                "time": "2026-09-15T00:47:00+08:00",
+                "group": "2026-09-15 · 凌晨",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "车辆驶出",
+                "category": "vehicle",
+                "source_ids": [
+                  "demo40"
+                ],
+                "message_id": "tool-message",
+                "notes": [
+                  "车辆编号：苏演示A12345",
+                  "设备编号：青梧大桥收费站出口",
+                  "不同时间使用同一车辆不表示同乘。"
+                ],
+                "number": "事件07"
+              },
+              {
+                "id": "n3b7321b58bc8b3e2",
+                "time": "2026-09-15T01:12:00+08:00",
+                "group": "2026-09-15 · 凌晨",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "夜间观测；明确独行观测（仅本片段）",
+                "category": "night",
+                "source_ids": [
+                  "demo35",
+                  "demo55",
+                  "demo61",
+                  "demo56",
+                  "demo62"
+                ],
+                "message_id": "tool-message",
+                "notes": [
+                  "东津巷18号：相邻点（未提供距离）"
+                ],
+                "number": "事件08"
+              }
+            ],
+            "edges": [
+              {
+                "from": "n6b1b2501a9cf2724",
+                "to": "n3b5e3ee450c0218b",
+                "kind": "chronological"
+              },
+              {
+                "from": "n6b1b2501a9cf2724",
+                "to": "n7943dfabe1a8c2a8",
+                "kind": "chronological"
+              },
+              {
+                "from": "n3b5e3ee450c0218b",
+                "to": "n49efea2cccf88ed9",
+                "kind": "chronological"
+              },
+              {
+                "from": "n7943dfabe1a8c2a8",
+                "to": "n49efea2cccf88ed9",
+                "kind": "chronological"
+              },
+              {
+                "from": "n49efea2cccf88ed9",
+                "to": "n273f694574910fba",
+                "kind": "chronological"
+              },
+              {
+                "from": "n49efea2cccf88ed9",
+                "to": "nc8eb6699bb981d0a",
+                "kind": "chronological"
+              },
+              {
+                "from": "n273f694574910fba",
+                "to": "n7187ca0a389a360a",
+                "kind": "chronological"
+              },
+              {
+                "from": "nc8eb6699bb981d0a",
+                "to": "n7187ca0a389a360a",
+                "kind": "chronological"
+              },
+              {
+                "from": "n7187ca0a389a360a",
+                "to": "n3b7321b58bc8b3e2",
+                "kind": "chronological"
+              }
+            ],
+            "mermaid": "flowchart TB\nsubgraph g0[\"2026-09-14 · 晚间\"]\nn6b1b2501a9cf2724(\"事件01 · 19:54\n林晓舟\n车辆驶入\")\nn3b5e3ee450c0218b(\"事件02 · 20:01\n林晓舟 与 赵衡\n同框观测\")\nn7943dfabe1a8c2a8(\"事件03 · 20:01\n林晓舟 与 赵衡\n同框观测\")\nend\nsubgraph g1[\"2026-09-14 · 夜间\"]\nn49efea2cccf88ed9(\"事件04 · 22:16\n林晓舟\n夜间观测；同行状态无法判断\")\nn273f694574910fba(\"事件05 · 23:55\n林晓舟 与 陈北秋\n明确同行；明确同行观测\")\nnc8eb6699bb981d0a(\"事件06 · 23:55\n林晓舟 与 陈北秋\n明确同行\")\nend\nsubgraph g2[\"2026-09-15 · 凌晨\"]\nn7187ca0a389a360a(\"事件07 · 00:47\n林晓舟\n车辆驶出\")\nn3b7321b58bc8b3e2(\"事件08 · 01:12\n林晓舟\n夜间观测；明确独行观测（仅本片段）\")\nend\nn6b1b2501a9cf2724 -.-> n3b5e3ee450c0218b\nn6b1b2501a9cf2724 -.-> n7943dfabe1a8c2a8\nn3b5e3ee450c0218b -.-> n49efea2cccf88ed9\nn7943dfabe1a8c2a8 -.-> n49efea2cccf88ed9\nn49efea2cccf88ed9 -.-> n273f694574910fba\nn49efea2cccf88ed9 -.-> nc8eb6699bb981d0a\nn273f694574910fba -.-> n7187ca0a389a360a\nnc8eb6699bb981d0a -.-> n7187ca0a389a360a\nn7187ca0a389a360a -.-> n3b7321b58bc8b3e2"
+          }
+        ],
+        "total_nodes": 8,
+        "legend": "虚线箭头仅表示时间先后，不表示因果关系；同一时刻不区分先后。",
+        "aliases": [
+          {
+            "name": "林晓舟",
+            "ref": "林晓舟"
+          }
+        ],
+        "missing": [
+          "只有明确标注的观测才可描述独行或同行；缺失值保持无法判断。",
+          "出现在相邻点不证明实施盗窃。",
+          "车辆记录只表示各次使用，不证明同车同行。"
+        ],
+        "case_window": [
+          "2026-09-15T00:30:00+08:00",
+          "2026-09-15T01:30:00+08:00"
+        ],
+        "case_source_ids": [
+          "demo54",
+          "demo60"
+        ]
+      },
+      "version": "1.0",
+      "turn_id": "request",
+      "title": "盗窃案件时空资料核对",
+      "process": [
+        {
+          "id": "scope",
+          "title": "确认案件范围",
+          "detail": "确认对象、观察时段与资料范围",
+          "status": "completed",
+          "time": "—"
+        },
+        {
+          "id": "night",
+          "title": "查询夜间记录",
+          "detail": "检索观察范围内的夜间记录",
+          "status": "completed",
+          "time": "—"
+        },
+        {
+          "id": "portrait",
+          "title": "核对同行状态",
+          "detail": "区分明确同行、同框与无法判断的观测",
+          "status": "completed",
+          "time": "—"
+        },
+        {
+          "id": "related",
+          "title": "核对车辆与地点",
+          "detail": "核对车辆记录与明确地点关系",
+          "status": "completed",
+          "time": "—"
+        },
+        {
+          "id": "check",
+          "title": "生成研判结果",
+          "detail": "核对事实与来源，生成结构化结果",
+          "status": "completed",
+          "time": "—"
+        }
+      ],
+      "conclusions": [
+        {
+          "text": "观察范围内取得 2 条夜间记录。",
+          "clue_id": "finding-trajectory",
+          "source_ids": [
+            "demo29",
+            "demo35"
+          ]
+        },
+        {
+          "text": "明确同行记录涉及 1 名去重同行对象，共 2 条记录。",
+          "clue_id": "finding-companion",
+          "source_ids": [
+            "demo21",
+            "demo22"
+          ]
+        },
+        {
+          "text": "取得 2 条车辆记录，涉及 1 辆车辆。",
+          "clue_id": "finding-vehicle",
+          "source_ids": [
+            "demo37",
+            "demo40"
+          ]
+        },
+        {
+          "text": "有明确来源的地点映射 1 项；记录点与登记地点为相邻关系。",
+          "clue_id": "finding-place",
+          "source_ids": [
+            "demo56",
+            "demo35"
+          ]
+        },
+        {
+          "text": "01:12 明确独行观测（仅本片段）；22:16 同行状态无法判断；23:55 明确同行观测",
+          "clue_id": "finding-observation",
+          "source_ids": [
+            "demo55",
+            "demo57",
+            "demo58"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "type": "trajectory",
+          "title": "夜间记录",
+          "value": 2,
+          "unit": "条",
+          "summary": "2026-09-14 至 2026-09-16（结束不含）",
+          "items": [
+            "观察范围内取得 2 条夜间记录。"
+          ],
+          "clue_id": "finding-trajectory"
+        },
+        {
+          "type": "companion",
+          "title": "同行人员",
+          "value": 1,
+          "unit": "人",
+          "summary": "2026-09-14 至 2026-09-16（结束不含）",
+          "items": [
+            "明确同行记录涉及 1 名去重同行对象，共 2 条记录。"
+          ],
+          "clue_id": "finding-companion"
+        },
+        {
+          "type": "vehicle",
+          "title": "关联车辆",
+          "value": 1,
+          "unit": "辆",
+          "summary": "2026-09-14 至 2026-09-16（结束不含）",
+          "items": [
+            "取得 2 条车辆记录，涉及 1 辆车辆。"
+          ],
+          "clue_id": "finding-vehicle"
+        },
+        {
+          "type": "place",
+          "title": "关联地点",
+          "value": 1,
+          "unit": "个",
+          "summary": "2026-09-14 至 2026-09-16（结束不含）",
+          "items": [
+            "有明确来源的地点映射 1 项；记录点与登记地点为相邻关系。"
+          ],
+          "clue_id": "finding-place"
+        }
+      ],
+      "clues": [
+        {
+          "id": "finding-trajectory",
+          "type": "trajectory",
+          "title": "夜间记录",
+          "headline": "观察范围内取得 2 条夜间记录。",
+          "summary": "观察范围内取得 2 条夜间记录。",
+          "discoveries": [
+            "夜间口径：北京时间22:00至次日06:00。",
+            "记录数量不等于独立活动次数。"
+          ],
+          "evidence": [
+            {
+              "type": "trajectory",
+              "label": "demo29",
+              "content": "2026-09-14T22:16:00+08:00",
+              "source_ids": [
+                "demo29"
+              ]
+            },
+            {
+              "type": "trajectory",
+              "label": "demo35",
+              "content": "2026-09-15T01:12:00+08:00",
+              "source_ids": [
+                "demo35"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "finding-companion",
+          "type": "companion",
+          "title": "同行人员",
+          "headline": "明确同行记录涉及 1 名去重同行对象，共 2 条记录。",
+          "summary": "明确同行记录涉及 1 名去重同行对象，共 2 条记录。",
+          "discoveries": [
+            "同框不计为同行；缺少同行记录不表示独行。"
+          ],
+          "evidence": [
+            {
+              "type": "companion",
+              "label": "demo21",
+              "content": "2026-09-14T23:55:00+08:00",
+              "source_ids": [
+                "demo21"
+              ]
+            },
+            {
+              "type": "companion",
+              "label": "demo22",
+              "content": "2026-09-14T23:55:00+08:00",
+              "source_ids": [
+                "demo22"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "finding-vehicle",
+          "type": "vehicle",
+          "title": "关联车辆",
+          "headline": "取得 2 条车辆记录，涉及 1 辆车辆。",
+          "summary": "取得 2 条车辆记录，涉及 1 辆车辆。",
+          "discoveries": [
+            "不同时间使用同一车辆不表示同乘。"
+          ],
+          "evidence": [
+            {
+              "type": "vehicle",
+              "label": "demo37",
+              "content": "2026-09-14T19:54:00+08:00",
+              "source_ids": [
+                "demo37"
+              ]
+            },
+            {
+              "type": "vehicle",
+              "label": "demo40",
+              "content": "2026-09-15T00:47:00+08:00",
+              "source_ids": [
+                "demo40"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "finding-place",
+          "type": "place",
+          "title": "关联地点",
+          "headline": "有明确来源的地点映射 1 项；记录点与登记地点为相邻关系。",
+          "summary": "有明确来源的地点映射 1 项；记录点与登记地点为相邻关系。",
+          "discoveries": [
+            "未提供测量距离，不能推算米数。"
+          ],
+          "evidence": [
+            {
+              "type": "place",
+              "label": "demo56",
+              "content": "2026-09-15T01:12:00+08:00",
+              "source_ids": [
+                "demo56"
+              ]
+            },
+            {
+              "type": "place",
+              "label": "demo35",
+              "content": "2026-09-15T01:12:00+08:00",
+              "source_ids": [
+                "demo35"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "finding-observation",
+          "type": "trajectory",
+          "title": "观测状态",
+          "headline": "01:12 明确独行观测（仅本片段）；22:16 同行状态无法判断；23:55 明确同行观测",
+          "summary": "01:12 明确独行观测（仅本片段）；22:16 同行状态无法判断；23:55 明确同行观测",
+          "discoveries": [
+            "独行仅限有明确来源的该次观测片段。"
+          ],
+          "evidence": [
+            {
+              "type": "trajectory",
+              "label": "demo55",
+              "content": "2026-09-15T01:12:00+08:00",
+              "source_ids": [
+                "demo35",
+                "demo61"
+              ]
+            },
+            {
+              "type": "trajectory",
+              "label": "demo57",
+              "content": "2026-09-14T22:16:00+08:00",
+              "source_ids": [
+                "demo29"
+              ]
+            },
+            {
+              "type": "trajectory",
+              "label": "demo58",
+              "content": "2026-09-14T23:55:00+08:00",
+              "source_ids": [
+                "demo21"
+              ]
+            }
+          ]
+        }
+      ],
+      "missing": [
+        "观察范围仅覆盖两个日期。",
+        "地点无距离测量依据。"
+      ],
+      "subject_ref": "林晓舟"
+    }
+  },
+  "DEMO-CASE-GAMBLING": {
+    "schema_version": "1",
+    "status": "complete",
+    "scenario": {
+      "scenario_id": "DEMO-CASE-GAMBLING",
+      "title": "涉赌案件资料整理（合成演示）",
+      "subject_ref": "林晓舟",
+      "snapshot_id": "demo1003",
+      "records_snapshot_id": "demo1001",
+      "rule_version": "demo-scenarios-v2",
+      "timezone": "Asia/Shanghai",
+      "night_window": "22:00-06:00",
+      "case_window": [
+        "2026-09-14T22:00:00+08:00",
+        "2026-09-15T06:00:00+08:00"
+      ]
+    },
+    "steps": [
+      {
+        "label": "代码整理事实",
+        "status": "completed"
+      },
+      {
+        "label": "摘要来源核对",
+        "status": "completed"
+      }
+    ],
+    "cards": [
+      {
+        "id": "COUNT-funds",
+        "title": "代码事实 · COUNT-funds",
+        "description": "林晓舟 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "time": "",
+        "source_ids": [
+          "demo1",
+          "demo2",
+          "demo7"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "COUNT-lookup",
+        "title": "代码事实 · COUNT-lookup",
+        "description": "林晓舟 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "time": "",
+        "source_ids": [
+          "demo43",
+          "demo46",
+          "demo48",
+          "demo50"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "COUNT-night",
+        "title": "代码事实 · COUNT-night",
+        "description": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "time": "",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "COUNT-portrait",
+        "title": "代码事实 · COUNT-portrait",
+        "description": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "time": "",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo43",
+        "title": "代码事实 · demo43",
+        "description": "林晓舟，资料未提供时间，明确关系 member_to_account，林晓舟 → 林晓舟演示账户；无时间的关系只作背景，不纳入时段事件数。",
+        "time": "",
+        "source_ids": [
+          "demo43",
+          "demo1",
+          "demo2"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo46",
+        "title": "代码事实 · demo46",
+        "description": "林晓舟，资料未提供时间，明确关系 member_to_contact，林晓舟 → 赵衡演示号码；无时间的关系只作背景，不纳入时段事件数。",
+        "time": "",
+        "source_ids": [
+          "demo46",
+          "demo9"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo48",
+        "title": "代码事实 · demo48",
+        "description": "林晓舟，资料未提供时间，明确关系 member_to_vehicle，林晓舟 → 苏演示A12345；无时间的关系只作背景，不纳入时段事件数。",
+        "time": "",
+        "source_ids": [
+          "demo48",
+          "demo37",
+          "demo40"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo50",
+        "title": "代码事实 · demo50",
+        "description": "林晓舟，资料未提供时间，明确关系 shared_capture_event，林晓舟 → 赵衡；无时间的关系只作背景，不纳入时段事件数。",
+        "time": "",
+        "source_ids": [
+          "demo50",
+          "demo17",
+          "demo18"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo51",
+        "title": "代码事实 · demo51",
+        "description": "虚构资料登记载明陈北秋有既往涉赌演示标注，仅供演示资料引用；不能据此认定林晓舟或其他人涉赌。",
+        "time": "2026-09-01T09:00:00+08:00",
+        "source_ids": [
+          "demo59"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1003"
+      },
+      {
+        "id": "demo17",
+        "title": "代码事实 · demo17",
+        "description": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 林晓舟，共同出现对象 赵衡，设备 青梧县柳溪镇云杉路卡口。",
+        "time": "2026-09-14T20:01:00+08:00",
+        "source_ids": [
+          "demo17"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo18",
+        "title": "代码事实 · demo18",
+        "description": "林晓舟，2026-09-14T20:01:00+08:00，同框（不据此推导同行）；记录主体 赵衡，共同出现对象 林晓舟，设备 青梧县柳溪镇云杉路卡口。",
+        "time": "2026-09-14T20:01:00+08:00",
+        "source_ids": [
+          "demo18"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo1",
+        "title": "代码事实 · demo1",
+        "description": "林晓舟，2026-09-14T20:14:00+08:00，原始流水 demo71，credit，金额 12800 分，对手账户 赵衡演示账户；不配对合并，不认定资金用途。",
+        "time": "2026-09-14T20:14:00+08:00",
+        "source_ids": [
+          "demo1"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo2",
+        "title": "代码事实 · demo2",
+        "description": "林晓舟，2026-09-14T20:17:00+08:00，原始流水 demo72，debit，金额 12600 分，对手账户 周晚晴演示账户；不配对合并，不认定资金用途。",
+        "time": "2026-09-14T20:17:00+08:00",
+        "source_ids": [
+          "demo2"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo29",
+        "title": "代码事实 · demo29",
+        "description": "林晓舟，2026-09-14T22:16:00+08:00，同行状态无法判断；设备 青梧县柳溪镇云杉路北段卡口。",
+        "time": "2026-09-14T22:16:00+08:00",
+        "source_ids": [
+          "demo29"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo21",
+        "title": "代码事实 · demo21",
+        "description": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 林晓舟，共同出现对象 陈北秋，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "time": "2026-09-14T23:55:00+08:00",
+        "source_ids": [
+          "demo21"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo22",
+        "title": "代码事实 · demo22",
+        "description": "林晓舟，2026-09-14T23:55:00+08:00，明确同行；记录主体 陈北秋，共同出现对象 林晓舟，设备 青梧县南埠夜市夜泊棋牌室门口卡口。",
+        "time": "2026-09-14T23:55:00+08:00",
+        "source_ids": [
+          "demo22"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo52",
+        "title": "代码事实 · demo52",
+        "description": "资料明确标注同行；仅表示该次同行观测，不表示参与共同活动。",
+        "time": "2026-09-14T23:55:00+08:00",
+        "source_ids": [
+          "demo21",
+          "demo22"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1003"
+      },
+      {
+        "id": "demo53",
+        "title": "代码事实 · demo53",
+        "description": "南埠夜市口卡口对应虚构地点青梧县南埠夜市「夜泊棋牌室」门口，无真实坐标。",
+        "time": "2026-09-14T23:55:00+08:00",
+        "source_ids": [
+          "demo21"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1003"
+      },
+      {
+        "id": "demo7",
+        "title": "代码事实 · demo7",
+        "description": "林晓舟，2026-09-15T00:42:00+08:00，原始流水 demo77，debit，金额 3200 分，对手账户 陈北秋演示账户；不配对合并，不认定资金用途。",
+        "time": "2026-09-15T00:42:00+08:00",
+        "source_ids": [
+          "demo7"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      },
+      {
+        "id": "demo35",
+        "title": "代码事实 · demo35",
+        "description": "林晓舟，2026-09-15T01:12:00+08:00，同行状态无法判断；设备 青梧县东津巷口卡口。",
+        "time": "2026-09-15T01:12:00+08:00",
+        "source_ids": [
+          "demo35"
+        ],
+        "fields": [],
+        "message_id": "tool-message",
+        "snapshot_id": "demo1001"
+      }
+    ],
+    "missing": [
+      "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+      "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。"
+    ],
+    "summary": [
+      {
+        "label": "夜间观测",
+        "count": 2,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 2
+      },
+      {
+        "label": "同框与同行",
+        "count": 4,
+        "dates": [
+          "2026-09-14"
+        ],
+        "night_count": 2
+      },
+      {
+        "label": "资金流水",
+        "count": 3,
+        "dates": [
+          "2026-09-14",
+          "2026-09-15"
+        ],
+        "night_count": 1
+      },
+      {
+        "label": "明确关系",
+        "count": 4,
+        "dates": [],
+        "night_count": 0
+      }
+    ],
+    "notice": "合成演示资料，仅整理已有记录，不判定违法犯罪。",
+    "turn_id": "request",
+    "verified_summary": [
+      {
+        "fact_id": "COUNT-funds",
+        "statement": "林晓舟 的资金流水为 3 条原始记录；涉及 2 个北京时间自然日，夜间 1 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo1",
+          "demo2",
+          "demo7"
+        ]
+      },
+      {
+        "fact_id": "COUNT-lookup",
+        "statement": "林晓舟 的明确关系为 4 条原始记录；涉及 0 个北京时间自然日，夜间 0 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo43",
+          "demo46",
+          "demo48",
+          "demo50"
+        ]
+      },
+      {
+        "fact_id": "COUNT-night",
+        "statement": "林晓舟 的夜间观测为 2 条原始记录；涉及 2 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo29",
+          "demo35"
+        ]
+      },
+      {
+        "fact_id": "COUNT-portrait",
+        "statement": "林晓舟 的同框与同行为 4 条原始记录；涉及 1 个北京时间自然日，夜间 2 条。按记录计数，不等同独立事件数。",
+        "source_ids": [
+          "demo17",
+          "demo18",
+          "demo21",
+          "demo22"
+        ]
+      },
+      {
+        "fact_id": "demo1",
+        "statement": "林晓舟，2026-09-14T20:14:00+08:00，原始流水 demo71，credit，金额 12800 分，对手账户 赵衡演示账户；不配对合并，不认定资金用途。",
+        "source_ids": [
+          "demo1"
+        ]
+      }
+    ],
+    "summary_check": "checked",
+    "diagram": {
+      "version": "1.0",
+      "status": "ready",
+      "run_id": "run_demo",
+      "scenario_id": "DEMO-CASE-GAMBLING",
+      "timezone": "Asia/Shanghai",
+      "window_start": "2026-09-14T00:00:00+08:00",
+      "window_end": "2026-09-16T00:00:00+08:00",
+      "scenario_snapshot_id": "demo1003",
+      "records_snapshot_id": "demo1001",
+      "rule_version": "deterministic-facts-v1",
+      "synthetic": true,
+      "pages": [
+        {
+          "number": 1,
+          "groups": [
+            {
+              "title": "2026-09-14 · 晚间",
+              "node_ids": [
+                "n3b5e3ee450c0218b",
+                "n7943dfabe1a8c2a8",
+                "n61ea51136a1eb39d",
+                "nd2bfc8025ea4935a"
+              ]
+            },
+            {
+              "title": "2026-09-14 · 夜间",
+              "node_ids": [
+                "n49efea2cccf88ed9",
+                "n273f694574910fba",
+                "nc8eb6699bb981d0a"
+              ]
+            },
+            {
+              "title": "2026-09-15 · 凌晨",
+              "node_ids": [
+                "ndef4a0b021463baf",
+                "n3b7321b58bc8b3e2"
+              ]
+            },
+            {
+              "title": "时间未明确",
+              "node_ids": [
+                "n11b7110b31f172b5",
+                "n8e8858c5d04a52ac",
+                "nc4a1a7e906e65649",
+                "nd87fcd170a53adb4"
+              ]
+            }
+          ],
+          "nodes": [
+            {
+              "id": "n3b5e3ee450c0218b",
+              "time": "2026-09-14T20:01:00+08:00",
+              "group": "2026-09-14 · 晚间",
+              "subject": "林晓舟 与 赵衡",
+              "subject_ref": "林晓舟",
+              "event": "同框观测",
+              "category": "portrait",
+              "source_ids": [
+                "demo17"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件01"
+            },
+            {
+              "id": "n7943dfabe1a8c2a8",
+              "time": "2026-09-14T20:01:00+08:00",
+              "group": "2026-09-14 · 晚间",
+              "subject": "林晓舟 与 赵衡",
+              "subject_ref": "林晓舟",
+              "event": "同框观测",
+              "category": "portrait",
+              "source_ids": [
+                "demo18"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件02"
+            },
+            {
+              "id": "n61ea51136a1eb39d",
+              "time": "2026-09-14T20:14:00+08:00",
+              "group": "2026-09-14 · 晚间",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "收入 128.00 元",
+              "category": "funds",
+              "source_ids": [
+                "demo1"
+              ],
+              "message_id": "tool-message",
+              "notes": [
+                "账户：林晓舟演示账户",
+                "对手账户：赵衡演示账户",
+                "逐条原始流水，不配对合并。"
+              ],
+              "number": "事件03"
+            },
+            {
+              "id": "nd2bfc8025ea4935a",
+              "time": "2026-09-14T20:17:00+08:00",
+              "group": "2026-09-14 · 晚间",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "支出 126.00 元",
+              "category": "funds",
+              "source_ids": [
+                "demo2"
+              ],
+              "message_id": "tool-message",
+              "notes": [
+                "账户：林晓舟演示账户",
+                "对手账户：周晚晴演示账户",
+                "逐条原始流水，不配对合并。"
+              ],
+              "number": "事件04"
+            },
+            {
+              "id": "n49efea2cccf88ed9",
+              "time": "2026-09-14T22:16:00+08:00",
+              "group": "2026-09-14 · 夜间",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "夜间观测",
+              "category": "night",
+              "source_ids": [
+                "demo29"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件05"
+            },
+            {
+              "id": "n273f694574910fba",
+              "time": "2026-09-14T23:55:00+08:00",
+              "group": "2026-09-14 · 夜间",
+              "subject": "林晓舟 与 陈北秋",
+              "subject_ref": "林晓舟",
+              "event": "明确同行",
+              "category": "portrait",
+              "source_ids": [
+                "demo21"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件06"
+            },
+            {
+              "id": "nc8eb6699bb981d0a",
+              "time": "2026-09-14T23:55:00+08:00",
+              "group": "2026-09-14 · 夜间",
+              "subject": "林晓舟 与 陈北秋",
+              "subject_ref": "林晓舟",
+              "event": "明确同行",
+              "category": "portrait",
+              "source_ids": [
+                "demo22"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件07"
+            },
+            {
+              "id": "ndef4a0b021463baf",
+              "time": "2026-09-15T00:42:00+08:00",
+              "group": "2026-09-15 · 凌晨",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "支出 32.00 元",
+              "category": "funds",
+              "source_ids": [
+                "demo7"
+              ],
+              "message_id": "tool-message",
+              "notes": [
+                "账户：林晓舟演示账户",
+                "对手账户：陈北秋演示账户",
+                "逐条原始流水，不配对合并。"
+              ],
+              "number": "事件08"
+            },
+            {
+              "id": "n3b7321b58bc8b3e2",
+              "time": "2026-09-15T01:12:00+08:00",
+              "group": "2026-09-15 · 凌晨",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "夜间观测",
+              "category": "night",
+              "source_ids": [
+                "demo35"
+              ],
+              "message_id": "tool-message",
+              "notes": [],
+              "number": "事件09"
+            },
+            {
+              "id": "n11b7110b31f172b5",
+              "time": null,
+              "group": "时间未明确",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "对象与账户对应",
+              "category": "lookup",
+              "source_ids": [
+                "demo43",
+                "demo1",
+                "demo2"
+              ],
+              "message_id": "tool-message",
+              "notes": [
+                "对应引用：林晓舟演示账户"
+              ],
+              "number": "事件10"
+            },
+            {
+              "id": "n8e8858c5d04a52ac",
+              "time": null,
+              "group": "时间未明确",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "对象与车辆对应",
+              "category": "lookup",
+              "source_ids": [
+                "demo48",
+                "demo37",
+                "demo40"
+              ],
+              "message_id": "tool-message",
+              "notes": [
+                "对应引用：苏演示A12345"
+              ],
+              "number": "事件11"
+            },
+            {
+              "id": "nc4a1a7e906e65649",
+              "time": null,
+              "group": "时间未明确",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "已有对应关系",
+              "category": "lookup",
+              "source_ids": [
+                "demo50",
+                "demo17",
+                "demo18"
+              ],
+              "message_id": "tool-message",
+              "notes": [
+                "对应引用：赵衡"
+              ],
+              "number": "事件12"
+            },
+            {
+              "id": "nd87fcd170a53adb4",
+              "time": null,
+              "group": "时间未明确",
+              "subject": "林晓舟",
+              "subject_ref": "林晓舟",
+              "event": "对象与联系编号对应",
+              "category": "lookup",
+              "source_ids": [
+                "demo46",
+                "demo9"
+              ],
+              "message_id": "tool-message",
+              "notes": [
+                "对应引用：赵衡演示号码"
+              ],
+              "number": "事件13"
+            }
+          ],
+          "edges": [
+            {
+              "from": "n3b5e3ee450c0218b",
+              "to": "n61ea51136a1eb39d",
+              "kind": "chronological"
+            },
+            {
+              "from": "n7943dfabe1a8c2a8",
+              "to": "n61ea51136a1eb39d",
+              "kind": "chronological"
+            },
+            {
+              "from": "n61ea51136a1eb39d",
+              "to": "nd2bfc8025ea4935a",
+              "kind": "chronological"
+            },
+            {
+              "from": "nd2bfc8025ea4935a",
+              "to": "n49efea2cccf88ed9",
+              "kind": "chronological"
+            },
+            {
+              "from": "n49efea2cccf88ed9",
+              "to": "n273f694574910fba",
+              "kind": "chronological"
+            },
+            {
+              "from": "n49efea2cccf88ed9",
+              "to": "nc8eb6699bb981d0a",
+              "kind": "chronological"
+            },
+            {
+              "from": "n273f694574910fba",
+              "to": "ndef4a0b021463baf",
+              "kind": "chronological"
+            },
+            {
+              "from": "nc8eb6699bb981d0a",
+              "to": "ndef4a0b021463baf",
+              "kind": "chronological"
+            },
+            {
+              "from": "ndef4a0b021463baf",
+              "to": "n3b7321b58bc8b3e2",
+              "kind": "chronological"
+            }
+          ],
+          "mermaid": "flowchart TB\nsubgraph g0[\"2026-09-14 · 晚间\"]\nn3b5e3ee450c0218b(\"事件01 · 20:01\n林晓舟 与 赵衡\n同框观测\")\nn7943dfabe1a8c2a8(\"事件02 · 20:01\n林晓舟 与 赵衡\n同框观测\")\nn61ea51136a1eb39d(\"事件03 · 20:14\n林晓舟\n收入 128.00 元\")\nnd2bfc8025ea4935a(\"事件04 · 20:17\n林晓舟\n支出 126.00 元\")\nend\nsubgraph g1[\"2026-09-14 · 夜间\"]\nn49efea2cccf88ed9(\"事件05 · 22:16\n林晓舟\n夜间观测\")\nn273f694574910fba(\"事件06 · 23:55\n林晓舟 与 陈北秋\n明确同行\")\nnc8eb6699bb981d0a(\"事件07 · 23:55\n林晓舟 与 陈北秋\n明确同行\")\nend\nsubgraph g2[\"2026-09-15 · 凌晨\"]\nndef4a0b021463baf(\"事件08 · 00:42\n林晓舟\n支出 32.00 元\")\nn3b7321b58bc8b3e2(\"事件09 · 01:12\n林晓舟\n夜间观测\")\nend\nsubgraph g3[\"时间未明确\"]\nn11b7110b31f172b5(\"事件10 · 时间未明确\n林晓舟\n对象与账户对应\")\nn8e8858c5d04a52ac(\"事件11 · 时间未明确\n林晓舟\n对象与车辆对应\")\nnc4a1a7e906e65649(\"事件12 · 时间未明确\n林晓舟\n已有对应关系\")\nnd87fcd170a53adb4(\"事件13 · 时间未明确\n林晓舟\n对象与联系编号对应\")\nend\nn3b5e3ee450c0218b -.-> n61ea51136a1eb39d\nn7943dfabe1a8c2a8 -.-> n61ea51136a1eb39d\nn61ea51136a1eb39d -.-> nd2bfc8025ea4935a\nnd2bfc8025ea4935a -.-> n49efea2cccf88ed9\nn49efea2cccf88ed9 -.-> n273f694574910fba\nn49efea2cccf88ed9 -.-> nc8eb6699bb981d0a\nn273f694574910fba -.-> ndef4a0b021463baf\nnc8eb6699bb981d0a -.-> ndef4a0b021463baf\nndef4a0b021463baf -.-> n3b7321b58bc8b3e2"
+        }
+      ],
+      "total_nodes": 13,
+      "legend": "虚线箭头仅表示时间先后，不表示因果关系；同一时刻不区分先后。",
+      "aliases": [
+        {
+          "name": "林晓舟",
+          "ref": "林晓舟"
+        }
+      ],
+      "missing": [
+        "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+        "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。"
+      ],
+      "case_window": [],
+      "case_source_ids": []
+    },
+    "presentation": {
+      "diagram": {
+        "version": "1.0",
+        "status": "ready",
+        "run_id": "run_demo",
+        "scenario_id": "DEMO-CASE-GAMBLING",
+        "timezone": "Asia/Shanghai",
+        "window_start": "2026-09-14T00:00:00+08:00",
+        "window_end": "2026-09-16T00:00:00+08:00",
+        "scenario_snapshot_id": "demo1003",
+        "records_snapshot_id": "demo1001",
+        "rule_version": "deterministic-facts-v1",
+        "synthetic": true,
+        "pages": [
+          {
+            "number": 1,
+            "groups": [
+              {
+                "title": "2026-09-14 · 晚间",
+                "node_ids": [
+                  "n3b5e3ee450c0218b",
+                  "n7943dfabe1a8c2a8",
+                  "n61ea51136a1eb39d",
+                  "nd2bfc8025ea4935a"
+                ]
+              },
+              {
+                "title": "2026-09-14 · 夜间",
+                "node_ids": [
+                  "n49efea2cccf88ed9",
+                  "n273f694574910fba",
+                  "nc8eb6699bb981d0a"
+                ]
+              },
+              {
+                "title": "2026-09-15 · 凌晨",
+                "node_ids": [
+                  "ndef4a0b021463baf",
+                  "n3b7321b58bc8b3e2"
+                ]
+              },
+              {
+                "title": "时间未明确",
+                "node_ids": [
+                  "n11b7110b31f172b5",
+                  "n8e8858c5d04a52ac",
+                  "nc4a1a7e906e65649",
+                  "nd87fcd170a53adb4"
+                ]
+              }
+            ],
+            "nodes": [
+              {
+                "id": "n3b5e3ee450c0218b",
+                "time": "2026-09-14T20:01:00+08:00",
+                "group": "2026-09-14 · 晚间",
+                "subject": "林晓舟 与 赵衡",
+                "subject_ref": "林晓舟",
+                "event": "同框观测",
+                "category": "portrait",
+                "source_ids": [
+                  "demo17"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件01"
+              },
+              {
+                "id": "n7943dfabe1a8c2a8",
+                "time": "2026-09-14T20:01:00+08:00",
+                "group": "2026-09-14 · 晚间",
+                "subject": "林晓舟 与 赵衡",
+                "subject_ref": "林晓舟",
+                "event": "同框观测",
+                "category": "portrait",
+                "source_ids": [
+                  "demo18"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件02"
+              },
+              {
+                "id": "n61ea51136a1eb39d",
+                "time": "2026-09-14T20:14:00+08:00",
+                "group": "2026-09-14 · 晚间",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "收入 128.00 元",
+                "category": "funds",
+                "source_ids": [
+                  "demo1"
+                ],
+                "message_id": "tool-message",
+                "notes": [
+                  "账户：林晓舟演示账户",
+                  "对手账户：赵衡演示账户",
+                  "逐条原始流水，不配对合并。"
+                ],
+                "number": "事件03"
+              },
+              {
+                "id": "nd2bfc8025ea4935a",
+                "time": "2026-09-14T20:17:00+08:00",
+                "group": "2026-09-14 · 晚间",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "支出 126.00 元",
+                "category": "funds",
+                "source_ids": [
+                  "demo2"
+                ],
+                "message_id": "tool-message",
+                "notes": [
+                  "账户：林晓舟演示账户",
+                  "对手账户：周晚晴演示账户",
+                  "逐条原始流水，不配对合并。"
+                ],
+                "number": "事件04"
+              },
+              {
+                "id": "n49efea2cccf88ed9",
+                "time": "2026-09-14T22:16:00+08:00",
+                "group": "2026-09-14 · 夜间",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "夜间观测",
+                "category": "night",
+                "source_ids": [
+                  "demo29"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件05"
+              },
+              {
+                "id": "n273f694574910fba",
+                "time": "2026-09-14T23:55:00+08:00",
+                "group": "2026-09-14 · 夜间",
+                "subject": "林晓舟 与 陈北秋",
+                "subject_ref": "林晓舟",
+                "event": "明确同行",
+                "category": "portrait",
+                "source_ids": [
+                  "demo21"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件06"
+              },
+              {
+                "id": "nc8eb6699bb981d0a",
+                "time": "2026-09-14T23:55:00+08:00",
+                "group": "2026-09-14 · 夜间",
+                "subject": "林晓舟 与 陈北秋",
+                "subject_ref": "林晓舟",
+                "event": "明确同行",
+                "category": "portrait",
+                "source_ids": [
+                  "demo22"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件07"
+              },
+              {
+                "id": "ndef4a0b021463baf",
+                "time": "2026-09-15T00:42:00+08:00",
+                "group": "2026-09-15 · 凌晨",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "支出 32.00 元",
+                "category": "funds",
+                "source_ids": [
+                  "demo7"
+                ],
+                "message_id": "tool-message",
+                "notes": [
+                  "账户：林晓舟演示账户",
+                  "对手账户：陈北秋演示账户",
+                  "逐条原始流水，不配对合并。"
+                ],
+                "number": "事件08"
+              },
+              {
+                "id": "n3b7321b58bc8b3e2",
+                "time": "2026-09-15T01:12:00+08:00",
+                "group": "2026-09-15 · 凌晨",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "夜间观测",
+                "category": "night",
+                "source_ids": [
+                  "demo35"
+                ],
+                "message_id": "tool-message",
+                "notes": [],
+                "number": "事件09"
+              },
+              {
+                "id": "n11b7110b31f172b5",
+                "time": null,
+                "group": "时间未明确",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "对象与账户对应",
+                "category": "lookup",
+                "source_ids": [
+                  "demo43",
+                  "demo1",
+                  "demo2"
+                ],
+                "message_id": "tool-message",
+                "notes": [
+                  "对应引用：林晓舟演示账户"
+                ],
+                "number": "事件10"
+              },
+              {
+                "id": "n8e8858c5d04a52ac",
+                "time": null,
+                "group": "时间未明确",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "对象与车辆对应",
+                "category": "lookup",
+                "source_ids": [
+                  "demo48",
+                  "demo37",
+                  "demo40"
+                ],
+                "message_id": "tool-message",
+                "notes": [
+                  "对应引用：苏演示A12345"
+                ],
+                "number": "事件11"
+              },
+              {
+                "id": "nc4a1a7e906e65649",
+                "time": null,
+                "group": "时间未明确",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "已有对应关系",
+                "category": "lookup",
+                "source_ids": [
+                  "demo50",
+                  "demo17",
+                  "demo18"
+                ],
+                "message_id": "tool-message",
+                "notes": [
+                  "对应引用：赵衡"
+                ],
+                "number": "事件12"
+              },
+              {
+                "id": "nd87fcd170a53adb4",
+                "time": null,
+                "group": "时间未明确",
+                "subject": "林晓舟",
+                "subject_ref": "林晓舟",
+                "event": "对象与联系编号对应",
+                "category": "lookup",
+                "source_ids": [
+                  "demo46",
+                  "demo9"
+                ],
+                "message_id": "tool-message",
+                "notes": [
+                  "对应引用：赵衡演示号码"
+                ],
+                "number": "事件13"
+              }
+            ],
+            "edges": [
+              {
+                "from": "n3b5e3ee450c0218b",
+                "to": "n61ea51136a1eb39d",
+                "kind": "chronological"
+              },
+              {
+                "from": "n7943dfabe1a8c2a8",
+                "to": "n61ea51136a1eb39d",
+                "kind": "chronological"
+              },
+              {
+                "from": "n61ea51136a1eb39d",
+                "to": "nd2bfc8025ea4935a",
+                "kind": "chronological"
+              },
+              {
+                "from": "nd2bfc8025ea4935a",
+                "to": "n49efea2cccf88ed9",
+                "kind": "chronological"
+              },
+              {
+                "from": "n49efea2cccf88ed9",
+                "to": "n273f694574910fba",
+                "kind": "chronological"
+              },
+              {
+                "from": "n49efea2cccf88ed9",
+                "to": "nc8eb6699bb981d0a",
+                "kind": "chronological"
+              },
+              {
+                "from": "n273f694574910fba",
+                "to": "ndef4a0b021463baf",
+                "kind": "chronological"
+              },
+              {
+                "from": "nc8eb6699bb981d0a",
+                "to": "ndef4a0b021463baf",
+                "kind": "chronological"
+              },
+              {
+                "from": "ndef4a0b021463baf",
+                "to": "n3b7321b58bc8b3e2",
+                "kind": "chronological"
+              }
+            ],
+            "mermaid": "flowchart TB\nsubgraph g0[\"2026-09-14 · 晚间\"]\nn3b5e3ee450c0218b(\"事件01 · 20:01\n林晓舟 与 赵衡\n同框观测\")\nn7943dfabe1a8c2a8(\"事件02 · 20:01\n林晓舟 与 赵衡\n同框观测\")\nn61ea51136a1eb39d(\"事件03 · 20:14\n林晓舟\n收入 128.00 元\")\nnd2bfc8025ea4935a(\"事件04 · 20:17\n林晓舟\n支出 126.00 元\")\nend\nsubgraph g1[\"2026-09-14 · 夜间\"]\nn49efea2cccf88ed9(\"事件05 · 22:16\n林晓舟\n夜间观测\")\nn273f694574910fba(\"事件06 · 23:55\n林晓舟 与 陈北秋\n明确同行\")\nnc8eb6699bb981d0a(\"事件07 · 23:55\n林晓舟 与 陈北秋\n明确同行\")\nend\nsubgraph g2[\"2026-09-15 · 凌晨\"]\nndef4a0b021463baf(\"事件08 · 00:42\n林晓舟\n支出 32.00 元\")\nn3b7321b58bc8b3e2(\"事件09 · 01:12\n林晓舟\n夜间观测\")\nend\nsubgraph g3[\"时间未明确\"]\nn11b7110b31f172b5(\"事件10 · 时间未明确\n林晓舟\n对象与账户对应\")\nn8e8858c5d04a52ac(\"事件11 · 时间未明确\n林晓舟\n对象与车辆对应\")\nnc4a1a7e906e65649(\"事件12 · 时间未明确\n林晓舟\n已有对应关系\")\nnd87fcd170a53adb4(\"事件13 · 时间未明确\n林晓舟\n对象与联系编号对应\")\nend\nn3b5e3ee450c0218b -.-> n61ea51136a1eb39d\nn7943dfabe1a8c2a8 -.-> n61ea51136a1eb39d\nn61ea51136a1eb39d -.-> nd2bfc8025ea4935a\nnd2bfc8025ea4935a -.-> n49efea2cccf88ed9\nn49efea2cccf88ed9 -.-> n273f694574910fba\nn49efea2cccf88ed9 -.-> nc8eb6699bb981d0a\nn273f694574910fba -.-> ndef4a0b021463baf\nnc8eb6699bb981d0a -.-> ndef4a0b021463baf\nndef4a0b021463baf -.-> n3b7321b58bc8b3e2"
+          }
+        ],
+        "total_nodes": 13,
+        "legend": "虚线箭头仅表示时间先后，不表示因果关系；同一时刻不区分先后。",
+        "aliases": [
+          {
+            "name": "林晓舟",
+            "ref": "林晓舟"
+          }
+        ],
+        "missing": [
+          "资料仅覆盖两个日期，不能据此概括长期频繁行为。",
+          "流水缺少跨账户唯一配对键，不合并双边流水，不称为赌资。"
+        ],
+        "case_window": [],
+        "case_source_ids": []
+      },
+      "version": "1.0",
+      "turn_id": "request",
+      "title": "涉赌案件资料整理",
+      "process": [
+        {
+          "id": "scope",
+          "title": "确认资料范围",
+          "detail": "确认对象、观察时段与资料范围",
+          "status": "completed",
+          "time": "—"
+        },
+        {
+          "id": "night",
+          "title": "查询夜间记录",
+          "detail": "检索观察范围内的夜间记录",
+          "status": "completed",
+          "time": "—"
+        },
+        {
+          "id": "portrait",
+          "title": "核对同行记录",
+          "detail": "区分明确同行、同框与无法判断的观测",
+          "status": "completed",
+          "time": "—"
+        },
+        {
+          "id": "related",
+          "title": "整理资金与关系",
+          "detail": "整理原始流水与已有关系资料",
+          "status": "completed",
+          "time": "—"
+        },
+        {
+          "id": "check",
+          "title": "生成研判结果",
+          "detail": "核对事实与来源，生成结构化结果",
+          "status": "completed",
+          "time": "—"
+        }
+      ],
+      "conclusions": [
+        {
+          "text": "观察范围内取得 2 条夜间记录。",
+          "clue_id": "finding-trajectory",
+          "source_ids": [
+            "demo29",
+            "demo35"
+          ]
+        },
+        {
+          "text": "明确同行记录涉及 1 名去重同行对象，共 2 条记录。",
+          "clue_id": "finding-companion",
+          "source_ids": [
+            "demo21",
+            "demo22"
+          ]
+        },
+        {
+          "text": "取得 3 条原始资金流水。",
+          "clue_id": "finding-funds",
+          "source_ids": [
+            "demo1",
+            "demo2",
+            "demo7"
+          ]
+        },
+        {
+          "text": "取得 4 条明确关系记录。",
+          "clue_id": "finding-relation",
+          "source_ids": [
+            "demo43",
+            "demo46",
+            "demo48",
+            "demo50"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "type": "trajectory",
+          "title": "夜间记录",
+          "value": 2,
+          "unit": "条",
+          "summary": "2026-09-14 至 2026-09-16（结束不含）",
+          "items": [
+            "观察范围内取得 2 条夜间记录。"
+          ],
+          "clue_id": "finding-trajectory"
+        },
+        {
+          "type": "companion",
+          "title": "同行人员",
+          "value": 1,
+          "unit": "人",
+          "summary": "2026-09-14 至 2026-09-16（结束不含）",
+          "items": [
+            "明确同行记录涉及 1 名去重同行对象，共 2 条记录。"
+          ],
+          "clue_id": "finding-companion"
+        },
+        {
+          "type": "funds",
+          "title": "资金流水",
+          "value": 3,
+          "unit": "条",
+          "summary": "2026-09-14 至 2026-09-16（结束不含）",
+          "items": [
+            "取得 3 条原始资金流水。"
+          ],
+          "clue_id": "finding-funds"
+        },
+        {
+          "type": "relation",
+          "title": "明确关系",
+          "value": 4,
+          "unit": "条",
+          "summary": "2026-09-14 至 2026-09-16（结束不含）",
+          "items": [
+            "取得 4 条明确关系记录。"
+          ],
+          "clue_id": "finding-relation"
+        }
+      ],
+      "clues": [
+        {
+          "id": "finding-trajectory",
+          "type": "trajectory",
+          "title": "夜间记录",
+          "headline": "观察范围内取得 2 条夜间记录。",
+          "summary": "观察范围内取得 2 条夜间记录。",
+          "discoveries": [
+            "夜间口径：北京时间22:00至次日06:00。",
+            "记录数量不等于独立活动次数。"
+          ],
+          "evidence": [
+            {
+              "type": "trajectory",
+              "label": "demo29",
+              "content": "2026-09-14T22:16:00+08:00",
+              "source_ids": [
+                "demo29"
+              ]
+            },
+            {
+              "type": "trajectory",
+              "label": "demo35",
+              "content": "2026-09-15T01:12:00+08:00",
+              "source_ids": [
+                "demo35"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "finding-companion",
+          "type": "companion",
+          "title": "同行人员",
+          "headline": "明确同行记录涉及 1 名去重同行对象，共 2 条记录。",
+          "summary": "明确同行记录涉及 1 名去重同行对象，共 2 条记录。",
+          "discoveries": [
+            "同框不计为同行；缺少同行记录不表示独行。"
+          ],
+          "evidence": [
+            {
+              "type": "companion",
+              "label": "demo21",
+              "content": "2026-09-14T23:55:00+08:00",
+              "source_ids": [
+                "demo21"
+              ]
+            },
+            {
+              "type": "companion",
+              "label": "demo22",
+              "content": "2026-09-14T23:55:00+08:00",
+              "source_ids": [
+                "demo22"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "finding-funds",
+          "type": "funds",
+          "title": "资金流水",
+          "headline": "取得 3 条原始资金流水。",
+          "summary": "取得 3 条原始资金流水。",
+          "discoveries": [
+            "逐条保留，不合并双边记录，不推断资金用途。"
+          ],
+          "evidence": [
+            {
+              "type": "funds",
+              "label": "demo1",
+              "content": "2026-09-14T20:14:00+08:00",
+              "source_ids": [
+                "demo1"
+              ]
+            },
+            {
+              "type": "funds",
+              "label": "demo2",
+              "content": "2026-09-14T20:17:00+08:00",
+              "source_ids": [
+                "demo2"
+              ]
+            },
+            {
+              "type": "funds",
+              "label": "demo7",
+              "content": "2026-09-15T00:42:00+08:00",
+              "source_ids": [
+                "demo7"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "finding-relation",
+          "type": "relation",
+          "title": "明确关系",
+          "headline": "取得 4 条明确关系记录。",
+          "summary": "取得 4 条明确关系记录。",
+          "discoveries": [
+            "关系记录仅说明资料中的对应关系。"
+          ],
+          "evidence": [
+            {
+              "type": "relation",
+              "label": "demo43",
+              "content": "时间未提供",
+              "source_ids": [
+                "demo43"
+              ]
+            },
+            {
+              "type": "relation",
+              "label": "demo46",
+              "content": "时间未提供",
+              "source_ids": [
+                "demo46"
+              ]
+            },
+            {
+              "type": "relation",
+              "label": "demo48",
+              "content": "时间未提供",
+              "source_ids": [
+                "demo48"
+              ]
+            },
+            {
+              "type": "relation",
+              "label": "demo50",
+              "content": "时间未提供",
+              "source_ids": [
+                "demo50"
+              ]
+            }
+          ]
+        }
+      ],
+      "missing": [
+        "观察范围仅覆盖两个日期。",
+        "流水缺少跨账户唯一配对依据。"
+      ],
+      "subject_ref": "林晓舟"
+    }
+  }
+}

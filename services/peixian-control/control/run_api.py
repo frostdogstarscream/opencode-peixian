@@ -93,6 +93,13 @@ def register(app):
         lines += ['## 已核对结论','']+[('- '+x['text']) for x in view.get('conclusions',[])]
         if not view.get('conclusions'):lines+=['暂无可导出的已核对结论。']
         lines+=['','## 过程','']+[f"- {x['name']}：{ {'completed':'已完成','failed':'未完成','cancelled':'已取消','pending':'等待处理','running':'执行中'}.get(x['status'],'状态待确认')}" for x in s.rows('SELECT name,status FROM run_events WHERE run_id=? ORDER BY sequence',(rid,))]
+        diagram=view.get('diagram') or {}
+        if diagram.get('version')=='1.0':
+            lines += ['', '## 事件脉络图', '', diagram.get('legend','')]
+            for page in diagram.get('pages',[]):
+                lines += ['', '### 第 '+str(page['number'])+' 页', '', '```mermaid', page['mermaid'], '```']
+                for node in page['nodes']:
+                    lines += ['- '+node['number']+'：'+(node['time'] or '时间未明确')+'；'+node['subject']+'；'+node['event']+'；来源 '+', '.join(node['source_ids'])]
         lines+=['','## 来源','']
         for clue in view.get('clues',[]):
             for item in clue.get('evidence',[]):lines.append('- '+item['label']+'：'+item['content'])

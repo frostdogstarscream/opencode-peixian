@@ -120,6 +120,8 @@ export type AnalysisEvidenceCard = {
   clue_id?: string
 }
 export type AnalysisClue = {
+  diagram_run_id?: string
+  message_id?: string
   id: string
   type: "person" | "vehicle" | "place" | "trajectory" | string
   title: string
@@ -132,6 +134,7 @@ export type AnalysisClue = {
   evidence: { type: string; label: string; content: string }[]
 }
 export type AnalysisResult = {
+  diagram?: import("./event-diagram").EventDiagram | null
   schema: "peixian.analysis-result"
   version: "1.0"
   run_id?: string

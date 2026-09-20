@@ -94,7 +94,10 @@ export default function Chat() {
   }))
   createEffect(() => {
     const clue = selectedClue()
-    if (clue && !latestAnalysis()?.clues.some((item) => item.id === clue.id)) setSelectedClue(undefined)
+    if (!clue) return
+    const diagrams = [latestAnalysis(), ...messages().flatMap(m=>m.parts.filter(p=>p.type==="analysis_result" && isAnalysisResult(p.data)).map(p=>p.data as AnalysisResult))].flatMap(r=>r?.diagram?[r.diagram]:[])
+    const graphClue = clue.diagram_run_id && diagrams.some(d=>(d.run_id??d.scenario_id)===clue.diagram_run_id && d.pages.some(p=>p.nodes.some(n=>(d.run_id??d.scenario_id)+":"+n.id===clue.id)))
+    if (!graphClue && !latestAnalysis()?.clues.some((item) => item.id === clue.id)) setSelectedClue(undefined)
   })
   createEffect(() => {
     if (slashQuery() === undefined && slashFilter()) setSlashFilter("")
@@ -735,7 +738,7 @@ export default function Chat() {
                   const toolParts = () => entry.toolParts
                   const analysisParts = () => message.parts.filter((part) => part.type === "analysis_result" && isAnalysisResult(part.data))
                   return (
-                  <article class={"message " + (message.info.role === "user" ? "user" : "assistant")}>
+                  <article data-message-id={message.info.id} tabindex={-1} class={"message " + (message.info.role === "user" ? "user" : "assistant")}>
                     <div class="message-avatar">
                       <Show when={message.info.role === "user"} fallback={<Icon name="skill" size={17} />}>
                         {app.user().username.slice(0, 1).toUpperCase()}
@@ -943,7 +946,7 @@ export default function Chat() {
       <Show when={latestAnalysis()?.clues.length && showClues()} fallback={<RelatedCapabilities />}>
         <CluePanel clues={latestAnalysis()?.clues ?? []} expanded={showClues()} onExpandedChange={setShowClues} onSelect={setSelectedClue} />
       </Show>
-      <Show when={selectedClue()}>{(clue) => <ClueDrawer clue={clue()} onClose={() => setSelectedClue(undefined)} />}</Show>
+      <Show when={selectedClue()}>{(clue) => <ClueDrawer clue={clue()} onClose={() => setSelectedClue(undefined)} onReturn={clue().message_id ? ()=>{const id=clue().message_id;setSelectedClue(undefined);queueMicrotask(()=>{const target=Array.from(document.querySelectorAll<HTMLElement>('[data-message-id]')).find(el=>el.dataset.messageId===id);target?.scrollIntoView({block:"center"});target?.focus()})}:undefined} />}</Show>
       <Show when={picker()}>
         {(type) => (
           <Modal

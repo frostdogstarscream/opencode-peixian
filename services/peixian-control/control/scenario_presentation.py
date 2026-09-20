@@ -25,10 +25,16 @@ def presentation(result, messages):
     ids = {a["scenario_id"] for a in inputs}
     if len(ids) != 1 or next(iter(ids)) not in NAMES or result["status"] == "unavailable":
         return None
-    sid = next(iter(ids)); context = DATA["scenarios"][sid]; subject = context["subject_ref"]
+    sid = next(iter(ids))
+    from .scenario_versions import select, sources, supported_sources
+    meta = result.get("scenario") or {}
+    data = select(sid, meta.get("snapshot_id"), meta.get("records_snapshot_id"), DATA) if meta else DATA
+    if data is None: return None
+    source_map = sources(data, SOURCES)
+    context = data["scenarios"][sid]; subject = context["subject_ref"]
     theft = sid == "DEMO-CASE-THEFT"
     cards = {c["id"]: c for c in result["cards"]}
-    modules = {m: [row for row in DATA["records"][m]["records"] if row["record_id"] in cards] for m in context["required_modules"]}
+    modules = {m: [row for row in data["records"][m]["records"] if row["record_id"] in cards] for m in context["required_modules"]}
     acquired = {x["label"] for x in result["summary"]}
     from .scenario_evidence import LABELS
     acquired.update(LABELS[m] for m in context["required_modules"] if "COUNT-"+m in cards)
@@ -95,17 +101,21 @@ def presentation(result, messages):
     if theft:
         vehicles=modules.get("vehicle",[]);count=len({x['group_ref'] for x in vehicles})
         add("vehicle","关联车辆",count if LABELS['vehicle'] in acquired else None,"辆",f"取得 {len(vehicles)} 条车辆记录，涉及 {count} 辆车辆。",vehicles,["不同时间使用同一车辆不表示同乘。"])
-        places=[p for p in SOURCES.get(sid,{}).get("places",[]) if all(x in cards for x in p["source_ids"] if not x.startswith("DEMO-DOC-"))]
+        places=[p for p in source_map.get(sid,{}).get("places",[]) if all(x in supported_sources(context, cards) for x in p["source_ids"])]
         rows=[{"record_id":x,"occurred_at":cards[x]["time"]} for p in places for x in p['source_ids'] if x in cards]
         add("place","关联地点",len({p['id'] for p in places}) if places else None,"个",f"有明确来源的地点映射 {len(places)} 项；记录点与登记地点为相邻关系。",rows,["未提供测量距离，不能推算米数。"])
     else:
         funds=modules.get('funds',[]);lookup=modules.get('lookup',[])
         add("funds","资金流水",len(funds) if LABELS['funds'] in acquired else None,"条",f"取得 {len(funds)} 条原始资金流水。",funds,["逐条保留，不合并双边记录，不推断资金用途。"])
         add("relation","明确关系",len(lookup) if LABELS['lookup'] in acquired else None,"条",f"取得 {len(lookup)} 条明确关系记录。",lookup,["关系记录仅说明资料中的对应关系。"])
-    # Explicit unknown/alone observations are displayed only with their factual source.
-    if theft and 'DEMO-CTX-T02' in cards:
-        clues.append({"id":"finding-observation","type":"trajectory","title":"观测状态","headline":"存在明确独行观测，其他时段不能据此推定。","summary":"01:12 的观测有明确独行来源；22:16 的同行状态无法判断。","discoveries":["独行仅限该次观测片段。"],"evidence":[{"type":"trajectory","label":x,"content":cards[x]['time'],"source_ids":cards[x]['source_ids']} for x in ['DEMO-CTX-T02','DEMO-CTX-T04'] if x in cards]})
-        if result.get('summary_check')=='checked':conclusions.append({"text":"01:12 有明确独行观测；22:16 的同行状态无法判断。","clue_id":"finding-observation","source_ids":["DEMO-CTX-T02","DEMO-CTX-T04"]})
+    # Observations are explicit structured fields, with sources from this exact snapshot.
+    observations = [f for f in context["facts"] if f["record_id"] in cards and f.get("observation") in ("alone", "accompanied", "unknown")]
+    if theft and observations:
+        names = {"alone": "明确独行观测（仅本片段）", "accompanied": "明确同行观测", "unknown": "同行状态无法判断"}
+        summary = "；".join((f.get("occurred_at") or "时间未明确")[11:16] + " " + names[f["observation"]] for f in observations)
+        refs = [f["record_id"] for f in observations]
+        clues.append({"id":"finding-observation","type":"trajectory","title":"观测状态","headline":summary,"summary":summary,"discoveries":["独行仅限有明确来源的该次观测片段。"],"evidence":[{"type":"trajectory","label":x,"content":cards[x]["time"],"source_ids":cards[x]["source_ids"]} for x in refs]})
+        if result.get("summary_check")=="checked": conclusions.append({"text":summary,"clue_id":"finding-observation","source_ids":refs})
     missing=["部分资料未取得或核对未完成，请查看步骤状态。"] if result['status']!='complete' else []
     missing += ["观察范围仅覆盖两个日期。", "地点无距离测量依据。" if theft else "流水缺少跨账户唯一配对依据。"]
-    return {"version":"1.0","turn_id":result.get('turn_id',messages[starts[-1]].get('info',{}).get('id','')),"title":NAMES[sid],"process":process,"conclusions":conclusions[:5],"evidence":evidence,"clues":clues,"missing":missing,"subject_ref":subject}
+    return {"diagram":result.get("diagram"),"version":"1.0","turn_id":result.get('turn_id',messages[starts[-1]].get('info',{}).get('id','')),"title":NAMES[sid],"process":process,"conclusions":conclusions[:5],"evidence":evidence,"clues":clues,"missing":missing,"subject_ref":subject}

@@ -252,6 +252,255 @@
             },
             "type": "array"
           },
+          "diagram": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "aliases": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "ref": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "ref"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "case_source_ids": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "case_window": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "legend": {
+                    "type": "string"
+                  },
+                  "missing": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "pages": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "edges": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "from": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "chronological"
+                              },
+                              "to": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "from",
+                              "to",
+                              "kind"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "groups": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "node_ids": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "title": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "title",
+                              "node_ids"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "mermaid": {
+                          "type": "string"
+                        },
+                        "nodes": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "category": {
+                                "type": "string"
+                              },
+                              "event": {
+                                "type": "string"
+                              },
+                              "group": {
+                                "type": "string"
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "message_id": {
+                                "type": "string"
+                              },
+                              "notes": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "number": {
+                                "type": "string"
+                              },
+                              "source_ids": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "subject_ref": {
+                                "type": "string"
+                              },
+                              "time": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "number",
+                              "group",
+                              "subject",
+                              "subject_ref",
+                              "event",
+                              "category",
+                              "message_id",
+                              "time",
+                              "source_ids",
+                              "notes"
+                            ],
+                            "type": "object"
+                          },
+                          "maxItems": 20,
+                          "type": "array"
+                        },
+                        "number": {
+                          "minimum": 1,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "number",
+                        "groups",
+                        "nodes",
+                        "edges",
+                        "mermaid"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "records_snapshot_id": {
+                    "type": "string"
+                  },
+                  "rule_version": {
+                    "type": "string"
+                  },
+                  "run_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "scenario_id": {
+                    "type": "string"
+                  },
+                  "scenario_snapshot_id": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "ready",
+                      "partial",
+                      "empty",
+                      "unavailable"
+                    ]
+                  },
+                  "synthetic": {
+                    "type": "boolean"
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "total_nodes": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "version": {
+                    "const": "1.0"
+                  },
+                  "window_end": {
+                    "type": "string"
+                  },
+                  "window_start": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "scenario_id",
+                  "timezone",
+                  "window_start",
+                  "window_end",
+                  "scenario_snapshot_id",
+                  "records_snapshot_id",
+                  "rule_version",
+                  "legend",
+                  "version",
+                  "status",
+                  "run_id",
+                  "synthetic",
+                  "total_nodes",
+                  "pages",
+                  "aliases",
+                  "missing"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "evidence": {
             "items": {
               "additionalProperties": false,
@@ -3447,6 +3696,255 @@
             },
             "type": "array"
           },
+          "diagram": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "aliases": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "ref": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "ref"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "case_source_ids": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "case_window": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "legend": {
+                    "type": "string"
+                  },
+                  "missing": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "pages": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "edges": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "from": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "chronological"
+                              },
+                              "to": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "from",
+                              "to",
+                              "kind"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "groups": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "node_ids": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "title": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "title",
+                              "node_ids"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "mermaid": {
+                          "type": "string"
+                        },
+                        "nodes": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "category": {
+                                "type": "string"
+                              },
+                              "event": {
+                                "type": "string"
+                              },
+                              "group": {
+                                "type": "string"
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "message_id": {
+                                "type": "string"
+                              },
+                              "notes": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "number": {
+                                "type": "string"
+                              },
+                              "source_ids": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "subject_ref": {
+                                "type": "string"
+                              },
+                              "time": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "number",
+                              "group",
+                              "subject",
+                              "subject_ref",
+                              "event",
+                              "category",
+                              "message_id",
+                              "time",
+                              "source_ids",
+                              "notes"
+                            ],
+                            "type": "object"
+                          },
+                          "maxItems": 20,
+                          "type": "array"
+                        },
+                        "number": {
+                          "minimum": 1,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "number",
+                        "groups",
+                        "nodes",
+                        "edges",
+                        "mermaid"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "records_snapshot_id": {
+                    "type": "string"
+                  },
+                  "rule_version": {
+                    "type": "string"
+                  },
+                  "run_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "scenario_id": {
+                    "type": "string"
+                  },
+                  "scenario_snapshot_id": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "ready",
+                      "partial",
+                      "empty",
+                      "unavailable"
+                    ]
+                  },
+                  "synthetic": {
+                    "type": "boolean"
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "total_nodes": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "version": {
+                    "const": "1.0"
+                  },
+                  "window_end": {
+                    "type": "string"
+                  },
+                  "window_start": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "scenario_id",
+                  "timezone",
+                  "window_start",
+                  "window_end",
+                  "scenario_snapshot_id",
+                  "records_snapshot_id",
+                  "rule_version",
+                  "legend",
+                  "version",
+                  "status",
+                  "run_id",
+                  "synthetic",
+                  "total_nodes",
+                  "pages",
+                  "aliases",
+                  "missing"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "missing": {
             "items": {
               "type": "string"
@@ -3765,6 +4263,248 @@
         },
         "type": "object"
       },
+      "ScenarioDiagram": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "ref": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "ref"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "case_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "case_window": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "legend": {
+            "type": "string"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "pages": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "edges": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "chronological"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to",
+                      "kind"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "groups": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "node_ids": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "title": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "node_ids"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "mermaid": {
+                  "type": "string"
+                },
+                "nodes": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "category": {
+                        "type": "string"
+                      },
+                      "event": {
+                        "type": "string"
+                      },
+                      "group": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "message_id": {
+                        "type": "string"
+                      },
+                      "notes": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "number": {
+                        "type": "string"
+                      },
+                      "source_ids": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "subject": {
+                        "type": "string"
+                      },
+                      "subject_ref": {
+                        "type": "string"
+                      },
+                      "time": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "number",
+                      "group",
+                      "subject",
+                      "subject_ref",
+                      "event",
+                      "category",
+                      "message_id",
+                      "time",
+                      "source_ids",
+                      "notes"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                "number": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "number",
+                "groups",
+                "nodes",
+                "edges",
+                "mermaid"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "records_snapshot_id": {
+            "type": "string"
+          },
+          "rule_version": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scenario_id": {
+            "type": "string"
+          },
+          "scenario_snapshot_id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "partial",
+              "empty",
+              "unavailable"
+            ]
+          },
+          "synthetic": {
+            "type": "boolean"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "total_nodes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "version": {
+            "const": "1.0"
+          },
+          "window_end": {
+            "type": "string"
+          },
+          "window_start": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "scenario_id",
+          "timezone",
+          "window_start",
+          "window_end",
+          "scenario_snapshot_id",
+          "records_snapshot_id",
+          "rule_version",
+          "legend",
+          "version",
+          "status",
+          "run_id",
+          "synthetic",
+          "total_nodes",
+          "pages",
+          "aliases",
+          "missing"
+        ],
+        "type": "object"
+      },
       "ScenarioEvidence": {
         "additionalProperties": false,
         "properties": {
@@ -3819,6 +4559,255 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "diagram": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "aliases": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "ref": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "ref"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "case_source_ids": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "case_window": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "legend": {
+                    "type": "string"
+                  },
+                  "missing": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "pages": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "edges": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "from": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "chronological"
+                              },
+                              "to": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "from",
+                              "to",
+                              "kind"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "groups": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "node_ids": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "title": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "title",
+                              "node_ids"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "mermaid": {
+                          "type": "string"
+                        },
+                        "nodes": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "category": {
+                                "type": "string"
+                              },
+                              "event": {
+                                "type": "string"
+                              },
+                              "group": {
+                                "type": "string"
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "message_id": {
+                                "type": "string"
+                              },
+                              "notes": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "number": {
+                                "type": "string"
+                              },
+                              "source_ids": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "subject_ref": {
+                                "type": "string"
+                              },
+                              "time": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "number",
+                              "group",
+                              "subject",
+                              "subject_ref",
+                              "event",
+                              "category",
+                              "message_id",
+                              "time",
+                              "source_ids",
+                              "notes"
+                            ],
+                            "type": "object"
+                          },
+                          "maxItems": 20,
+                          "type": "array"
+                        },
+                        "number": {
+                          "minimum": 1,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "number",
+                        "groups",
+                        "nodes",
+                        "edges",
+                        "mermaid"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "records_snapshot_id": {
+                    "type": "string"
+                  },
+                  "rule_version": {
+                    "type": "string"
+                  },
+                  "run_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "scenario_id": {
+                    "type": "string"
+                  },
+                  "scenario_snapshot_id": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "ready",
+                      "partial",
+                      "empty",
+                      "unavailable"
+                    ]
+                  },
+                  "synthetic": {
+                    "type": "boolean"
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "total_nodes": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "version": {
+                    "const": "1.0"
+                  },
+                  "window_end": {
+                    "type": "string"
+                  },
+                  "window_start": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "scenario_id",
+                  "timezone",
+                  "window_start",
+                  "window_end",
+                  "scenario_snapshot_id",
+                  "records_snapshot_id",
+                  "rule_version",
+                  "legend",
+                  "version",
+                  "status",
+                  "run_id",
+                  "synthetic",
+                  "total_nodes",
+                  "pages",
+                  "aliases",
+                  "missing"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "missing": {
             "items": {
@@ -4053,6 +5042,255 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "diagram": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "aliases": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "ref": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "ref"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "case_source_ids": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "case_window": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "legend": {
+                    "type": "string"
+                  },
+                  "missing": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "pages": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "edges": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "from": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "chronological"
+                              },
+                              "to": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "from",
+                              "to",
+                              "kind"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "groups": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "node_ids": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "title": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "title",
+                              "node_ids"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "mermaid": {
+                          "type": "string"
+                        },
+                        "nodes": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "category": {
+                                "type": "string"
+                              },
+                              "event": {
+                                "type": "string"
+                              },
+                              "group": {
+                                "type": "string"
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "message_id": {
+                                "type": "string"
+                              },
+                              "notes": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "number": {
+                                "type": "string"
+                              },
+                              "source_ids": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "subject_ref": {
+                                "type": "string"
+                              },
+                              "time": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "number",
+                              "group",
+                              "subject",
+                              "subject_ref",
+                              "event",
+                              "category",
+                              "message_id",
+                              "time",
+                              "source_ids",
+                              "notes"
+                            ],
+                            "type": "object"
+                          },
+                          "maxItems": 20,
+                          "type": "array"
+                        },
+                        "number": {
+                          "minimum": 1,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "number",
+                        "groups",
+                        "nodes",
+                        "edges",
+                        "mermaid"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "records_snapshot_id": {
+                    "type": "string"
+                  },
+                  "rule_version": {
+                    "type": "string"
+                  },
+                  "run_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "scenario_id": {
+                    "type": "string"
+                  },
+                  "scenario_snapshot_id": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "ready",
+                      "partial",
+                      "empty",
+                      "unavailable"
+                    ]
+                  },
+                  "synthetic": {
+                    "type": "boolean"
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "total_nodes": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "version": {
+                    "const": "1.0"
+                  },
+                  "window_end": {
+                    "type": "string"
+                  },
+                  "window_start": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "scenario_id",
+                  "timezone",
+                  "window_start",
+                  "window_end",
+                  "scenario_snapshot_id",
+                  "records_snapshot_id",
+                  "rule_version",
+                  "legend",
+                  "version",
+                  "status",
+                  "run_id",
+                  "synthetic",
+                  "total_nodes",
+                  "pages",
+                  "aliases",
+                  "missing"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "evidence": {
             "items": {

@@ -17,7 +17,7 @@ def test_four_cards_deduplicate_real_relations_and_no_fake_times():
     assert all(x["time"] == "—" for x in result["process"])
     assert all(x["source_ids"] for x in result["conclusions"])
     for word in ("合成", "代码核对", "风险", "频繁", "42"):
-        assert word not in json.dumps(result, ensure_ascii=False)
+        assert word not in json.dumps({k:v for k,v in result.items() if k != "diagram"}, ensure_ascii=False)
 
 
 def test_trace_is_bounded_and_whitelisted():

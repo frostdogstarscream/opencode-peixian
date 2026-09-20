@@ -1,3 +1,4 @@
+import {EventDiagramView} from "./EventDiagram"
 import { createEffect, For, onCleanup, Show } from "solid-js"
 import { Icon, Status } from "./components"
 import type { AnalysisClue, AnalysisResult } from "./types"
@@ -9,6 +10,7 @@ export function AnalysisResultView(props: {result: Presentation; onSelect: (clue
   return <div class="analysis-result trusted-analysis" role="region" aria-label="研判结果">
     <section class="analysis-section analysis-process"><h3><Icon name="skill" size={17}/>研判过程</h3><div class="analysis-steps"><For each={props.result.process}>{(step,i)=><div class="analysis-step"><span class={"step-state "+step.status}>{step.status==="completed"?"✓":i()+1}</span><strong>{i()+1}. {step.title}</strong><p>{step.detail}</p><time>{step.time}</time><Status value={step.status}/></div>}</For></div></section>
     <section class="analysis-section analysis-conclusions"><h3><Icon name="file" size={17}/>核心结论</h3><ul><For each={props.result.conclusions} fallback={<li>暂无通过核对的结论。</li>}>{item=>{const source=()=>props.result.conclusion_sources?.find(value=>value.text===item);return <li><button class="conclusion-link" disabled={!source()?.clue_id} onClick={()=>source()?.clue_id&&select(source()!.clue_id!)}>{item}</button></li>}}</For></ul></section>
+    <EventDiagramView value={props.result.diagram} onSelect={props.onSelect}/>
     <section class="analysis-section"><h3><Icon name="file" size={17}/>研判依据</h3><div class="analysis-evidence-grid"><For each={props.result.evidence}>{item=><button class={"analysis-evidence-card evidence-"+item.type} disabled={!item.clue_id} onClick={()=>item.clue_id&&select(item.clue_id)}><div class="analysis-evidence-title"><span><Icon name={icon(item.type)} size={17}/></span>{item.title}</div><strong>{item.value}<small>{item.unit}</small></strong><p>{item.summary}</p><For each={item.items}>{line=><small class="analysis-evidence-note">{line}</small>}</For></button>}</For></div></section>
     <Show when={props.result.missing?.length}><section class="analysis-section analysis-limits"><h3>资料缺口与局限</h3><ul><For each={props.result.missing}>{item => <li>{item}</li>}</For></ul></section></Show>
     <Show when={props.result.next_steps?.trim()}><section class="analysis-section analysis-next-steps"><h3>下一步建议</h3><p>{props.result.next_steps}</p></section></Show>
@@ -17,13 +19,13 @@ export function AnalysisResultView(props: {result: Presentation; onSelect: (clue
 export function CluePanel(props:{clues:AnalysisClue[];expanded:boolean;onExpandedChange:(expanded:boolean)=>void;onSelect:(clue:AnalysisClue)=>void}) {
  return <aside class="clue-panel trusted-clues expanded" aria-label="智能发现线索"><button class="clue-panel-head" onClick={()=>props.onExpandedChange(false)} aria-expanded={props.expanded} aria-label="收起智能发现线索"><strong><Icon name="star" size={18}/>智能发现线索</strong><span class="clue-panel-actions"><small>{props.clues.length} 项</small><b>收起</b></span></button><div class="clue-list"><For each={props.clues}>{clue=><article class={"clue-card clue-"+clue.type}><div class="clue-card-head"><span><Icon name={icon(clue.type)} size={18}/></span><strong>{clue.title}</strong></div><h4>{clue.headline}</h4><button onClick={()=>props.onSelect(clue)}>查看详情</button></article>}</For></div></aside>
 }
-export function ClueDrawer(props:{clue:AnalysisClue;onClose:()=>void}) {
+export function ClueDrawer(props:{clue:AnalysisClue;onClose:()=>void;onReturn?:()=>void}) {
  let dialog!:HTMLDialogElement
  const origin=document.activeElement as HTMLElement | null
  createEffect(()=>{dialog.showModal();dialog.querySelector<HTMLButtonElement>("button")?.focus()})
  onCleanup(()=>{dialog.close();queueMicrotask(()=>origin?.isConnected&&origin.focus())})
  return <dialog ref={dialog} class="trusted-drawer" aria-label="线索详情" onCancel={e=>{e.preventDefault();props.onClose()}}>
-  <header><h2>线索详情</h2><button class="icon-button" aria-label="关闭线索详情" onClick={props.onClose}><Icon name="close"/></button></header>
+  <header><h2>线索详情</h2><Show when={props.onReturn}><button onClick={()=>props.onReturn?.()}>返回关联消息</button></Show><button class="icon-button" aria-label="关闭线索详情" onClick={props.onClose}><Icon name="close"/></button></header>
   <div class="clue-drawer-scroll">
    <section class="clue-name-card">
     <div class="clue-identity">

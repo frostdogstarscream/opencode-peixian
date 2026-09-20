@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 TABLES = json.loads(Path(__file__).with_name("scenario_fact_tables.json").read_text())
+TABLES += json.loads(Path(__file__).with_name("scenario_fact_tables_v14.json").read_text())
 PREPARE = "peixian_prepare_scenario_facts"
 CHECK = "peixian_check_scenario_summary"
 
@@ -59,6 +60,10 @@ def project_facts(turn, result, data):
             result["missing"].append(step["label"] + "未通过固定事实与来源核对。")
     if table is None:
         return {**result, "status": "partial"}
+    from .scenario_versions import select, sources
+    data = select(table["scenario_id"], table["scenario_snapshot_id"], table["records_snapshot_id"], data)
+    if data is None:
+        return {**result, "status": "unavailable", "cards": [], "missing": ["资料版本无法核对。"]}
     context = data["scenarios"][table["scenario_id"]]
     result["scenario"] = {k: context[k] for k in ("scenario_id", "title", "subject_ref", "snapshot_id", "records_snapshot_id", "rule_version", "timezone", "night_window", "case_window")}
     result["summary"] = [{k: row[k] for k in ("label", "count", "dates", "night_count")} for row in table["summary"]]
@@ -68,4 +73,7 @@ def project_facts(turn, result, data):
     result["verified_summary"] = [{"fact_id": f["fact_id"], "statement": f["statement"], "source_ids": f["source_ids"]} for f in checked["approved"]] if checked else []
     result["summary_check"] = "rejected" if checked and checked["rejected"] else "checked" if checked and checked["approved"] else "pending"
     result["status"] = "complete" if table["data_status"] == "complete" and all(s["status"] == "completed" for s in result["steps"]) else "partial"
+    from .scenario_diagram import build
+    from .scenario_presentation import SOURCES
+    result["diagram"] = build(result, table, data, sources(data, SOURCES))
     return result

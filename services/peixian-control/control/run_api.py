@@ -72,7 +72,7 @@ def register(app):
     @app.post(PREFIX+'/sessions/{sid}/runs/{rid}/rerun',status_code=202)
     async def run_again(sid:str,rid:str,request:Request,user=Depends(normal)):
         s=app.state.store;row=await app.state.db_work.run(runs.owned,s,user['uid'],sid,rid)
-        data=body_fields(await request.json(),('client_request_id','text','model_id','skill_ids','plugin_ids','file_ids','mode'))
+        data=body_fields(await request.json(),('client_request_id','text','model_id','skill_ids','plugin_ids','file_ids','mode','agent_id'))
         if not data.get('client_request_id'):error('request_id_required','重跑必须提供新的client_request_id')
         if row['status'] not in runs.TERMINAL:error('run_active','原执行尚未结束',409)
         merged={**s.decrypt(row['request_ciphertext'])['request'],**data}

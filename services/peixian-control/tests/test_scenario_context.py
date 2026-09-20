@@ -100,6 +100,31 @@ def test_message_admission_freezes_context_and_system_language(v6,monkeypatch):
         assert snap['scenario_context']['scenario_id']=='DEMO-CASE-GAMBLING'
         assert snap['scenario_context']['effective_skill_ids']==['skill-g']
         assert snap['request']['skill_ids']==[]
+        from control.gambling_agent import PROMPT
+        assert PROMPT in snap['payload']['system']
+        assert snap['scenario_context']['agent']['id']=='gambling-assistant'
+        assert snap['scenario_context']['agent']['skills'][0]['id']=='skill-g'
+        assert any('controlled skill-g' in part['text'] for part in snap['payload']['parts'])
+        assert not snap['payload']['tools']['read']
+        assert not snap['payload']['tools']['skill']
+        assert 'peixian_prepare_scenario_facts' not in snap['payload']['tools']
         assert client.post(P+'/sessions/ses_ctx/messages',json=data).json()==result.json()
     finally:
         c.portal.call(app.state.http.aclose);app.state.http=old;client.__exit__(None,None,None)
+
+
+def test_explicit_agent_scope_and_validation(v6,monkeypatch):
+    s,app,c,client,user,data,payload,applied=configured(v6,monkeypatch)
+    try:
+        data=runs.normalized({**data,'text':'继续整理','agent_id':'gambling-assistant'})
+        ctx=sc.resolve(s,user['uid'],'new',data,applied)
+        assert ctx['scenario_id']=='DEMO-CASE-GAMBLING'
+        assert ctx['effective_skill_ids']==['skill-g']
+        for extra in [{'text':'分析盗窃资料'},{'skill_ids':['skill-t']}]:
+            with pytest.raises(HTTPException) as e:sc.resolve(s,user['uid'],'new',{**data,**extra},applied)
+            assert e.value.detail['code']=='agent_scenario_conflict'
+        for bad in ['admin',None,{},['gambling-assistant']]:
+            with pytest.raises(HTTPException):runs.normalized({**data,'agent_id':bad})
+        with s.tx() as db:db.execute('UPDATE skills SET enabled=0 WHERE id=?',('skill-g',))
+        with pytest.raises(HTTPException):sc.resolve(s,user['uid'],'new',data,applied)
+    finally:client.__exit__(None,None,None)

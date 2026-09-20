@@ -13,6 +13,8 @@ ACTIVE=('queued','running','cancelling','reconciling')
 
 def normalized(data):
     value=dict(data)
+    if 'agent_id' in value and value['agent_id'] != 'gambling-assistant':
+        error('unsupported_agent','当前仅支持涉赌案件资料助手',422,{'agent_id':'gambling-assistant'})
     key=value.get('client_request_id') or str(uuid.uuid4())
     try:uuid.UUID(key)
     except (ValueError,TypeError,AttributeError):error('invalid_request_id','client_request_id 必须为UUID',422,{'client_request_id':'UUID required'})

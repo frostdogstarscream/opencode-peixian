@@ -47,6 +47,10 @@ def resolve(store,uid,sid,data,applied,historical=None):
     if not inherited["scenario_id"] and inherited["generation"] is None and historical in NAMES:inherited.update(scenario_id=historical,source="historical_evidence")
     chosen={skill_scenario(x) for x in applied.get('skills',[]) if x['id'] in data['skill_ids']} - {None}
     direct=explicit(data['text'])
+    if data.get('agent_id') == 'gambling-assistant':
+        if (direct | chosen) - {'DEMO-CASE-GAMBLING'}:
+            error('agent_scenario_conflict','涉赌助手不能同时执行盗窃场景，请切换助手或取消本次场景选择。',422,{'agent_id':'场景冲突'})
+        direct={'DEMO-CASE-GAMBLING'}
     if len(direct)>1 or len(chosen)>1 or (direct and chosen and direct!=chosen):error('scenario_conflict','请选择本轮处理涉赌资料还是盗窃时空资料；文字与技能选择需要一致。',422,{'skill_ids':'场景冲突'})
     scene=next(iter(direct or chosen),inherited['scenario_id'])
     source='explicit' if direct else 'selected_skill' if chosen else inherited['source']

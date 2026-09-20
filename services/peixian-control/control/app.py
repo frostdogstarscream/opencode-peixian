@@ -688,14 +688,14 @@ def create_app(store=None):
 
     @app.post(PREFIX + "/sessions/{sid}/messages", status_code=202)
     async def message_send(sid: str, request: Request, user=Depends(normal)):
-        data = body_fields(await request.json(), ("text", "model_id", "skill_ids", "file_ids", "plugin_ids", "mode", "client_request_id"))
+        data = body_fields(await request.json(), ("text", "model_id", "skill_ids", "file_ids", "plugin_ids", "mode", "client_request_id", "agent_id"))
         from . import business_runs
         modern=await app.state.db_work.run(app.state.store.schema_version)>=6
         if modern:
             data=business_runs.normalized(data)
             previous=await app.state.db_work.run(business_runs.replay,app.state.store,user['uid'],sid,data)
             if previous:return previous
-        elif any(k in data for k in ('plugin_ids','mode','client_request_id')):
+        elif any(k in data for k in ('plugin_ids','mode','client_request_id','agent_id')):
             from .backend_contract import error
             error('backend_upgrade_required','此功能需要完成后端升级',503)
         await session_owned(request, user, sid)
@@ -720,6 +720,8 @@ def create_app(store=None):
         if not isinstance(skills, list) or not isinstance(files, list) or len(skills) > 5 or len(files) > 5:
             fail("每次最多选择五个技能和五个文件")
         prelude = []
+        selected_skill_materials = []
+        from .gambling_agent import enabled as gambling_enabled, skill_material, bind as bind_gambling
         if modern:
             from .capabilities import check_selection
             await app.state.db_work.run(check_selection,s,user['uid'],data)
@@ -732,8 +734,9 @@ def create_app(store=None):
             skill = next((item for item in applied.get("skills", []) if item["id"] == skill_id), None)
             if not skill:
                 fail("所选技能尚未生效，请等待工作空间更新", 409)
-            input_bytes += len(skill["content"].encode("utf-8"))
-            prelude.append("请使用已启用的技能：" + skill["name"])
+            input_bytes += len((skill_material(skill) if gambling_enabled(context) else skill["content"]).encode("utf-8"))
+            selected_skill_materials.append(skill)
+            prelude.append(skill_material(skill) if gambling_enabled(context) else "请使用已启用的技能：" + skill["name"])
         budget = 24000
         for fid in files:
             file = (await upstream(request, user, "GET", f"/files/{own_id(fid)}/text")).json()
@@ -753,6 +756,7 @@ def create_app(store=None):
             error('message_budget_exceeded','文字、技能与文件合计超过当前模型引用预算，请缩短问题或拆分资料后重试',413,{'text':'UTF-8合计最多18000字节'})
         parts = [{"type": "text", "text": value, "synthetic": True} for value in prelude] + [{"type": "text", "text": text}]
         payload={"model": {"providerID": "peixian", "modelID": model["id"]}, "parts": parts, "system": LANGUAGE + ("\n" + instruction(context) if context else "")}
+        bind_gambling(payload, context, selected_skill_materials)
         if context and not context['scenario_id']:
             payload['tools']={'skill':False,'peixian_prepare_scenario_facts':False,'peixian_check_scenario_summary':False,'peixian_get_scenario_context':False}
         if getattr(request.state,'draft_no_tools',False):payload['tools']={'*':False}

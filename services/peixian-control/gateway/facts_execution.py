@@ -112,9 +112,12 @@ def register(app):
             if selected in TOOLS:
                 item=current['modules'].get(TOOLS[selected],{})
                 if item.get('status')!='completed':raise HTTPException(409,'资料结果尚未确认，本轮不会重试')
-            responses={m:{**current['modules'][m]['response'],'records':current['modules'][m]['response']['items']} for m in modules if current['modules'].get(m,{}).get('status')=='completed'}
+            # Include every started method, including its still-missing dependencies.
+            # A lookup-only result must not claim the two-module relations method complete.
+            required=list(dict.fromkeys(m for method in plan['methods'] if set(mapping[method]) & set(current['modules']) for m in mapping[method]))
+            responses={m:{**current['modules'][m]['response'],'records':current['modules'][m]['response']['items']} for m in required if current['modules'].get(m,{}).get('status')=='completed'}
             table=await watched({'action':'compile','engine':str(config.managed_root/'platform-facts/engine.mjs'),
-                'context':{**plan['scenario'],'required_modules':modules},'responses':responses})
+                'context':{**plan['scenario'],'required_modules':required},'responses':responses})
             await call('table',table=table)
             # Even a direct query produces code-derived facts in this same Run.
             # Preserve the query payload while keeping fact computation out of the model.

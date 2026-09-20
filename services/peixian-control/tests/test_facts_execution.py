@@ -25,26 +25,37 @@ from gateway.settings import Settings
 from gateway.admission import AdmissionGate
 
 
-def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,chain,v6,tmp_path):
+@pytest.mark.parametrize('method,modules',[('night',['night']),('relations',['lookup','composite'])])
+def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,chain,v6,tmp_path,method,modules):
     store,uid,rid,_=facts;_,_,control=v6
     _,calls,_,url=chain
     row=store.one('SELECT * FROM business_runs WHERE id=?',(rid,))
     runtime=store.one('SELECT * FROM runtimes WHERE uid=?',(uid,))
     private=store.decrypt(runtime['spec']);runtime_key=private['runtime_key']
-    applied={'plugins':[{'id':capability('night'),'version':'1.0.0','manifest':{'tools':[tool('night')]}}],
-             'skills':[{'id':'night-skill','content':(PLUGINS/'skills/night/SKILL.md').read_text()}]}
+    applied={'plugins':[{'id':capability(m),'version':'1.0.0','manifest':{'tools':[tool(m)]}} for m in modules],
+             'skills':[{'id':'night-skill','content':(PLUGINS/'skills'/method/'SKILL.md').read_text()}]}
     plan=build(applied,{'scenario_id':'DEMO-CASE-GAMBLING','effective_skill_ids':['night-skill']},{})
     with store.tx() as db:
-        snapshot=store.decrypt(row['request_ciphertext']);snapshot['facts_plan']=plan
+        for plugin in applied['plugins']:
+            pid=plugin['id']
+            db.execute('INSERT OR IGNORE INTO plugins VALUES(?,?,?,?,?,?,?,1)',(pid,'1.0.0',pid,'',json.dumps(plugin['manifest']),'not-used','0'*64))
+            db.execute('INSERT OR IGNORE INTO installs(uid,plugin,version,enabled,config) VALUES(?,?,?,1,?)',(uid,pid,'1.0.0',store.encrypt({})))
+            db.execute("INSERT OR IGNORE INTO grants VALUES(?,'plugin',?)",(uid,pid))
+        active=store.decrypt(runtime['applied_spec_ciphertext']);active['plugins']=applied['plugins']
+        db.execute('UPDATE runtimes SET applied_spec_ciphertext=? WHERE uid=?',(store.encrypt(active),uid))
+        snapshot=store.decrypt(row['request_ciphertext']);snapshot['facts_plan']=plan;snapshot['plugins']=applied['plugins']
         db.execute('UPDATE business_runs SET request_ciphertext=? WHERE id=?',(store.encrypt(snapshot),rid))
     managed=tmp_path/'managed';managed.mkdir()
-    folder=managed/'plugins'/capability('night')/'1.0.0';folder.mkdir(parents=True)
-    shutil.copyfile(PLUGINS/'night/entry.mjs',folder/'entry.mjs')
+    specs={}
+    for module in modules:
+        folder=managed/'plugins'/capability(module)/'1.0.0';folder.mkdir(parents=True)
+        shutil.copyfile(PLUGINS/module/'entry.mjs',folder/'entry.mjs')
+        specs[capability(module)]={'entry':str(folder/'entry.mjs'),'options':{},'platform_connections':{}}
     (managed/'platform-facts').mkdir();shutil.copyfile(ROOT/'deploy/peixian/platform-facts/engine.mjs',managed/'platform-facts/engine.mjs')
     # Transport adapter changes only the fixed test relay hostname; request_data
     # and exchange still run over HTTP in chain's policy server.
-    (managed/'platform-client.mjs').write_text("export function createPlatform(){return {connections:{request:async(alias,input)=>{const r=await fetch("+json.dumps(url+'/night')+",{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});if(!r.ok)throw new Error('denied');return r.json();}}};}")
-    (managed/'plugin-tests.json').write_text(json.dumps({capability('night'):{'entry':str(folder/'entry.mjs'),'options':{},'platform_connections':{}}}))
+    (managed/'platform-client.mjs').write_text("export function createPlatform(){return {connections:{request:async(alias,input)=>{const r=await fetch("+json.dumps(url+'/')+"+input.json.module,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});if(!r.ok)throw new Error('denied');return r.json();}}};}")
+    (managed/'plugin-tests.json').write_text(json.dumps(specs))
     (tmp_path/'workspace').mkdir();(tmp_path/'files').mkdir()
     settings=Settings(tmp_path/'workspace',tmp_path/'files',managed,'synthetic-gateway-token','synthetic-agent-password',require_linux=False,
                       runtime_id=runtime['id'],revision=1,runtime_key=runtime_key)
@@ -59,28 +70,29 @@ def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,cha
     with TestClient(app) as client:
         gate=AdmissionGate(runtime['id'],1,clock=lambda:0);gate.mode='open';gate.deadline=4;gate.scopes={'intake':True,'egress':True}
         app.state.admission=gate;app.state.runtime_management=SimpleNamespace(gate=gate)
-        body={'session_id':'ses_facts','message_id':'msg_assistant','tool':'peixian_prepare_scenario_facts','args':{'scenario_id':'DEMO-CASE-GAMBLING','methods':['night']}}
+        body={'session_id':'ses_facts','message_id':'msg_assistant','tool':'peixian_prepare_scenario_facts','args':{'scenario_id':'DEMO-CASE-GAMBLING','methods':[method]}}
         assert client.post('/internal/facts/execute',json=body).status_code==401
         assert client.get('/health',headers={'X-Facts-Key':token}).status_code==401
-        direct=client.post('/internal/facts/execute',json={**body,'tool':tool('night'),'args':{}},headers={'X-Facts-Key':token})
+        direct=client.post('/internal/facts/execute',json={**body,'tool':tool(modules[0]),'args':{}},headers={'X-Facts-Key':token})
         assert direct.status_code==200,direct.text
-        assert direct.json()['facts_table']['facts'] and calls==['night']
+        assert direct.json()['facts_table']['facts'] and calls==[modules[0]]
+        if method=='relations':assert direct.json()['facts_table']['data_status']!='complete'
         persisted=store.decrypt(store.one('SELECT request_ciphertext FROM business_runs WHERE id=?',(rid,))['request_ciphertext'])
         assert persisted['facts_state']['table']['facts']
         reply=client.post('/internal/facts/execute',json=body,headers={'X-Facts-Key':token})
         assert reply.status_code==200,reply.text
-        table=reply.json();assert table['data_status']=='complete' and table['summary'][0]['module']=='night'
-        assert calls==['night']
+        table=reply.json();assert table['data_status']=='complete' and table['summary'][0]['module']==modules[0]
+        assert calls==modules
         again=client.post('/internal/facts/execute',json=body,headers={'X-Facts-Key':token})
-        assert again.status_code==200 and again.json()==table and calls==['night']
+        assert again.status_code==200 and again.json()==table and calls==modules
         claims=[{k:f[k] for k in ('fact_id','statement','source_ids')} for f in table['facts'][:3]]
         check={**body,'tool':'peixian_check_scenario_summary','args':{'scenario_id':'DEMO-CASE-GAMBLING','claims':claims}}
         checked=client.post('/internal/facts/execute',json=check,headers={'X-Facts-Key':token})
         assert checked.status_code==200,checked.text
-        assert len(checked.json()['approved'])==len(claims) and calls==['night']
+        assert len(checked.json()['approved'])==len(claims) and calls==modules
         forbidden={**body,'tool':tool('funds'),'args':{}}
         assert client.post('/internal/facts/execute',json=forbidden,headers={'X-Facts-Key':token}).status_code==409
-        assert calls==['night'] and not gate.activities
+        assert calls==modules and not gate.activities
     current=store.one('SELECT * FROM business_runs WHERE id=?',(rid,))
     projected=evidence(store.decrypt(current['request_ciphertext']),current)
     assert projected['cards'] and projected['summary_check']=='checked'
@@ -90,4 +102,4 @@ def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,cha
         db.execute('UPDATE business_runs SET evidence_ciphertext=? WHERE id=?',(store.encrypt(projected),rid))
         db.execute('DELETE FROM installs WHERE uid=?',(uid,));db.execute('DELETE FROM grants WHERE uid=?',(uid,))
     saved=read_evidence(store,store.one('SELECT * FROM business_runs WHERE id=?',(rid,)))
-    assert saved['cards']==projected['cards'] and calls==['night']
+    assert saved['cards']==projected['cards'] and calls==modules

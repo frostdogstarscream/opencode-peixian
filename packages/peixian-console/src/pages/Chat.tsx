@@ -58,6 +58,7 @@ export default function Chat() {
   let scroll!: HTMLDivElement
   let textarea!: HTMLTextAreaElement
   let scrollFrame = 0
+  let followOutput = true
   let selectionRevision = 0
   let messageFlight: { id: string; revision: number; trailing: boolean; promise: Promise<void> } | undefined
   const shownSessions = createMemo(() => sessions())
@@ -80,7 +81,17 @@ export default function Chat() {
   function analysisWithGaps(result: AnalysisResult): AnalysisResult {
     return result.run_id && result.run_id === latestAnalysis()?.run_id ? latestAnalysis()! : result
   }
-  const shownMessages = createMemo(() => messages())
+  const shownMessages = createMemo<{ message: Message; toolParts: Message["parts"] }[]>((previous) => messages().map((message, index, all) => {
+    const firstReply = message.info.role === "assistant" && all[index - 1]?.info.role !== "assistant"
+    const nextUser = firstReply ? all.findIndex((item, offset) => offset > index && item.info.role === "user") : -1
+    const toolParts = firstReply
+      ? all.slice(index, nextUser < 0 ? undefined : nextUser).flatMap((item) => item.info.role === "assistant" ? item.parts.filter((part) => part.type === "tool") : [])
+      : []
+    const old = previous?.[index]
+    return old?.message === message && old.toolParts.length === toolParts.length && old.toolParts.every((part, offset) => part === toolParts[offset])
+      ? old
+      : { message, toolParts }
+  }))
   createEffect(() => {
     const clue = selectedClue()
     if (clue && !latestAnalysis()?.clues.some((item) => item.id === clue.id)) setSelectedClue(undefined)
@@ -105,7 +116,10 @@ export default function Chat() {
         flight.trailing = false
         const data = await list<Message>("/sessions/" + id + "/messages")
         if (!current()) return
-        setMessages(data)
+        setMessages((current) => data.map((message, index) => {
+          const old = current[index]
+          return old?.info.id === message.info.id && JSON.stringify(old) === JSON.stringify(message) ? old : message
+        }))
         const hasAnalysis = data.some((message) => message.parts.some((part) => part.type === "analysis_result" && isAnalysisResult(part.data)))
         if (hasAnalysis) setTrusted(undefined)
         if (!hasAnalysis) {
@@ -226,11 +240,12 @@ export default function Chat() {
     busy()
     cancelAnimationFrame(scrollFrame)
     scrollFrame = requestAnimationFrame(() => {
-      if (scroll) scroll.scrollTop = scroll.scrollHeight
+      if (scroll && followOutput) scroll.scrollTop = scroll.scrollHeight
     })
   })
   async function choose(id: string) {
     selectionRevision++
+    followOutput = true
     setSelected(id)
     setSelectedFiles([])
     setScene(undefined)
@@ -255,6 +270,7 @@ export default function Chat() {
   }
   function fresh() {
     selectionRevision++
+    followOutput = true
     setSelected(undefined)
     setMessages([])
     setTrusted(undefined)
@@ -705,18 +721,18 @@ export default function Chat() {
             </Show>
             <Show when={!terminalRun(run().status)}><Button icon="stop" onClick={() => void abort()}>停止执行</Button></Show>
           </div>
-          <Show when={runEvents().length}><details class="run-events"><summary>查看执行步骤（{runEvents().length}）</summary><For each={runEvents()}>{event => <div><Status value={event.status}/><strong>{event.name}</strong><span>{event.output_summary || event.input_summary}</span></div>}</For></details></Show>
         </div>}</Show>
-        <div class="messages-scroll" ref={scroll}>
+        <div class="messages-scroll" ref={scroll} onScroll={() => { followOutput = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 96 }}>
           <Show
             when={messages().length}
             fallback={<div class="conversation-blank" aria-label="空白研判对话区" />}
           >
             <div class="messages">
               <For each={shownMessages()}>
-                {(message) => {
+                {(entry) => {
+                  const message = entry.message
                   const textParts = () => message.parts.filter((part) => part.type === "text" && part.text)
-                  const toolParts = () => message.parts.filter((part) => part.type === "tool")
+                  const toolParts = () => entry.toolParts
                   const analysisParts = () => message.parts.filter((part) => part.type === "analysis_result" && isAnalysisResult(part.data))
                   return (
                   <article class={"message " + (message.info.role === "user" ? "user" : "assistant")}>
@@ -744,12 +760,13 @@ export default function Chat() {
                           <div class="tool-trace-list">
                             <For each={toolParts()}>
                               {(part) => (
-                                <section class="tool-trace-item">
-                                  <header>
+                                <details class="tool-trace-item">
+                                  <summary>
                                     <Icon name={part.state?.status === "completed" ? "check" : "clock"} size={14} />
                                     <span>{safeMessage(part.state?.title || part.tool, "处理业务资料")}</span>
                                     <Status value={part.state?.status} />
-                                  </header>
+                                  </summary>
+                                  <div class="tool-trace-detail">
                                   <For
                                     each={[
                                       { title: "输入条件", fields: part.details?.inputs },
@@ -781,7 +798,11 @@ export default function Chat() {
                                   <Show when={part.state?.error}>
                                     <ErrorLine message={part.state?.error} />
                                   </Show>
-                                </section>
+                                  <Show when={!Object.keys(part.details?.inputs ?? {}).length && !Object.keys(part.details?.outputs ?? {}).length && !part.state?.error}>
+                                    <p>后端暂无可展示的执行详情。</p>
+                                  </Show>
+                                  </div>
+                                </details>
                               )}
                             </For>
                           </div>

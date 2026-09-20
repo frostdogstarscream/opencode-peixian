@@ -1195,7 +1195,7 @@ svg {
   background: #fbfdff;
 }
 .tool-trace > summary,
-.tool-trace-item > header {
+.tool-trace-item > summary {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1219,7 +1219,7 @@ svg {
   content: "收起";
 }
 .tool-trace > summary .status,
-.tool-trace-item > header .status {
+.tool-trace-item > summary .status {
   margin-left: auto;
 }
 .tool-trace-list {
@@ -1236,11 +1236,18 @@ svg {
 .tool-trace-item:last-child {
   border-radius: 0 0 7px 7px;
 }
-.tool-trace-item > header {
+.tool-trace-item > summary {
   min-height: 28px;
   color: #385b80;
   font-size: 12px;
+  cursor: pointer;
+  list-style: none;
 }
+.tool-trace-item > summary::-webkit-details-marker { display: none; }
+.tool-trace-item > summary::after { content: "查看详情"; color: #7990aa; font-size: 11px; }
+.tool-trace-item[open] > summary::after { content: "收起详情"; }
+.tool-trace-detail { padding: 7px 0 2px 22px; }
+.tool-trace-detail > p { margin: 3px 0; color: #7890a7; font-size: 12px; }
 .drop-zone {
   display: flex;
   gap: 18px;
@@ -5416,68 +5423,4 @@ tr:hover td {
  .trusted-clues.expanded .clue-list { max-height: 30vh; }
  .trusted-clues .clue-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 8px; }
  .trusted-clues .clue-panel-head strong { font-size: 14px; }
-}
-
-/* 蓝湖智能研判场景图：整页共用一张图，cover 保持比例，导航和抬头使用对应蓝色层。 */
-.app-shell.business-shell,
-.app-shell.admin-shell {
-  background: #0b3979 url("./assets/peixian-dialogue-background.webp") center top / cover no-repeat;
-}
-.app-shell.business-shell > .sidebar,
-.app-shell.admin-shell > .sidebar {
-  width: clamp(186px, 11.2vw, 215px);
-  background: linear-gradient(180deg, #0a3675f7, #072d65f2);
-  box-shadow: 4px 0 18px #05244c29;
-}
-.app-shell.business-shell > .sidebar .brand,
-.app-shell.admin-shell > .sidebar .brand {
-  height: clamp(82px, 6.05vw, 116px);
-  padding-inline: clamp(16px, 1.3vw, 25px);
-}
-.app-shell.business-shell > .sidebar .brand-mark,
-.app-shell.admin-shell > .sidebar .brand-mark {
-  width: clamp(45px, 3.5vw, 64px);
-  height: clamp(45px, 3.5vw, 64px);
-  flex: 0 0 auto;
-}
-.app-shell.business-shell .main-area,
-.app-shell.admin-shell .main-area {
-  background: transparent;
-}
-.app-shell.business-shell .topbar,
-.app-shell.admin-shell .topbar {
-  height: clamp(82px, 6.05vw, 116px);
-  min-height: clamp(82px, 6.05vw, 116px);
-  background: linear-gradient(100deg, #0c4796f7 0%, #3a82cdf2 51%, #e6f3fff5 78%, #f5fafff8 100%);
-  border-color: #c7dcf2;
-}
-.app-shell.admin-shell .topbar::after { display: none; }
-.app-shell .business-top-motto,
-.app-shell .admin-top-motto {
-  left: 31%;
-  color: #fff;
-  text-shadow: 0 1px 5px #164b8b7a;
-}
-.app-shell .business-top-motto small,
-.app-shell .admin-top-motto small { color: #e1efff; }
-.app-shell.business-shell .page-body,
-.app-shell.admin-shell .page-body { background: #f4f9ffdb; }
-.app-shell.business-shell .chat-layout { background: #f6f9fddc; }
-.app-shell.business-shell .history-panel { background: #fbfdfff0; }
-.app-shell.business-shell .conversation { background: #fffffff0; }
-.app-shell.business-shell .trusted-clues,
-.app-shell.business-shell .evidence-panel { background: #f8fbfff0; }
-.login-shell .login-story {
-  background-position: left center;
-  background-size: cover;
-}
-@media (max-width: 760px) {
-  .app-shell.business-shell > .sidebar,
-  .app-shell.admin-shell > .sidebar { width: 230px; }
-  .app-shell.business-shell .topbar,
-  .app-shell.admin-shell .topbar { height: 64px; min-height: 64px; }
-  .app-shell.business-shell > .sidebar .brand,
-  .app-shell.admin-shell > .sidebar .brand { height: 64px; }
-  .app-shell .business-top-motto,
-  .app-shell .admin-top-motto { display: none; }
 }

@@ -1,10 +1,15 @@
 {
   "stage": "pr56",
-  "closeout_status": "pending",
+  "closeout_status": "completed",
   "baseline": "8d33ec3d5ae61143164803ce3406e9b72a1819ba",
-  "implementation_revision": null,
+  "implementation_revision": "73a079cfc5dc67e9b9556a11090b27ae2f1e845a",
   "github_ci": {
-    "executed": false
+    "executed": true,
+    "workflow": "Peixian PR-5.6 Capability Rule checks",
+    "run_id": 35596644423,
+    "head_sha": "73a079cfc5dc67e9b9556a11090b27ae2f1e845a",
+    "conclusion": "success",
+    "url": "https://github.com/frostdogstarscream/opencode-peixian/actions/runs/35596644423"
   },
   "schema_version": 6,
   "deployment_performed": false,

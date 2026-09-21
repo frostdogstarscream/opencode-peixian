@@ -69,7 +69,8 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
             error('runtime_changed','运行环境或配置已变化，请刷新后重新确认',409)
         if db.execute("SELECT 1 FROM business_runs WHERE uid=? AND session_id=? AND status IN ('queued','running','cancelling','reconciling')",(user['uid'],sid)).fetchone():error('session_busy','此会话已有未结束的执行',409)
         from .capabilities import check_selection
-        check_selection(store,user['uid'],{**data,'skill_ids':context['effective_skill_ids']} if context is not None else data)
+        selection = task_spec.admission_selection(data,task,context['effective_skill_ids']) if task is not None else ({**data,'skill_ids':context['effective_skill_ids']} if context is not None else data)
+        check_selection(store,user['uid'],selection)
         if not db.execute("SELECT 1 FROM models m JOIN grants g ON g.resource=m.id AND g.kind='model' WHERE g.uid=? AND m.id=? AND m.enabled=1",(user['uid'],payload['model']['modelID'])).fetchone():error('model_unavailable','所选模型授权已变化',403)
         from .facts_plan import build, bind_payload
         plan = build(applied, context, data, task) if task and task['spec'] and task['spec']['query_mode']=='new_query' else None if task else build(applied, context, data)

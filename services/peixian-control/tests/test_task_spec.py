@@ -230,3 +230,108 @@ def test_task_admission_concurrency_and_query_mode_priority(task_env):
     for ids in (['method-funds'],['does-not-exist']):
         local=resolve(task_env,text='不要重新查，解释刚才的资金结果',skill_ids=ids)
         assert local['spec']['query_mode']=='explain_existing' and not local['spec']['methods']
+
+
+@pytest.mark.parametrize('text,selected,mode', [
+    ('请说明一下',True,None),('你好',True,None),('什么是资金流水',True,None),
+    ('资金是什么意思',True,None),('看看',True,'new_query'),('整理一下',True,'new_query'),
+    ('分析一下',True,'new_query'),('重新查一下',True,'new_query'),
+    ('看看',False,'clarify'),('整理一下',False,'clarify'),
+    ('统计',False,'clarify'),('列出',False,'clarify'),('展示',False,'clarify'),
+])
+def test_selection_does_not_create_intent(task_env,text,selected,mode):
+    task=resolve(task_env,text=text,skill_ids=['method-funds'] if selected else [])
+    assert (task['spec']['query_mode'] if task['spec'] else None)==mode
+    if mode=='new_query':assert task['spec']['methods']==['funds']
+
+
+def test_admission_selection_copies_without_rewriting_request():
+    data={'text':'continue','skill_ids':['stale'],'plugin_ids':['missing']};before=copy.deepcopy(data)
+    for mode in (None,'explain_existing','clarify','new_query'):
+        selected=task_spec.admission_selection(data,{'spec':{'query_mode':mode} if mode else None},['effective'])
+        assert selected['skill_ids']==(['effective'] if mode=='new_query' else [])
+        assert selected['plugin_ids']==(['missing'] if mode=='new_query' else [])
+        selected['skill_ids'].append('mutated');selected['plugin_ids'].append('mutated')
+        assert data==before
+
+
+@pytest.mark.parametrize('text,phase',[
+    ('不要重新查，解释刚才的资金结果','history_unavailable'),
+    ('不要重新查，但重新查询最新资金','clarification'),
+    ('请说明一下','pending_dispatch'),('什么是资金流水','pending_dispatch'),
+])
+@pytest.mark.parametrize('stale',['missing','disabled'])
+def test_http_nonquery_stale_selection_audit_and_no_preference(task_env,monkeypatch,text,phase,stale):
+    s,app,c,client,user,data,payload,applied=task_env
+    monkeypatch.setenv('PX_TASKSPEC_V1_UIDS',user['uid'])
+    pid=capability('funds') if stale=='disabled' else 'missing-plugin'
+    with s.tx() as db:
+        db.execute('UPDATE installs SET enabled=0 WHERE uid=? AND plugin=?',(user['uid'],pid))
+        db.execute("UPDATE skills SET enabled=0 WHERE id='method-funds'")
+    request={**data,'text':text,'plugin_ids':[pid],'skill_ids':['method-funds']}
+    old=app.state.http;calls=[]
+    def transport(req):
+        calls.append(req.method)
+        return httpx.Response(200,json={'protocol':'durable_run_v1','receipt':None} if '/internal/runtime/runs/' in req.url.path else {'id':'ses_task','directory':'/workspace'})
+    app.state.http=httpx.AsyncClient(transport=httpx.MockTransport(transport))
+    try:
+        response=client.post(P+'/sessions/ses_task/messages',json=request)
+        assert response.status_code==202,response.text
+        assert client.post(P+'/sessions/ses_task/messages',json=request).json()==response.json()
+        assert client.post(P+'/sessions/ses_task/messages',json={**request,'text':text+'修改'}).status_code==409
+        row=runs.owned(s,user['uid'],'ses_task',response.json()['run_id'])
+        snap=s.decrypt(row['request_ciphertext']);audit=s.one('SELECT * FROM invocations WHERE run_id=?',(row['id'],))
+        assert row['phase']==phase
+        assert row['status']==('queued' if phase=='pending_dispatch' else 'completed')
+        assert bool(s.one('SELECT 1 FROM run_deliveries WHERE run_id=?',(row['id'],)))==(phase=='pending_dispatch')
+        assert not snap.get('facts_plan') and snap['allowed_capabilities']==[] and snap['allowed_tools']==[]
+        assert snap['payload']['tools']['*'] is False
+        assert '优先使用以下已授权插件' not in json.dumps(snap['payload'],ensure_ascii=False)
+        assert snap['request']['plugin_ids']==[pid] and snap['request']['skill_ids']==['method-funds']
+        assert json.loads(audit['selected_plugins'])==[pid] and json.loads(audit['selected_skills'])==['method-funds']
+        assert json.loads(audit['actual_plugins'])==[]
+        assert calls and set(calls)=={'GET'}
+    finally:c.portal.call(app.state.http.aclose);app.state.http=old
+
+
+@pytest.mark.parametrize('text',['看看资金','不要重新查继续说','不要重新查但重新查询最新资金','请说明一下'])
+def test_all_modes_concurrent_idempotency_preserves_selection(task_env,text):
+    from concurrent.futures import ThreadPoolExecutor
+    s,app,c,client,user,data,payload,applied=task_env
+    data={**data,'text':text,'skill_ids':['method-funds'],'plugin_ids':[capability('funds')]}
+    task=task_spec.resolve(s,user['uid'],'ses_task',data,applied)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        values=list(pool.map(lambda _:runs.submit(s,user,'ses_task',data,payload,applied,1,context=task['context'],task=task),range(4)))
+    assert len({x['run_id'] for x in values})==1
+    assert s.one('SELECT count(*) n FROM business_runs')['n']==s.one('SELECT count(*) n FROM invocations')['n']==1
+    assert s.one('SELECT count(*) n FROM run_deliveries')['n']==(0 if task['local'] else 1)
+    with pytest.raises(HTTPException) as error:
+        runs.submit(s,user,'ses_task',{**data,'plugin_ids':[]},payload,applied,1,context=task['context'],task=task)
+    assert error.value.status_code==409
+
+
+def test_new_query_disabled_dependency_rejected_before_run(task_env,monkeypatch):
+    s,app,c,client,user,data,payload,applied=task_env
+    monkeypatch.setenv('PX_TASKSPEC_V1_UIDS',user['uid'])
+    # Resolve while valid, then revoke: final transactional admission must recheck.
+    task=resolve(task_env)
+    with s.tx() as db:db.execute('UPDATE installs SET enabled=0 WHERE uid=? AND plugin=?',(user['uid'],capability('funds')))
+    with pytest.raises(HTTPException):runs.submit(s,user,'ses_task',data,payload,applied,1,context=task['context'],task=task)
+    old=app.state.http
+    app.state.http=httpx.AsyncClient(transport=httpx.MockTransport(lambda _:httpx.Response(200,json={'id':'ses_task','directory':'/workspace'})))
+    try:
+        reply=client.post(P+'/sessions/ses_task/messages',json=data)
+        assert reply.status_code in (403,409),reply.text
+        assert s.one('SELECT count(*) n FROM business_runs')['n']==0
+        assert s.one('SELECT count(*) n FROM run_deliveries')['n']==0
+    finally:c.portal.call(app.state.http.aclose);app.state.http=old
+
+
+def test_delivery_router_corpus():
+    from pathlib import Path
+    path=Path(__file__).resolve().parents[3]/'specs/stage2-pr5-routing-cases.jsonl'
+    rows=[json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    assert len(rows)==21 and len({r['id'] for r in rows})==21
+    for row in rows:
+        candidate=task_router.parse(row['text'],row['selected_skill'])
+        assert (candidate['query_mode_candidate'],candidate['intent_candidate'])==(row['query_mode'],row['intent']),row['id']

@@ -743,8 +743,9 @@ def create_app(store=None):
         from .gambling_agent import enabled as gambling_enabled, skill_material, bind as bind_gambling
         if modern:
             from .capabilities import check_selection
-            await app.state.db_work.run(check_selection,s,user['uid'],{**data,'skill_ids':skills} if task else data)
-            if data['plugin_ids']:prelude.append('优先使用以下已授权插件；这只是偏好，不扩大权限：'+','.join(data['plugin_ids']))
+            selection=task_spec.admission_selection(data,task,skills) if task is not None else data
+            await app.state.db_work.run(check_selection,s,user['uid'],selection)
+            if selection['plugin_ids']:prelude.append('优先使用以下已授权插件；这只是偏好，不扩大权限：'+','.join(selection['plugin_ids']))
         input_bytes = len(text.encode("utf-8")) + sum(len(x.encode("utf-8")) for x in prelude)
         for skill_id in skills:
             current_skill = await app.state.db_work.run(s.one, "SELECT id FROM skills WHERE id=? AND uid=? AND enabled=1", (own_id(skill_id), user["uid"]))

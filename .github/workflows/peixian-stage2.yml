@@ -36,13 +36,22 @@ jobs:
         run: echo "BUN_EXECUTABLE=$(command -v bun)" >> "$GITHUB_ENV"
       - name: Control, Gateway, fixed HTTP contracts and migration
         working-directory: services/peixian-control
-        run: python -m pytest tests/test_task_spec.py tests/test_business_runs.py tests/test_seven_http_contract.py tests/test_facts_plan.py tests/test_facts_runtime.py tests/test_facts_execution.py tests/test_seven_migration.py -q
+        run: python -m pytest tests/test_task_spec.py tests/test_business_runs.py tests/test_seven_http_contract.py tests/test_facts_plan.py tests/test_facts_runtime.py tests/test_facts_execution.py tests/test_seven_migration.py gateway/tests -q
       - name: Runtime templates and release consistency
         working-directory: deploy/peixian
-        run: python -m pytest tests/test_seven_runtime.py tests/test_console_runtime.py tests/test_stage1_release.py -q
+        run: python -m pytest tests/test_seven_runtime.py tests/test_console_runtime.py tests/test_stage1_release.py tests/test_stage2_pr5_release.py -q
       - name: Plugin module behavior
         working-directory: deploy/peixian/examples/seven_data_plugins
         run: bun test plugin.test.mjs
       - name: Verify historical release evidence and artifact hashes
         working-directory: deploy/peixian
         run: python stage1-release-check.py
+      - name: Verify PR-5 delivery evidence
+        working-directory: deploy/peixian
+        run: |
+          if python -c "import json,sys; sys.exit(0 if json.load(open('../../specs/stage2-pr5-release.json'))['closeout_status']=='pending' else 1)"; then
+            echo "Explicit candidate validation only; PR-5 closeout is pending."
+            python stage2-pr5-release-check.py --candidate
+          else
+            python stage2-pr5-release-check.py
+          fi

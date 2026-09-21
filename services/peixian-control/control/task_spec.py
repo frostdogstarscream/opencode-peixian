@@ -139,3 +139,10 @@ def bind(snapshot, payload, task):
         snapshot['allowed_capabilities'], snapshot['allowed_tools'] = [], []
     if task['local']:
         snapshot['task_response'] = task['local']
+
+
+def admission_selection(data, task, effective_skill_ids):
+    """Admission-only selection; preserve the original request for audit/replay."""
+    query = (task.get('spec') or {}).get('query_mode') == 'new_query'
+    return {**data, 'skill_ids': list(effective_skill_ids) if query else [],
+            'plugin_ids': list(data.get('plugin_ids', [])) if query else []}

@@ -29,8 +29,8 @@ def parse(text, selected=False):
     unsupported = bool(re.search(r'身份证|\d{17}[\dXx]|DEMO-|(?:最近|过去|近)\s*[\d一二三四五六七八九十]+[天周月年]|20\d\d[-/年]\d', clean))
     injection = bool(re.search(r'忽略.*?(?:限制|规则|权限)|全部插件|所有插件|直接调用.*?插件|不要.*?权限校验|allowed_tools|task_spec', clean))
     conflict = ['query_mode'] if no and refresh else []
-    related = bool(selected or intents or integrated or no or refresh or history or unsupported or injection
-                   or re.search(r'分析|查询|核对|看看|查一下', clean))
+    related = bool(intents or integrated or no or refresh or history or unsupported or injection
+                   or re.search(r'分析|查询|核对|看看|查一下|整理|统计|列出|展示', clean))
     mode, intent = 'new_query', None
     greeting=bool(re.fullmatch(r'(?:你好|您好|谢谢|再见|早上好|晚上好)[！!。，,.？?]*',clean))
     if greeting:

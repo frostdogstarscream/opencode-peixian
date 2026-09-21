@@ -98,3 +98,40 @@ TaskSpec 和 TaskCandidate 使用闭合 JSON Schema。TaskCandidate 仅保存在
 新增可选快照字段 task_candidate、task_spec、task_context_snapshot、task_router_version、task_target、task_response；新计划包含 task_target。原插件调用名、Run 状态枚举、证据与分析结果结构不变，不新增数据表。
 
 没有实施 PR-6/7/8/9、Result V2、结构化澄清提交、全新历史来源链和自由说明冲突检查。没有自动推送 GitHub或发布。PR-5 通过独立审阅后再进入 PR-6。
+
+
+## PR-5.1 准入语义与交付检查补充
+
+### 选择和执行分开
+
+TaskSpec 白名单路径使用 `admission_selection` 统一计算入口及事务内的准入选择，不改写原始请求：
+
+| 任务 | 准入 Skill / Plugin | 执行边界 |
+|---|---|---|
+| new_query | 重新核对后的有效 Skill / 原插件偏好 | 固定计划依赖继续单独严格校验；不可用即拒绝 |
+| explain_existing | 空 / 空 | 本地 history_unavailable 答复，无 delivery，无模型/插件 |
+| clarify | 空 / 空 | 本地 clarification 答复，无 delivery，无模型/插件 |
+| 普通聊天 | 空 / 空 | 可进入模型投递；无事实计划，业务工具全部关闭 |
+
+非查询分支不写入“优先使用以下已授权插件”的提示。不存在、已停用的残留插件不再阻断非查询请求，但不是重新授予插件权限。原始 `skill_ids` / `plugin_ids` 仍保存在加密 request 和 Invocation 的 selected 字段；它们不等于实际使用。非查询的 allowed_capabilities、allowed_tools、actual_plugins 为空。
+
+仅选择 Skill 不构成查询意图。“请说明一下”“你好”“什么是资金流水”为普通聊天。“看看”“整理一下”“分析一下”“重新查一下”只有在已经识别为数据动作后，才能由所选官方 Skill 补齐方法；未选时澄清。明确方法仍可自动发现本人的可用官方副本。原非 TaskSpec 路径保持兼容。
+
+四种模式的同请求重放均返回同一 Run，不新增 Invocation 或 delivery；修改原始选择或文本属于内容冲突，即使残留选择不参与准入也返回 409。
+
+### 发布证据检查
+
+从 `deploy/peixian` 执行：
+
+```sh
+python stage2-pr5-release-check.py
+python stage2-pr5-release-check.py --output /safe/new-pr5-validation.json
+```
+
+默认要求 `closeout_status=completed`、真实记录的成功 CI、合法提交祖先链和无实现漂移。输出文件仅在验证成功后独占创建；失败不生成、已有不覆盖。检查器核对源码版本常量、21 条实际路由样例、五份交付文件的精确集合和 SHA256，不访问网络、Docker 或运行数据库。
+
+固定实现清单包含计划指定的 12 个路径，另纳入 Store schema 常量、交付检查器、负向测试和 CI 配置。已提交、暂存及工作区实现漂移均会拒绝。文档可以后置，不能悄悄修改实现。OpenAPI 契约未改变，本轮保留既有导出文件字节。
+
+为解决“提交尚未创建时无法记录自身 SHA、CI 尚未运行时不能填写成功”的先后依赖，提供显式 `--candidate`：只接受 `closeout_status=pending` 与 `github_ci.executed=false`，结果固定为 `candidate_only`，不能作为完成证明；默认命令拒绝该状态。代码提交的 CI 先完成候选测试，后续纯文档提交填写该成功 Run 和实现 SHA，再执行默认严格检查。Workflow 明确输出所用模式；完成状态不允许选择候选模式。
+
+离线检查只能验证 CI 记录格式及 Git 关系，不能证明 GitHub Run 真实存在或实际成功；开发回执必须给出通过 GitHub API 核实的链接。最终文档提交的 CI 也必须成功。候选模式不会部署，也不会开启 TaskSpec 白名单。

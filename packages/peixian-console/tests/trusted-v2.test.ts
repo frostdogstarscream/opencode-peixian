@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { ownedResult, usageLabels, label } from "../src/trusted-v2"
+import { ownedResult, usageLabels, label, allowLegacyEvidence } from "../src/trusted-v2"
 describe("trusted result boundary", () => {
   const pending = {
     schema: "peixian.analysis-result",
@@ -36,4 +36,18 @@ describe("trusted result boundary", () => {
     expect(label(null)).toBe("未提供")
     expect(label(0)).toBe("0")
   })
+})
+
+const finalResult={schema:"peixian.analysis-result",version:"2.0",run_id:"r1",agent:{id:"theft-assistant"},data_environment:"synthetic",data_usage:{status:"partial"},claims:[{type:"fact",agent_id:"theft-assistant",verification_status:"approved",statement:"same-frame",source_ids:["DEMO-001"]}],records:[],missing:[],narrative:{status:"conflicted"}}
+test("same valid result rejects task Agent mismatch and unknown factual claim",()=>{
+ expect(ownedResult(finalResult,"r1","theft-assistant")).toBe(true)
+ expect(ownedResult(finalResult,"r1","gambling-assistant")).toBe(false)
+ expect(ownedResult({...finalResult,data_usage:{status:"unknown"}},"r1")).toBe(false)
+ expect(ownedResult({...finalResult,claims:[null]},"r1")).toBe(false)
+})
+test("legacy side cards require explicit current Run legacy classification",()=>{
+ expect(allowLegacyEvidence("r1",undefined,"r1")).toBe(false)
+ expect(allowLegacyEvidence("r1",{run_id:"r1",version:"2.0"},"r1")).toBe(false)
+ expect(allowLegacyEvidence("r1",{run_id:"r1",version:"legacy"},"old")).toBe(false)
+ expect(allowLegacyEvidence("r1",{run_id:"r1",version:"legacy"},"r1")).toBe(true)
 })

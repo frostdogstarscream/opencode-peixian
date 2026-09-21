@@ -107,30 +107,30 @@ export function label(value: unknown): string {
   if (typeof value === "object") return JSON.stringify(value)
   return values[String(value)] ?? String(value)
 }
-export function ownedResult(value: unknown, run: string): value is TrustedResult {
-  if (!value || typeof value !== "object") return false
-  const x = value as TrustedResult
+function object(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value)
+}
+function strings(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(x=>typeof x === "string")
+}
+export function ownedResult(value: unknown, run: string, expectedAgent?: string): value is TrustedResult {
+  if (!object(value)) return false
+  const x = value
   if (x.schema !== "peixian.analysis-result" || x.run_id !== run) return false
   if (x.version === "legacy") return x.status === "legacy"
-  if (x.version !== "2.0" || x.data_environment !== "synthetic" || !x.data_usage || !usageLabels[x.data_usage.status])
-    return false
+  if (x.version !== "2.0" || x.data_environment !== "synthetic" || !object(x.data_usage) || !Object.hasOwn(usageLabels,String(x.data_usage.status))) return false
   if (x.status === "pending") return true
-  return Boolean(
-    x.agent?.id &&
-      Array.isArray(x.claims) &&
-      x.claims.every(
-        (c) =>
-          c.agent_id === x.agent?.id &&
-          ["fact", "computed", "gap"].includes(c.type) &&
-          c.verification_status === "approved" &&
-          typeof c.statement === "string" &&
-          Array.isArray(c.source_ids),
-      ) &&
-      Array.isArray(x.records) &&
-      Array.isArray(x.missing) &&
-      x.narrative &&
-      narrativeLabels[x.narrative.status],
-  )
+  if (!object(x.agent) || !["theft-assistant","gambling-assistant"].includes(String(x.agent.id)) || (expectedAgent && x.agent.id !== expectedAgent)) return false
+  const agent = x.agent.id, usage = x.data_usage
+  const claims = x.claims
+  if (!Array.isArray(claims) || !claims.every(c=>object(c) && c.agent_id === agent && ["fact","computed","gap"].includes(String(c.type)) && c.verification_status === "approved" && typeof c.statement === "string" && strings(c.source_ids))) return false
+  // Unknown/not-started cannot authenticate factual cards. Partial may retain only confirmed modules.
+  if (["unknown","not_started","in_flight"].includes(String(usage.status)) && claims.some(c=>c.type!=="gap")) return false
+  return Array.isArray(x.records) && x.records.every(object) && strings(x.missing) && object(x.narrative) && Object.hasOwn(narrativeLabels,String(x.narrative.status))
+}
+export function allowLegacyEvidence(currentRun?: string, boundary?: {run_id:string;version:string}, evidenceRun?:string):boolean {
+  if (!currentRun) return true
+  return boundary?.run_id===currentRun && boundary.version==="legacy" && evidenceRun===currentRun
 }
 
 export const fieldLabels: Record<string, string> = {

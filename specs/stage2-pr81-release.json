@@ -1,0 +1,35 @@
+{
+  "stage": "pr81",
+  "baseline": "f0e8009b9f909a3798b7c1fb83ee9282402f714f",
+  "schema_version": 9,
+  "closeout_status": "pending",
+  "implementation_revision": null,
+  "deployment_performed": false,
+  "real_data_accessed": false,
+  "model_requests": 0,
+  "open_p0": 0,
+  "unaccepted_p1": 0,
+  "github_ci": {
+    "executed": false
+  },
+  "tests": {
+    "targeted": {
+      "passed": 45,
+      "exit_code": 0
+    },
+    "frontend": {
+      "passed": 77,
+      "exit_code": 0,
+      "typecheck": true,
+      "build": true
+    },
+    "browser": {
+      "checks": 21,
+      "exit_code": 0
+    },
+    "dependency_audit": {
+      "total": 0,
+      "exit_code": 0
+    }
+  }
+}

@@ -27,6 +27,7 @@ export default function TrustedResultPanel(props: {
   events?: {sequence:number;name:string;status:string;completed_at?:string|null}[]
   onContext: (value: TaskContext) => void
   onContinue: () => void
+  onResult?: (value: TrustedResult | undefined) => void
 }) {
   const [result, setResult] = createSignal<TrustedResult>(),
     [task, setTask] = createSignal<Task>(),
@@ -54,6 +55,7 @@ export default function TrustedResultPanel(props: {
     const current = () => alive && sequence === request && props.sid === sid && props.rid === rid
     setError("")
     setResult(undefined)
+    props.onResult?.(undefined)
     setTask(undefined)
     setTicket(undefined)
     setSource(undefined)
@@ -78,8 +80,9 @@ export default function TrustedResultPanel(props: {
         }
         setTask(nextTask)
         if (rid && resultReply.status === "fulfilled" && resultReply.value) {
-          if (!ownedResult(resultReply.value, rid)) throw new Error("结果版本或执行归属无法识别，未展示可信卡片。")
+          if (!ownedResult(resultReply.value, rid, nextTask?.agent_profile?.id)) throw new Error("结果版本或执行归属无法识别，未展示可信卡片。")
           setResult(resultReply.value)
+          props.onResult?.(resultReply.value)
         }
         const failures = [contextReply, taskReply, resultReply]
           .filter((reply) => reply.status === "rejected")
@@ -275,6 +278,7 @@ export default function TrustedResultPanel(props: {
               <p class={`trusted-usage ${value().data_usage?.status}`} role="status">
                 {usageLabels[value().data_usage?.status ?? ""] ?? "查询状态无法确认"}
               </p>
+              <ul aria-label="分项资料状态"><For each={value().data_usage?.modules??[]}>{item=><li>{label(item.module)}：{item.response_confirmed?"已取得有效响应":({unknown:"结果未确认",pending:"处理中",rejected:"资料暂不可采用",not_started:"尚未查询"} as Record<string,string>)[item.status]??"尚无有效响应"}</li>}</For></ul>
               <Show when={value().status === "pending"}>
                 <p>执行尚未结束，最终可信结果尚未保存。</p>
               </Show>

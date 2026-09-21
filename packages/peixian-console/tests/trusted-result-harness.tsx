@@ -1,6 +1,7 @@
 // Synthetic browser component harness; never a production build entry.
 import { render } from "solid-js/web"
 import { createSignal, Show } from "solid-js"
+import {EventDiagramView} from "../src/EventDiagram"
 import Panel from "../src/TrustedResultPanel"
 import "../src/styles.css"
 const context = { agent_id: "theft-assistant", generation: 1, version: 1, pending_clarification_id: "ticket-demo" }
@@ -72,14 +73,14 @@ window.fetch = async (input, init) => {
     value = {
       run_id: "run-demo",
       task_spec: result.task,
-      agent_profile: result.agent,
+      agent_profile: mode === "cross-agent" ? {...result.agent,id:"gambling-assistant"} : result.agent,
       response: { clarification_id: "ticket-demo" },
     }
   else if (url.endsWith("/result"))
     value =
       mode === "legacy"
         ? { schema: result.schema, version: "legacy", run_id: "run-demo", status: "legacy" }
-        : { ...result, data_usage: { ...result.data_usage, status: mode === "unknown" ? "unknown" : "partial" } }
+        : { ...result, claims: mode === "unknown" ? [] : result.claims, records: mode === "unknown" ? [] : result.records, data_usage: { ...result.data_usage, status: ["unknown","invalid-unknown"].includes(mode) ? "unknown" : "partial" } }
   else if (url.endsWith("/resolve") || url.endsWith("/cancel")) {
     const body = JSON.parse(String(init?.body))
     resolveCount++
@@ -127,7 +128,7 @@ function Harness() {
           <option value="unknown">结果未知</option>
           <option value="legacy">旧结果</option>
           <option value="conflict">过期确认</option>
-          <option value="slow">迟到结果</option>
+          <option value="slow">迟到结果</option><option value="invalid-unknown">矛盾未知结果</option><option value="cross-agent">跨助手结果</option>
         </select>
       </label>
       <button onClick={() => setShown((v) => !v)}>切换会话</button>
@@ -146,6 +147,7 @@ function Harness() {
           }}
         />
       </Show>
+      <EventDiagramView onSelect={()=>{}} value={{version:"1.0",status:"ready",run_id:"run-demo",scenario_id:"DEMO-CASE-THEFT",timezone:"Asia/Shanghai",window_start:"2026-09-22T22:00:00+08:00",window_end:"2026-09-23T06:00:00+08:00",scenario_snapshot_id:"DEMO-SCENE",records_snapshot_id:"DEMO-SNAPSHOT",rule_version:"v1",legend:"虚线仅表示时间先后",synthetic:true,total_nodes:1,aliases:[],missing:[],pages:[{number:1,mermaid:'flowchart TB\nn1["中文同框记录"]',nodes:[{id:"n1",number:"事件01",time:"2026-09-22T22:10:00+08:00",group:"night",subject:"演示对象甲",subject_ref:"DEMO-A",event:"同框观测",category:"portrait",source_ids:["DEMO-001"],message_id:"demo-message",notes:[]}],groups:[],edges:[]}]}} />
     </main>
   )
 }

@@ -7,7 +7,8 @@ import { ClueDrawer, CluePanel } from "../TrustedAnalysis"
 import EntityGraphPanel from "../EntityGraph"
 import SmoothMarkdown from "../SmoothMarkdown"
 import TrustedResultPanel from "../TrustedResultPanel"
-import type {TaskContext,AgentChoice} from "../trusted-v2"
+import { allowLegacyEvidence } from "../trusted-v2"
+import type {TaskContext,AgentChoice,TrustedResult} from "../trusted-v2"
 import type { TrustedEvidence } from "../TrustedAnalysis"
 import { isAnalysisResult, legacyPresentation } from "../result-contract"
 import RuntimeStatus from "../RuntimeStatus"
@@ -28,6 +29,7 @@ export default function Chat() {
   const [agents,setAgents]=createSignal<AgentChoice[]>([])
   const [agent,setAgent]=createSignal("gambling-assistant")
   const [taskContext,setTaskContext]=createSignal<TaskContext>()
+  const [resultBoundary,setResultBoundary]=createSignal<TrustedResult>()
   createEffect(()=>{const owner=app.user().id;void api<{items:AgentChoice[]}>("/agents").then(value=>{if(app.user().id===owner)setAgents(value.items)}).catch(()=>{if(app.user().id===owner)setAgents([])})})
   const [model, setModel] = createSignal("")
   const [draft, setDraft] = createSignal("")
@@ -87,7 +89,7 @@ export default function Chat() {
   const messageAnalysis = createMemo(() => [...messages().flatMap((message) => message.parts)].reverse().find((part) => part.type === "analysis_result" && isAnalysisResult(part.data))?.data as AnalysisResult | undefined)
   const latestAnalysis = createMemo(() => {
     const result = messageAnalysis() ?? legacyPresentation(trusted()?.presentation)
-    if (!result) return
+    if (!result || !allowLegacyEvidence(currentRun()?.id,resultBoundary(),result.run_id)) return
     const gaps = result.run_id && runEvidence()?.run_id === result.run_id ? runEvidence()?.missing : undefined
     return { ...result, missing: [...new Set([...(result.missing ?? []), ...(gaps ?? [])])] }
   })
@@ -809,7 +811,7 @@ export default function Chat() {
               </Index>
             </div>
           </Show>
-          <Show when={selected()} keyed>{sid=><TrustedResultPanel sid={sid} rid={currentRun()?.id} revision={currentRun()?.updated_at??currentRun()?.status} agent={agent()} events={runEventRun()===currentRun()?.id?runEvents():[]} disabled={busy()||sending()||uncertain()||!ready()} onContext={value=>{if(selected()===sid){setTaskContext(value);setAgent(value.agent_id)}}} onContinue={()=>{if(selected()===sid){setDraft("继续查询已确认对象的资料");void send()}}}/>}</Show>
+          <Show when={selected()} keyed>{sid=><TrustedResultPanel sid={sid} rid={currentRun()?.id} revision={currentRun()?.updated_at??currentRun()?.status} agent={agent()} events={runEventRun()===currentRun()?.id?runEvents():[]} disabled={busy()||sending()||uncertain()||!ready()} onResult={value=>{if(selected()===sid)setResultBoundary(value)}} onContext={value=>{if(selected()===sid){setTaskContext(value);setAgent(value.agent_id)}}} onContinue={()=>{if(selected()===sid){setDraft("继续查询已确认对象的资料");void send()}}}/>}</Show>
         </div>
         <div class="composer-area">
           <RuntimeStatus compact />

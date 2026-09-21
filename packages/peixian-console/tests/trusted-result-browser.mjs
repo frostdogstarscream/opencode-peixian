@@ -1,7 +1,7 @@
 // Isolated UI interaction checks. Response fixtures are synthetic, not live-account E2E.
 import { chromium } from "playwright"
 import assert from "node:assert/strict"
-import { mkdir, writeFile } from "node:fs/promises"
+import { mkdir, writeFile, readFile } from "node:fs/promises"
 import path from "node:path"
 const output = path.resolve(process.env.PR8B_BROWSER_OUTPUT || "output/playwright/pr8b")
 await mkdir(output, { recursive: true })
@@ -79,6 +79,25 @@ try {
   await page.getByRole("button", {name:"切换会话",exact:true}).click()
   await new Promise(resolve=>setTimeout(resolve,500))
   check("late result cannot restore old panel",await page.getByRole("region",{name:"任务与可信结果"}).count()===0)
+  await page.reload()
+  for (const mode of ["invalid-unknown","cross-agent"]) {
+    await page.getByRole("combobox",{name:"测试状态"}).selectOption(mode)
+    await page.getByText("结果版本或执行归属无法识别，未展示可信卡片。",{exact:true}).waitFor()
+    check(mode+" refuses trusted cards",await page.getByRole("heading",{name:"已核验事实",exact:true}).count()===0)
+  }
+  await page.getByRole("combobox",{name:"测试状态"}).selectOption("ready")
+  await page.getByRole("heading",{name:"已核验事实",exact:true}).waitFor()
+  const graph=page.getByRole("region",{name:"事件脉络图"})
+  await graph.locator("svg").waitFor()
+  check("updated Mermaid renders Chinese",(await graph.locator("svg").textContent()).includes("中文同框记录"))
+  for (const format of ["SVG","PNG"]) {
+    const waiting=page.waitForEvent("download")
+    await graph.getByRole("button",{name:"导出 "+format,exact:true}).click()
+    const download=await waiting;const file=path.join(output,"diagram."+format.toLowerCase());await download.saveAs(file)
+    const content=await readFile(file)
+    check(format+" export bytes",content.length>100)
+    if(format==="SVG")check("SVG has no executable elements",!/<(script|foreignObject|image|a)(\s|>)/i.test(content.toString()))
+  }
   check("no browser exceptions", errors.length === 0)
   await writeFile(
     path.join(output, "checks.json"),

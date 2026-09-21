@@ -30,6 +30,10 @@ def inputs(snapshot):
     plan=snapshot.get('facts_plan');state=snapshot.get('facts_state') or {}
     if not plan:return {},[],[]
     from shared.developer_plan import validate
+    from .agents.runtime import validate_execution
+    from fastapi import HTTPException
+    try: validate_execution(snapshot)
+    except HTTPException as exc: raise ValueError('frozen_task_mismatch') from exc
     validate(plan)
     if snapshot.get('registry_snapshot')!=plan.get('registry'):raise ValueError('registry_snapshot_mismatch')
     identity=snapshot.get('agent_profile') or {}
@@ -156,7 +160,7 @@ def build(row,snapshot,events):
     if snapshot.get('task_response'):missing.append(snapshot['task_response']['message'])
     missing=list(dict.fromkeys(missing))
     for message in missing:claims.append(claim(row,identity,'gap','data.gap.v1',message,{'subject_refs':task.get('target_refs',[]),'data_usage':use['status']},[]))
-    return {'schema':'peixian.analysis-result','version':VERSION,'run_id':row['id'],'agent':copy.deepcopy(identity),'task':{k:copy.deepcopy(task.get(k)) for k in ('query_mode','intent','methods','target_refs','target_mode','scenario_id','source_data_run_id')},'data_environment':'synthetic','data_usage':use,'claims':claims,'records':records,'missing':missing,'narrative':review(snapshot.get('model_narrative'),claims),'versions':{'scenario_snapshot_id':scene.get('snapshot_id'),'records_snapshot_id':scene.get('records_snapshot_id'),'registry':copy.deepcopy(plan.get('registry')),'plugin_versions':{p['id']:p.get('version') for p in snapshot.get('plugins',[]) if p['id'] in plan.get('allowed_capabilities',[])}},'generated_at':iso(row.get('completed') or row['created'])}
+    return {'schema':'peixian.analysis-result','version':VERSION,'run_id':row['id'],'agent':copy.deepcopy(identity),'task':{k:copy.deepcopy(task.get(k)) for k in ('query_mode','intent','methods','target_refs','target_mode','scenario_id','source_data_run_id')},'data_environment':'synthetic','data_usage':use,'claims':claims,'records':records,'missing':missing,'narrative':review(snapshot.get('model_narrative'),claims,use),'versions':{'scenario_snapshot_id':scene.get('snapshot_id'),'records_snapshot_id':scene.get('records_snapshot_id'),'registry':copy.deepcopy(plan.get('registry')),'plugin_versions':{p['id']:p.get('version') for p in snapshot.get('plugins',[]) if p['id'] in plan.get('allowed_capabilities',[])}},'generated_at':iso(row.get('completed') or row['created'])}
 
 
 def project(store,row,snapshot):
@@ -173,13 +177,13 @@ def project(store,row,snapshot):
         prior=store.one('SELECT * FROM run_results WHERE run_id=?',(source['id'],))
         original=checked_result(store,prior) if prior else build(source,frozen,store.rows('SELECT * FROM run_events WHERE run_id=?',(source['id'],)))
         result.update(claims=copy.deepcopy(original['claims']),records=copy.deepcopy(original['records']),missing=copy.deepcopy(original['missing']),versions=copy.deepcopy(original['versions']))
-        result['narrative']=review(snapshot.get('model_narrative'),result['claims'])
+        result['narrative']=review(snapshot.get('model_narrative'),result['claims'],result['data_usage'])
     return result
 
 
 def checked_result(store,stored):
     result=store.decrypt(stored['result_ciphertext'])
-    if digest(result)!=stored['result_digest'] or result.get('run_id')!=stored['run_id'] or result.get('version')!=VERSION:error('result_integrity_failed','结果完整性无法核对。',409)
+    if digest(result)!=stored['result_digest'] or result.get('run_id')!=stored['run_id'] or result.get('version')!=VERSION or result.get('data_environment')!='synthetic':error('result_integrity_failed','结果完整性无法核对。',409)
     return result
 
 

@@ -1,8 +1,8 @@
-name: Peixian PR-7 Clarification checks
+name: Peixian PR-7.1 Integration Review checks
 
 on:
   push:
-    branches: ["codex/stage2-clarification-v1"]
+    branches: ["codex/stage2-context-integration-review-v1"]
   pull_request:
   workflow_dispatch:
 
@@ -10,12 +10,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: peixian-pr7-${{ github.ref }}
+  group: peixian-pr71-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   core:
-    if: github.event_name != 'pull_request' || github.head_ref == 'codex/stage2-clarification-v1'
+    if: github.event_name != 'pull_request' || github.head_ref == 'codex/stage2-context-integration-review-v1'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -40,7 +40,7 @@ jobs:
         run: python -m pytest tests gateway/tests -q
       - name: Runtime templates and release consistency
         working-directory: deploy/peixian
-        run: python -m pytest tests/test_seven_runtime.py tests/test_console_runtime.py tests/test_stage1_release.py tests/test_stage2_pr7_release.py tests/test_runtime_pool_delivery.py -q
+        run: python -m pytest tests/test_seven_runtime.py tests/test_console_runtime.py tests/test_stage1_release.py tests/test_stage2_pr71_release.py tests/test_runtime_pool_delivery.py -q
       - name: Plugin module behavior
         working-directory: deploy/peixian/examples/seven_data_plugins
         run: bun test plugin.test.mjs
@@ -71,11 +71,17 @@ jobs:
           cd /tmp/pr6-closeout/deploy/peixian
           python stage2-pr6-release-check.py
           python -m pytest tests/test_stage2_pr6_release.py -q
-      - name: Verify PR-7 evidence
+      - name: Verify PR-7 immutable closeout
+        run: |
+          git worktree add --detach /tmp/pr7-closeout cb080805cb26d5ebbaa95a7283605737e634fee4
+          cd /tmp/pr7-closeout/deploy/peixian
+          python stage2-pr7-release-check.py
+          python -m pytest tests/test_stage2_pr7_release.py -q
+      - name: Verify PR-7.1 evidence
         working-directory: deploy/peixian
         run: |
-          if python -c "import json,sys; sys.exit(0 if json.load(open('../../specs/stage2-pr7-release.json'))['closeout_status']=='pending' else 1)"; then
-            python stage2-pr7-release-check.py --candidate
+          if python -c "import json,sys; sys.exit(0 if json.load(open('../../specs/stage2-pr7-integration-release.json'))['closeout_status']=='pending' else 1)"; then
+            python stage2-pr71-release-check.py --candidate
           else
-            python stage2-pr7-release-check.py
+            python stage2-pr71-release-check.py
           fi

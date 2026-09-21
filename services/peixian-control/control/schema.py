@@ -14,3 +14,19 @@ def validate(db):
     else:
         raise ValueError("Unsupported Control database schema")
     check(db)
+    validate_chain(db, version)
+
+
+def validate_chain(db,version):
+    """Verify every recorded ancestor without changing historical migration bytes."""
+    from . import migrations_v4,migrations_v5,migrations_v6,migrations_v7,migrations_v8
+    modules={4:migrations_v4,5:migrations_v5,6:migrations_v6,7:migrations_v7,8:migrations_v8}
+    cursor=version;seen=set()
+    while cursor>=4:
+        module=modules[cursor]
+        row=db.execute('SELECT * FROM schema_migrations WHERE migration_id=?',(module.MIGRATION_ID,)).fetchone()
+        allowed={4,5} if cursor==6 else {cursor-1}
+        if (not row or row['to_version']!=cursor or row['from_version'] not in allowed
+            or row['script_digest']!=module.SCRIPT_DIGEST):raise ValueError('historical migration chain mismatch')
+        seen.add(cursor);cursor=row['from_version']
+    if cursor!=3 or {r[0] for r in db.execute('SELECT to_version FROM schema_migrations')}!=seen:raise ValueError('unexpected migration chain')

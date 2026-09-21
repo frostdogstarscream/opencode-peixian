@@ -148,6 +148,7 @@ def reset(store,uid,sid,profile):
         return public(dict(db.execute('SELECT * FROM session_task_contexts WHERE uid=? AND session_id=?',(uid,sid)).fetchone()))
 
 def source_info(store,uid,sid,rid):
+    if store.schema_version()<6:error('run_not_found','执行记录不存在',404)
     from .business_runs import owned
     row=owned(store,uid,sid,rid);snap=store.decrypt(row['request_ciphertext']);spec=snap.get('task_spec') or {};projection=snap.get('historical_projection')
     if projection:

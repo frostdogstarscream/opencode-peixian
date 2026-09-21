@@ -1,5 +1,6 @@
 """Server-side PR-5 admission; no model classifier or client-authoritative TaskSpec."""
 import os
+import re
 import copy
 import jsonschema
 from . import task_router
@@ -61,6 +62,8 @@ def resolve(store,uid,sid,data,applied):
     from . import clarifications
     routing,confirmed,selection=data,None,None
     if clarifications.enabled(store,uid):routing,confirmed,selection=clarifications.prepare(store,uid,sid,data)
+    if clarifications.enabled(store,uid) and routing['text'].strip() in ('他','她','这个人','这两个人','他们','她们','这个账户','那个账户'):
+        routing={**routing,'text':'查询'+routing['text']}
     task=resolve_legacy(store,uid,sid,routing,applied,confirmed)
     if clarifications.enabled(store,uid):task=clarifications.decorate(task,routing,selection)
     if task_context.enabled(store,uid) and task.get('agent_profile'):
@@ -94,6 +97,12 @@ def resolve_legacy(store, uid, sid, data, applied, confirmed=None):
     if profile and store.schema_version()>=8:
         for alias in ('那辆车','这辆车','该车','哪辆车'):route_text=route_text.replace(alias,'车辆')
     candidate = task_router.parse(route_text, bool(data['skill_ids']),profile)
+    # Report an explicitly unavailable capability without inventing a new Method.
+    if profile and re.fullmatch(r'(?:请|帮我|请帮我)?(?:查询|看看|查一下|整理|核对)?(?:话单|通话记录|话单资料)[？?。！!]*',route_text.strip()):
+        from .developer_registry.registry import REGISTRY
+        capability=next((c for c in REGISTRY.documents()['capabilities'] if c['id']=='records.calls'),None)
+        if not capability or capability['state']!='published' or profile.id not in capability['supported_agents']:
+            candidate.update(data_related=True,query_mode_candidate='clarify',intent_candidate='clarification',conflicts=['capability_not_ready'])
     jsonschema.validate(candidate,candidate_schema(profile))
     inherited = current(store, uid, sid)
     # No models or old prose are inspected. The PR-5 context is just the existing

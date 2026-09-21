@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   core:
+    if: github.event_name != 'pull_request' || github.head_ref == 'codex/stage2-task-spec-v1'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:

@@ -55,7 +55,10 @@ def validate_execution(snapshot):
     task=snapshot.get('task_spec') or {}
     if task.get('schema_version') not in ('task-spec-v2','task-spec-v3'):return
     meta=snapshot.get('agent_profile') or {};plan=snapshot.get('facts_plan') or {}
-    if (plan.get('agent_profile')!=meta or plan.get('agent_task')!=task
+    from shared.task_scope import validate_target
+    try:validate_target(plan)
+    except (ValueError,KeyError,TypeError):error('agent_task_mismatch','执行目标无法核对，未调用资料接口。',409)
+    if (snapshot.get('task_target')!=plan.get('task_target') or plan.get('agent_profile')!=meta or plan.get('agent_task')!=task
         or task.get('agent_id')!=meta.get('id') or task.get('agent_version')!=meta.get('version')
         or task.get('agent_profile_sha256')!=meta.get('profile_sha256') or task.get('domain')!=meta.get('domain')
         or task.get('methods')!=plan.get('methods') or task.get('scenario_id')!=plan.get('scenario',{}).get('scenario_id')

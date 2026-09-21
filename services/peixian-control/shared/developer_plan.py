@@ -6,6 +6,8 @@ import re
 METHODS={'night':['night'],'companions':['portrait'],'funds':['funds'],'relations':['lookup','composite'],'vehicles':['vehicle']}
 
 def validate(plan):
+    from .task_scope import validate_target
+    validate_target(plan)
     frozen=plan.get('registry')
     if frozen is None:return # Existing immutable pre-registry runs.
     if not isinstance(frozen,dict) or set(frozen)!={'capability_registry_version','rule_registry_version','method_dependency_version','agent_id','methods','capabilities','rules','digest'}:raise ValueError('invalid_registry_snapshot')

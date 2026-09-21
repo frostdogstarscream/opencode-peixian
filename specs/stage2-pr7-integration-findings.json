@@ -1,0 +1,79 @@
+{
+  "baseline": "cb080805cb26d5ebbaa95a7283605737e634fee4",
+  "phase": "fixed_pending_full_verification",
+  "findings": [
+    {
+      "id": "IR-001",
+      "severity": "P1",
+      "area": "execution",
+      "description": "执行前未逐项核对 TaskSpec 目标、独立 task_target 与场景筛选字段的一致性；需以篡改反例补齐 Control/Gateway 双层检查。",
+      "status": "fixed",
+      "fix_commit": null,
+      "test_ids": [
+        "test_runtime_target_tampering_rejected"
+      ]
+    },
+    {
+      "id": "IR-002",
+      "severity": "P1",
+      "area": "migration",
+      "description": "v8 仅核对直接前驱迁移身份，较早迁移记录身份被改动可能未被识别；补齐历史身份链，不修改既有迁移脚本。",
+      "status": "fixed",
+      "fix_commit": null,
+      "test_ids": [
+        "test_migration_chain_tampering_rejected"
+      ]
+    },
+    {
+      "id": "IR-003",
+      "severity": "P1",
+      "area": "routing",
+      "description": "仅输入“他”等缺少方法的对象短语可能进入普通模型聊天；应本地请求必要信息，保持零模型、零插件。 另有未适配话单只返回 intent_required 的错误码缺口，补齐 capability_not_ready，仍不增加话单 Method。",
+      "status": "fixed",
+      "fix_commit": null,
+      "test_ids": [
+        "test_bare_pronoun_is_local_clarification",
+        "test_unadapted_calls_is_explicitly_unavailable"
+      ]
+    },
+    {
+      "id": "IR-004",
+      "severity": "P1",
+      "area": "ci",
+      "description": "历史阶段工作流对所有 pull_request 触发，并在当前树运行已关账阶段检查；新阶段 PR 可能被旧制品契约误阻塞。",
+      "status": "fixed",
+      "fix_commit": null,
+      "test_ids": [
+        "test_stage_workflows_are_scoped"
+      ]
+    },
+    {
+      "id": "IR-005",
+      "severity": "P1",
+      "area": "verification",
+      "description": "现有迁移恢复用例未联合比对 v6 Run 密文、v7 Context 指针及 v8 升级后的完整链路，需补充集成验证。",
+      "status": "fixed",
+      "fix_commit": null,
+      "test_ids": [
+        "test_existing_run_context_upgrade_restore"
+      ]
+    },
+    {
+      "id": "IR-006",
+      "severity": "P1",
+      "area": "api",
+      "description": "旧 schema v4 请求新增 source 接口可能查询不存在的 business_runs 表；应返回资源不存在而非内部错误。",
+      "status": "fixed",
+      "fix_commit": null,
+      "test_ids": [
+        "test_legacy_source_endpoint_is_404"
+      ]
+    }
+  ],
+  "before_fix": {
+    "failed": 14,
+    "passed": 1,
+    "meaning": "缺陷按预期复现，不是验收通过；IR-005为补测项",
+    "additional_calls_cases_failed": 2
+  }
+}

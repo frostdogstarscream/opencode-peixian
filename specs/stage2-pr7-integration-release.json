@@ -1,0 +1,42 @@
+{
+  "stage": "pr71",
+  "closeout_status": "pending",
+  "baseline": "cb080805cb26d5ebbaa95a7283605737e634fee4",
+  "implementation_revision": null,
+  "github_ci": {
+    "executed": false
+  },
+  "schema_version": 8,
+  "deployment_performed": false,
+  "real_data_accessed": false,
+  "model_requests": 0,
+  "tests": {
+    "control_gateway": {
+      "exit_code": 0,
+      "passed": 901,
+      "warnings": 2,
+      "scope": "本地全量；末尾话单错误码补丁另经88项定向回归，最终完整提交由CI重新全量执行"
+    },
+    "final_targeted": {
+      "exit_code": 0,
+      "passed": 88
+    },
+    "deployment": {
+      "exit_code": 0,
+      "passed": 53,
+      "subtests_passed": 10
+    },
+    "bun": {
+      "exit_code": 0,
+      "passed": 14
+    },
+    "historical": {
+      "exit_code": 0,
+      "pr5": 63,
+      "pr55": 62,
+      "pr56": 17,
+      "pr6": 19,
+      "pr7": 19
+    }
+  }
+}

@@ -1,10 +1,10 @@
-# PR-5.5 验收记录（候选，未关闭）
+# PR-5.5 验收记录（源码交付完成）
 
 本轮只进行隔离源码与协议测试；生产未发布、模型请求 0、未访问真实业务资料，PR-6 Not Started。
 
 检查点 A：d64396cdd9f0daedc0823689fdc20f71ea7d6f2c。Control 600 passed；Stage 1 部署回归 36 passed / 10 subtests；PR-5 原提交严格检查通过。
 
-B 的最终源码回归通过：Control 673 passed，Gateway 95 passed，部署与新交付检查器 98 passed / 10 subtests，Bun 插件 14 passed，原 PR-5 检查器 63 passed。全部无跳过；Control/Gateway 有 2 条既有 Starlette 弃用警告。40 条新增语料与原 21 条涉赌语料均通过。GitHub CI 尚未执行，不能以本地结果代替。历史已知测试中曾发现方法验证局部变量遮蔽 Profile，已修复并通过 107 项定向回归。语料中的明确跨 Agent 场景按 409 拒绝，与普通 unsupported 的本地澄清分别验证。
+B 的最终源码回归通过：Control 673 passed，Gateway 95 passed，部署与新交付检查器 98 passed / 10 subtests，Bun 插件 14 passed，原 PR-5 检查器 63 passed。全部无跳过；Control/Gateway 有 2 条既有 Starlette 弃用警告。40 条新增语料与原 21 条涉赌语料均通过。GitHub 实现 CI 已实际完成并成功：[运行 35587737205](https://github.com/frostdogstarscream/opencode-peixian/actions/runs/35587737205)，head_sha 为 `28f74fafecac6929e3daac8095ff2e054dd4ff7a`。全部步骤成功。交付文档提交后还需独立核对最终分支 CI；最终回执不反写本清单形成自引用。历史已知测试中曾发现方法验证局部变量遮蔽 Profile，已修复并通过 107 项定向回归。语料中的明确跨 Agent 场景按 409 拒绝，与普通 unsupported 的本地澄清分别验证。
 
 验收层次：Registry、准入/冻结、执行前校验、真实 Git 交付检查、GitHub CI。没有真实模型、A/B 页面或生产工具调用证据，不将它们标为通过。
 
@@ -33,3 +33,31 @@ B 的最终源码回归通过：Control 673 passed，Gateway 95 passed，部署�
 ## 回退
 
 本轮源码尚未部署，线上无升级回退操作；原稳定分支与 d78451a 提交保留。未来若启用新路径，先关闭多 Agent 开关并排空活动请求，保留 theft 历史读取，不能将其重标为 gambling 或重发查询。恢复生产版本必须另行核验镜像和运行状态。
+
+
+## 版本与复现
+
+- 基线：`d78451a26feff089f0ce1b7fea40f0ab482dd1d0`。
+- A：`d64396cdd9f0daedc0823689fdc20f71ea7d6f2c`，Registry 与涉赌迁移。
+- B：`28f74fafecac6929e3daac8095ff2e054dd4ff7a`，盗窃、隔离、执行链与独立 CI/交付校验。
+- C：仅交付文档与校验值。准确 SHA 由 Git 提交与最终 CI 回执确定。
+- Python 3.12、Bun 1.3.14；本地测试容器 `peixian-pr1-4-tests:20260920`，镜像身份 `sha256:fe27c561ce1dafcfd3ee846c68e98cab9707d24eab63219101f33ccc1717c08d`。这是测试依赖镜像，未生成或发布生产镜像。
+
+复现命令（设置 `PX_BACKEND_V6=0`、`BUN_EXECUTABLE` 和 `PEIXIAN_TEST_JS_COMMAND` 指向测试 Bun）：
+
+```bash
+cd services/peixian-control
+python -m pytest tests gateway/tests -q
+cd ../../deploy/peixian
+python -m pytest tests/test_seven_runtime.py tests/test_console_runtime.py tests/test_stage1_release.py tests/test_stage2_pr55_release.py -q
+python stage1-release-check.py
+python stage2-pr55-release-check.py
+cd examples/seven_data_plugins
+bun test plugin.test.mjs
+```
+
+历史 PR-5：在独立 worktree 检出 d78451a，运行原 `stage2-pr5-release-check.py` 及其 63 项测试。不要在新实现上修改旧 manifest 来绕过其源码漂移检查。
+
+严格检查器验证本轮文件集/Hash、Profile/Prompt Hash、源码版本、CI 回执字段、实现到当前提交的源码未漂移及原 PR-5 制品未改写。它不联网证明 CI 真伪；本轮另通过 GitHub API核对真实运行。`--candidate` 只用于尚未提交的候选阶段，不能表示交付完成。
+
+PR-5.5：Completed（源码与确定性验证）；PR-6：Not Started。

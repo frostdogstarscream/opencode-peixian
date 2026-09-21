@@ -28,13 +28,22 @@ def build(applied, context, data, task=None):
         reject("facts_method_identity_unavailable")
     methods = list(dict.fromkeys(method for digest in identities for method in METHODS_BY_HASH[digest]))
     if task:
-        from .task_spec import SPEC_SCHEMA
+        from .task_spec import SPEC_SCHEMA, SPEC_V2_SCHEMA
         import jsonschema
-        jsonschema.validate(task['spec'],SPEC_SCHEMA)
+        v2=task['spec'].get('schema_version')=='task-spec-v2'
+        jsonschema.validate(task['spec'],SPEC_V2_SCHEMA if v2 else SPEC_SCHEMA)
         approved=task['spec']
         from .task_router import METHODS as INTENT_METHODS
         expected=INTENT_METHODS.get(approved['intent'])
         if approved['intent']=='integrated_analysis':expected=['night','companions','funds','relations'] if scene['scenario_id']=='DEMO-CASE-GAMBLING' else ['night','companions','vehicles']
+        if v2:
+            from .agents.registry import require
+            profile=require(approved['agent_id'])
+            if task.get('agent_profile')!=profile.snapshot() or approved['agent_version']!=profile.data['version'] or approved['agent_profile_sha256']!=profile.profile_sha256:reject('agent_profile_changed')
+            if approved['domain']!=profile.data['domain'] or scene['scenario_id'] not in profile.data['scenario_ids']:reject('agent_scenario_mismatch')
+            if any(identify(s['content'])['id'] not in profile.data['official_method_ids'] for s in selected):reject('agent_method_not_allowed')
+            expected=profile.data['intents'].get(approved['intent'],{}).get('methods')
+            if not task.get('target') or task['target'].get('agent_target_profile')!=profile.data['target_contract_profile']:reject('agent_task_mismatch')
         if approved['methods']!=expected:reject('task_intent_mismatch')
         if approved['query_mode']!='new_query' or approved['scenario_id']!=scene['scenario_id'] or approved['official_skill_ids']!=context['effective_skill_ids']:reject('task_plan_mismatch')
         if not approved['methods'] or not set(approved['methods']) <= set(methods):reject('task_method_expansion')
@@ -58,7 +67,7 @@ def build(applied, context, data, task=None):
         matches = [p for p in plugins if tool(module) in p.get("manifest", {}).get("tools", [])]
         if len(matches) != 1 or matches[0]["id"] != capability(module) or matches[0].get("version") != "1.0.0" or matches[0].get("manifest", {}).get("tools") != [tool(module)]: reject("facts_dependency_unavailable")
     scene["required_modules"] = modules
-    return {"plan_version": "fixed-method-plan-v1", "coordinator_version": VERSION,
+    return {**({"agent_profile":copy.deepcopy(task["agent_profile"]),"agent_task":copy.deepcopy(task["spec"])} if task and task.get("agent_profile") else {}),"plan_version": "fixed-method-plan-v1", "coordinator_version": VERSION,
             "task_target": copy.deepcopy(task["target"]) if task else None,
             "facts_rule_version": "deterministic-facts-v1", "methods": methods, "modules": modules,
             "allowed_capabilities": [capability(m) for m in modules], "allowed_tools": [tool(m) for m in modules],

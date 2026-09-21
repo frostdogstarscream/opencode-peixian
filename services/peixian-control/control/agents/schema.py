@@ -8,7 +8,7 @@ SCHEMA = {'type':'object','additionalProperties':False,'properties':{
     'scenario_ids':{'type':'array','minItems':1,'uniqueItems':True,'items':{'enum':['DEMO-CASE-GAMBLING','DEMO-CASE-THEFT']}},
     'default_scenario_id':{'enum':['DEMO-CASE-GAMBLING','DEMO-CASE-THEFT']},
     'official_method_ids':{'type':'array','minItems':1,'uniqueItems':True,'items':{'type':'string'}},
-    'intents':{'type':'object','minProperties':1,'additionalProperties':False,'patternProperties':{
+    'intents':{'type':'object','required':['integrated_analysis'],'minProperties':1,'additionalProperties':False,'patternProperties':{
         '^(night_activity|companions_check|funds_analysis|relations_check|vehicle_activity|integrated_analysis)$':{
             'type':'object','additionalProperties':False,'required':['methods','keywords','official_method'],
             'properties':{'methods':{'type':'array','minItems':1,'uniqueItems':True,'items':{'enum':['night','companions','funds','relations','vehicles']}},

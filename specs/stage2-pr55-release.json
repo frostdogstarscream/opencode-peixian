@@ -1,0 +1,62 @@
+{
+  "closeout_status": "pending",
+  "baseline": "d78451a26feff089f0ce1b7fea40f0ab482dd1d0",
+  "implementation_revision": "d64396cdd9f0daedc0823689fdc20f71ea7d6f2c",
+  "schema_version": 6,
+  "router_version": "peixian-router-v2",
+  "task_spec_version": "task-spec-v2",
+  "registry_version": "agent-registry-v1",
+  "deployment_performed": false,
+  "model_requests": 0,
+  "pr6_started": false,
+  "real_data_accessed": false,
+  "profiles": {
+    "gambling-assistant": {
+      "version": "1.0.0",
+      "profile_sha256": "ee4ccfbb4d1c0e4a1ef141c6b4f3efb11a9d30d8f01634ac5e8026babc77655d",
+      "prompt_sha256": "0887ba3b75efa23834706957e623cb1a2684c59051d8ec76e794a38c65789d15"
+    },
+    "theft-assistant": {
+      "version": "1.0.0",
+      "profile_sha256": "9422ec59f7ac9a9b9e8b3d7d1a2381aed02ab6668c9a380db47eaf8b32cff245",
+      "prompt_sha256": "6acfc61d2d7f757b7870e331444a2e5bc9e7afc98a6782b1d53eb7b67863b244"
+    }
+  },
+  "github_ci": {
+    "executed": false
+  },
+  "tests": {
+    "control": {
+      "passed": 673,
+      "skipped": 0
+    },
+    "gateway": {
+      "passed": 95,
+      "skipped": 0
+    },
+    "deployment": {
+      "passed": 98,
+      "skipped": 0,
+      "subtests_passed": 10
+    },
+    "plugins": {
+      "passed": 14,
+      "skipped": 0
+    },
+    "agent_corpus": {
+      "passed": 40,
+      "skipped": 0
+    },
+    "historical_pr5": {
+      "passed": 63,
+      "skipped": 0
+    }
+  },
+  "delivery_files": [
+    "stage2-pr55-contract.md",
+    "stage2-pr55-acceptance.md",
+    "stage2-pr55-openapi.json",
+    "stage2-pr55-agent-cases.jsonl",
+    "stage2-pr55-release.json"
+  ]
+}

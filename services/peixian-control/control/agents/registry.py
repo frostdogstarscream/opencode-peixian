@@ -60,7 +60,7 @@ def load(documents,root=ROOT):
     return MappingProxyType(profiles)
 
 # The release manifest is explicit: no directory scan or arbitrary module loading.
-PROFILES=load([json.loads((ROOT/name).read_text(encoding='utf-8')) for name in ('gambling.json',)])
+PROFILES=load([json.loads((ROOT/name).read_text(encoding='utf-8')) for name in ('gambling.json','theft.json')])
 
 def require(identity):
     if not isinstance(identity,str) or identity not in PROFILES:error('unsupported_agent','所选助手不存在或尚未开放。',422)

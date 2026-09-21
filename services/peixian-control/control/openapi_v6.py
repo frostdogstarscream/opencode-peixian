@@ -19,9 +19,14 @@ def extend_schemas(result):
     dt={'type':'string','format':'date-time'}
     def paginated(item):return obj({'items':array(ref(item)),'total':integer,'page':integer,'page_size':integer},('items','total','page','page_size'))
     result['Run']=obj({'id':ID,'session_id':ID,'status':{'type':'string','enum':['queued','running','cancelling','reconciling','completed','failed','cancelled']},'phase':STRING,'cancel_requested':BOOL,'model_id':ID,'message_id':nullable(ID),'user_message_id':ID,'parent_run_id':nullable(ID),'created_at':dt,'started_at':nullable(dt),'completed_at':nullable(dt),'updated_at':dt,'error':nullable(obj({'code':STRING,'message':STRING}))},('id','session_id','status','phase','created_at'))
-    from .task_spec import SPEC_SCHEMA,CANDIDATE_SCHEMA
-    result['TaskSpec']=SPEC_SCHEMA
-    result['TaskCandidate']=CANDIDATE_SCHEMA
+    from .task_spec import SPEC_SCHEMA,SPEC_V2_SCHEMA,CANDIDATE_SCHEMA
+    result['TaskSpecV1']=SPEC_SCHEMA
+    result['TaskSpecV2']=SPEC_V2_SCHEMA
+    result['TaskSpec']={'oneOf':[ref('TaskSpecV1'),ref('TaskSpecV2')]}
+    result['TaskCandidateV1']=CANDIDATE_SCHEMA
+    from .task_spec import candidate_schema
+    from .agents.registry import PROFILES
+    result['TaskCandidate']={'oneOf':[ref('TaskCandidateV1'),{'anyOf':[candidate_schema(p) for p in PROFILES.values()]}]}
     result['AgentPublic']=obj({k:STRING for k in ('id','name','version','domain','description')},('id','name','version','domain','description','supported_intents'))
     result['AgentPublic']['properties']['supported_intents']=array(STRING)
     result['AgentList']=obj({'items':array(ref('AgentPublic'))},('items',))
@@ -42,7 +47,7 @@ def extend_schemas(result):
         result[name]['properties'].update(processing_version=STRING,execution_methods=array(STRING),plugin_versions={'type':'object','additionalProperties':STRING})
     result['Invocation']=obj({'id':ID,'run_id':ID,'session_id':ID,'username':STRING,'display_name':nullable(STRING),'department_name':nullable(STRING),'model_id':ID,'model_name':nullable(STRING),'status':STRING,'query_summary':STRING,'created_at':dt,'duration_ms':nullable(integer),'record_count':integer,'skill_ids':array(ID),'plugin_ids':array(ID),'actual_plugin_ids':array(ID),'steps':array(ref('RunEvent'))},('id','run_id','status','query_summary','created_at'))
     for name in ('Run','RunEvent','Capability','Invocation'):result[name+'Page']=paginated(name)
-    result['MessageBody']['properties'].update({'client_request_id':{'type':'string','format':'uuid','description':'新客户端必须发送。旧客户端省略时服务端生成，不具备客户端重试去重保证。'},'plugin_ids':array(ID,maxItems=5),'agent_id':{'type':'string','enum':['gambling-assistant'],'description':'可选。固定使用涉赌助手；与盗窃场景选择冲突时返回422。不增加任何授权。'},'mode':{'enum':['standard']}})
+    result['MessageBody']['properties'].update({'client_request_id':{'type':'string','format':'uuid','description':'新客户端必须发送。旧客户端省略时服务端生成，不具备客户端重试去重保证。'},'plugin_ids':array(ID,maxItems=5),'agent_id':{'type':'string','enum':['gambling-assistant','theft-assistant'],'description':'新客户端显式选择；省略兼容涉赌。盗窃需双白名单；同会话更换助手返回409，不增加授权。'},'mode':{'enum':['standard']}})
     result['RerunBody']=obj(dict(result['MessageBody']['properties']),('client_request_id',))
     for name in ('Skill','SkillCreateBody','SkillUpdateBody'):result[name]['properties']['dependency_ids']=array(ID,maxItems=20)
     fields={'name':STRING,'description':STRING,'content':STRING,'dependency_ids':array(ID),'input_schema':{'type':'object','additionalProperties':True},'default_rules':array(STRING)}

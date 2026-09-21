@@ -3,6 +3,7 @@ import re
 import unicodedata
 
 VERSION = 'peixian-router-v1'
+MULTI_VERSION = 'peixian-router-v2'
 WORDS = {
     'night_activity': ('夜间', '夜晚', '晚上', '夜里'),
     'companions_check': ('同行', '同框', '共现', '共同出现', '一起出现'),
@@ -13,7 +14,7 @@ METHODS = {'night_activity': ['night'], 'companions_check': ['companions'],
            'funds_analysis': ['funds'], 'relations_check': ['relations']}
 
 
-def parse(text, selected=False):
+def parse(text, selected=False, profile=None):
     text = unicodedata.normalize('NFKC', text).strip()
     # Quoted documents/code are not routing directives. Unresolved text is clarified.
     clean = re.sub(r'```.*?```|“[^”]*”|"[^\"]*"', '', text, flags=re.S)
@@ -23,11 +24,16 @@ def parse(text, selected=False):
         positive = positive.replace(term, '')
     refresh = re.findall(r'重新(?:查询|查|核对)|再取一次|更新(?:一下|资料|结果)?|(?:查询|查|取).*?最新', positive)
     history = re.findall(r'上一条|刚才|之前的?(?:数据|结果)|继续(?:说|解释)?|展开说明|解释.*?结果|只(?:解释|说明)', clean)
-    intents = [intent for intent, words in WORDS.items() if any(word in clean for word in words)]
+    words = {k:v['keywords'] for k,v in profile.data['intents'].items() if k!='integrated_analysis'} if profile else WORDS
+    intents = [intent for intent, values in words.items() if any(word in clean for word in values)]
     integrated = bool(re.search(r'综合(?:看|整理|分析)|全面整理|总流程', clean))
+    if profile:integrated=any(word in clean for word in profile.data['intents']['integrated_analysis']['keywords'])
+    foreign = bool(profile and any(any(w in clean for w in values) for key,values in {**WORDS,'vehicle_activity':('车辆','车牌','卡口','过车','驾乘')}.items() if key not in words))
     concept = bool(re.search(r'是什么(?:意思)?|什么是|什么意思|有什么区别|为什么缺失不能当作零|如何使用|怎么使用', clean))
     unsupported = bool(re.search(r'身份证|\d{17}[\dXx]|DEMO-|(?:最近|过去|近)\s*[\d一二三四五六七八九十]+[天周月年]|20\d\d[-/年]\d', clean))
+    unsupported = unsupported or foreign
     injection = bool(re.search(r'忽略.*?(?:限制|规则|权限)|全部插件|所有插件|直接调用.*?插件|不要.*?权限校验|allowed_tools|task_spec', clean))
+    if profile and re.search(r'切换.*?(?:助手|[Aa]gent)|忽略.*?(?:助手|[Aa]gent)|调用.*?插件|使用.*?助手',clean):injection=True
     conflict = ['query_mode'] if no and refresh else []
     related = bool(intents or integrated or no or refresh or history or unsupported or injection
                    or re.search(r'分析|查询|核对|看看|查一下|整理|统计|列出|展示', clean))
@@ -50,7 +56,7 @@ def parse(text, selected=False):
     elif related and not selected:
         mode, intent = 'clarify', 'clarification'
     if not related:mode,intent=None,None
-    return {'schema_version': 'task-candidate-v1', 'router_version': VERSION,
+    return {'schema_version': 'task-candidate-v1', 'router_version': MULTI_VERSION if profile else VERSION,
             'data_related': related, 'query_mode_candidate': mode, 'intent_candidate': intent,
             'target_mentions': [], 'history_terms': history, 'refresh_terms': refresh,
             'no_refresh_terms': no, 'matched_patterns': intents, 'conflicts': conflict,

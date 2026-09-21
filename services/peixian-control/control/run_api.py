@@ -111,6 +111,9 @@ def register(app):
         data=evidence(s,row);view=data.get('presentation',{});state=runs.public(row)
         lines=['# 执行报告','',f"- 执行编号：{rid}",f"- 状态：{ {'completed':'已完成','failed':'未完成','cancelled':'已取消'}.get(state['status'],'状态待确认')}",f"- 创建时间：{state['created_at']}",'']
         snapshot=s.decrypt(row['request_ciphertext'])
+        if snapshot.get('agent_profile'):
+            agent=snapshot['agent_profile']
+            lines += ['## 助手版本','',f"- Agent：{agent['id']}",f"- 版本：{agent['version']}",f"- Profile SHA256：{agent['profile_sha256']}",'']
         if snapshot.get('task_response'):lines += [snapshot['task_response']['message'],'']
         if data.get('synthetic') is True or data.get('scenario'):lines += ['资料性质：合成测试资料，不代表真实业务事实。','']
         lines += ['## 已核对结论','']+[('- '+x['text']) for x in view.get('conclusions',[])]

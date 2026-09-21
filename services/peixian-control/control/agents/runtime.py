@@ -44,3 +44,15 @@ def register(app):
     @app.get(PREFIX+'/agents/{agent_id}')
     def agent(agent_id:str,user=Depends(normal)):
         return select(user['uid'],{'agent_id':agent_id}).public()
+
+
+def validate_execution(snapshot):
+    task=snapshot.get('task_spec') or {}
+    if task.get('schema_version')!='task-spec-v2':return
+    meta=snapshot.get('agent_profile') or {};plan=snapshot.get('facts_plan') or {}
+    if (plan.get('agent_profile')!=meta or plan.get('agent_task')!=task
+        or task.get('agent_id')!=meta.get('id') or task.get('agent_version')!=meta.get('version')
+        or task.get('agent_profile_sha256')!=meta.get('profile_sha256') or task.get('domain')!=meta.get('domain')
+        or task.get('methods')!=plan.get('methods') or task.get('scenario_id')!=plan.get('scenario',{}).get('scenario_id')
+        or snapshot.get('effective_system_prompt_sha256')!=hashlib.sha256(snapshot['payload'].get('system','').encode()).hexdigest()):
+        error('agent_task_mismatch','执行身份或方法无法核对，未调用资料接口。',409)

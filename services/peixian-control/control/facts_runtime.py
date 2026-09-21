@@ -88,6 +88,8 @@ class FactsState:
             self._save(db, rid, snapshot)
 
     def authorize(self, db, row, snapshot, module=None):
+        from .agents.runtime import validate_execution
+        validate_execution(snapshot)
         if row["cancel_requested"] or row["status"] not in ("queued", "running"): reject("facts_run_not_active")
         runtime = db.execute("SELECT * FROM runtimes WHERE uid=?", (row["uid"],)).fetchone()
         user = db.execute("SELECT * FROM users WHERE id=?", (row["uid"],)).fetchone()

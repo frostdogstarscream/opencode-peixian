@@ -63,6 +63,7 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         if task is not None:
             from . import task_spec
             fresh = task_spec.resolve(store,user['uid'],sid,data,applied)
+            if fresh.get('agent_profile')!=task.get('agent_profile'):error('agent_profile_changed','助手版本已变化，请刷新后重新确认。',409)
             if fresh != task:error('task_context_changed','任务范围或能力已变化，请刷新后重新确认。',409)
         if context is not None:
             from .scenario_context import boundary

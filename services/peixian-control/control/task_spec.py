@@ -40,29 +40,53 @@ CANDIDATE_SCHEMA={'type':'object','additionalProperties':False,'properties':{
     **{k:{'type':'array','items':{'type':'string'}} for k in ('target_mentions','history_terms','refresh_terms','no_refresh_terms','matched_patterns','conflicts')}}}
 CANDIDATE_SCHEMA['required']=list(CANDIDATE_SCHEMA['properties'])
 
+SPEC_V2_SCHEMA=copy.deepcopy(SPEC_SCHEMA)
+SPEC_V2_SCHEMA['properties']['schema_version']={'const':'task-spec-v2'}
+SPEC_V2_SCHEMA['properties']['router_version']={'const':task_router.MULTI_VERSION}
+SPEC_V2_SCHEMA['properties']['intent']['enum'].append('vehicle_activity')
+SPEC_V2_SCHEMA['properties'].update(agent_id={'type':'string'},agent_version={'type':'string'},agent_profile_sha256={'type':'string','pattern':'^[0-9a-f]{64}$'})
+SPEC_V2_SCHEMA['required']+=['agent_id','agent_version','agent_profile_sha256']
+
+
+def candidate_schema(profile):
+    result=copy.deepcopy(CANDIDATE_SCHEMA)
+    if profile:
+        result['properties']['router_version']={'const':task_router.MULTI_VERSION}
+        result['properties']['intent_candidate']['enum']=list(profile.data['intents'])+['explain_result','clarification',None]
+    return result
+
+
 
 def enabled(uid):
     return uid in {x.strip() for x in os.getenv('PX_TASKSPEC_V1_UIDS', '').split(',') if x.strip()}
 
 
 def resolve(store, uid, sid, data, applied):
+    from .agents import runtime as agents
+    profile=agents.select(uid,data) if agents.enabled(uid) else None
+    if profile:agents.session(store,uid,sid,profile)
     chosen = [x for x in applied.get('skills', []) if x['id'] in data['skill_ids']]
-    candidate = task_router.parse(data['text'], bool(data['skill_ids']))
-    jsonschema.validate(candidate,CANDIDATE_SCHEMA)
+    if profile and any(identify(x['content']) and identify(x['content'])['id'] not in profile.data['official_method_ids'] for x in chosen):
+        error('agent_method_not_allowed','所选技能不属于当前助手，请使用对应助手的新会话。',409)
+    candidate = task_router.parse(data['text'], bool(data['skill_ids']),profile)
+    jsonschema.validate(candidate,candidate_schema(profile))
     inherited = current(store, uid, sid)
     # No models or old prose are inspected. The PR-5 context is just the existing
     # scene/reset boundary; richer multi-turn targets belong to PR-6/7.
     direct = explicit(data['text'])
     selected_scenes = {skill_scenario(x) for x in chosen} - {None}
     scenes = direct | selected_scenes
-    if data.get('agent_id') == 'gambling-assistant':
+    if profile:
+        if scenes-set(profile.data['scenario_ids']):error('agent_scenario_mismatch','所选场景不属于当前助手，请新建对应助手会话。',409)
+        scenes.add(profile.data['default_scenario_id'])
+    elif data.get('agent_id') == 'gambling-assistant':
         scenes.add('DEMO-CASE-GAMBLING')
     scene = next(iter(scenes), inherited['scenario_id']) if len(scenes) <= 1 else None
     context = {'scenario_id': scene, 'source': 'explicit' if direct else 'selected_skill' if selected_scenes else inherited['source'],
                'generation': inherited['generation'], 'effective_skill_ids': []}
     if not candidate['data_related']:
         # Still disable every tool in ordinary help/chat under this rollout.
-        return {'candidate': candidate, 'spec': None, 'context': {**context, 'scenario_id': None}, 'target': None, 'local': None}
+        return {'agent_profile':profile.snapshot() if profile else None, 'candidate': candidate, 'spec': None, 'context': {**context, 'scenario_id': None}, 'target': None, 'local': None}
     mode, intent = candidate['query_mode_candidate'], candidate['intent_candidate']
     missing = candidate['conflicts'][:]
     if len(scenes) > 1:
@@ -78,7 +102,7 @@ def resolve(store, uid, sid, data, applied):
             from .task_targets import resolve as resolve_targets
             from .task_methods import resolve as resolve_methods
             flow = 'gambling' if scene == 'DEMO-CASE-GAMBLING' else 'theft'
-            wanted = [flow] if intent == 'integrated_analysis' else task_router.METHODS.get(intent, [])
+            wanted = ([profile.data['intents'][intent]['official_method']] if intent in profile.data['intents'] else []) if profile else ([flow] if intent == 'integrated_analysis' else task_router.METHODS.get(intent, []))
             # A selected identity may fill an otherwise missing intent; it never
             # decides query_mode. Live ownership/dependencies are checked below.
             if not wanted and chosen:
@@ -87,16 +111,17 @@ def resolve(store, uid, sid, data, applied):
                 if all(identities) and len(names)==1:
                     name=next(iter(names))
                     intent='integrated_analysis' if name in ('gambling','theft') else next((k for k,v in task_router.METHODS.items() if v==[name]),None)
+                    if profile and name not in ('gambling','theft'):intent=next((k for k,v in profile.data['intents'].items() if v['methods']==[name]),None)
                     wanted=[name] if intent else []
             if not wanted:
                 mode,intent,missing='clarify','clarification',['intent']
             else:
-                methods=list(dict.fromkeys(m for name in wanted for m in BY_ID['peixian.method.'+name]['methods']))
-                target=resolve_targets(store,uid,sid,scene,data['text'],methods)
+                methods=profile.data['intents'][intent]['methods'] if profile else list(dict.fromkeys(m for name in wanted for m in BY_ID['peixian.method.'+name]['methods']))
+                target=resolve_targets(store,uid,sid,scene,data['text'],methods,profile)
                 if target['status']!='resolved':
                     mode,intent,missing='clarify','clarification',[target['reason']]
                 else:
-                    resolved=resolve_methods(store,uid,applied,data['skill_ids'],wanted)
+                    resolved=resolve_methods(store,uid,applied,data['skill_ids'],wanted,profile)
                     allowed={m for _,identity in resolved for m in identity['methods']}
                     if not set(methods)<=allowed or any(identity['method'] not in ('gambling','theft') and not set(methods)<=set(identity['methods']) for _,identity in resolved):
                         mode,intent,missing='clarify','clarification',['method_conflict']
@@ -113,7 +138,9 @@ def resolve(store, uid, sid, data, applied):
             'methods': methods, 'official_skill_ids': context['effective_skill_ids'],
             'output_types': ['summary', 'evidence'], 'direct_parent_run_id': None, 'source_data_run_id': None,
             'missing_fields': list(dict.fromkeys(missing)), 'context_generation': inherited['generation']}
-    jsonschema.validate(spec, SPEC_SCHEMA)
+    if profile:
+        spec.update(schema_version='task-spec-v2',router_version=task_router.MULTI_VERSION,agent_id=profile.id,agent_version=profile.data['version'],agent_profile_sha256=profile.profile_sha256,domain=profile.data['domain'])
+    jsonschema.validate(spec, SPEC_V2_SCHEMA if profile else SPEC_SCHEMA)
     local = None
     if mode == 'explain_existing':
         local = {'code': 'history_explanation_pending_pr6', 'message': '已识别为解释已有结果，本轮没有重新查询资料。完整历史结果解释将在下一阶段提供；请先查看原执行的已核验结果。'}
@@ -123,13 +150,13 @@ def resolve(store, uid, sid, data, applied):
                     'unsupported_target_scope': '当前方法不支持该对象或对象组合，尚未查询；不会用场景主对象替代。',
                     'target_confirmation_required': '本阶段无法唯一确认所指对象，请明确当前资料范围内的对象。',
                     'supported_scope': '当前仅支持已接入场景、对象和固定方法，尚未查询资料。'}
-        local = {'code': missing[0] if missing else 'intent_required', 'message': messages.get(missing[0] if missing else '', '请说明需要整理资金、夜间活动、同行共现，还是已有关系。')}
-    return {'candidate': candidate, 'spec': spec, 'context': context, 'target': target, 'local': local}
+        local = {'code': missing[0] if missing else 'intent_required', 'message': messages.get(missing[0] if missing else '', ('请说明需要整理夜间、同行共现，还是车辆资料。' if profile and profile.data['domain']=='theft' else '请说明需要整理资金、夜间活动、同行共现，还是已有关系。'))}
+    return {'agent_profile':profile.snapshot() if profile else None, 'candidate': candidate, 'spec': spec, 'context': context, 'target': target, 'local': local}
 
 
 def bind(snapshot, payload, task):
     snapshot.update(task_candidate=copy.deepcopy(task['candidate']), task_spec=copy.deepcopy(task['spec']),
-                    task_context_snapshot=copy.deepcopy(task['context']), task_router_version=task_router.VERSION)
+                    task_context_snapshot=copy.deepcopy(task['context']), task_router_version=task['candidate']['router_version'])
     if task['target']:
         snapshot['task_target'] = copy.deepcopy(task['target'])
     if not task['spec'] or task['spec']['query_mode'] != 'new_query':

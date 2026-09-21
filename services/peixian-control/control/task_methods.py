@@ -10,7 +10,7 @@ def unavailable(code):
     error(code, '当前官方方法不可执行，请检查我的技能中的安装、启用、内容和配置生效状态。', 409)
 
 
-def resolve(store, uid, applied, selected_ids, method_ids):
+def resolve(store, uid, applied, selected_ids, method_ids, profile=None):
     owned = {x['id']: x for x in store.rows('SELECT * FROM skills WHERE uid=?', (uid,))}
     active = {x['id']: x for x in applied.get('skills', [])}
     availability = {x['id']: x for x in catalog(store, uid) if x['kind'] == 'personal_skill'}
@@ -22,14 +22,16 @@ def resolve(store, uid, applied, selected_ids, method_ids):
         identity = identify(row['content'])
         if identity is None:
             unavailable('official_method_identity_changed')
+        if profile and identity['id'] not in profile.data['official_method_ids']:
+            unavailable('agent_method_not_allowed')
         if identity['state'] != 'published':
             unavailable('official_method_not_published')
         if not row['enabled']:
             unavailable('official_method_disabled')
         if sid not in active or active[sid]['content'] != row['content'] or active[sid].get('version') != row['version']:
             unavailable('official_method_pending')
-        profile = store.one('SELECT dependencies FROM skill_profiles WHERE sid=?', (sid,))
-        if not profile or set(json.loads(profile['dependencies'])) != set(identity['dependency_ids']):
+        dependency_profile = store.one('SELECT dependencies FROM skill_profiles WHERE sid=?', (sid,))
+        if not dependency_profile or set(json.loads(dependency_profile['dependencies'])) != set(identity['dependency_ids']):
             unavailable('official_method_dependency_unavailable')
         if not availability.get(sid, {}).get('available'):
             unavailable('official_method_dependency_unavailable')

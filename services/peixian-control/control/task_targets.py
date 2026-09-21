@@ -14,7 +14,7 @@ CONTRACTS = {
 }
 
 
-def visible(store, uid, sid, scene):
+def visible(store, uid, sid, scene, profile=None):
     from .scenario_context import boundary
     _, after = boundary(store, uid, sid)
     subject = DATA151['scenarios'][scene]['subject_ref']
@@ -23,6 +23,9 @@ def visible(store, uid, sid, scene):
     rows = store.rows("SELECT request_ciphertext FROM business_runs WHERE uid=? AND session_id=? AND rowid>? AND status='completed' ORDER BY rowid DESC LIMIT 100", (uid, sid, after))
     for row in rows:
         snap = store.decrypt(row['request_ciphertext'])
+        if profile:
+            from .agents.runtime import frozen_identity
+            if frozen_identity(snap)!=profile.id:continue
         plan, state = snap.get('facts_plan', {}), snap.get('facts_state', {})
         if plan.get('scenario', {}).get('scenario_id') != scene or not state.get('table'):
             continue
@@ -38,9 +41,9 @@ def visible(store, uid, sid, scene):
     return names
 
 
-def resolve(store, uid, sid, scene, text, methods):
+def resolve(store, uid, sid, scene, text, methods, profile=None):
     subject = DATA151['scenarios'][scene]['subject_ref']
-    names = visible(store, uid, sid, scene)
+    names = visible(store, uid, sid, scene, profile)
     found = sorted(name for name in names if name in text)
     # Text with an unrecognised name must never silently default to the subject.
     residual = text
@@ -56,6 +59,7 @@ def resolve(store, uid, sid, scene, text, methods):
                   '重新查询', '重新核对', '重新查', '再取一次', '最新资料', '最新', '更新一下',
                   '请帮我', '帮我', '请', '看看', '查询', '分析', '核对', '整理', '查一下', '统计',
                   '记录', '资料', '一下', '情况', '明细', '展示', '列出', '的', '和', '与', '是否', '有', '吗')
+    if profile:vocabulary+=('车辆','车牌','卡口','过车','驾乘','凌晨','综合核对','全面分析','有没有')
     for word in sorted(vocabulary, key=len, reverse=True):
         residual = residual.replace(word, '')
     if re.search(r'[\w\u4e00-\u9fff]', residual):
@@ -67,4 +71,4 @@ def resolve(store, uid, sid, scene, text, methods):
     if any(mode not in CONTRACTS[m]['supported_target_modes'] for m in methods):
         return {'status': 'unsupported', 'target_refs': targets, 'reason': 'unsupported_target_scope'}
     return {'status': 'resolved', 'target_refs': targets, 'target_mode': mode,
-            'contract_version': VERSION, 'filter_fields': ['member_ref'] if mode == 'record_filter' else []}
+            'contract_version': VERSION, **({'agent_target_profile':profile.data['target_contract_profile']} if profile else {}), 'filter_fields': ['member_ref'] if mode == 'record_filter' else []}

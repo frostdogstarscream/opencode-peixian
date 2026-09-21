@@ -1,0 +1,78 @@
+{
+  "schema_version": "agent-profile-v1",
+  "id": "theft-assistant",
+  "version": "1.0.0",
+  "name": "盗窃研判助手",
+  "description": "核对固定盗窃场景已有的夜间、同行共现与车辆资料。",
+  "domain": "theft",
+  "scenario_ids": [
+    "DEMO-CASE-THEFT"
+  ],
+  "default_scenario_id": "DEMO-CASE-THEFT",
+  "official_method_ids": [
+    "peixian.method.night",
+    "peixian.method.companions",
+    "peixian.method.theft"
+  ],
+  "intents": {
+    "night_activity": {
+      "methods": [
+        "night"
+      ],
+      "official_method": "night",
+      "keywords": [
+        "夜间",
+        "晚上",
+        "夜里",
+        "凌晨",
+        "夜晚"
+      ]
+    },
+    "companions_check": {
+      "methods": [
+        "companions"
+      ],
+      "official_method": "companions",
+      "keywords": [
+        "同行",
+        "同框",
+        "共现",
+        "一起出现",
+        "共同出现"
+      ]
+    },
+    "vehicle_activity": {
+      "methods": [
+        "vehicles"
+      ],
+      "official_method": "theft",
+      "keywords": [
+        "车辆",
+        "车牌",
+        "卡口",
+        "过车",
+        "驾乘"
+      ]
+    },
+    "integrated_analysis": {
+      "methods": [
+        "night",
+        "companions",
+        "vehicles"
+      ],
+      "official_method": "theft",
+      "keywords": [
+        "综合整理",
+        "综合核对",
+        "时空核对",
+        "全面分析",
+        "盗窃资料整理",
+        "全面整理",
+        "总流程"
+      ]
+    }
+  },
+  "target_contract_profile": "theft-target-v1",
+  "claim_profile": "theft-claims-v1",
+  "prompt_file": "theft_prompt.md"
+}

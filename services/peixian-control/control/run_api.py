@@ -125,11 +125,19 @@ def register(app):
 
     @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/report')
     @blocking_endpoint(app)
-    def run_report(sid:str,rid:str,request:Request,user=Depends(normal)):
+    def run_report(sid:str,rid:str,request:Request,format:str="md",user=Depends(normal)):
         s=app.state.store;row=runs.owned(s,user['uid'],sid,rid)
         if row['status'] not in runs.TERMINAL:error('run_not_finished','执行尚未结束，暂不能导出',409)
+        if format not in ('md','html'):error('report_format_invalid','仅支持 Markdown 或 HTML 报告。',422)
+        from .trusted_results import read
+        from .trusted_report import render
+        result=read(s,user['uid'],sid,rid)
+        if result['version']=='2.0' or format=='html':
+            events=s.rows('SELECT name,status FROM run_events WHERE run_id=? ORDER BY sequence',(rid,))
+            s.audit(user['uid'],'run.report',rid,actor_role='user')
+            return Response(render(result,events,format),media_type=('text/html' if format=='html' else 'text/markdown')+'; charset=utf-8',headers={'Content-Disposition':f'attachment; filename="run-{rid}.{format}"','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"})
         data=evidence(s,row);view=data.get('presentation',{});state=runs.public(row)
-        lines=['# 执行报告','',f"- 执行编号：{rid}",f"- 状态：{ {'completed':'已完成','failed':'未完成','cancelled':'已取消'}.get(state['status'],'状态待确认')}",f"- 创建时间：{state['created_at']}",'']
+        lines=['# 执行报告','', '结果结构：Legacy 历史结果；未自动转换为可信 Claim。','',f"- 执行编号：{rid}",f"- 状态：{ {'completed':'已完成','failed':'未完成','cancelled':'已取消'}.get(state['status'],'状态待确认')}",f"- 创建时间：{state['created_at']}",'']
         snapshot=s.decrypt(row['request_ciphertext'])
         if snapshot.get('agent_profile'):
             agent=snapshot['agent_profile']

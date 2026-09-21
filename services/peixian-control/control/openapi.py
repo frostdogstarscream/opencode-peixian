@@ -535,7 +535,8 @@ def build_openapi(app):
                 if path in (P+'/admin/invocations',P+'/admin/invocations/export'):
                     operation.setdefault('parameters',[]).extend({'name':key,'in':'query','required':False,'schema':STRING} for key in ('query','start','end','uid','department_id','model_id','skill_id','status'))
                 if path.endswith('/report'):
-                    operation['responses']['200']=response(STRING,'Markdown 文件','text/markdown; charset=utf-8')
+                    operation['parameters']=[p for p in operation.get('parameters',[]) if p['name']!='format']+[{'name':'format','in':'query','required':False,'schema':{'type':'string','enum':['md','html'],'default':'md'},'description':'HTML 可由浏览器打印为 PDF；没有服务端 PDF 渲染或自动模型调用。'}]
+                    operation['responses']['200']={'description':'与持久 Result V2 一致的执行报告；旧 Run 明确标识 Legacy。','content':{kind:{'schema':STRING} for kind in ('text/markdown; charset=utf-8','text/html; charset=utf-8')},'headers':{'Content-Disposition':{'schema':STRING,'description':'安全的 run-ID 文件名'}}}
                 if path == P+'/admin/invocations/export':
                     operation['responses']['200']=response(STRING,'UTF-8 BOM CSV','text/csv; charset=utf-8')
                 if path == P + "/auth/login":

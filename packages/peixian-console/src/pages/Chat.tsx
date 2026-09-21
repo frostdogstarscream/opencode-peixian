@@ -6,6 +6,8 @@ import BusinessConfirmations from "../BusinessConfirmations"
 import { ClueDrawer, CluePanel } from "../TrustedAnalysis"
 import EntityGraphPanel from "../EntityGraph"
 import SmoothMarkdown from "../SmoothMarkdown"
+import TrustedResultPanel from "../TrustedResultPanel"
+import type {TaskContext,AgentChoice} from "../trusted-v2"
 import type { TrustedEvidence } from "../TrustedAnalysis"
 import { isAnalysisResult, legacyPresentation } from "../result-contract"
 import RuntimeStatus from "../RuntimeStatus"
@@ -23,6 +25,10 @@ export default function Chat() {
   const [plugins, setPlugins] = createSignal<Plugin[]>([])
   const [capabilities, setCapabilities] = createSignal<CapabilityItem[]>([])
   const [selected, setSelected] = createSignal<string>()
+  const [agents,setAgents]=createSignal<AgentChoice[]>([])
+  const [agent,setAgent]=createSignal("gambling-assistant")
+  const [taskContext,setTaskContext]=createSignal<TaskContext>()
+  createEffect(()=>{const owner=app.user().id;void api<{items:AgentChoice[]}>("/agents").then(value=>{if(app.user().id===owner)setAgents(value.items)}).catch(()=>{if(app.user().id===owner)setAgents([])})})
   const [model, setModel] = createSignal("")
   const [draft, setDraft] = createSignal("")
   const [selectedFiles, setSelectedFiles] = createSignal<string[]>([])
@@ -268,6 +274,7 @@ export default function Chat() {
     animateUntil = 0
     followOutput = true
     setSelected(id)
+    setTaskContext(undefined)
     setSelectedFiles([])
     setScene(undefined)
     setSelectedSkills([])
@@ -297,6 +304,7 @@ export default function Chat() {
     animateUntil = 0
     followOutput = true
     setSelected(undefined)
+    setTaskContext(undefined)
     setMessages([])
     setTrusted(undefined)
     setCurrentRun(undefined)
@@ -343,6 +351,8 @@ export default function Chat() {
       file_ids: [...selectedFiles()],
       mode: "standard",
       client_request_id: crypto.randomUUID(),
+      ...(agents().length?{agent_id:taskContext()?.agent_id??agent()}:{}),
+      ...(taskContext()?{context_version:taskContext()!.version}:{}),
     }
     const uid = app.user().id
     setSending(true)
@@ -799,9 +809,11 @@ export default function Chat() {
               </Index>
             </div>
           </Show>
+          <Show when={selected()} keyed>{sid=><TrustedResultPanel sid={sid} rid={currentRun()?.id} revision={currentRun()?.updated_at??currentRun()?.status} agent={agent()} events={runEventRun()===currentRun()?.id?runEvents():[]} disabled={busy()||sending()||uncertain()||!ready()} onContext={value=>{if(selected()===sid){setTaskContext(value);setAgent(value.agent_id)}}} onContinue={()=>{if(selected()===sid){setDraft("继续查询已确认对象的资料");void send()}}}/>}</Show>
         </div>
         <div class="composer-area">
           <RuntimeStatus compact />
+          <Show when={!selected()&&agents().length}><label class="agent-choice">本次助手 <select value={agent()} onChange={event=>setAgent(event.currentTarget.value)} disabled={sending()}><For each={agents()}>{item=><option value={item.id}>{item.name} · {item.version}</option>}</For></select></label></Show>
           <BusinessConfirmations sessionID={selected()} available={available()} onAnswered={() => void refresh()} />
           <ErrorLine message={error()} />
           <Show when={uncertain()}>
@@ -816,7 +828,7 @@ export default function Chat() {
               }}>已核对，解除保护</Button>
             </div>
           </Show>
-          <Show when={scene()?.scenario_id}><div class="selection-chips" role="status"><span>当前场景：{scene()?.name} · 追问将沿用</span><button disabled={busy() || sending() || clearingScene()} onClick={() => void clearScene()} aria-label="清除当前场景">清除场景 <Icon name="close" size={12}/></button></div></Show>
+          <Show when={!taskContext()&&scene()?.scenario_id}><div class="selection-chips" role="status"><span>当前场景：{scene()?.name} · 追问将沿用</span><button disabled={busy() || sending() || clearingScene()} onClick={() => void clearScene()} aria-label="清除当前场景">清除场景 <Icon name="close" size={12}/></button></div></Show>
           <Show when={selectedFiles().length || selectedSkills().length || selectedPlugins().length}>
             <div class="selection-chips">
               <For each={selectedFiles()}>

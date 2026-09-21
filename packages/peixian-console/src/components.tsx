@@ -232,6 +232,7 @@ export function Modal(props: {
   children: JSX.Element
   wide?: boolean
 }) {
+  const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
   let dialog!: HTMLDialogElement
   createEffect(() => {
     dialog.showModal()
@@ -241,7 +242,13 @@ export function Modal(props: {
     if (event.key === "Escape") props.onClose()
   }
   document.addEventListener("keydown", handle)
-  onCleanup(() => document.removeEventListener("keydown", handle))
+  onCleanup(() => {
+    document.removeEventListener("keydown", handle)
+    if (dialog.open) dialog.close()
+    queueMicrotask(() => {
+      if (previousFocus?.isConnected && !document.querySelector("dialog[open]")) previousFocus.focus()
+    })
+  })
   return (
     <dialog
       ref={dialog}

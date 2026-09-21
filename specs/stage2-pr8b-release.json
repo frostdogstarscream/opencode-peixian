@@ -1,0 +1,42 @@
+{
+  "stage": "pr8b",
+  "baseline": "b5910d279d9130ee53cc0d9c8cfb6078607636e8",
+  "schema_version": 9,
+  "closeout_status": "pending",
+  "implementation_revision": null,
+  "deployment_performed": false,
+  "real_data_accessed": false,
+  "model_requests": 0,
+  "github_ci": {
+    "executed": false
+  },
+  "tests": {
+    "control_gateway": {
+      "status": "awaiting_uniform_ci",
+      "local_initial_passed": 925,
+      "local_harness_failures": 16,
+      "corrected_targeted_passed": 30
+    },
+    "deployment": {
+      "status": "split_environment_verified",
+      "host_passed": 56,
+      "subtests": 10,
+      "python312_restore_passed": 1
+    },
+    "frontend": {
+      "typecheck": true,
+      "build": true,
+      "isolated_lock_install": true
+    },
+    "browser": {
+      "exit_code": 0,
+      "checks": 15,
+      "scope": "synthetic_component"
+    },
+    "pdf": {
+      "windows_text_verified": true,
+      "visual_pages": 2,
+      "server_font_copy_issue": true
+    }
+  }
+}

@@ -1,0 +1,141 @@
+.trusted-v2 {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #cbdff6;
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: var(--text, #173555);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.trusted-v2 header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.trusted-v2 h3,
+.trusted-v2 h4 {
+  margin: 8px 0;
+  color: #145ca4;
+}
+.trusted-v2 section {
+  border-top: 1px solid #dce8f5;
+  padding: 12px 0;
+}
+.trusted-v2 dl {
+  display: grid;
+  gap: 8px;
+}
+.trusted-v2 dl > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(0, 3fr);
+  gap: 12px;
+}
+.trusted-v2 dt {
+  font-weight: 600;
+}
+.trusted-v2 dd {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.trusted-v2 p {
+  white-space: pre-wrap;
+}
+.trusted-v2 .trusted-option {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+.trusted-v2 .trusted-claim {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.7;
+  padding: 8px;
+}
+.trusted-claim span {
+  display: block;
+  color: #0759b6;
+  font-size: 12px;
+}
+.trusted-usage,
+.trusted-resume {
+  padding: 12px;
+  border: 1px solid #9fc9f1;
+  border-radius: 8px;
+  background: #edf6ff;
+}
+.trusted-gap,
+.trusted-v2 .conflicted,
+.trusted-v2 .unknown,
+.trusted-v2 .partial {
+  background: #fff7e9;
+  color: #744309;
+  padding: 12px;
+  border-radius: 8px;
+}
+.trusted-v2 button:focus-visible,
+.trusted-v2 summary:focus-visible {
+  outline: 3px solid #347ed2;
+  outline-offset: 3px;
+}
+.trusted-v2 fieldset {
+  border: 1px solid #b5cde8;
+  border-radius: 8px;
+}
+.trusted-v2 .trusted-narrative {
+  border: 1px dashed #8a9aab;
+  padding: 12px;
+}
+.trusted-v2 details {
+  padding: 8px 0;
+}
+.trusted-v2 small {
+  color: inherit;
+}
+@media (max-width: 600px) {
+  .trusted-v2 {
+    padding: 10px;
+  }
+  .trusted-v2 dl > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .trusted-v2 dd {
+    padding-bottom: 8px;
+  }
+  .trusted-v2 button {
+    min-height: 40px;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .trusted-v2 {
+    background: #142334;
+    color: #dbe8f7;
+    border-color: #3b5678;
+  }
+  .trusted-v2 h3,
+  .trusted-v2 h4,
+  .trusted-claim span {
+    color: #9dcafa;
+  }
+  .trusted-usage,
+  .trusted-resume {
+    background: #173555;
+    color: #dbe8f7;
+  }
+  .trusted-v2 .conflicted,
+  .trusted-v2 .unknown,
+  .trusted-v2 .partial {
+    background: #403524;
+    color: #ffe3ae;
+  }
+}
+
+.trusted-v2 .trusted-claim {
+  vertical-align: top;
+}

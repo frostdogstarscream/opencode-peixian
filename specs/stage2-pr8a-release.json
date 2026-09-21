@@ -1,0 +1,39 @@
+{
+  "stage": "pr8a",
+  "baseline": "77d3f05647abee50fc1185a2441c1ae4f686a7d1",
+  "closeout_status": "pending",
+  "implementation_revision": null,
+  "schema_version": 9,
+  "github_ci": {
+    "executed": false
+  },
+  "tests": {
+    "targeted": {
+      "exit_code": 0,
+      "passed": 47,
+      "evidence": "41 passing cases plus 6 corrected compiler fixture cases, unchanged production source"
+    },
+    "local_full_before_assertion_fix": {
+      "exit_code": 1,
+      "passed": 927,
+      "failed": 1,
+      "reason": "Old Health schema enum assertion excluded v9; corrected, roles regression passed"
+    },
+    "deployment": {
+      "exit_code": 0,
+      "passed": 51,
+      "subtests_passed": 10
+    },
+    "bun": {
+      "exit_code": 0,
+      "passed": 14
+    },
+    "historical": {
+      "exit_code": 0,
+      "mode": "fixed commit source receipt verification, full suites rerun by CI"
+    }
+  },
+  "deployment_performed": false,
+  "real_data_accessed": false,
+  "model_requests": 0
+}

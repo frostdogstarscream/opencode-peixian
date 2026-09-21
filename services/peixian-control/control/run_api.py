@@ -72,6 +72,26 @@ def register(app):
         snapshot=app.state.store.decrypt(row['request_ciphertext'])
         return {'run_id':rid,'task_spec':snapshot.get('task_spec'),'agent_profile':snapshot.get('agent_profile'),'effective_system_prompt_sha256':snapshot.get('effective_system_prompt_sha256'),'response':snapshot.get('task_response')}
 
+    @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/result')
+    @blocking_endpoint(app)
+    def run_result(sid:str,rid:str,request:Request,user=Depends(normal)):
+        from .trusted_results import read
+        return read(app.state.store,user['uid'],sid,rid)
+
+    @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/claims')
+    @blocking_endpoint(app)
+    def run_claims(sid:str,rid:str,request:Request,user=Depends(normal)):
+        from .trusted_results import read
+        result=read(app.state.store,user['uid'],sid,rid)
+        return {'run_id':rid,'result_version':result['version'],'status':result.get('status','final'),'items':result.get('claims',[])}
+
+    @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/data-usage')
+    @blocking_endpoint(app)
+    def run_data_usage(sid:str,rid:str,request:Request,user=Depends(normal)):
+        from .trusted_results import read
+        result=read(app.state.store,user['uid'],sid,rid)
+        return {'run_id':rid,'result_version':result['version'],'data_usage':result.get('data_usage')}
+
     @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/events')
     @blocking_endpoint(app)
     def run_events(sid:str,rid:str,request:Request,page:int=1,page_size:int=100,after:int=0,user=Depends(normal)):

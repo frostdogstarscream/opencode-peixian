@@ -51,6 +51,8 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
     snapshot={'request':data,'payload':payload,'models':[x['id'] for x in applied.get('models',[])],
               'plugins':[{'id':x['id'],'version':x.get('version'),'tools':x.get('manifest',{}).get('tools',[])} for x in applied.get('plugins',[])],
               'skills':[{'id':x['id'],'name':x['name'],'version':x.get('version')} for x in applied.get('skills',[])]}
+    from .trusted_results import enabled
+    if enabled(store,user['uid']):snapshot['trusted_result_version']='2.0';snapshot['data_environment']='synthetic'
     if context is not None:snapshot['scenario_context']={**context,'revision':revision}
     with store.tx() as db:
         current_authority(db,user)
@@ -112,6 +114,9 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         if task and task['local']:
             from .task_context import completed
             completed(store,db,identity)
+        if task and task['local']:
+            from .trusted_results import finalize
+            finalize(store,db,identity)
         if trial:
             count=db.execute('UPDATE draft_trials SET run_id=?,session_id=? WHERE id=? AND uid=? AND run_id IS NULL',(identity,sid,trial,user['uid'])).rowcount
             if count!=1:error('trial_conflict','试运行已受理或正在核对',409)
@@ -143,6 +148,9 @@ def set_state(store,rid,status,phase,code=None):
         if status=='completed':
             from .task_context import completed
             completed(store,db,rid)
+        if status in TERMINAL:
+            from .trusted_results import finalize
+            finalize(store,db,rid)
 
 
 def event(store,rid,key,kind,name,status,started=None,completed=None,capability=None,count=0):

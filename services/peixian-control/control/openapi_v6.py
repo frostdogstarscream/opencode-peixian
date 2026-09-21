@@ -13,7 +13,7 @@ def extend_schemas(result):
         if name in result:result[name]['properties'].update(fields)
     if 'AdminModel' in result:result['AdminModel']['properties'].update({'test_status':STRING,'updated_at':nullable({'type':'string','format':'date-time'})})
     result['ModelTestResult']=obj({'ok':BOOL,'message':STRING,'elapsed_ms':{'type':'integer'}},('ok','message','elapsed_ms'))
-    if 'Health' in result and 'schema_version' in result['Health'].get('properties',{}):result['Health']['properties']['schema_version']={'type':'integer','enum':[4,5,6,7,8]}
+    if 'Health' in result and 'schema_version' in result['Health'].get('properties',{}):result['Health']['properties']['schema_version']={'type':'integer','enum':[4,5,6,7,8,9]}
     result['Error']['properties']['field_errors']={'type':'object','additionalProperties':STRING}
     integer={'type':'integer'}
     dt={'type':'string','format':'date-time'}
@@ -66,7 +66,8 @@ def extend_schemas(result):
     result['DraftTestResult']=obj({'mode':{'enum':['validation','model']},'ok':BOOL,'field_errors':{'type':'object','additionalProperties':STRING},'model_executed':nullable(BOOL),'accepted':BOOL,'session_id':ID,'run_id':ID,'message_id':ID},('mode','model_executed'))
     result['EmptyBody']=obj({})
     result['DraftSaveResult']=obj({'skill_id':ID,'scope':{'const':'personal'},'enabled':BOOL,'job':ref('Job'),'already_saved':BOOL},('skill_id','scope','already_saved'))
-    return result
+    from .openapi_v9 import extend_schemas
+    return extend_schemas(result)
 
 
 def contracts():
@@ -98,6 +99,8 @@ def contracts():
     add('get','/sessions/{sid}/runs',None,ref('RunPage'),'查询会话执行记录')
     add('get','/sessions/{sid}/runs/{rid}',None,ref('Run'),'查询执行状态')
     add('get','/sessions/{sid}/runs/{rid}/task',None,ref('RunTask'),'读取本轮冻结任务',desc='仅本人可读；TaskSpec 为服务端生成，不接受客户端写入。schema v7 的历史解释使用冻结可信资料；旧 Run 按原契约返回。')
+    for suffix,schema,title in [('result','TrustedResultResponse','读取不可变可信结果'),('claims','RunClaims','读取已核对声明'),('data-usage','RunDataUsage','读取资料实际使用状态')]:
+        add('get','/sessions/{sid}/runs/{rid}/'+suffix,None,ref(schema),title,desc='本人资源；schema v9及账号灰度只影响新Run。终态结果不可变；旧Run返回legacy；活动Run仅返回pending状态，不重新取数。')
     add('get','/sessions/{sid}/runs/{rid}/events',None,ref('RunEventPage'),'增量查询持久步骤')
     add('get','/sessions/{sid}/runs/{rid}/evidence',None,ref('RunEvidence'),'查询固定执行证据',desc='按本人账号/会话/Run鉴权读取已保存证据；旧插件卸载不删除历史证据，读取不重新取数。')
     add('post','/sessions/{sid}/runs/{rid}/abort',None,ref('Run'),'请求停止执行')

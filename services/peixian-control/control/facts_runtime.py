@@ -128,7 +128,11 @@ class FactsState:
         with self.store.tx() as db:
             row, snapshot, state = self._owned(db, uid, rid, revision, operation)
             self.authorize(db, row, snapshot, module)
-            if module in state["modules"]: return False
+            if module in state["modules"]:
+                if state['modules'][module]['status']=='completed':
+                    state['reuse_count']=state.get('reuse_count',0)+1
+                    self._save(db,rid,snapshot)
+                return False
             state["modules"][module] = {"status": "pending", "started": now(), "plugin_version": next(p["version"] for p in snapshot["plugins"] if p["id"] == capability(module))}
             self._event(rid, module, "pending")
             self._audit(db,rid,module,"allowed",snapshot["facts_plan"])

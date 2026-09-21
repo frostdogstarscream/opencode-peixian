@@ -11,6 +11,8 @@ def validate(db):
         from .migrations_v7 import validate as check
     elif version == 8:
         from .migrations_v8 import validate as check
+    elif version == 9:
+        from .migrations_v9 import validate as check
     else:
         raise ValueError("Unsupported Control database schema")
     check(db)
@@ -19,8 +21,8 @@ def validate(db):
 
 def validate_chain(db,version):
     """Verify every recorded ancestor without changing historical migration bytes."""
-    from . import migrations_v4,migrations_v5,migrations_v6,migrations_v7,migrations_v8
-    modules={4:migrations_v4,5:migrations_v5,6:migrations_v6,7:migrations_v7,8:migrations_v8}
+    from . import migrations_v4,migrations_v5,migrations_v6,migrations_v7,migrations_v8,migrations_v9
+    modules={4:migrations_v4,5:migrations_v5,6:migrations_v6,7:migrations_v7,8:migrations_v8,9:migrations_v9}
     cursor=version;seen=set()
     while cursor>=4:
         module=modules[cursor]

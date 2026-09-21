@@ -92,6 +92,9 @@ def track_messages(store,row,values,receipt):
     with store.tx() as db:
         current=db.execute('SELECT status FROM business_runs WHERE id=?',(row['id'],)).fetchone()
         if current['status'] in runs.TERMINAL:return True
+        if frozen.get('trusted_result_version')=='2.0':
+            frozen['model_narrative']='\n'.join(p.get('text','') for m in assistants for p in m.get('parts',[]) if p.get('type')=='text' and isinstance(p.get('text'),str))[:60001]
+            db.execute('UPDATE business_runs SET request_ciphertext=? WHERE id=?',(store.encrypt(frozen),row['id']))
         db.execute('UPDATE business_runs SET assistant_id=?,evidence_ciphertext=?,result_ciphertext=? WHERE id=?',(info['id'],store.encrypt(evidence),store.encrypt(result) if result else None,row['id']))
         runs.set_state(store,row['id'],status,status,'model_failed' if status=='failed' else None)
     runs.event(store,row['id'],'result','result','生成结果',status,timing.get('created',0)//1000,timing['completed']//1000)

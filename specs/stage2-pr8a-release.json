@@ -1,11 +1,16 @@
 {
   "stage": "pr8a",
   "baseline": "77d3f05647abee50fc1185a2441c1ae4f686a7d1",
-  "closeout_status": "pending",
-  "implementation_revision": null,
+  "closeout_status": "completed",
+  "implementation_revision": "ae57b9c1ee8d26000ec321e5bc73bf533ea74e88",
   "schema_version": 9,
   "github_ci": {
-    "executed": false
+    "executed": true,
+    "workflow": "Peixian PR-8A Trusted Result checks",
+    "head_sha": "ae57b9c1ee8d26000ec321e5bc73bf533ea74e88",
+    "run_id": 35656595546,
+    "conclusion": "success",
+    "url": "https://github.com/frostdogstarscream/opencode-peixian/actions/runs/35656595546"
   },
   "tests": {
     "targeted": {
@@ -21,8 +26,9 @@
     },
     "deployment": {
       "exit_code": 0,
-      "passed": 51,
-      "subtests_passed": 10
+      "passed": 57,
+      "subtests_passed": 10,
+      "evidence": "CI includes runtime pool delivery"
     },
     "bun": {
       "exit_code": 0,
@@ -30,7 +36,23 @@
     },
     "historical": {
       "exit_code": 0,
-      "mode": "fixed commit source receipt verification, full suites rerun by CI"
+      "pr5": 63,
+      "pr55": 62,
+      "pr56": 17,
+      "pr6": 19,
+      "pr7": 19,
+      "pr71": 17
+    },
+    "control_gateway": {
+      "exit_code": 0,
+      "passed": 936,
+      "warnings": 2,
+      "evidence": "exact implementation CI"
+    },
+    "local_exact_control_gateway": {
+      "exit_code": 0,
+      "passed": 936,
+      "warnings": 2
     }
   },
   "deployment_performed": false,

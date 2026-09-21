@@ -13,16 +13,17 @@ def extend_schemas(result):
         if name in result:result[name]['properties'].update(fields)
     if 'AdminModel' in result:result['AdminModel']['properties'].update({'test_status':STRING,'updated_at':nullable({'type':'string','format':'date-time'})})
     result['ModelTestResult']=obj({'ok':BOOL,'message':STRING,'elapsed_ms':{'type':'integer'}},('ok','message','elapsed_ms'))
-    if 'Health' in result and 'schema_version' in result['Health'].get('properties',{}):result['Health']['properties']['schema_version']={'type':'integer','enum':[4,5,6]}
+    if 'Health' in result and 'schema_version' in result['Health'].get('properties',{}):result['Health']['properties']['schema_version']={'type':'integer','enum':[4,5,6,7]}
     result['Error']['properties']['field_errors']={'type':'object','additionalProperties':STRING}
     integer={'type':'integer'}
     dt={'type':'string','format':'date-time'}
     def paginated(item):return obj({'items':array(ref(item)),'total':integer,'page':integer,'page_size':integer},('items','total','page','page_size'))
     result['Run']=obj({'id':ID,'session_id':ID,'status':{'type':'string','enum':['queued','running','cancelling','reconciling','completed','failed','cancelled']},'phase':STRING,'cancel_requested':BOOL,'model_id':ID,'message_id':nullable(ID),'user_message_id':ID,'parent_run_id':nullable(ID),'created_at':dt,'started_at':nullable(dt),'completed_at':nullable(dt),'updated_at':dt,'error':nullable(obj({'code':STRING,'message':STRING}))},('id','session_id','status','phase','created_at'))
-    from .task_spec import SPEC_SCHEMA,SPEC_V2_SCHEMA,CANDIDATE_SCHEMA
+    from .task_spec import SPEC_SCHEMA,SPEC_V2_SCHEMA,SPEC_V3_SCHEMA,CANDIDATE_SCHEMA
     result['TaskSpecV1']=SPEC_SCHEMA
     result['TaskSpecV2']=SPEC_V2_SCHEMA
-    result['TaskSpec']={'oneOf':[ref('TaskSpecV1'),ref('TaskSpecV2')]}
+    result['TaskSpecV3']=SPEC_V3_SCHEMA
+    result['TaskSpec']={'oneOf':[ref('TaskSpecV1'),ref('TaskSpecV2'),ref('TaskSpecV3')]}
     result['TaskCandidateV1']=CANDIDATE_SCHEMA
     from .task_spec import candidate_schema
     from .agents.registry import PROFILES
@@ -32,6 +33,9 @@ def extend_schemas(result):
     result['AgentList']=obj({'items':array(ref('AgentPublic'))},('items',))
     result['AgentIdentity']=obj({k:STRING for k in ('schema_version','registry_version','id','version','domain','profile_sha256','prompt_sha256','default_scenario_id')})
     result['RunTask']=obj({'run_id':ID,'task_spec':nullable(ref('TaskSpec')),'agent_profile':nullable(ref('AgentIdentity')),'effective_system_prompt_sha256':nullable(STRING),'response':nullable(obj({'code':STRING,'message':STRING},('code','message')))},('run_id','task_spec','response'))
+    result['TaskContext']=obj({'schema':{'const':'session-context-v1'},'agent_id':ID,'agent_profile_sha256':STRING,'generation':{'type':'integer','minimum':1},'version':{'type':'integer','minimum':1},'last_completed_run_id':nullable(ID),'last_data_run_id':nullable(ID),'pending_clarification_id':nullable(ID),'updated_at':dt},('schema','agent_id','agent_profile_sha256','generation','version','last_completed_run_id','last_data_run_id','pending_clarification_id','updated_at'))
+    result['RunSource']=obj({'run_id':ID,'run_kind':nullable({'enum':['data_query','history_explanation','clarification','ordinary_chat']}),'direct_parent_run_id':nullable(ID),'source_data_run_id':nullable(ID),'projection_version':nullable(STRING),'projection_digest':nullable(STRING)},('run_id','run_kind','direct_parent_run_id','source_data_run_id','projection_version','projection_digest'))
+    result['MessageBody']['properties']['context_version']={'type':'integer','minimum':1,'description':'可选的已读取上下文版本；旧版本返回409 task_context_changed。同请求标识重放仍返回首次受理。'}
     result['RunAccepted']=obj({'accepted':{'const':True},'run_id':ID,'message_id':ID},('accepted','run_id','message_id'))
     result['RunEvent']=obj({'id':ID,'sequence':integer,'step_type':STRING,'name':STRING,'status':STRING,'started_at':nullable(dt),'completed_at':nullable(dt),'elapsed_ms':nullable(integer),'capability_id':nullable(ID),'input_summary':STRING,'output_summary':STRING,'record_count':integer,'evidence_refs':array(STRING),'error_message':nullable(STRING)},('id','sequence','step_type','name','status'))
     result['RunEvidence']=obj({**result['ScenarioEvidence']['properties'],'run_id':ID,'status':{'enum':['pending','empty','partial','complete','unavailable']}},('run_id','status','cards','summary'))
@@ -80,10 +84,13 @@ def contracts():
     add('post','/sessions/{sid}/messages','MessageBody',ref('RunAccepted'),'提交消息并受理持久执行',desc='HTTP 202返回持久run_id和固定message_id；plugin_ids 是偏好；同 client_request_id 同内容返回首次受理，不自动重发未知执行。')
     add('get','/sessions/{sid}/context',None,{'type':'object','properties':{'scenario_id':{'type':['string','null']},'name':{'type':['string','null']},'source':{'type':'string'},'generation':{'type':['string','null']}}},'读取本人会话场景')
     add('delete','/sessions/{sid}/context',None,{'type':'object'},'清除本人会话场景',desc='需要 Idempotency-Key；执行未结束返回409；持久清除边界不删除历史。')
+    add('get','/sessions/{sid}/task-context',None,ref('TaskContext'),'读取本人会话任务上下文',desc='仅 schema v7 且双账号灰度开启；新会话可指定 agent_id，已绑定会话不能切换。')
+    add('delete','/sessions/{sid}/task-context',None,ref('TaskContext'),'重置本人会话任务上下文',desc='需要 Idempotency-Key；增加 generation/version，清空指针，不改变助手、不删除历史；迟到执行不能恢复旧上下文。')
+    add('get','/sessions/{sid}/runs/{rid}/source',None,ref('RunSource'),'读取本人执行的冻结历史来源',desc='只返回归属核对后的来源标识及投影摘要，不返回 Prompt、插件配置或规则实现。')
     add('get','/capabilities',None,ref('CapabilityPage'),'查询当前可用能力','能力目录')
     add('get','/sessions/{sid}/runs',None,ref('RunPage'),'查询会话执行记录')
     add('get','/sessions/{sid}/runs/{rid}',None,ref('Run'),'查询执行状态')
-    add('get','/sessions/{sid}/runs/{rid}/task',None,ref('RunTask'),'读取本轮冻结任务',desc='仅本人可读；TaskSpec 为服务端生成，不接受客户端写入。PR-5 历史解释未执行；旧 Run 或普通聊天返回 null。')
+    add('get','/sessions/{sid}/runs/{rid}/task',None,ref('RunTask'),'读取本轮冻结任务',desc='仅本人可读；TaskSpec 为服务端生成，不接受客户端写入。schema v7 的历史解释使用冻结可信资料；旧 Run 按原契约返回。')
     add('get','/sessions/{sid}/runs/{rid}/events',None,ref('RunEventPage'),'增量查询持久步骤')
     add('get','/sessions/{sid}/runs/{rid}/evidence',None,ref('RunEvidence'),'查询固定执行证据',desc='按本人账号/会话/Run鉴权读取已保存证据；旧插件卸载不删除历史证据，读取不重新取数。')
     add('post','/sessions/{sid}/runs/{rid}/abort',None,ref('Run'),'请求停止执行')

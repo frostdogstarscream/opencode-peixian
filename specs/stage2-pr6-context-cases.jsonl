@@ -1,0 +1,6 @@
+{"id": "funds_history", "agent_id": "gambling-assistant", "turns": ["看看资金", "解释上一条结果", "继续"], "expected": "original_source"}
+{"id": "vehicle_history", "agent_id": "theft-assistant", "turns": ["看看车辆记录", "解释上一条结果", "继续"], "expected": "original_source"}
+{"id": "empty_history", "agent_id": "gambling-assistant", "turns": ["继续"], "expected": "source_evidence_unavailable"}
+{"id": "no_refresh", "agent_id": "theft-assistant", "turns": ["不要重新查询，解释上一条"], "expected": "source_evidence_unavailable"}
+{"id": "reset", "agent_id": "gambling-assistant", "turns": ["看看资金", "RESET", "继续"], "expected": "source_evidence_unavailable"}
+{"id": "cross_agent", "agent_id": "gambling-assistant", "turns": ["看看资金", "SWITCH theft-assistant"], "expected": "session_agent_mismatch"}

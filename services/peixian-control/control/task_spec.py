@@ -48,6 +48,24 @@ SPEC_V2_SCHEMA['properties'].update(agent_id={'type':'string'},agent_version={'t
 SPEC_V2_SCHEMA['required']+=['agent_id','agent_version','agent_profile_sha256']
 
 
+
+SPEC_V3_SCHEMA=copy.deepcopy(SPEC_V2_SCHEMA)
+SPEC_V3_SCHEMA['properties']['schema_version']={'const':'task-spec-v3'}
+SPEC_V3_SCHEMA['properties']['context_generation']={'type':'integer','minimum':1}
+for field in ('direct_parent_run_id','source_data_run_id'):
+    SPEC_V3_SCHEMA['properties'][field]={'type':['string','null']}
+
+def resolve(store,uid,sid,data,applied):
+    from . import task_context
+    if 'context_version' in data and not task_context.enabled(store,uid):error('task_context_not_enabled','当前账号尚未启用多轮上下文。',409)
+    task=resolve_legacy(store,uid,sid,data,applied)
+    if task_context.enabled(store,uid) and task.get('agent_profile'):
+        from .agents.registry import require
+        task=task_context.enrich(store,uid,sid,data,require(task['agent_profile']['id']),task)
+        if task['spec']:jsonschema.validate(task['spec'],SPEC_V3_SCHEMA)
+    return task
+
+
 def candidate_schema(profile):
     result=copy.deepcopy(CANDIDATE_SCHEMA)
     if profile:
@@ -61,7 +79,7 @@ def enabled(uid):
     return uid in {x.strip() for x in os.getenv('PX_TASKSPEC_V1_UIDS', '').split(',') if x.strip()}
 
 
-def resolve(store, uid, sid, data, applied):
+def resolve_legacy(store, uid, sid, data, applied):
     from .agents import runtime as agents
     profile=agents.select(uid,data) if agents.enabled(uid) else None
     if profile:agents.session(store,uid,sid,profile)
@@ -172,6 +190,8 @@ def bind(snapshot, payload, task):
         snapshot['allowed_capabilities'], snapshot['allowed_tools'] = [], []
     if task['local']:
         snapshot['task_response'] = task['local']
+    from .task_context import freeze
+    freeze(snapshot,payload,task)
 
 
 def admission_selection(data, task, effective_skill_ids):

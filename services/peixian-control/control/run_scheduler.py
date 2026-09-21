@@ -34,6 +34,8 @@ def track_messages(store,row,values,receipt):
     prior=store.one('SELECT actual_plugins FROM invocations WHERE run_id=?',(row['id'],))
     actual=set(json.loads(prior['actual_plugins'])) if prior else set();assistants=[];violations=[]
     plan=snapshot.get('facts_plan')
+    if not plan and snapshot.get('task_spec'):
+        permitted_tools=set()
     if plan:
         from .facts_plan import HELPERS
         permitted_tools=set(plan['allowed_tools']) | set(HELPERS) | {'question'}
@@ -44,7 +46,7 @@ def track_messages(store,row,values,receipt):
         for part in message.get('parts',[]):
             if part.get('type')!='tool':continue
             state=part.get('state',{});tool=part.get('tool');pid=tools.get(tool)
-            if plan and tool not in permitted_tools:violations.append(str(part.get('id') or part.get('callID')))
+            if (plan or snapshot.get('task_spec')) and tool not in permitted_tools:violations.append(str(part.get('id') or part.get('callID')))
             if pid:actual.add(pid)
             kind='skill' if tool=='skill' else 'plugin' if pid else 'analysis'
             timing=state.get('time',{});status={'completed':'completed','error':'failed','running':'running','pending':'pending'}.get(state.get('status'),'pending')
@@ -67,7 +69,11 @@ def track_messages(store,row,values,receipt):
         FactsState(store).terminate(row['uid'],row['id'],row['revision'])
     latest=store.one('SELECT request_ciphertext FROM business_runs WHERE id=?',(row['id'],))
     frozen=store.decrypt(latest['request_ciphertext'])
-    if frozen.get('facts_plan'):
+    if frozen.get('run_kind')=='history_explanation':
+        projection=frozen.get('historical_projection') or {}
+        evidence={'version':'1.0','status':'partial' if projection.get('missing') else 'complete','cards':[], 'summary':[], 'missing':projection.get('missing',[]),'source_data_run_id':projection.get('source_data_run_id'),'historical_projection_digest':projection.get('digest')}
+        view=None
+    elif frozen.get('facts_plan'):
         from .facts_evidence import evidence as durable_evidence
         evidence=durable_evidence(frozen,{**row,'assistant_id':info['id']})
         view=evidence.get('presentation')
@@ -84,8 +90,10 @@ def track_messages(store,row,values,receipt):
     failure='FactsPlanViolation' if violations else info.get('error',{}).get('name')
     status='cancelled' if failure=='MessageAbortedError' else 'failed' if failure else 'completed'
     with store.tx() as db:
+        current=db.execute('SELECT status FROM business_runs WHERE id=?',(row['id'],)).fetchone()
+        if current['status'] in runs.TERMINAL:return True
         db.execute('UPDATE business_runs SET assistant_id=?,evidence_ciphertext=?,result_ciphertext=? WHERE id=?',(info['id'],store.encrypt(evidence),store.encrypt(result) if result else None,row['id']))
-    runs.set_state(store,row['id'],status,status,'model_failed' if status=='failed' else None)
+        runs.set_state(store,row['id'],status,status,'model_failed' if status=='failed' else None)
     runs.event(store,row['id'],'result','result','生成结果',status,timing.get('created',0)//1000,timing['completed']//1000)
     if status=='cancelled':
         for pending in store.rows("SELECT * FROM run_events WHERE run_id=? AND status IN ('pending','running')",(row['id'],)):

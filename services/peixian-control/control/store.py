@@ -13,7 +13,7 @@ from argon2 import PasswordHasher, extract_parameters
 from cryptography.fernet import Fernet
 
 SCHEMA_VERSION = 4  # Legacy initialization remains v4 unless on_demand is explicit.
-MAX_SCHEMA_VERSION = 6
+MAX_SCHEMA_VERSION = 7
 
 
 def ident():
@@ -58,7 +58,7 @@ class Store:
             fresh = version == 0 and not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'").fetchone()
             if version > MAX_SCHEMA_VERSION:
                 raise ValueError("Control database schema is newer than this application")
-            if version in (4, 5, 6):
+            if version in (4, 5, 6, 7):
                 from .schema import validate
                 validate(db)
             schema = """
@@ -128,6 +128,10 @@ class Store:
             if db.execute("PRAGMA user_version").fetchone()[0] < 6 and os.getenv("PX_BACKEND_V6") == "1":
                 from .migrations_v6 import migrate as backend_migrate
                 backend_migrate(db, fresh=fresh, timestamp=now())
+            if db.execute("PRAGMA user_version").fetchone()[0]<7 and os.getenv('PX_TASK_CONTEXT_V1')=='1':
+                from .migrations_v7 import migrate as context_migrate
+                context_migrate(db,fresh=fresh,timestamp=now())
+
 
     def on_demand(self, db=None):
         return self.maintenance_status(db).get("runtime_mode", "eager") == "on_demand"

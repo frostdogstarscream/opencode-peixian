@@ -1,0 +1,38 @@
+{
+  "stage": "pr6",
+  "closeout_status": "pending",
+  "baseline": "679e4e6f7cbe60642c529e0ed840b172e7bd8370",
+  "implementation_revision": null,
+  "github_ci": {
+    "executed": false
+  },
+  "schema_version": 7,
+  "deployment_performed": false,
+  "real_data_accessed": false,
+  "model_requests": 0,
+  "tests": {
+    "control_gateway": {
+      "exit_code": 0,
+      "passed": 846,
+      "warnings": 2,
+      "initial_passed": 844,
+      "initial_failed": 1
+    },
+    "deployment": {
+      "exit_code": 0,
+      "passed": 55,
+      "subtests_passed": 10,
+      "runtime_pool_passed": 6
+    },
+    "bun": {
+      "exit_code": 0,
+      "passed": 14
+    },
+    "historical": {
+      "exit_code": 0,
+      "pr5": 63,
+      "pr55": 62,
+      "pr56": 17
+    }
+  }
+}

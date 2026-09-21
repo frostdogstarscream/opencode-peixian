@@ -14,7 +14,7 @@ MUTATIONS = re.compile(
     r"^/api/console/v1/(?:admin/(?:users(?:/[^/]+(?:/runtime/[^/]+|/reset-password)?)?"
     r"|models(?:/(?!test$)[^/]+)?|plugins(?:/[^/]+/[^/]+(?:/connections)?)?"
     r"|departments(?:/[^/]+)?|connections(?:/[^/]+)?|templates(?:/[^/]+)?|maintenance|recovery/[^/]+)"
-    r"|sessions/[^/]+/context|skill-drafts/(?!from-requirement$|from-session$)[^/]+(?:/save)?|skills(?:/[^/]+(?:/rollback)?)?|plugins/[^/]+(?:/rollback)?|templates/[^/]+/copy|me/runtime/(?:start|stop))$"
+    r"|sessions/[^/]+/(?:context|task-context)|skill-drafts/(?!from-requirement$|from-session$)[^/]+(?:/save)?|skills(?:/[^/]+(?:/rollback)?)?|plugins/[^/]+(?:/rollback)?|templates/[^/]+/copy|me/runtime/(?:start|stop))$"
 )
 
 

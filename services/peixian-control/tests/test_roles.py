@@ -296,7 +296,7 @@ def test_schema_contract_describes_three_roles_and_scoped_management(context):
     schemas = document["components"]["schemas"]
     assert schemas["User"]["properties"]["role"]["enum"] == ["user", "admin", "super_admin"]
     assert "capabilities" in schemas["Identity"]["required"]
-    assert schemas["Health"]["properties"]["schema_version"]["enum"] == [SCHEMA_VERSION, 5, 6]
+    assert schemas["Health"]["properties"]["schema_version"]["enum"] == [SCHEMA_VERSION, 5, 6, 7]
     for path in ("/admin/plugins", "/admin/templates", "/admin/jobs"):
         assert document["paths"][P + path]["get"]["x-roles"] == ["super_admin"]
     assert document["paths"][P + "/admin/models"]["post"]["x-roles"] == ["super_admin", "admin"]

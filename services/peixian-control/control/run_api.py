@@ -93,7 +93,7 @@ def register(app):
     @app.post(PREFIX+'/sessions/{sid}/runs/{rid}/rerun',status_code=202)
     async def run_again(sid:str,rid:str,request:Request,user=Depends(normal)):
         s=app.state.store;row=await app.state.db_work.run(runs.owned,s,user['uid'],sid,rid)
-        data=body_fields(await request.json(),('client_request_id','text','model_id','skill_ids','plugin_ids','file_ids','mode','agent_id'))
+        data=body_fields(await request.json(),('client_request_id','text','model_id','skill_ids','plugin_ids','file_ids','mode','agent_id','context_version'))
         if not data.get('client_request_id'):error('request_id_required','重跑必须提供新的client_request_id')
         if row['status'] not in runs.TERMINAL:error('run_active','原执行尚未结束',409)
         merged={**s.decrypt(row['request_ciphertext'])['request'],**data}
@@ -115,6 +115,12 @@ def register(app):
             agent=snapshot['agent_profile']
             lines += ['## 助手版本','',f"- Agent：{agent['id']}",f"- 版本：{agent['version']}",f"- Profile SHA256：{agent['profile_sha256']}",'']
         if snapshot.get('task_response'):lines += [snapshot['task_response']['message'],'']
+        if snapshot.get('historical_projection'):
+            projection=snapshot['historical_projection']
+            lines += ['## 历史资料来源','', '- 原始资料执行：'+projection['source_data_run_id'], '- 冻结投影摘要：'+projection['digest'], '']
+            lines += ['- '+fact['statement']+'（来源：'+', '.join(fact['source_ids'])+'）' for fact in projection['claims']]
+            lines += ['- '+gap for gap in projection['missing']]
+            lines += ['', '资料性质与版本：'+json.dumps(projection['versions'],ensure_ascii=False), '合成测试资料；本次说明未重新取数。','']
         if data.get('synthetic') is True or data.get('scenario'):lines += ['资料性质：合成测试资料，不代表真实业务事实。','']
         lines += ['## 已核对结论','']+[('- '+x['text']) for x in view.get('conclusions',[])]
         if not view.get('conclusions'):lines+=['暂无可导出的已核对结论。']

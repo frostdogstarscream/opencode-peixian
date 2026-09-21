@@ -28,10 +28,10 @@ def build(applied, context, data, task=None):
         reject("facts_method_identity_unavailable")
     methods = list(dict.fromkeys(method for digest in identities for method in METHODS_BY_HASH[digest]))
     if task:
-        from .task_spec import SPEC_SCHEMA, SPEC_V2_SCHEMA
+        from .task_spec import SPEC_SCHEMA, SPEC_V2_SCHEMA, SPEC_V3_SCHEMA
         import jsonschema
-        v2=task['spec'].get('schema_version')=='task-spec-v2'
-        jsonschema.validate(task['spec'],SPEC_V2_SCHEMA if v2 else SPEC_SCHEMA)
+        v2=task['spec'].get('schema_version') in ('task-spec-v2','task-spec-v3')
+        jsonschema.validate(task['spec'],SPEC_V3_SCHEMA if task['spec'].get('schema_version')=='task-spec-v3' else SPEC_V2_SCHEMA if v2 else SPEC_SCHEMA)
         approved=task['spec']
         from .task_router import METHODS as INTENT_METHODS
         expected=INTENT_METHODS.get(approved['intent'])

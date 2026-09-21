@@ -24,6 +24,11 @@ def frozen_identity(snapshot):
 def session(store,uid,sid,profile):
     # Reset does not affect ownership. Old rows are read, never rewritten.
     rows=store.rows('SELECT request_ciphertext FROM business_runs WHERE uid=? AND session_id=? ORDER BY rowid',(uid,sid))
+    if store.schema_version()>=7:
+        for row in rows:
+            prior=store.decrypt(row['request_ciphertext']).get('agent_profile')
+            if prior and prior['id']==profile.id and prior.get('profile_sha256')!=profile.profile_sha256:
+                error('session_profile_changed','此会话使用旧助手版本，请新建会话。',409)
     if any(frozen_identity(store.decrypt(row['request_ciphertext']))!=profile.id for row in rows):
         error('session_agent_mismatch','此会话已绑定其他助手，请新建会话使用所选助手。',409)
 
@@ -48,7 +53,7 @@ def register(app):
 
 def validate_execution(snapshot):
     task=snapshot.get('task_spec') or {}
-    if task.get('schema_version')!='task-spec-v2':return
+    if task.get('schema_version') not in ('task-spec-v2','task-spec-v3'):return
     meta=snapshot.get('agent_profile') or {};plan=snapshot.get('facts_plan') or {}
     if (plan.get('agent_profile')!=meta or plan.get('agent_task')!=task
         or task.get('agent_id')!=meta.get('id') or task.get('agent_version')!=meta.get('version')

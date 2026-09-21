@@ -15,6 +15,7 @@ def normalized(data):
     value=dict(data)
     from .agents.registry import require
     if 'agent_id' in value:require(value['agent_id'])
+    if 'context_version' in value and (type(value['context_version']) is not int or value['context_version']<1):error('invalid_context_version','上下文版本必须为正整数',422)
     key=value.get('client_request_id') or str(uuid.uuid4())
     try:uuid.UUID(key)
     except (ValueError,TypeError,AttributeError):error('invalid_request_id','client_request_id 必须为UUID',422,{'client_request_id':'UUID required'})
@@ -93,6 +94,8 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         if task is not None:
             from .task_spec import bind
             bind(snapshot,payload,task)
+        from .task_context import admit
+        if task:admit(store,db,user['uid'],sid,task)
         agents.freeze(snapshot,payload,profile)
         # Admission freezes encrypted inputs; SQL never holds a network operation.
         db.execute("INSERT INTO business_runs(id,uid,session_id,request_key,request_hash,message_id,parent_id,status,phase,model_id,revision,auth_version,request_ciphertext,created,updated) VALUES(?,?,?,?,?,?,?,'queued','pending_dispatch',?,?,?,?,?,?)",(identity,user['uid'],sid,data['client_request_id'],fingerprint(store,data),message,parent,payload['model']['modelID'],revision,user['version'],store.encrypt(snapshot),timestamp,timestamp))
@@ -106,6 +109,9 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
             db.execute("INSERT INTO run_deliveries(run_id,state) VALUES(?,'pending')",(identity,))
         profile=db.execute('SELECT department_id FROM user_profiles WHERE uid=?',(user['uid'],)).fetchone()
         db.execute('INSERT INTO invocations(id,run_id,uid,department_id,model_id,selected_skills,selected_plugins,query_summary,created) VALUES(?,?,?,?,?,?,?,?,?)',(ident(),identity,user['uid'],profile['department_id'] if profile else None,payload['model']['modelID'],encode(data['skill_ids']),encode(data['plugin_ids']),'技能对话' if data['skill_ids'] else '普通对话',timestamp))
+        if task and task['local']:
+            from .task_context import completed
+            completed(store,db,identity)
         if trial:
             count=db.execute('UPDATE draft_trials SET run_id=?,session_id=? WHERE id=? AND uid=? AND run_id IS NULL',(identity,sid,trial,user['uid'])).rowcount
             if count!=1:error('trial_conflict','试运行已受理或正在核对',409)
@@ -134,6 +140,9 @@ def set_state(store,rid,status,phase,code=None):
         if (row['status'],row['phase'],row['error_code'])==(status,phase,code):return
         if status=='cancelling':db.execute('UPDATE business_runs SET cancel_requested=1 WHERE id=?',(rid,))
         db.execute("UPDATE business_runs SET status=?,phase=?,error_code=?,updated=?,started=CASE WHEN ? IN ('running','cancelling') THEN coalesce(started,?) ELSE started END,completed=CASE WHEN ? IN ('completed','failed','cancelled') THEN ? ELSE completed END WHERE id=?",(status,phase,code,now(),status,now(),status,now(),rid))
+        if status=='completed':
+            from .task_context import completed
+            completed(store,db,rid)
 
 
 def event(store,rid,key,kind,name,status,started=None,completed=None,capability=None,count=0):

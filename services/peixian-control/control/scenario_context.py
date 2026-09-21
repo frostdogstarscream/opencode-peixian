@@ -114,6 +114,15 @@ def register(app):
                 with s.tx() as db:
                     current_authority(db,user)
                     if db.execute("SELECT 1 FROM business_runs WHERE uid=? AND session_id=? AND status IN ('queued','running','cancelling','reconciling')",(user['uid'],sid)).fetchone():error('session_busy','请等待当前执行结束后清除场景。',409)
+                    from . import task_context
+                    if task_context.enabled(s,user['uid']):
+                        from .agents.runtime import select
+                        row=db.execute('SELECT agent_id FROM session_task_contexts WHERE uid=? AND session_id=?',(user['uid'],sid)).fetchone()
+                        prior=db.execute('SELECT request_ciphertext FROM business_runs WHERE uid=? AND session_id=? ORDER BY rowid LIMIT 1',(user['uid'],sid)).fetchone()
+                        from .agents.runtime import frozen_identity
+                        identity=row['agent_id'] if row else frozen_identity(s.decrypt(prior[0])) if prior else 'gambling-assistant'
+                        task_context.reset(s,user['uid'],sid,select(user['uid'],{'agent_id':identity}))
+                        return public(current(s,user['uid'],sid))
                     high=db.execute('SELECT coalesce(max(rowid),0) FROM business_runs WHERE uid=? AND session_id=?',(user['uid'],sid)).fetchone()[0]
                     s.audit(user['uid'],RESET+str(high),sid,actor_role='user')
                     return public(current(s,user['uid'],sid))

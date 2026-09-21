@@ -1,0 +1,74 @@
+name: Peixian PR-6 Session Context checks
+
+on:
+  push:
+    branches: ["codex/stage2-session-context-v1"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: peixian-pr6-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PX_BACKEND_V6: "0"
+      PEIXIAN_TEST_JS_COMMAND: '["bun"]'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - name: Install test dependencies
+        run: python -m pip install -r services/peixian-control/requirements.txt pytest-subtests
+      - name: Locate Bun
+        run: echo "BUN_EXECUTABLE=$(command -v bun)" >> "$GITHUB_ENV"
+      - name: Control, Gateway, fixed HTTP contracts and migration
+        working-directory: services/peixian-control
+        run: python -m pytest tests gateway/tests -q
+      - name: Runtime templates and release consistency
+        working-directory: deploy/peixian
+        run: python -m pytest tests/test_seven_runtime.py tests/test_console_runtime.py tests/test_stage1_release.py tests/test_stage2_pr6_release.py tests/test_runtime_pool_delivery.py -q
+      - name: Plugin module behavior
+        working-directory: deploy/peixian/examples/seven_data_plugins
+        run: bun test plugin.test.mjs
+      - name: Verify historical release evidence and artifact hashes
+        working-directory: deploy/peixian
+        run: python stage1-release-check.py
+      - name: Verify PR-5 at its immutable closeout commit
+        run: |
+          git worktree add --detach /tmp/pr5-closeout d78451a26feff089f0ce1b7fea40f0ab482dd1d0
+          cd /tmp/pr5-closeout/deploy/peixian
+          python stage2-pr5-release-check.py
+          python -m pytest tests/test_stage2_pr5_release.py -q
+      - name: Verify PR-5.5 at its immutable closeout commit
+        run: |
+          git worktree add --detach /tmp/pr55-closeout 8d33ec3d5ae61143164803ce3406e9b72a1819ba
+          cd /tmp/pr55-closeout/deploy/peixian
+          python stage2-pr55-release-check.py
+          python -m pytest tests/test_stage2_pr55_release.py -q
+      - name: Verify PR-5.6 immutable closeout
+        run: |
+          git worktree add --detach /tmp/pr56-closeout 679e4e6f7cbe60642c529e0ed840b172e7bd8370
+          cd /tmp/pr56-closeout/deploy/peixian
+          python stage2-pr56-release-check.py
+          python -m pytest tests/test_stage2_pr56_release.py -q
+      - name: Verify PR-6 evidence
+        working-directory: deploy/peixian
+        run: |
+          if python -c "import json,sys; sys.exit(0 if json.load(open('../../specs/stage2-pr6-release.json'))['closeout_status']=='pending' else 1)"; then
+            python stage2-pr6-release-check.py --candidate
+          else
+            python stage2-pr6-release-check.py
+          fi

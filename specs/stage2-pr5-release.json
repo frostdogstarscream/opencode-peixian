@@ -1,0 +1,44 @@
+{
+  "kind": "source-test-candidate",
+  "stage": "PR-5",
+  "source_revision": "458e56ad9b716c74ba37506542cec2a84b761c78",
+  "baseline": "ecefc20a01949b0ebd7f5c966608cf6762d310c9",
+  "branch": "codex/stage2-task-spec-v1",
+  "schema_version": 6,
+  "router_version": "peixian-router-v1",
+  "task_spec_version": "task-spec-v1",
+  "target_contract_version": "method-target-v1",
+  "deployment_performed": false,
+  "github_ci_executed": false,
+  "model_requests": 0,
+  "pr6_started": false,
+  "test_image_id": "sha256:fe27c561ce1dafcfd3ee846c68e98cab9707d24eab63219101f33ccc1717c08d",
+  "tests": {
+    "control": {
+      "passed": 555,
+      "skipped": 0
+    },
+    "gateway": {
+      "passed": 95,
+      "skipped": 0
+    },
+    "deployment": {
+      "passed": 36,
+      "subtests_passed": 10
+    },
+    "plugins": {
+      "passed": 14
+    },
+    "router_corpus": {
+      "passed": 16
+    }
+  },
+  "evidence_sha256": {
+    "control-final.txt": "fb73d5a760a71dedc5420a170fde86e07e09cfc8b97bfdc856d39b0636b77900",
+    "gateway-final.txt": "b926d0fea8ff80a3325afb9788f623087d3433e304337a5656ce12d44c233b9a",
+    "deploy-final.txt": "34f7d8b2e045ae4976a5fe66372e879db001e8c11b4fde0cc81c73e52c6375d9",
+    "plugins-final.txt": "79726aa076435f0489c1c243387d8c7a85af6158bc5e8cea13e010bc9b5e04c3",
+    "router-corpus.txt": "2d73364b1484923e1f52a278c36cf2c20c8070861b1da10d7523d2e5164fdbbe",
+    "stage1-manifest.txt": "c6ac5c6852bffa20ba00b4b0b51a258f68c313dd2b76e7947af587ca6594d4ad"
+  }
+}

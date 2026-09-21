@@ -1,10 +1,15 @@
 {
   "stage": "pr71",
-  "closeout_status": "pending",
+  "closeout_status": "completed",
   "baseline": "cb080805cb26d5ebbaa95a7283605737e634fee4",
-  "implementation_revision": null,
+  "implementation_revision": "2d94392c01dda951fd5cd993095eeb53a4e32d9a",
   "github_ci": {
-    "executed": false
+    "executed": true,
+    "workflow": "Peixian PR-7.1 Integration Review checks",
+    "head_sha": "2d94392c01dda951fd5cd993095eeb53a4e32d9a",
+    "run_id": 35606895495,
+    "conclusion": "success",
+    "url": "https://github.com/frostdogstarscream/opencode-peixian/actions/runs/35606895495"
   },
   "schema_version": 8,
   "deployment_performed": false,
@@ -13,9 +18,9 @@
   "tests": {
     "control_gateway": {
       "exit_code": 0,
-      "passed": 901,
+      "passed": 903,
       "warnings": 2,
-      "scope": "本地全量；末尾话单错误码补丁另经88项定向回归，最终完整提交由CI重新全量执行"
+      "evidence": "GitHub implementation CI actual log, exact implementation SHA"
     },
     "final_targeted": {
       "exit_code": 0,
@@ -23,8 +28,9 @@
     },
     "deployment": {
       "exit_code": 0,
-      "passed": 53,
-      "subtests_passed": 10
+      "passed": 59,
+      "subtests_passed": 10,
+      "evidence": "GitHub CI includes runtime pool tests on Python 3.12"
     },
     "bun": {
       "exit_code": 0,
@@ -37,6 +43,20 @@
       "pr56": 17,
       "pr6": 19,
       "pr7": 19
+    },
+    "local_prior_full": {
+      "exit_code": 0,
+      "passed": 901,
+      "warnings": 2,
+      "scope": "本地全量；末尾话单错误码补丁另经88项定向回归，最终完整提交由CI重新全量执行"
+    },
+    "local_deployment": {
+      "exit_code": 0,
+      "passed": 53,
+      "subtests_passed": 10
     }
-  }
+  },
+  "openapi_matches_pr7": true,
+  "production_deployment": "not_executed",
+  "pr8_started": false
 }

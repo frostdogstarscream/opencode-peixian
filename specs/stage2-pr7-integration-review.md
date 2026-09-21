@@ -30,3 +30,29 @@
 ## 验收和可追溯材料
 
 全量结果、实现提交和实际 GitHub CI 回执见 `stage2-pr7-integration-release.json`；逐条发现及测试名称见 `stage2-pr7-integration-findings.json`。SHA256SUMS 覆盖本阶段文档及清单。候选阶段不声明 CI 或全量测试已通过；完成后严格检查器拒绝未关闭发现、源码漂移与无效回执。
+
+
+## 正式关账结果
+
+- 实现提交：`2d94392c01dda951fd5cd993095eeb53a4e32d9a`。
+- 实际 GitHub CI：[35606895495](https://github.com/frostdogstarscream/opencode-peixian/actions/runs/35606895495)，success。
+- 确切实现提交的 Control/Gateway 全量 **903 passed**；两项既有 Starlette/httpx 弃用警告。
+- CI 部署/发布/容量池检查 **59 passed，10 subtests passed**；Bun 七插件行为 **14 passed**。
+- 固定历史提交：PR-5 63、PR-5.5 62、PR-5.6 17、PR-6 19、PR-7 19 项均通过，历史关账检查通过。
+- 本地先执行的全量901项及最后路由补丁的88项定向结果保留；最终通过声明以903项的确切提交CI为依据。
+- 当前导出 OpenAPI 与 PR-7 JSON 完全相同，无前端接口重接要求。
+- 六项发现全部关闭，无未关闭 P0/P1；源代码和证据提交分离，严格检查器禁止关账后核心源码漂移。
+
+### 统一场景对应测试
+
+|场景|验证入口与边界|
+|---|---|
+|涉赌连续历史解释|`test_abc_history_source_is_a_and_no_tool_dispatch`；来源保持原数据Run，不使用模型说明替代事实。|
+|盗窃车辆澄清后查询|`test_vehicle_confirm_then_query_exact_selected_vehicle`、`test_selected_vehicle_real_gateway_plugin_and_http`；实际Gateway、Bun和合成HTTP链路，仅选定车辆进入证据。|
+|建设中话单|`test_unadapted_calls_is_explicitly_unavailable`；返回capability_not_ready，零插件，无新增Method。|
+|Agent与账号隔离|`test_source_fail_closed`、`test_cross_account_and_session_tickets_hidden`；Profile/代次/来源/账号不一致即拒绝。|
+|Context重置|`test_projection_only_current_trusted_fields_and_reset`、`test_terminal_or_replaced_ticket_not_resolvable`；旧票据过期，旧来源不再自动继承。|
+|能力状态变化|`test_resumed_query_rechecks_capability`、`test_revoked_resolved_vehicle_not_queried`、`test_disabled_registry_preserves_history_but_blocks_new`。|
+|升级与恢复|`test_existing_run_context_upgrade_restore`；保留真实加密Run和Context，合成库恢复到空目标，非生产全量恢复。|
+
+以上包含受控HTTP与真实插件代码执行；没有生产Agent容器发布、真实模型问答、UI接入或并发验收，不能替代对应上线门槛。PR-8未开始。

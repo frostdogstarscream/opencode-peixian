@@ -113,7 +113,8 @@
     "old_runs": 69,
     "unchanged": 69,
     "changed": 0,
-    "new_runs": 7
+    "new_runs": 8,
+    "current_total_runs": 77
   },
   "frontend_static_files": 222,
   "frontend_static_unchanged": true,
@@ -188,5 +189,72 @@
       "passed": 8,
       "subtests": 2
     }
-  }
+  },
+  "model_requests": [
+    {
+      "index": 1,
+      "client_request_id": "3748b7d9-2b85-4db5-b959-d214649082ed",
+      "run_id": "24a3146f79ca42a3889f946495c85b3f",
+      "started": "2026-09-20T15:04:42.433071+00:00",
+      "status": "completed",
+      "http_status": 202
+    },
+    {
+      "index": 2,
+      "client_request_id": "c3589fe6-8a5d-437f-9a00-cae39a733154",
+      "run_id": "35b14589706542bdabe1ea80389422fe",
+      "started": "2026-09-20T15:10:48.755971+00:00",
+      "status": "completed",
+      "http_status": 202
+    },
+    {
+      "index": 3,
+      "client_request_id": "ef387035-59d7-450a-843c-7371f86ef39e",
+      "run_id": "20985f6905344b6fafb739cf8cf64fed",
+      "started": "2026-09-20T15:11:34.920958+00:00",
+      "status": "completed",
+      "http_status": 202
+    },
+    {
+      "index": 4,
+      "client_request_id": "db1b81e4-94a6-4145-8fe1-210e444ef8b1",
+      "run_id": "d3e0c2696d3f4fc9a3dc0350f6585369",
+      "started": "2026-09-20T15:12:01.187019+00:00",
+      "status": "completed",
+      "http_status": 202
+    },
+    {
+      "index": 5,
+      "client_request_id": "5b2fe529-f037-4be7-8211-f5ac5f8207e5",
+      "run_id": "6f3ec939ccac4d089f70a9631c0d7ac1",
+      "started": "2026-09-20T15:19:47.850312+00:00",
+      "status": "completed",
+      "http_status": 202
+    },
+    {
+      "index": 6,
+      "client_request_id": "499c870f-fb57-4f59-abaa-148e24ad4055",
+      "run_id": "41bbf674383345b78cb75c0fa06d2f2f",
+      "started": "2026-09-20T15:21:19.579623+00:00",
+      "status": "completed",
+      "http_status": 202
+    },
+    {
+      "index": 7,
+      "client_request_id": "3d25d12b-70d4-4ef8-9e9b-3d2ce046b1eb",
+      "run_id": "3b27fe34f9984abb8ad8230e5a4546b1",
+      "started": "2026-09-20T15:24:42.342488+00:00",
+      "status": "completed",
+      "http_status": 202
+    },
+    {
+      "index": 8,
+      "client_request_id": "f178295c-726b-4594-bf12-f6a127e0be17",
+      "run_id": "e0249861d5c042ee9fa0a333df7f30a9",
+      "started": "2026-09-20T15:30:36.852138+00:00",
+      "status": "completed",
+      "http_status": 202
+    }
+  ],
+  "evidence_scope": "Historical rollout observations from 2026-09-20; not a current live readiness claim."
 }

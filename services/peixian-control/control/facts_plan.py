@@ -13,22 +13,22 @@ def build(applied, context, data):
     if any(p["id"] == "peixian-synthetic-records" for p in plugins): reject("facts_ambiguous_plugin_chain")
     scene = copy.deepcopy(DATA151["scenarios"].get(context["scenario_id"]))
     if scene is None: reject("facts_unknown_scenario")
-    # Extra relation module is admitted only in this new versioned plan;
-    # the historical scenario fixture is not overwritten.
-    permitted = set(scene["required_modules"])
-    if scene["scenario_id"] == "DEMO-CASE-GAMBLING":
-        # All seven fixed synthetic modules share this frozen subject/window.
-        # Availability does not cause dispatch: prepare still takes selected methods.
-        permitted.update(MODULES)
+    scenario_methods = {
+        "DEMO-CASE-GAMBLING": {"night", "companions", "funds", "relations"},
+        "DEMO-CASE-THEFT": {"night", "companions", "vehicles"},
+    }[scene["scenario_id"]]
+    permitted = {module for method in scenario_methods for module in METHODS[method]}
     from .facts_skill_registry import METHODS_BY_HASH
     selected = [s for s in applied.get("skills", []) if s["id"] in context["effective_skill_ids"]]
     from .official_methods import identify
     if any(identify(s['content']) and identify(s['content'])['state']!='published' for s in selected):reject('facts_method_not_published')
-    methods = list(dict.fromkeys(METHODS_BY_HASH[hashlib.sha256(s["content"].encode()).hexdigest()]
-                               for s in selected if hashlib.sha256(s["content"].encode()).hexdigest() in METHODS_BY_HASH))
-    if not methods:
-        available={p["id"].removeprefix("peixian-records-") for p in new}
-        methods = [m for m, values in METHODS.items() if set(values) <= permitted & available]
+    identities = [hashlib.sha256(s["content"].encode()).hexdigest() for s in selected]
+    if (not identities or len(selected) != len(set(context["effective_skill_ids"]))
+            or any(digest not in METHODS_BY_HASH for digest in identities)):
+        reject("facts_method_identity_unavailable")
+    methods = list(dict.fromkeys(method for digest in identities for method in METHODS_BY_HASH[digest]))
+    if not set(methods) <= scenario_methods:
+        reject("facts_method_outside_scenario")
     modules = list(dict.fromkeys(m for method in methods for m in METHODS[method]))
     if not modules or not set(modules) <= permitted: reject("facts_method_outside_scenario")
     for module in modules:

@@ -121,3 +121,43 @@ def test_tool_drift_is_audited_and_cannot_become_evidence(facts):
     assert updated['status']=='failed' and updated['result_ciphertext'] is None
     assert s.decrypt(updated['evidence_ciphertext'])['cards']==[]
     assert s.one("SELECT status FROM run_events WHERE run_id=? AND event_key='plan-denied.tool_bad'",(rid,))['status']=='rejected'
+
+def test_gateway_reboot_reclaims_without_retry_or_stale_completion(facts):
+    s,uid,rid,state=facts
+    with s.tx() as db:db.execute("UPDATE runtimes SET gateway_boot_id='gateway-a' WHERE uid=?",(uid,))
+    op=state.begin(uid,rid,1,'gateway-a')
+    assert state.reserve(uid,rid,1,op,'night')
+    state.check(uid,rid,1,op)
+    assert state.read(uid,rid,1)['state']['operation']['last_heartbeat']
+    with pytest.raises(HTTPException):state.begin(uid,rid,1,'gateway-a')
+    # The established runtime registration path, not a caller-chosen boot, changes identity.
+    with pytest.raises(HTTPException):state.begin(uid,rid,1,'forged-boot')
+    with s.tx() as db:db.execute("UPDATE runtimes SET gateway_boot_id='gateway-b' WHERE uid=?",(uid,))
+    for late in (lambda:state.check(uid,rid,1,op),lambda:state.finish(uid,rid,1,op),
+                 lambda:state.complete(uid,rid,1,op,'night','completed',response())):
+        with pytest.raises(HTTPException):late()
+    new=state.begin(uid,rid,1,'gateway-b')
+    assert state.read(uid,rid,1)['state']['modules']['night']['status']=='unknown'
+    assert not state.reserve(uid,rid,1,new,'night')
+    table={'data_status':'partial','facts':[],'missing':['night outcome unknown']}
+    state.save_table(uid,rid,1,new,table)
+    state.finish(uid,rid,1,new)
+    assert state.read(uid,rid,1)['state']['table']==table
+
+def test_expired_heartbeat_alone_never_releases_active_owner(facts):
+    s,uid,rid,state=facts;state.begin(uid,rid,1)
+    with s.tx() as db:
+        row=db.execute('SELECT request_ciphertext FROM business_runs WHERE id=?',(rid,)).fetchone()
+        snapshot=s.decrypt(row[0]);snapshot['facts_state']['operation']['last_heartbeat']=0
+        db.execute('UPDATE business_runs SET request_ciphertext=? WHERE id=?',(s.encrypt(snapshot),rid))
+    with pytest.raises(HTTPException):state.begin(uid,rid,1)
+
+def test_registered_gateway_change_recovers_without_control_restart(facts):
+    s,uid,rid,state=facts
+    with s.tx() as db:db.execute("UPDATE runtimes SET gateway_boot_id='a' WHERE uid=?",(uid,))
+    op=state.begin(uid,rid,1)
+    assert state.reserve(uid,rid,1,op,'night')
+    with s.tx() as db:db.execute("UPDATE runtimes SET gateway_boot_id='b' WHERE uid=?",(uid,))
+    recovered=state.begin(uid,rid,1)
+    assert state.read(uid,rid,1)['state']['modules']['night']['status']=='unknown'
+    assert not state.reserve(uid,rid,1,recovered,'night')

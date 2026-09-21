@@ -18,18 +18,19 @@ def register(app):
         with initialization:
             if state is None: state = FactsState(store)
         if not isinstance(data,dict) or len(json.dumps(data).encode()) > 2*1024*1024: raise HTTPException(422,"事实协议无效")
-        if any(not isinstance(data.get(k),str) or not 1<=len(data[k])<=160 for k in ('runtime_id','action')) or type(data.get('revision')) is not int: raise HTTPException(422,'事实协议无效')
+        if any(not isinstance(data.get(k),str) or not 1<=len(data[k])<=160 for k in ('runtime_id','action','gateway_boot_id')) or type(data.get('revision')) is not int: raise HTTPException(422,'事实协议无效')
         for k in ('run_id','operation','session_id','message_id','module'):
             if k in data and (not isinstance(data[k],str) or not 1<=len(data[k])<=160):raise HTTPException(422,'事实协议无效')
         runtime = store.one("SELECT * FROM runtimes WHERE id=?",(data.get('runtime_id'),))
         if not runtime or len(credential)<32 or not hmac.compare_digest(credential,store.decrypt(runtime['spec']).get('runtime_key','')): raise HTTPException(403,"运行环境身份无效")
         if runtime['revision'] != data.get('revision'): reject('facts_revision_changed')
+        if runtime['gateway_boot_id'] != data['gateway_boot_id']: reject('facts_gateway_changed')
         uid = runtime['uid']; action = data.get('action')
         if action == 'begin':
-            if set(data) != {'action','runtime_id','revision','session_id','message_id'}: raise HTTPException(422,'事实协议无效')
+            if set(data) != {'action','runtime_id','revision','gateway_boot_id','session_id','message_id'}: raise HTTPException(422,'事实协议无效')
             row=store.one("SELECT * FROM business_runs WHERE uid=? AND session_id=? AND message_id=?",(uid,data['session_id'],data['message_id']))
             if not row: raise HTTPException(404,'执行记录不存在')
-            operation=state.begin(uid,row['id'],data['revision'])
+            operation=state.begin(uid,row['id'],data['revision'],data['gateway_boot_id'])
             return {'uid':uid,'run_id':row['id'],'revision':data['revision'],'operation':operation,**state.read(uid,row['id'],data['revision'])}
         if not {'action','runtime_id','revision','run_id','operation'} <= set(data):raise HTTPException(422,'事实协议无效')
         args=(uid,data['run_id'],data['revision'],data['operation'])

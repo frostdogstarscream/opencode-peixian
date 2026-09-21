@@ -25,8 +25,9 @@ from gateway.settings import Settings
 from gateway.admission import AdmissionGate
 
 
+@pytest.mark.parametrize('gateway_restart',[False,True])
 @pytest.mark.parametrize('method,modules',[('night',['night']),('relations',['lookup','composite'])])
-def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,chain,v6,tmp_path,method,modules):
+def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,chain,v6,tmp_path,method,modules,gateway_restart):
     store,uid,rid,_=facts;_,_,control=v6
     _,calls,_,url=chain
     row=store.one('SELECT * FROM business_runs WHERE id=?',(rid,))
@@ -70,9 +71,39 @@ def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,cha
     with TestClient(app) as client:
         gate=AdmissionGate(runtime['id'],1,clock=lambda:0);gate.mode='open';gate.deadline=4;gate.scopes={'intake':True,'egress':True}
         app.state.admission=gate;app.state.runtime_management=SimpleNamespace(gate=gate)
+        if gateway_restart:
+            with store.tx() as db:db.execute("UPDATE runtimes SET gateway_boot_id='old-gateway' WHERE uid=?",(uid,))
+            headers={'X-Runtime-Key':runtime_key}
+            old_identity={'runtime_id':runtime['id'],'revision':1,'gateway_boot_id':'old-gateway'}
+            begun=control.post('/internal/runtime/facts',json={**old_identity,'action':'begin','session_id':'ses_facts','message_id':row['message_id']},headers=headers)
+            assert begun.status_code==200,begun.text
+            owner={**old_identity,'run_id':rid,'operation':begun.json()['operation']}
+            assert control.post('/internal/runtime/facts',json={**owner,'action':'reserve','module':modules[0]},headers=headers).json()['reserved']
+            # Missing/forged boot IDs never reclaim an existing operation.
+            for boot in ('forged-gateway',''):
+                denied=control.post('/internal/runtime/facts',json={**old_identity,'gateway_boot_id':boot,'action':'begin','session_id':'ses_facts','message_id':row['message_id']},headers=headers)
+                assert denied.status_code in (409,422)
+        with store.tx() as db:db.execute('UPDATE runtimes SET gateway_boot_id=? WHERE uid=?',(gate.boot_id,uid))
         body={'session_id':'ses_facts','message_id':'msg_assistant','tool':'peixian_prepare_scenario_facts','args':{'scenario_id':'DEMO-CASE-GAMBLING','methods':[method]}}
         assert client.post('/internal/facts/execute',json=body).status_code==401
         assert client.get('/health',headers={'X-Facts-Key':token}).status_code==401
+        if gateway_restart:
+            stale=control.post('/internal/runtime/facts',json={**owner,'action':'finish'},headers=headers)
+            assert stale.status_code==409
+            recovered=client.post('/internal/facts/execute',json=body,headers={'X-Facts-Key':token})
+            assert recovered.status_code==200,recovered.text
+            assert recovered.json()['data_status']=='partial'
+            assert calls==modules[1:]  # the reserved query is never sent again
+            current=store.one('SELECT * FROM business_runs WHERE id=?',(rid,))
+            snapshot=store.decrypt(current['request_ciphertext'])
+            assert snapshot['facts_state']['modules'][modules[0]]['status']=='unknown'
+            assert snapshot['facts_state']['operation'] is None
+            assert snapshot['facts_state']['table']==recovered.json()
+            projected=evidence(snapshot,current)
+            assert projected['status']!='complete'
+            again=client.post('/internal/facts/execute',json=body,headers={'X-Facts-Key':token})
+            assert again.status_code==200 and calls==modules[1:]
+            return
         direct=client.post('/internal/facts/execute',json={**body,'tool':tool(modules[0]),'args':{}},headers={'X-Facts-Key':token})
         assert direct.status_code==200,direct.text
         assert direct.json()['facts_table']['facts'] and calls==[modules[0]]

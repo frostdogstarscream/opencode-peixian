@@ -45,26 +45,36 @@ class FactsState:
             _, snapshot, state = self._load(db, uid, rid, revision)
             return copy.deepcopy({"plan": snapshot["facts_plan"], "state": state})
 
-    def begin(self, uid, rid, revision):
+    def begin(self, uid, rid, revision, gateway_boot_id=None):
         with self.store.tx() as db:
             row, snapshot, state = self._load(db, uid, rid, revision)
             self.authorize(db, row, snapshot)
             operation = state.get("operation")
-            if operation and operation["boot_id"] == self.boot_id: reject("facts_operation_busy")
-            # Only a different Control boot can reclaim a vanished process owner.
-            # Pending requests become unknown, never another network attempt.
+            current_boot = db.execute("SELECT gateway_boot_id FROM runtimes WHERE uid=?", (uid,)).fetchone()[0]
+            if gateway_boot_id is not None and gateway_boot_id != current_boot:
+                reject("facts_gateway_changed")
+            if (operation and operation.get("control_boot_id", operation.get("boot_id")) == self.boot_id
+                    and operation.get("gateway_boot_id") == current_boot):
+                reject("facts_operation_busy")
+            # Only registered component identity changes reclaim an owner. A stale
+            # heartbeat alone does not prove an external query has stopped.
             for module, value in state["modules"].items():
                 if value["status"] == "pending":
                     value["status"] = "unknown"
                     self._event(rid, module, "unknown")
             token = secrets.token_hex(16)
-            state["operation"] = {"id": token, "boot_id": self.boot_id}
+            state["operation"] = {"id": token, "control_boot_id": self.boot_id,
+                                  "gateway_boot_id": current_boot, "last_heartbeat": now()}
             self._save(db, rid, snapshot)
             return token
 
     def _owned(self, db, uid, rid, revision, operation):
         row, snapshot, state = self._load(db, uid, rid, revision)
-        if state.get("operation") != {"id": operation, "boot_id": self.boot_id}: reject("facts_operation_changed")
+        owner = state.get("operation") or {}
+        current_boot = db.execute("SELECT gateway_boot_id FROM runtimes WHERE uid=?", (uid,)).fetchone()[0]
+        if (owner.get("id") != operation or owner.get("control_boot_id", owner.get("boot_id")) != self.boot_id
+                or owner.get("gateway_boot_id") != current_boot):
+            reject("facts_operation_changed")
         return row, snapshot, state
 
     def finish(self, uid, rid, revision, operation):
@@ -99,9 +109,11 @@ class FactsState:
             reject("facts_plugin_unavailable")
 
     def check(self, uid, rid, revision, operation, module=None):
-        with self.store.read(snapshot=True) as db:
-            row, snapshot, _ = self._owned(db, uid, rid, revision, operation)
+        with self.store.tx() as db:
+            row, snapshot, state = self._owned(db, uid, rid, revision, operation)
             self.authorize(db, row, snapshot, module)
+            state["operation"]["last_heartbeat"] = now()
+            self._save(db, rid, snapshot)
 
     def reserve(self, uid, rid, revision, operation, module):
         with self.store.tx() as db:

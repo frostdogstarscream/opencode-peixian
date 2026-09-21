@@ -1,5 +1,5 @@
 4386fd10e029e3696b2d11a11da6601a3c3d6f92848f47dffcdad141da7ea92e  seven-plugins-pr1-4-acceptance.md
 804480727780481baf6322ffc5e7ad86a13137c1548328cb69328ee08db967fe  seven-plugins-pr1-4-operations.md
 eed85b3a51b67e42546408f76284571a8440f1673563b828a28d948a2fa9c9ea  seven-plugins-pr1-4-user-guide.md
-78386543698d5a04228f47adf784602eed6b43340f3d43851bfab472a0ba8b81  seven-plugins-pr1-4-release.json
+fa79718bb5648d08406fb0bd11261d4f440f602e741f0682ff480e660716576c  seven-plugins-pr1-4-release.json
 c2cb034e1ed5ea0a59b3206c72a33da1a9e00b9f1f0c30772bbf6789e3abbf35  seven-plugins-pr1-4-openapi.json

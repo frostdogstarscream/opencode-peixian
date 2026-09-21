@@ -67,7 +67,7 @@ def register(app):
         if info.get('role')!='assistant' or info.get('sessionID')!=value['session_id'] or not isinstance(info.get('parentID'),str):raise HTTPException(409,'执行身份无法核对')
         async def rpc(action,**fields):
             response=await app.state.client.post(config.control_url+'/internal/runtime/facts',headers={'X-Runtime-Key':config.runtime_key},
-                json={'action':action,'runtime_id':config.runtime_id,'revision':config.revision,**fields},timeout=5)
+                json={'action':action,'runtime_id':config.runtime_id,'revision':config.revision,'gateway_boot_id':gate.boot_id,**fields},timeout=5)
             if response.status_code>=400:raise HTTPException(409,'当前资料能力不可用或执行已停止')
             return response.json()
         admitted=await rpc('begin',session_id=value['session_id'],message_id=info['parentID'])

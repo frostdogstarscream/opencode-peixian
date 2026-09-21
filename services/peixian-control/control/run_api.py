@@ -18,12 +18,23 @@ def evidence(store,row):
     return {'run_id':row['id'],'status':'pending','cards':[],'summary':[]}
 
 
-def attach_results(store,uid,values):
+def attach_results(store,uid,values,sid=None):
     if store.schema_version()<6:return values
     for message in values:
         mid=message['info'].get('id')
         row=store.one('SELECT id,result_ciphertext FROM business_runs WHERE uid=? AND assistant_id=? AND result_ciphertext IS NOT NULL',(uid,mid))
         if row:message['parts'].append({'id':'part_run_'+row['id'],'type':'analysis_result','data':store.decrypt(row['result_ciphertext'])})
+    if sid:
+        known={m['info'].get('id') for m in values}
+        for row in store.rows("SELECT * FROM business_runs WHERE uid=? AND session_id=? AND phase IN ('clarification','history_unavailable') ORDER BY created,id",(uid,sid)):
+            snap=store.decrypt(row['request_ciphertext'])
+            if not snap.get('task_response'):continue
+            for mid,role,text in ((row['message_id'],'user',snap['request']['text']),(row['assistant_id'],'assistant',snap['task_response']['message'])):
+                if mid in known:continue
+                values.append({'info':{'id':mid,'sessionID':sid,'role':role,'parentID':row['message_id'] if role=='assistant' else None,'time':{'created':row['created']*1000,'completed':row['completed']*1000}},
+                    'parts':[{'id':'part_'+mid,'type':'text','text':text}]})
+                known.add(mid)
+        values.sort(key=lambda m:m['info'].get('time',{}).get('created',0))
     return values
 
 
@@ -53,6 +64,13 @@ def register(app):
     @blocking_endpoint(app)
     def run_get(sid:str,rid:str,request:Request,user=Depends(normal)):
         return runs.public(runs.owned(app.state.store,user['uid'],sid,rid))
+
+    @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/task')
+    @blocking_endpoint(app)
+    def run_task(sid:str,rid:str,request:Request,user=Depends(normal)):
+        row=runs.owned(app.state.store,user['uid'],sid,rid)
+        snapshot=app.state.store.decrypt(row['request_ciphertext'])
+        return {'run_id':rid,'task_spec':snapshot.get('task_spec'),'response':snapshot.get('task_response')}
 
     @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/events')
     @blocking_endpoint(app)
@@ -92,6 +110,8 @@ def register(app):
         if row['status'] not in runs.TERMINAL:error('run_not_finished','执行尚未结束，暂不能导出',409)
         data=evidence(s,row);view=data.get('presentation',{});state=runs.public(row)
         lines=['# 执行报告','',f"- 执行编号：{rid}",f"- 状态：{ {'completed':'已完成','failed':'未完成','cancelled':'已取消'}.get(state['status'],'状态待确认')}",f"- 创建时间：{state['created_at']}",'']
+        snapshot=s.decrypt(row['request_ciphertext'])
+        if snapshot.get('task_response'):lines += [snapshot['task_response']['message'],'']
         if data.get('synthetic') is True or data.get('scenario'):lines += ['资料性质：合成测试资料，不代表真实业务事实。','']
         lines += ['## 已核对结论','']+[('- '+x['text']) for x in view.get('conclusions',[])]
         if not view.get('conclusions'):lines+=['暂无可导出的已核对结论。']

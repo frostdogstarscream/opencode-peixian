@@ -666,7 +666,7 @@ def create_app(store=None):
         values = (await upstream(request, user, "GET", f"/session/{sid}/message")).json()
         values = app.state.live_text.overlay(user["uid"], sid, values)
         from .run_api import attach_results
-        return {"items": await app.state.db_work.run(lambda: attach_results(app.state.store,user['uid'],public_messages(values, tool_displays(app.state.store, user["uid"]))))}
+        return {"items": await app.state.db_work.run(lambda: attach_results(app.state.store,user['uid'],public_messages(values, tool_displays(app.state.store, user["uid"])),sid))}
 
     @app.get(PREFIX + "/sessions/{sid}/evidence")
     async def session_evidence(sid: str, request: Request, user=Depends(normal)):
@@ -726,8 +726,14 @@ def create_app(store=None):
             from .backend_contract import error
             error('invalid_text','请输入问题，且单次文字不超过32000个字符',422,{'text':'1至32000个字符且不能全为空白'})
         from .scenario_context import resolve, LANGUAGE, instruction, historical
-        old_scene = await historical(request,user,sid) if modern and not getattr(request.state,'draft_no_tools',False) else None
-        context = await app.state.db_work.run(resolve,s,user['uid'],sid,data,applied,old_scene) if modern and not getattr(request.state,'draft_no_tools',False) else None
+        from . import task_spec
+        task = None
+        if modern and not getattr(request.state,'draft_no_tools',False) and task_spec.enabled(user['uid']):
+            task = await app.state.db_work.run(task_spec.resolve,s,user['uid'],sid,data,applied)
+            context = dict(task['context'])  # Agent metadata must not mutate the approved task.
+        else:
+            old_scene = await historical(request,user,sid) if modern and not getattr(request.state,'draft_no_tools',False) else None
+            context = await app.state.db_work.run(resolve,s,user['uid'],sid,data,applied,old_scene) if modern and not getattr(request.state,'draft_no_tools',False) else None
         skills = context['effective_skill_ids'] if context else data.get("skill_ids", [])
         files = data.get("file_ids", [])
         if not isinstance(skills, list) or not isinstance(files, list) or len(skills) > 5 or len(files) > 5:
@@ -737,7 +743,7 @@ def create_app(store=None):
         from .gambling_agent import enabled as gambling_enabled, skill_material, bind as bind_gambling
         if modern:
             from .capabilities import check_selection
-            await app.state.db_work.run(check_selection,s,user['uid'],data)
+            await app.state.db_work.run(check_selection,s,user['uid'],{**data,'skill_ids':skills} if task else data)
             if data['plugin_ids']:prelude.append('优先使用以下已授权插件；这只是偏好，不扩大权限：'+','.join(data['plugin_ids']))
         input_bytes = len(text.encode("utf-8")) + sum(len(x.encode("utf-8")) for x in prelude)
         for skill_id in skills:
@@ -777,7 +783,7 @@ def create_app(store=None):
             # Gate capability is checked before admitting a durable Run.
             probe=(await upstream(request,user,'GET','/internal/runtime/runs/'+'0'*32)).json()
             if probe.get('protocol')!='durable_run_v1':fail('运行环境需要升级后才能受理执行',409)
-            return await app.state.db_work.run(business_runs.submit,s,user,sid,data,payload,applied,applied_row['revision'],getattr(request.state,"run_parent",None),getattr(request.state,"draft_id",None),getattr(request.state,"trial_id",None),context)
+            return await app.state.db_work.run(business_runs.submit,s,user,sid,data,payload,applied,applied_row['revision'],getattr(request.state,"run_parent",None),getattr(request.state,"draft_id",None),getattr(request.state,"trial_id",None),context,task)
         await upstream(request, user, "POST", f"/session/{sid}/prompt_async", json=payload)
         return {"accepted": True, "run_id": ident()}
 

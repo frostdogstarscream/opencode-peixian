@@ -20,7 +20,8 @@ def evidence(snapshot, row):
         result['missing']=['本轮尚未形成有效事实表；未取得资料不表示没有记录。']
         return result
     completed={m:v for m,v in state['modules'].items() if v['status']=='completed'}
-    data={'scenarios':{table['scenario_id']:copy.deepcopy(plan['scenario'])},'records':{m:plan['records'][m] for m in completed}}
+    from shared.task_scope import scoped
+    data={'scenarios':{table['scenario_id']:copy.deepcopy(plan['scenario'])},'records':{m:scoped(plan,m,plan['records'][m],'records') for m in completed}}
     data['scenarios'][table['scenario_id']]['required_modules']=[s['module'] for s in table['summary']]
     result=render_table(result,table,row.get('assistant_id') or '',state.get('checked'),data)
     provenance={p['record_id']:p for item in completed.values() for p in item['response'].get('provenance',[])}

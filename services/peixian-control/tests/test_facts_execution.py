@@ -26,7 +26,7 @@ from gateway.admission import AdmissionGate
 
 
 @pytest.mark.parametrize('gateway_restart',[False,True])
-@pytest.mark.parametrize('method,modules',[('night',['night']),('relations',['lookup','composite'])])
+@pytest.mark.parametrize('method,modules',[('night',['night']),('relations',['lookup','composite']),('funds',['funds'])])
 def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,chain,v6,tmp_path,method,modules,gateway_restart):
     store,uid,rid,_=facts;_,_,control=v6
     _,calls,_,url=chain
@@ -36,6 +36,9 @@ def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,cha
     applied={'plugins':[{'id':capability(m),'version':'1.0.0','manifest':{'tools':[tool(m)]}} for m in modules],
              'skills':[{'id':'night-skill','content':(PLUGINS/'skills'/method/'SKILL.md').read_text()}]}
     plan=build(applied,{'scenario_id':'DEMO-CASE-GAMBLING','effective_skill_ids':['night-skill']},{})
+    if method=='funds':
+        plan['task_target']={'status':'resolved','contract_version':'method-target-v1','target_refs':['赵衡'],'target_mode':'record_filter','filter_fields':['member_ref']}
+        plan['scenario']['subject_ref']='赵衡';plan['scenario']['facts']=[]
     with store.tx() as db:
         for plugin in applied['plugins']:
             pid=plugin['id']
@@ -107,6 +110,10 @@ def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,cha
         direct=client.post('/internal/facts/execute',json={**body,'tool':tool(modules[0]),'args':{}},headers={'X-Facts-Key':token})
         assert direct.status_code==200,direct.text
         assert direct.json()['facts_table']['facts'] and calls==[modules[0]]
+        if method=='funds':
+            assert direct.json()['items'] and all(r['member_ref']=='赵衡' for r in direct.json()['items'])
+            assert direct.json()['source_returned_count']>direct.json()['returned_count']
+            assert direct.json()['facts_table']['subject_ref']=='赵衡'
         if method=='relations':assert direct.json()['facts_table']['data_status']!='complete'
         persisted=store.decrypt(store.one('SELECT request_ciphertext FROM business_runs WHERE id=?',(rid,))['request_ciphertext'])
         assert persisted['facts_state']['table']['facts']
@@ -121,12 +128,16 @@ def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,cha
         checked=client.post('/internal/facts/execute',json=check,headers={'X-Facts-Key':token})
         assert checked.status_code==200,checked.text
         assert len(checked.json()['approved'])==len(claims) and calls==modules
-        forbidden={**body,'tool':tool('funds'),'args':{}}
+        forbidden={**body,'tool':tool('night' if method=='funds' else 'funds'),'args':{}}
         assert client.post('/internal/facts/execute',json=forbidden,headers={'X-Facts-Key':token}).status_code==409
         assert calls==modules and not gate.activities
     current=store.one('SELECT * FROM business_runs WHERE id=?',(rid,))
     projected=evidence(store.decrypt(current['request_ciphertext']),current)
     assert projected['cards'] and projected['summary_check']=='checked'
+    if method=='funds':
+        allowed={r['record_id'] for r in plan['records']['funds']['records'] if r['member_ref']=='赵衡'}
+        assert all(set(card.get('source_ids',[]))<=allowed for card in projected['cards'])
+        assert all(set(node['source_ids'])<=allowed for page in (projected['presentation'].get('diagram') or {}).get('pages',[]) for node in page['nodes'])
     assert projected['presentation']['evidence']
     assert any(c.get('provenance',{}).get('evidence_id') for c in projected['cards'])
     with store.tx() as db:

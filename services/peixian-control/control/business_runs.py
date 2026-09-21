@@ -43,7 +43,7 @@ def replay(store, uid, sid, data):
         return receipt(row)
 
 
-def submit(store, user, sid, data, payload, applied, revision, parent=None, draft=None, trial=None, context=None):
+def submit(store, user, sid, data, payload, applied, revision, parent=None, draft=None, trial=None, context=None, task=None):
     from .app import current_authority
     require_v6(store)
     identity=ident();message='msg_'+ident();timestamp=now();payload={**payload,'messageID':message}
@@ -57,6 +57,10 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         if row:
             if row['request_hash']!=fingerprint(store,data):error('request_conflict','同一请求标识对应不同内容',409)
             return receipt(row)
+        if task is not None:
+            from . import task_spec
+            fresh = task_spec.resolve(store,user['uid'],sid,data,applied)
+            if fresh != task:error('task_context_changed','任务范围或能力已变化，请刷新后重新确认。',409)
         if context is not None:
             from .scenario_context import boundary
             if boundary(store,user['uid'],sid)[0]!=context['generation']:error('scenario_context_changed','场景已被清除，请刷新后重新确认。',409)
@@ -68,7 +72,8 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         check_selection(store,user['uid'],{**data,'skill_ids':context['effective_skill_ids']} if context is not None else data)
         if not db.execute("SELECT 1 FROM models m JOIN grants g ON g.resource=m.id AND g.kind='model' WHERE g.uid=? AND m.id=? AND m.enabled=1",(user['uid'],payload['model']['modelID'])).fetchone():error('model_unavailable','所选模型授权已变化',403)
         from .facts_plan import build, bind_payload
-        plan = build(applied, context, data)
+        plan = build(applied, context, data, task) if task and task['spec'] and task['spec']['query_mode']=='new_query' else None if task else build(applied, context, data)
+        if task and task['spec'] and task['spec']['query_mode']=='new_query' and not plan:error('task_plan_unavailable','固定方法执行链尚未生效。',409)
         if plan:
             # Verify every planned dependency, not only the user's preferences.
             check_selection(store,user['uid'],{'skill_ids':context['effective_skill_ids'],'plugin_ids':plan['allowed_capabilities']})
@@ -77,9 +82,19 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
             snapshot['execution_plan']={k:plan[k] for k in ('plan_version','methods','modules','steps')}
             snapshot['allowed_capabilities']=plan['allowed_capabilities']
             snapshot['allowed_tools']=plan['allowed_tools']
+        if task is not None:
+            from .task_spec import bind
+            bind(snapshot,payload,task)
         # Admission freezes encrypted inputs; SQL never holds a network operation.
         db.execute("INSERT INTO business_runs(id,uid,session_id,request_key,request_hash,message_id,parent_id,status,phase,model_id,revision,auth_version,request_ciphertext,created,updated) VALUES(?,?,?,?,?,?,?,'queued','pending_dispatch',?,?,?,?,?,?)",(identity,user['uid'],sid,data['client_request_id'],fingerprint(store,data),message,parent,payload['model']['modelID'],revision,user['version'],store.encrypt(snapshot),timestamp,timestamp))
-        db.execute("INSERT INTO run_deliveries(run_id,state) VALUES(?,'pending')",(identity,))
+        if task and task['local']:
+            response=task['local']
+            phase='clarification' if task['spec']['query_mode']=='clarify' else 'history_unavailable'
+            empty={'status':'empty','cards':[],'summary':[],'missing':[response['message']]}
+            db.execute("UPDATE business_runs SET status='completed',phase=?,assistant_id=?,completed=?,evidence_ciphertext=? WHERE id=?",(phase,'msg_task_'+identity,timestamp,store.encrypt(empty),identity))
+            event(store,identity,'task-route','routing','需要补充信息' if phase=='clarification' else '历史解释尚未开放','completed',timestamp,timestamp)
+        else:
+            db.execute("INSERT INTO run_deliveries(run_id,state) VALUES(?,'pending')",(identity,))
         profile=db.execute('SELECT department_id FROM user_profiles WHERE uid=?',(user['uid'],)).fetchone()
         db.execute('INSERT INTO invocations(id,run_id,uid,department_id,model_id,selected_skills,selected_plugins,query_summary,created) VALUES(?,?,?,?,?,?,?,?,?)',(ident(),identity,user['uid'],profile['department_id'] if profile else None,payload['model']['modelID'],encode(data['skill_ids']),encode(data['plugin_ids']),'技能对话' if data['skill_ids'] else '普通对话',timestamp))
         if trial:

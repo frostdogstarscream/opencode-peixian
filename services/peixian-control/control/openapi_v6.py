@@ -19,6 +19,10 @@ def extend_schemas(result):
     dt={'type':'string','format':'date-time'}
     def paginated(item):return obj({'items':array(ref(item)),'total':integer,'page':integer,'page_size':integer},('items','total','page','page_size'))
     result['Run']=obj({'id':ID,'session_id':ID,'status':{'type':'string','enum':['queued','running','cancelling','reconciling','completed','failed','cancelled']},'phase':STRING,'cancel_requested':BOOL,'model_id':ID,'message_id':nullable(ID),'user_message_id':ID,'parent_run_id':nullable(ID),'created_at':dt,'started_at':nullable(dt),'completed_at':nullable(dt),'updated_at':dt,'error':nullable(obj({'code':STRING,'message':STRING}))},('id','session_id','status','phase','created_at'))
+    from .task_spec import SPEC_SCHEMA,CANDIDATE_SCHEMA
+    result['TaskSpec']=SPEC_SCHEMA
+    result['TaskCandidate']=CANDIDATE_SCHEMA
+    result['RunTask']=obj({'run_id':ID,'task_spec':nullable(ref('TaskSpec')),'response':nullable(obj({'code':STRING,'message':STRING},('code','message')))},('run_id','task_spec','response'))
     result['RunAccepted']=obj({'accepted':{'const':True},'run_id':ID,'message_id':ID},('accepted','run_id','message_id'))
     result['RunEvent']=obj({'id':ID,'sequence':integer,'step_type':STRING,'name':STRING,'status':STRING,'started_at':nullable(dt),'completed_at':nullable(dt),'elapsed_ms':nullable(integer),'capability_id':nullable(ID),'input_summary':STRING,'output_summary':STRING,'record_count':integer,'evidence_refs':array(STRING),'error_message':nullable(STRING)},('id','sequence','step_type','name','status'))
     result['RunEvidence']=obj({**result['ScenarioEvidence']['properties'],'run_id':ID,'status':{'enum':['pending','empty','partial','complete','unavailable']}},('run_id','status','cards','summary'))
@@ -68,6 +72,7 @@ def contracts():
     add('get','/capabilities',None,ref('CapabilityPage'),'查询当前可用能力','能力目录')
     add('get','/sessions/{sid}/runs',None,ref('RunPage'),'查询会话执行记录')
     add('get','/sessions/{sid}/runs/{rid}',None,ref('Run'),'查询执行状态')
+    add('get','/sessions/{sid}/runs/{rid}/task',None,ref('RunTask'),'读取本轮冻结任务',desc='仅本人可读；TaskSpec 为服务端生成，不接受客户端写入。PR-5 历史解释未执行；旧 Run 或普通聊天返回 null。')
     add('get','/sessions/{sid}/runs/{rid}/events',None,ref('RunEventPage'),'增量查询持久步骤')
     add('get','/sessions/{sid}/runs/{rid}/evidence',None,ref('RunEvidence'),'查询固定执行证据',desc='按本人账号/会话/Run鉴权读取已保存证据；旧插件卸载不删除历史证据，读取不重新取数。')
     add('post','/sessions/{sid}/runs/{rid}/abort',None,ref('Run'),'请求停止执行')

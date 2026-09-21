@@ -6,7 +6,7 @@ from .scenario_versions import DATA151
 
 HELPERS = ("peixian_get_scenario_context", "peixian_prepare_scenario_facts", "peixian_check_scenario_summary")
 
-def build(applied, context, data):
+def build(applied, context, data, task=None):
     plugins = applied.get("plugins", [])
     new = [p for p in plugins if p["id"] in {capability(m) for m in MODULES}]
     if not new or not context or not context.get("scenario_id"): return None
@@ -27,6 +27,29 @@ def build(applied, context, data):
             or any(digest not in METHODS_BY_HASH for digest in identities)):
         reject("facts_method_identity_unavailable")
     methods = list(dict.fromkeys(method for digest in identities for method in METHODS_BY_HASH[digest]))
+    if task:
+        from .task_spec import SPEC_SCHEMA
+        import jsonschema
+        jsonschema.validate(task['spec'],SPEC_SCHEMA)
+        approved=task['spec']
+        from .task_router import METHODS as INTENT_METHODS
+        expected=INTENT_METHODS.get(approved['intent'])
+        if approved['intent']=='integrated_analysis':expected=['night','companions','funds','relations'] if scene['scenario_id']=='DEMO-CASE-GAMBLING' else ['night','companions','vehicles']
+        if approved['methods']!=expected:reject('task_intent_mismatch')
+        if approved['query_mode']!='new_query' or approved['scenario_id']!=scene['scenario_id'] or approved['official_skill_ids']!=context['effective_skill_ids']:reject('task_plan_mismatch')
+        if not approved['methods'] or not set(approved['methods']) <= set(methods):reject('task_method_expansion')
+        methods=approved['methods'][:]
+        target=task['target']
+        from .task_targets import CONTRACTS, VERSION as TARGET_VERSION
+        if (not target or target.get('status')!='resolved' or target.get('contract_version')!=TARGET_VERSION
+            or target.get('target_refs')!=approved['target_refs'] or target.get('target_mode')!=approved['target_mode']
+            or len(approved['target_refs'])!=1 or any(approved['target_mode'] not in CONTRACTS[m]['supported_target_modes'] for m in methods)):
+            reject('task_target_mismatch')
+        if approved['target_mode']=='scenario_subject' and approved['target_refs']!=[scene['subject_ref']]:reject('task_target_mismatch')
+        if target.get('filter_fields')!=(['member_ref'] if approved['target_mode']=='record_filter' else []):reject('task_target_mismatch')
+        if approved['target_mode']=='record_filter':
+            scene['subject_ref']=approved['target_refs'][0]
+            scene['facts']=[]
     if not set(methods) <= scenario_methods:
         reject("facts_method_outside_scenario")
     modules = list(dict.fromkeys(m for method in methods for m in METHODS[method]))
@@ -36,6 +59,7 @@ def build(applied, context, data):
         if len(matches) != 1 or matches[0]["id"] != capability(module) or matches[0].get("version") != "1.0.0" or matches[0].get("manifest", {}).get("tools") != [tool(module)]: reject("facts_dependency_unavailable")
     scene["required_modules"] = modules
     return {"plan_version": "fixed-method-plan-v1", "coordinator_version": VERSION,
+            "task_target": copy.deepcopy(task["target"]) if task else None,
             "facts_rule_version": "deterministic-facts-v1", "methods": methods, "modules": modules,
             "allowed_capabilities": [capability(m) for m in modules], "allowed_tools": [tool(m) for m in modules],
             "scenario": scene, "records": {m: copy.deepcopy(DATA151["records"][m]) for m in modules},
@@ -45,4 +69,6 @@ def bind_payload(payload, plan, applied):
     allowed = set(plan["allowed_tools"]) | set(HELPERS)
     payload["tools"] = {**payload.get("tools", {}), **{t: t in allowed for p in applied.get("plugins", []) for t in p.get("manifest", {}).get("tools", [])},
         **{name: False for name in ("bash","pty","read","write","edit","apply_patch","glob","grep","skill","task","webfetch","websearch")}}
+    if plan.get('task_target'):
+        payload['system']=payload.get('system','')+'\n本轮目标：'+ '、'.join(plan['task_target']['target_refs'])+'；仅筛选当前固定快照，不能声称全库或最新资料查询。'
     payload["system"] = payload.get("system", "") + "\n本轮平台固定方法：" + "、".join(plan["methods"]) + "。只使用当前计划的资料能力；事实整理使用已冻结方法，摘要核对不重新取数。未知或失败不得重试，不将缺失当作零。"

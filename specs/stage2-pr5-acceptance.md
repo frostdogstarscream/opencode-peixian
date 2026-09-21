@@ -4,15 +4,15 @@
 
 ## 状态与源码身份
 
-PR-5.1 源码修复和独立回归已完成，当前为候选，等待本次 GitHub CI 和最终证据闭合；此提交不声明 PR-5 已关账。
+PR-5.1：Completed。PR-5：Completed。本轮源码修复、独立回归及实现提交 GitHub CI 已通过；完成范围为源码与交付证据，不代表部署完成。
 
 - 开发分支：`codex/stage2-task-spec-v1`。
 - 第一阶段基线：`ecefc20a01949b0ebd7f5c966608cf6762d310c9`。
 - PR-5 原实现：`458e56ad9b716c74ba37506542cec2a84b761c78`。
 - 本轮起点：`e59715edaa4079d17d0345d71700d597a38dea79`。
-- PR-5.1 实现提交：候选提交创建后在文档关账中固定。
+- PR-5.1 实现提交：`6764db50f986fd733ffb52ae4036f42a9ea69bf6`。当前为其后的纯文档关账提交，固定实现路径无差异。
 - 原 PR-5 CI 已核实为成功：[35576609130](https://github.com/frostdogstarscream/opencode-peixian/actions/runs/35576609130)，其 head 为 e59715e；不作为本轮修复的成功证据。
-- 本轮 CI：尚待候选提交推送后执行。
+- 本轮实现 CI：[35580910961](https://github.com/frostdogstarscream/opencode-peixian/actions/runs/35580910961)，head 为 `6764db50f986fd733ffb52ae4036f42a9ea69bf6`，GitHub API 实际状态 `completed / success`，全部检查步骤成功。最终文档提交将再次运行严格检查，其状态可从本提交 Checks 查看；最终交付回执单独提供该 Run 链接，避免文档自引用。
 
 服务器独立工作树 `/root/PeiXianDB/stage2-task-spec-v1` 开发。未修改 `frontend-alignment` 中同事的前端工作，未更改运行镜像、A/B、账号配置、Skill 正文或插件包。数据库保持 schema v6。没有部署，没有新增模型或真实资料请求。
 
@@ -21,7 +21,7 @@ PR-5.1 源码修复和独立回归已完成，当前为候选，等待本次 Git
 1. API 入口和 Run 事务内共用 admission_selection。非查询忽略残留 Skill/Plugin 作为准入依赖，原 request 和 Invocation.selected_* 保留不变；实际能力为空。新查询仍严格检查固定计划依赖。
 2. Router 不再因 selected=True 判为数据任务。新增整理、统计、列出、展示动作词；已经判定为查询时，所选官方 Skill 才可补齐方法。请说明一下、你好、什么是资金流水保持普通聊天。
 3. 新增严格离线交付检查及 63 项真实临时 Git 历史负向/正向测试。检查源码漂移、祖先关系、版本、CI 记录格式、测试数量、21 条语料及五份文件的精确 SHA256 集合。失败不写输出，已有输出不覆盖。
-4. CI 增加 Gateway 完整回归、新交付检查测试及 Verify PR-5 delivery evidence。最终源码 SHA 和真实成功 Run 由后续纯文档提交固定。
+4. CI 增加 Gateway 完整回归、新交付检查测试及 Verify PR-5 delivery evidence。最终源码 SHA 和真实成功 Run 已由本纯文档提交固定。
 
 非查询不附加插件优先使用提示。explain_existing/clarify 产生本地答复，无 delivery；普通聊天允许模型投递但关闭全部工具，不能把“普通聊天零取数”写成“普通聊天零模型”。历史解释尚未实现 PR-6，history_unavailable 只表示明确告知缺口。
 
@@ -84,3 +84,10 @@ python stage2-pr5-release-check.py --output /safe/new-pr5-validation.json
 - Stage 2 Deployment：Not Performed。Model Requests：0。Real Business Data Access：0。
 - 默认白名单保持关闭，本轮不新增生产镜像，不修改数据库版本，不访问真实资料，不做并发测试。
 - 用户已授权本轮提交推送 GitHub；推送代码不是发布服务器应用。
+
+
+## 最终交付校验
+
+本清单 `closeout_status=completed`，默认严格校验通过；候选模式不接受该状态。五份交付文件摘要均匹配，实现文件与 `implementation_revision` 无漂移。CI 记录由在线 GitHub 查询核实，离线工具仍如实返回 `github_verified_online=false`，两种证据不混淆。
+
+实现提交和文档提交分离。提交历史中的候选清单保留 pending，未被回写为曾经完成。最终文档提交的 CI 需通过后才向用户报告本轮完成。

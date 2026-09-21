@@ -1,0 +1,90 @@
+{
+  "schema_version": "agent-profile-v1",
+  "id": "gambling-assistant",
+  "version": "1.0.0",
+  "name": "涉赌资料助手",
+  "description": "整理固定场景中已有的夜间、共现、资金和关系资料。",
+  "domain": "gambling",
+  "scenario_ids": [
+    "DEMO-CASE-GAMBLING"
+  ],
+  "default_scenario_id": "DEMO-CASE-GAMBLING",
+  "official_method_ids": [
+    "peixian.method.night",
+    "peixian.method.companions",
+    "peixian.method.funds",
+    "peixian.method.relations",
+    "peixian.method.gambling"
+  ],
+  "intents": {
+    "night_activity": {
+      "methods": [
+        "night"
+      ],
+      "official_method": "night",
+      "keywords": [
+        "夜间",
+        "夜晚",
+        "晚上",
+        "夜里"
+      ]
+    },
+    "companions_check": {
+      "methods": [
+        "companions"
+      ],
+      "official_method": "companions",
+      "keywords": [
+        "同行",
+        "同框",
+        "共现",
+        "共同出现",
+        "一起出现"
+      ]
+    },
+    "funds_analysis": {
+      "methods": [
+        "funds"
+      ],
+      "official_method": "funds",
+      "keywords": [
+        "资金",
+        "流水",
+        "转账",
+        "收支"
+      ]
+    },
+    "relations_check": {
+      "methods": [
+        "relations"
+      ],
+      "official_method": "relations",
+      "keywords": [
+        "已有关系",
+        "之间的关系",
+        "有没有关系",
+        "关联互查",
+        "关系资料"
+      ]
+    },
+    "integrated_analysis": {
+      "methods": [
+        "night",
+        "companions",
+        "funds",
+        "relations"
+      ],
+      "official_method": "gambling",
+      "keywords": [
+        "综合看",
+        "综合整理",
+        "综合分析",
+        "全面整理",
+        "总流程"
+      ]
+    }
+  },
+  "target_contract_profile": "gambling-target-v1",
+  "claim_profile": "gambling-claims-v1",
+  "prompt_file": "gambling_prompt.md"
+}

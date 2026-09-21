@@ -70,7 +70,7 @@ def register(app):
     def run_task(sid:str,rid:str,request:Request,user=Depends(normal)):
         row=runs.owned(app.state.store,user['uid'],sid,rid)
         snapshot=app.state.store.decrypt(row['request_ciphertext'])
-        return {'run_id':rid,'task_spec':snapshot.get('task_spec'),'response':snapshot.get('task_response')}
+        return {'run_id':rid,'task_spec':snapshot.get('task_spec'),'agent_profile':snapshot.get('agent_profile'),'effective_system_prompt_sha256':snapshot.get('effective_system_prompt_sha256'),'response':snapshot.get('task_response')}
 
     @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/events')
     @blocking_endpoint(app)

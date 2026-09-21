@@ -22,7 +22,11 @@ def extend_schemas(result):
     from .task_spec import SPEC_SCHEMA,CANDIDATE_SCHEMA
     result['TaskSpec']=SPEC_SCHEMA
     result['TaskCandidate']=CANDIDATE_SCHEMA
-    result['RunTask']=obj({'run_id':ID,'task_spec':nullable(ref('TaskSpec')),'response':nullable(obj({'code':STRING,'message':STRING},('code','message')))},('run_id','task_spec','response'))
+    result['AgentPublic']=obj({k:STRING for k in ('id','name','version','domain','description')},('id','name','version','domain','description','supported_intents'))
+    result['AgentPublic']['properties']['supported_intents']=array(STRING)
+    result['AgentList']=obj({'items':array(ref('AgentPublic'))},('items',))
+    result['AgentIdentity']=obj({k:STRING for k in ('schema_version','registry_version','id','version','domain','profile_sha256','prompt_sha256','default_scenario_id')})
+    result['RunTask']=obj({'run_id':ID,'task_spec':nullable(ref('TaskSpec')),'agent_profile':nullable(ref('AgentIdentity')),'effective_system_prompt_sha256':nullable(STRING),'response':nullable(obj({'code':STRING,'message':STRING},('code','message')))},('run_id','task_spec','response'))
     result['RunAccepted']=obj({'accepted':{'const':True},'run_id':ID,'message_id':ID},('accepted','run_id','message_id'))
     result['RunEvent']=obj({'id':ID,'sequence':integer,'step_type':STRING,'name':STRING,'status':STRING,'started_at':nullable(dt),'completed_at':nullable(dt),'elapsed_ms':nullable(integer),'capability_id':nullable(ID),'input_summary':STRING,'output_summary':STRING,'record_count':integer,'evidence_refs':array(STRING),'error_message':nullable(STRING)},('id','sequence','step_type','name','status'))
     result['RunEvidence']=obj({**result['ScenarioEvidence']['properties'],'run_id':ID,'status':{'enum':['pending','empty','partial','complete','unavailable']}},('run_id','status','cards','summary'))
@@ -66,6 +70,8 @@ def contracts():
 
     def add(method,path,body,out,title,tag='执行记录',desc='当前账号资源；不属于本人返回404。'):
         result[(method,path)]=(body,out,title,tag,desc)
+    add('get','/agents',None,ref('AgentList'),'查询可用助手','助手目录','只返回当前账号可用助手的公开信息，不返回 Prompt 或连接配置。')
+    add('get','/agents/{agent_id}',None,ref('AgentPublic'),'查询助手公开信息','助手目录')
     add('post','/sessions/{sid}/messages','MessageBody',ref('RunAccepted'),'提交消息并受理持久执行',desc='HTTP 202返回持久run_id和固定message_id；plugin_ids 是偏好；同 client_request_id 同内容返回首次受理，不自动重发未知执行。')
     add('get','/sessions/{sid}/context',None,{'type':'object','properties':{'scenario_id':{'type':['string','null']},'name':{'type':['string','null']},'source':{'type':'string'},'generation':{'type':['string','null']}}},'读取本人会话场景')
     add('delete','/sessions/{sid}/context',None,{'type':'object'},'清除本人会话场景',desc='需要 Idempotency-Key；执行未结束返回409；持久清除边界不删除历史。')

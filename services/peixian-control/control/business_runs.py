@@ -13,8 +13,8 @@ ACTIVE=('queued','running','cancelling','reconciling')
 
 def normalized(data):
     value=dict(data)
-    if 'agent_id' in value and value['agent_id'] != 'gambling-assistant':
-        error('unsupported_agent','当前仅支持涉赌案件资料助手',422,{'agent_id':'gambling-assistant'})
+    from .agents.registry import require
+    if 'agent_id' in value:require(value['agent_id'])
     key=value.get('client_request_id') or str(uuid.uuid4())
     try:uuid.UUID(key)
     except (ValueError,TypeError,AttributeError):error('invalid_request_id','client_request_id 必须为UUID',422,{'client_request_id':'UUID required'})
@@ -57,6 +57,9 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         if row:
             if row['request_hash']!=fingerprint(store,data):error('request_conflict','同一请求标识对应不同内容',409)
             return receipt(row)
+        from .agents import runtime as agents
+        profile=agents.select(user['uid'],data)
+        agents.session(store,user['uid'],sid,profile)
         if task is not None:
             from . import task_spec
             fresh = task_spec.resolve(store,user['uid'],sid,data,applied)
@@ -72,6 +75,8 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         selection = task_spec.admission_selection(data,task,context['effective_skill_ids']) if task is not None else ({**data,'skill_ids':context['effective_skill_ids']} if context is not None else data)
         check_selection(store,user['uid'],selection)
         if not db.execute("SELECT 1 FROM models m JOIN grants g ON g.resource=m.id AND g.kind='model' WHERE g.uid=? AND m.id=? AND m.enabled=1",(user['uid'],payload['model']['modelID'])).fetchone():error('model_unavailable','所选模型授权已变化',403)
+        if agents.enabled(user['uid']):
+            agents.bind(payload,profile,context,[x for x in applied.get('skills',[]) if x['id'] in (context or {}).get('effective_skill_ids',[])])
         from .facts_plan import build, bind_payload
         plan = build(applied, context, data, task) if task and task['spec'] and task['spec']['query_mode']=='new_query' else None if task else build(applied, context, data)
         if task and task['spec'] and task['spec']['query_mode']=='new_query' and not plan:error('task_plan_unavailable','固定方法执行链尚未生效。',409)
@@ -86,6 +91,7 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         if task is not None:
             from .task_spec import bind
             bind(snapshot,payload,task)
+        agents.freeze(snapshot,payload,profile)
         # Admission freezes encrypted inputs; SQL never holds a network operation.
         db.execute("INSERT INTO business_runs(id,uid,session_id,request_key,request_hash,message_id,parent_id,status,phase,model_id,revision,auth_version,request_ciphertext,created,updated) VALUES(?,?,?,?,?,?,?,'queued','pending_dispatch',?,?,?,?,?,?)",(identity,user['uid'],sid,data['client_request_id'],fingerprint(store,data),message,parent,payload['model']['modelID'],revision,user['version'],store.encrypt(snapshot),timestamp,timestamp))
         if task and task['local']:

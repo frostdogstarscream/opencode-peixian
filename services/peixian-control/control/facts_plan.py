@@ -63,11 +63,14 @@ def build(applied, context, data, task=None):
         reject("facts_method_outside_scenario")
     modules = list(dict.fromkeys(m for method in methods for m in METHODS[method]))
     if not modules or not set(modules) <= permitted: reject("facts_method_outside_scenario")
-    for module in modules:
-        matches = [p for p in plugins if tool(module) in p.get("manifest", {}).get("tools", [])]
-        if len(matches) != 1 or matches[0]["id"] != capability(module) or matches[0].get("version") != "1.0.0" or matches[0].get("manifest", {}).get("tools") != [tool(module)]: reject("facts_dependency_unavailable")
+    from .developer_registry.registry import REGISTRY
+    agent=task['agent_profile']['id'] if task and task.get('agent_profile') else ('gambling-assistant' if scene['scenario_id']=='DEMO-CASE-GAMBLING' else 'theft-assistant')
+    try: registry=REGISTRY.freeze(agent,methods,plugins)
+    except ValueError as exc: reject(str(exc))
+    from .developer_registry.registry import rule_bindings
+    scene["rule_bindings"]=rule_bindings(registry)
     scene["required_modules"] = modules
-    return {**({"agent_profile":copy.deepcopy(task["agent_profile"]),"agent_task":copy.deepcopy(task["spec"])} if task and task.get("agent_profile") else {}),"plan_version": "fixed-method-plan-v1", "coordinator_version": VERSION,
+    return {**({"agent_profile":copy.deepcopy(task["agent_profile"]),"agent_task":copy.deepcopy(task["spec"])} if task and task.get("agent_profile") else {}),"registry":registry,"plan_version": "fixed-method-plan-v1", "coordinator_version": VERSION,
             "task_target": copy.deepcopy(task["target"]) if task else None,
             "facts_rule_version": "deterministic-facts-v1", "methods": methods, "modules": modules,
             "allowed_capabilities": [capability(m) for m in modules], "allowed_tools": [tool(m) for m in modules],

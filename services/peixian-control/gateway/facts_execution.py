@@ -88,6 +88,9 @@ def register(app):
                 if not task.done():task.cancel()
                 await asyncio.gather(task,return_exceptions=True)
         try:
+            from shared.developer_plan import validate
+            try:validate(plan)
+            except (ValueError,KeyError,TypeError):raise HTTPException(409,'资料能力与规则版本无法核对') from None
             scene=plan['scenario']['scenario_id']
             if selected in HELPERS:
                 expected={'scenario_id','claims'} if selected.endswith('summary') else {'scenario_id','methods'} if selected.endswith('facts') and isinstance(args,dict) and 'methods' in args else {'scenario_id'}

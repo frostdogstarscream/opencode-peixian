@@ -86,6 +86,7 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
             check_selection(store,user['uid'],{'skill_ids':context['effective_skill_ids'],'plugin_ids':plan['allowed_capabilities']})
             bind_payload(payload,plan,applied)
             snapshot['facts_plan']=plan
+            snapshot['registry_snapshot']=plan['registry']
             snapshot['execution_plan']={k:plan[k] for k in ('plan_version','methods','modules','steps')}
             snapshot['allowed_capabilities']=plan['allowed_capabilities']
             snapshot['allowed_tools']=plan['allowed_tools']

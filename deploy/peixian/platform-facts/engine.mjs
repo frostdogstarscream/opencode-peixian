@@ -9,7 +9,21 @@ function local(time) {
   if (!/(Z|[+-]\d\d:\d\d)$/.test(time) || !Number.isFinite(Date.parse(time))) throw new Error('invalid_time');
   return new Date(Date.parse(time)+8*3600000).toISOString();
 }
+function summarize(rows) {
+  const dates=[...new Set(rows.filter(x=>x.occurred_at).map(x=>local(x.occurred_at).slice(0,10)))].sort();
+  const nights=rows.filter(x=>x.occurred_at&&(Number(local(x.occurred_at).slice(11,13))>=22||Number(local(x.occurred_at).slice(11,13))<6));
+  return {dates,nights};
+}
+// Release-owned implementation IDs, never dynamic code or expressions.
+const implementations=Object.freeze({night_summary_v1:summarize,companions_summary_v1:summarize,funds_summary_v1:summarize,relations_summary_v1:summarize,vehicles_summary_v1:summarize});
+const moduleImplementations=Object.freeze({night:'night_summary_v1',portrait:'companions_summary_v1',funds:'funds_summary_v1',lookup:'relations_summary_v1',composite:'relations_summary_v1',vehicle:'vehicles_summary_v1'});
 export function compile(context, responses) {
+  const bindings=context.rule_bindings;
+  if(bindings) {
+    if(!Array.isArray(bindings)||context.required_modules.some(module=>bindings.filter(b=>b.module===module).length!==1))throw new Error('rule_binding_missing');
+    for(const b of bindings)if(Object.keys(b).sort().join(',')!=='implementation,module,rule_id,version'||b.implementation!==moduleImplementations[b.module]||!implementations[b.implementation]||b.version!=='1.0.0')throw new Error('rule_binding_invalid');
+  }
+  const executions=[];
   const facts=[], summary=[], missing=[...context.limitations];
   const subject=context.subject_ref;
   const sources=new Set();
@@ -24,8 +38,9 @@ export function compile(context, responses) {
       if(!belongs)return false;
       return !row.occurred_at || (local(row.occurred_at) && Date.parse(row.occurred_at)>=Date.parse(context.window_start)&&Date.parse(row.occurred_at)<Date.parse(context.window_end));
     });
-    const dates=[...new Set(rows.filter(x=>x.occurred_at).map(x=>local(x.occurred_at).slice(0,10)))].sort();
-    const nights=rows.filter(x=>x.occurred_at&&(Number(local(x.occurred_at).slice(11,13))>=22||Number(local(x.occurred_at).slice(11,13))<6));
+    const binding=bindings?.find(b=>b.module===module);
+    const {dates,nights}=(binding?implementations[binding.implementation]:summarize)(rows);
+    if(binding)executions.push({...binding});
     summary.push({module,label:labels[module],count:rows.length,dates,night_count:nights.length});
     add('COUNT-'+module,`${subject} 的${labels[module]}为 ${rows.length} 条原始记录；涉及 ${dates.length} 个北京时间自然日，夜间 ${nights.length} 条。按记录计数，不等同独立事件数。`,rows.map(x=>x.record_id),'','count');
     for (const row of rows) {
@@ -52,7 +67,7 @@ export function compile(context, responses) {
     add(f.record_id,f.description,[...f.source_record_ids,...(f.source_document?[f.source_document]:[])],f.occurred_at,'context');
   }
   facts.sort((a,b)=>a.fact_id.localeCompare(b.fact_id,'en'));
-  return {schema_version:'facts-v1',synthetic:true,scenario_id:context.scenario_id,subject_ref:subject,scenario_snapshot_id:context.snapshot_id,records_snapshot_id:context.records_snapshot_id,rule_version:'deterministic-facts-v1',window_start:context.window_start,window_end:context.window_end,timezone:'Asia/Shanghai',night_window:'22:00-06:00',data_status:context.required_modules.every(m=>responses[m])?'complete':'partial',summary,facts,missing};
+  return {...(bindings?{rule_executions:executions}:{}),schema_version:'facts-v1',synthetic:true,scenario_id:context.scenario_id,subject_ref:subject,scenario_snapshot_id:context.snapshot_id,records_snapshot_id:context.records_snapshot_id,rule_version:'deterministic-facts-v1',window_start:context.window_start,window_end:context.window_end,timezone:'Asia/Shanghai',night_window:'22:00-06:00',data_status:context.required_modules.every(m=>responses[m])?'complete':'partial',summary,facts,missing};
 }
 export function checkClaims(table, claims) {
   if(!Array.isArray(claims)||claims.length>40)throw new Error('invalid_claims');

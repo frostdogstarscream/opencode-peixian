@@ -112,6 +112,8 @@ def test_theft_profile_real_plugin_http_and_control(multi,chain,tmp_path,method,
         assert reply.status_code==200,reply.text
         table=reply.json();assert table['data_status']=='complete' and table['summary'][0]['module']==modules[0]
         assert calls==modules
+        assert {b['module'] for b in table['rule_executions']}==set(modules)
+        assert all(b['version']=='1.0.0' for b in table['rule_executions'])
         again=client.post('/internal/facts/execute',json=body,headers={'X-Facts-Key':token})
         assert again.status_code==200 and again.json()==table and calls==modules
         claims=[{k:f[k] for k in ('fact_id','statement','source_ids')} for f in table['facts'][:3]]

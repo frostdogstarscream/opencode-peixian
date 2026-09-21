@@ -1,0 +1,38 @@
+{
+  "stage": "pr56",
+  "closeout_status": "pending",
+  "baseline": "8d33ec3d5ae61143164803ce3406e9b72a1819ba",
+  "implementation_revision": null,
+  "github_ci": {
+    "executed": false
+  },
+  "schema_version": 6,
+  "deployment_performed": false,
+  "real_data_accessed": false,
+  "model_requests": 0,
+  "tests": {
+    "control_gateway": {
+      "exit_code": 0,
+      "finished": "2026-09-21T11:10:59.214538+00:00"
+    },
+    "deployment": {
+      "exit_code": 0
+    },
+    "bun": {
+      "exit_code": 0
+    },
+    "historical": {
+      "exit_code": 0,
+      "commands": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "final_targeted": {
+      "exit_code": 0
+    }
+  }
+}

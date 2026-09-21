@@ -1,0 +1,4 @@
+28d0cbdb43b1fe07df24f01709e8fe08b7561e4a9ec43ef485372a8ebf96b6fc  stage2-pr56-contract.md
+e91cc55adf5df178c5b3368bc7e8c3041d4e16b2389f691cbb431e8eb7327f61  stage2-pr56-acceptance.md
+5fed45cac692ad6bddfa41ffae96ac99b26917f3a043c476193e38c4fe97c2da  stage2-pr56-registry.json
+44bc0cd13669387c9ddfd06128a12202524d0c78a7e6d657388d463a2404300a  stage2-pr56-release.json

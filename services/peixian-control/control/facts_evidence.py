@@ -12,6 +12,7 @@ def evidence(snapshot, row):
     if not plan:return result
     result['processing_version']=plan['coordinator_version']
     result['execution_methods']=plan['methods']
+    if plan.get('registry'):result['registry_provenance']=copy.deepcopy(plan['registry'])
     result['plugin_versions']={p['id']:p['version'] for p in snapshot['plugins'] if p['id'] in plan['allowed_capabilities']}
     result['steps']=[{'label':'查询'+LABELS.get(module,'所选')+'资料','status':value['status']} for module,value in state.get('modules',{}).items()]
     table=state.get('table')

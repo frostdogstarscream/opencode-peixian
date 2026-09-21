@@ -98,6 +98,13 @@ class FactsState:
                 or runtime["status"] not in ("ready", "draining") or runtime["gate_policy"] == "closed_all"):
             reject("facts_authority_changed")
         if self.store.maintenance_status(db)["maintenance_mode"] not in ("normal", "frozen"): reject("facts_maintenance")
+        plan=snapshot['facts_plan']
+        if snapshot.get('registry_snapshot')!=plan.get('registry'):reject('registry_snapshot_mismatch')
+        if 'registry' in plan:
+            from .developer_registry.registry import REGISTRY
+            applied=self.store.decrypt(runtime['applied_spec_ciphertext']) if runtime['applied_spec_ciphertext'] else {}
+            try: REGISTRY.validate(plan['registry'],plan['registry']['agent_id'],plan['methods'],applied.get('plugins',[]))
+            except ValueError as exc: reject(str(exc))
         if module is None: return
         plan = snapshot["facts_plan"]
         if module not in plan["modules"] or capability(module) not in plan["allowed_capabilities"] or tool(module) not in plan["allowed_tools"]:
@@ -164,6 +171,10 @@ class FactsState:
             self.authorize(db, row, snapshot)
             for module,value in state["modules"].items():
                 if value["status"] == "completed": self.authorize(db, row, snapshot, module)
+            if plan_registry := snapshot['facts_plan'].get('registry'):
+                from .developer_registry.registry import rule_bindings
+                expected=[b for b in rule_bindings(plan_registry) if state['modules'].get(b['module'],{}).get('status')=='completed']
+                if not isinstance(table,dict) or table.get('rule_executions')!=expected:reject('rule_execution_mismatch')
             state["table"] = table; state["checked"] = None; state["compiled_at"] = now()
             self._save(db,rid,snapshot)
             runs.event(self.store,rid,"facts.compile","facts","整理资料事实", "completed",completed=now())

@@ -1,0 +1,73 @@
+[
+  {
+    "agent_id": "gambling-assistant",
+    "method": "night",
+    "required_capabilities": [
+      "records.night"
+    ],
+    "required_rules": [
+      "gambling.night.summary"
+    ]
+  },
+  {
+    "agent_id": "gambling-assistant",
+    "method": "companions",
+    "required_capabilities": [
+      "records.portrait"
+    ],
+    "required_rules": [
+      "gambling.companions.summary"
+    ]
+  },
+  {
+    "agent_id": "gambling-assistant",
+    "method": "funds",
+    "required_capabilities": [
+      "records.funds"
+    ],
+    "required_rules": [
+      "gambling.funds.summary"
+    ]
+  },
+  {
+    "agent_id": "gambling-assistant",
+    "method": "relations",
+    "required_capabilities": [
+      "records.lookup",
+      "records.composite"
+    ],
+    "required_rules": [
+      "gambling.relations.summary"
+    ]
+  },
+  {
+    "agent_id": "theft-assistant",
+    "method": "night",
+    "required_capabilities": [
+      "records.night"
+    ],
+    "required_rules": [
+      "theft.night.summary"
+    ]
+  },
+  {
+    "agent_id": "theft-assistant",
+    "method": "companions",
+    "required_capabilities": [
+      "records.portrait"
+    ],
+    "required_rules": [
+      "theft.companions.summary"
+    ]
+  },
+  {
+    "agent_id": "theft-assistant",
+    "method": "vehicles",
+    "required_capabilities": [
+      "records.vehicle"
+    ],
+    "required_rules": [
+      "theft.vehicle.summary"
+    ]
+  }
+]

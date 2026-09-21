@@ -47,7 +47,7 @@ def test_gateway_control_plugin_http_compile_claim_and_historical_read(facts,cha
             db.execute("INSERT OR IGNORE INTO grants VALUES(?,'plugin',?)",(uid,pid))
         active=store.decrypt(runtime['applied_spec_ciphertext']);active['plugins']=applied['plugins']
         db.execute('UPDATE runtimes SET applied_spec_ciphertext=? WHERE uid=?',(store.encrypt(active),uid))
-        snapshot=store.decrypt(row['request_ciphertext']);snapshot['facts_plan']=plan;snapshot['plugins']=applied['plugins']
+        snapshot=store.decrypt(row['request_ciphertext']);snapshot['facts_plan']=plan;snapshot['registry_snapshot']=plan['registry'];snapshot['plugins']=applied['plugins']
         db.execute('UPDATE business_runs SET request_ciphertext=? WHERE id=?',(store.encrypt(snapshot),rid))
     managed=tmp_path/'managed';managed.mkdir()
     specs={}

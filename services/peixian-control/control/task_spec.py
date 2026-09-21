@@ -121,9 +121,15 @@ def resolve(store, uid, sid, data, applied):
                 if target['status']!='resolved':
                     mode,intent,missing='clarify','clarification',[target['reason']]
                 else:
-                    resolved=resolve_methods(store,uid,applied,data['skill_ids'],wanted,profile)
+                    from .developer_registry.registry import REGISTRY
+                    unavailable=REGISTRY.readiness(profile.id if profile else flow+'-assistant',methods)
+                    if unavailable:
+                        mode,intent,missing='clarify','clarification',[unavailable]
+                        methods=[]
+                    else:
+                        resolved=resolve_methods(store,uid,applied,data['skill_ids'],wanted,profile)
                     allowed={m for _,identity in resolved for m in identity['methods']}
-                    if not set(methods)<=allowed or any(identity['method'] not in ('gambling','theft') and not set(methods)<=set(identity['methods']) for _,identity in resolved):
+                    if not unavailable and (not set(methods)<=allowed or any(identity['method'] not in ('gambling','theft') and not set(methods)<=set(identity['methods']) for _,identity in resolved)):
                         mode,intent,missing='clarify','clarification',['method_conflict']
                     elif not set(methods)<=set(BY_ID['peixian.method.'+flow]['methods']):
                         error('official_method_outside_scenario','当前场景不支持所选方法。',409)
@@ -145,7 +151,7 @@ def resolve(store, uid, sid, data, applied):
     if mode == 'explain_existing':
         local = {'code': 'history_explanation_pending_pr6', 'message': '已识别为解释已有结果，本轮没有重新查询资料。完整历史结果解释将在下一阶段提供；请先查看原执行的已核验结果。'}
     elif mode == 'clarify':
-        messages = {'scenario_id': '请确认处理涉赌资料还是盗窃时空资料。', 'query_mode': '请确认使用已有结果说明，还是重新查询资料。',
+        messages = {'capability_not_ready':'所需资料能力尚未发布或已停用，本轮未查询资料。','rule_not_ready':'所需整理规则尚未发布或已停用，本轮未查询资料。','scenario_id': '请确认处理涉赌资料还是盗窃时空资料。', 'query_mode': '请确认使用已有结果说明，还是重新查询资料。',
                     'method_conflict': '所选专项技能与问题不一致，请调整技能或明确所需方法。',
                     'unsupported_target_scope': '当前方法不支持该对象或对象组合，尚未查询；不会用场景主对象替代。',
                     'target_confirmation_required': '本阶段无法唯一确认所指对象，请明确当前资料范围内的对象。',

@@ -1,0 +1,107 @@
+[
+  {
+    "schema_version": "rule-registry-v1",
+    "id": "gambling.night.summary",
+    "version": "1.0.0",
+    "state": "published",
+    "implementation": "night_summary_v1",
+    "input_schema": "night-facts-input-v1",
+    "output_kind": "computed",
+    "supported_agents": [
+      "gambling-assistant"
+    ],
+    "supported_methods": [
+      "night"
+    ]
+  },
+  {
+    "schema_version": "rule-registry-v1",
+    "id": "gambling.companions.summary",
+    "version": "1.0.0",
+    "state": "published",
+    "implementation": "companions_summary_v1",
+    "input_schema": "companions-facts-input-v1",
+    "output_kind": "computed",
+    "supported_agents": [
+      "gambling-assistant"
+    ],
+    "supported_methods": [
+      "companions"
+    ]
+  },
+  {
+    "schema_version": "rule-registry-v1",
+    "id": "gambling.funds.summary",
+    "version": "1.0.0",
+    "state": "published",
+    "implementation": "funds_summary_v1",
+    "input_schema": "funds-facts-input-v1",
+    "output_kind": "computed",
+    "supported_agents": [
+      "gambling-assistant"
+    ],
+    "supported_methods": [
+      "funds"
+    ]
+  },
+  {
+    "schema_version": "rule-registry-v1",
+    "id": "gambling.relations.summary",
+    "version": "1.0.0",
+    "state": "published",
+    "implementation": "relations_summary_v1",
+    "input_schema": "relations-facts-input-v1",
+    "output_kind": "computed",
+    "supported_agents": [
+      "gambling-assistant"
+    ],
+    "supported_methods": [
+      "relations"
+    ]
+  },
+  {
+    "schema_version": "rule-registry-v1",
+    "id": "theft.night.summary",
+    "version": "1.0.0",
+    "state": "published",
+    "implementation": "night_summary_v1",
+    "input_schema": "night-facts-input-v1",
+    "output_kind": "computed",
+    "supported_agents": [
+      "theft-assistant"
+    ],
+    "supported_methods": [
+      "night"
+    ]
+  },
+  {
+    "schema_version": "rule-registry-v1",
+    "id": "theft.companions.summary",
+    "version": "1.0.0",
+    "state": "published",
+    "implementation": "companions_summary_v1",
+    "input_schema": "companions-facts-input-v1",
+    "output_kind": "computed",
+    "supported_agents": [
+      "theft-assistant"
+    ],
+    "supported_methods": [
+      "companions"
+    ]
+  },
+  {
+    "schema_version": "rule-registry-v1",
+    "id": "theft.vehicle.summary",
+    "version": "1.0.0",
+    "state": "published",
+    "implementation": "vehicles_summary_v1",
+    "input_schema": "vehicles-facts-input-v1",
+    "output_kind": "computed",
+    "supported_agents": [
+      "theft-assistant"
+    ],
+    "supported_methods": [
+      "vehicles"
+    ]
+  }
+]

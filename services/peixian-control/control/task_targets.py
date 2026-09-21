@@ -41,7 +41,11 @@ def visible(store, uid, sid, scene, profile=None):
     return names
 
 
-def resolve(store, uid, sid, scene, text, methods, profile=None):
+def resolve(store, uid, sid, scene, text, methods, profile=None, confirmed=None):
+    if profile and store.schema_version()>=8:
+        from .entity_projection import resolve as resolve_entity
+        result=resolve_entity(store,uid,sid,text,methods,profile,confirmed)
+        if result is not None:return result
     subject = DATA151['scenarios'][scene]['subject_ref']
     names = visible(store, uid, sid, scene, profile)
     found = sorted(name for name in names if name in text)

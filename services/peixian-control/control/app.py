@@ -815,6 +815,8 @@ def create_app(store=None):
     register_context(app)
     from .task_context_api import register as register_task_context
     register_task_context(app)
+    from .clarifications import register as register_clarifications
+    register_clarifications(app)
     from .run_api import register as register_runs
     from .invocations import register as register_invocations
     from .skill_drafts import register as register_drafts

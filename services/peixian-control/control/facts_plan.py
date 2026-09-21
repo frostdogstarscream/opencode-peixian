@@ -50,12 +50,19 @@ def build(applied, context, data, task=None):
         methods=approved['methods'][:]
         target=task['target']
         from .task_targets import CONTRACTS, VERSION as TARGET_VERSION
-        if (not target or target.get('status')!='resolved' or target.get('contract_version')!=TARGET_VERSION
+        from .entity_projection import TARGET_VERSION as ENTITY_VERSION
+        vehicle=bool(target and target.get('contract_version')==ENTITY_VERSION and target.get('entity_type')=='vehicle')
+        expected_fields=['group_ref'] if vehicle else ['member_ref']
+        if (not target or target.get('status')!='resolved' or target.get('contract_version') not in (TARGET_VERSION,ENTITY_VERSION)
             or target.get('target_refs')!=approved['target_refs'] or target.get('target_mode')!=approved['target_mode']
-            or len(approved['target_refs'])!=1 or any(approved['target_mode'] not in CONTRACTS[m]['supported_target_modes'] for m in methods)):
-            reject('task_target_mismatch')
+            or len(approved['target_refs'])!=1):reject('task_target_mismatch')
+        if target['contract_version']==ENTITY_VERSION and (not v2 or approved['schema_version']!='task-spec-v3' or target.get('entity_type') not in ('person','vehicle')):reject('task_target_mismatch')
+        if vehicle:
+            if methods!=['vehicles'] or approved.get('agent_id')!='theft-assistant' or approved['target_mode']!='record_filter':reject('task_target_mismatch')
+            scene['target_filter']={'version':ENTITY_VERSION,'type':'vehicle','field':'group_ref','ref':approved['target_refs'][0]}
+        elif any(approved['target_mode'] not in CONTRACTS[m]['supported_target_modes'] for m in methods):reject('task_target_mismatch')
         if approved['target_mode']=='scenario_subject' and approved['target_refs']!=[scene['subject_ref']]:reject('task_target_mismatch')
-        if target.get('filter_fields')!=(['member_ref'] if approved['target_mode']=='record_filter' else []):reject('task_target_mismatch')
+        if target.get('filter_fields')!=(expected_fields if approved['target_mode']=='record_filter' else []):reject('task_target_mismatch')
         if approved['target_mode']=='record_filter':
             scene['subject_ref']=approved['target_refs'][0]
             scene['facts']=[]

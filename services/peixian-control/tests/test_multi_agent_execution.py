@@ -32,10 +32,13 @@ from test_task_spec import task_env
     ('vehicles','看看车辆记录',['vehicle']),
     ('theft','综合核对盗窃时空资料',['night','portrait','vehicle'])])
 @pytest.mark.parametrize('gateway_restart',[False,True])
-def test_theft_profile_real_plugin_http_and_control(multi,chain,tmp_path,method,text,modules,gateway_restart):
+def test_theft_profile_real_plugin_http_and_control(multi,chain,tmp_path,method,text,modules,gateway_restart,prepared=None):
     store,_,control,_,user,_,_,applied=multi;uid=user['uid']
-    request,task=prepare(multi,text=text)
-    receipt,row,snapshot=submit(multi,request,task);rid=row['id'];plan=snapshot['facts_plan']
+    if prepared is None:
+        request,task=prepare(multi,text=text)
+        receipt,row,snapshot=submit(multi,request,task)
+    else:receipt,row,snapshot=prepared
+    rid=row['id'];plan=snapshot['facts_plan']
     assert plan['modules']==modules
     _,calls,_,url=chain
     runtime=store.one('SELECT * FROM runtimes WHERE uid=?',(uid,))
@@ -101,6 +104,11 @@ def test_theft_profile_real_plugin_http_and_control(multi,chain,tmp_path,method,
         direct=client.post('/internal/facts/execute',json={**body,'tool':tool(modules[0]),'args':{}},headers={'X-Facts-Key':token})
         assert direct.status_code==200,direct.text
         assert direct.json()['facts_table']['facts'] and calls==[modules[0]]
+        if prepared is not None:
+            chosen=plan['task_target']['target_refs'][0]
+            assert direct.json()['items'] and all(r['group_ref']==chosen for r in direct.json()['items'])
+            assert direct.json()['source_returned_count']>direct.json()['returned_count']
+            assert direct.json()['facts_table']['subject_ref']==chosen
         if method=='funds':
             assert direct.json()['items'] and all(r['member_ref']=='赵衡' for r in direct.json()['items'])
             assert direct.json()['source_returned_count']>direct.json()['returned_count']
@@ -129,6 +137,11 @@ def test_theft_profile_real_plugin_http_and_control(multi,chain,tmp_path,method,
     assert projected['cards'] and projected['summary_check']=='checked'
     if method=='funds':
         allowed={r['record_id'] for r in plan['records']['funds']['records'] if r['member_ref']=='赵衡'}
+        assert all(set(card.get('source_ids',[]))<=allowed for card in projected['cards'])
+        assert all(set(node['source_ids'])<=allowed for page in (projected['presentation'].get('diagram') or {}).get('pages',[]) for node in page['nodes'])
+    if prepared is not None:
+        chosen=plan['task_target']['target_refs'][0]
+        allowed={r['record_id'] for r in plan['records']['vehicle']['records'] if r['group_ref']==chosen}
         assert all(set(card.get('source_ids',[]))<=allowed for card in projected['cards'])
         assert all(set(node['source_ids'])<=allowed for page in (projected['presentation'].get('diagram') or {}).get('pages',[]) for node in page['nodes'])
     assert projected['presentation']['evidence']

@@ -91,11 +91,11 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
             snapshot['execution_plan']={k:plan[k] for k in ('plan_version','methods','modules','steps')}
             snapshot['allowed_capabilities']=plan['allowed_capabilities']
             snapshot['allowed_tools']=plan['allowed_tools']
+        from .task_context import admit
+        if task:admit(store,db,user['uid'],sid,task)
         if task is not None:
             from .task_spec import bind
             bind(snapshot,payload,task)
-        from .task_context import admit
-        if task:admit(store,db,user['uid'],sid,task)
         agents.freeze(snapshot,payload,profile)
         # Admission freezes encrypted inputs; SQL never holds a network operation.
         db.execute("INSERT INTO business_runs(id,uid,session_id,request_key,request_hash,message_id,parent_id,status,phase,model_id,revision,auth_version,request_ciphertext,created,updated) VALUES(?,?,?,?,?,?,?,'queued','pending_dispatch',?,?,?,?,?,?)",(identity,user['uid'],sid,data['client_request_id'],fingerprint(store,data),message,parent,payload['model']['modelID'],revision,user['version'],store.encrypt(snapshot),timestamp,timestamp))

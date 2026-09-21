@@ -18,6 +18,8 @@ function summarize(rows) {
 const implementations=Object.freeze({night_summary_v1:summarize,companions_summary_v1:summarize,funds_summary_v1:summarize,relations_summary_v1:summarize,vehicles_summary_v1:summarize});
 const moduleImplementations=Object.freeze({night:'night_summary_v1',portrait:'companions_summary_v1',funds:'funds_summary_v1',lookup:'relations_summary_v1',composite:'relations_summary_v1',vehicle:'vehicles_summary_v1'});
 export function compile(context, responses) {
+  const filter=context.target_filter;
+  if(filter&&(filter.version!=='method-target-v2'||filter.type!=='vehicle'||filter.field!=='group_ref'||filter.ref!==context.subject_ref||context.required_modules.join(',')!=='vehicle'))throw new Error('invalid_target_filter');
   const bindings=context.rule_bindings;
   if(bindings) {
     if(!Array.isArray(bindings)||context.required_modules.some(module=>bindings.filter(b=>b.module===module).length!==1))throw new Error('rule_binding_missing');
@@ -34,7 +36,7 @@ export function compile(context, responses) {
     const ids=new Set();
     for (const row of data.records) {if(ids.has(row.record_id)) throw new Error('duplicate_record_id');ids.add(row.record_id);sources.add(row.record_id);}
     const rows=data.records.filter(row=>{
-      const belongs=module==='night'||module==='lookup' ? row.group_ref===subject : module==='portrait' ? row.member_ref===subject||row.co_member_ref===subject : row.member_ref===subject;
+      const belongs=filter ? module==='vehicle'&&row.group_ref===filter.ref : module==='night'||module==='lookup' ? row.group_ref===subject : module==='portrait' ? row.member_ref===subject||row.co_member_ref===subject : row.member_ref===subject;
       if(!belongs)return false;
       return !row.occurred_at || (local(row.occurred_at) && Date.parse(row.occurred_at)>=Date.parse(context.window_start)&&Date.parse(row.occurred_at)<Date.parse(context.window_end));
     });

@@ -58,7 +58,11 @@ for field in ('direct_parent_run_id','source_data_run_id'):
 def resolve(store,uid,sid,data,applied):
     from . import task_context
     if 'context_version' in data and not task_context.enabled(store,uid):error('task_context_not_enabled','当前账号尚未启用多轮上下文。',409)
-    task=resolve_legacy(store,uid,sid,data,applied)
+    from . import clarifications
+    routing,confirmed,selection=data,None,None
+    if clarifications.enabled(store,uid):routing,confirmed,selection=clarifications.prepare(store,uid,sid,data)
+    task=resolve_legacy(store,uid,sid,routing,applied,confirmed)
+    if clarifications.enabled(store,uid):task=clarifications.decorate(task,routing,selection)
     if task_context.enabled(store,uid) and task.get('agent_profile'):
         from .agents.registry import require
         task=task_context.enrich(store,uid,sid,data,require(task['agent_profile']['id']),task)
@@ -79,14 +83,17 @@ def enabled(uid):
     return uid in {x.strip() for x in os.getenv('PX_TASKSPEC_V1_UIDS', '').split(',') if x.strip()}
 
 
-def resolve_legacy(store, uid, sid, data, applied):
+def resolve_legacy(store, uid, sid, data, applied, confirmed=None):
     from .agents import runtime as agents
     profile=agents.select(uid,data) if agents.enabled(uid) else None
     if profile:agents.session(store,uid,sid,profile)
     chosen = [x for x in applied.get('skills', []) if x['id'] in data['skill_ids']]
     if profile and any(identify(x['content']) and identify(x['content'])['id'] not in profile.data['official_method_ids'] for x in chosen):
         error('agent_method_not_allowed','所选技能不属于当前助手，请使用对应助手的新会话。',409)
-    candidate = task_router.parse(data['text'], bool(data['skill_ids']),profile)
+    route_text=data['text']
+    if profile and store.schema_version()>=8:
+        for alias in ('那辆车','这辆车','该车','哪辆车'):route_text=route_text.replace(alias,'车辆')
+    candidate = task_router.parse(route_text, bool(data['skill_ids']),profile)
     jsonschema.validate(candidate,candidate_schema(profile))
     inherited = current(store, uid, sid)
     # No models or old prose are inspected. The PR-5 context is just the existing
@@ -135,7 +142,7 @@ def resolve_legacy(store, uid, sid, data, applied):
                 mode,intent,missing='clarify','clarification',['intent']
             else:
                 methods=profile.data['intents'][intent]['methods'] if profile else list(dict.fromkeys(m for name in wanted for m in BY_ID['peixian.method.'+name]['methods']))
-                target=resolve_targets(store,uid,sid,scene,data['text'],methods,profile)
+                target=resolve_targets(store,uid,sid,scene,data['text'],methods,profile,confirmed)
                 if target['status']!='resolved':
                     mode,intent,missing='clarify','clarification',[target['reason']]
                 else:
@@ -169,7 +176,7 @@ def resolve_legacy(store, uid, sid, data, applied):
     if mode == 'explain_existing':
         local = {'code': 'history_explanation_pending_pr6', 'message': '已识别为解释已有结果，本轮没有重新查询资料。完整历史结果解释将在下一阶段提供；请先查看原执行的已核验结果。'}
     elif mode == 'clarify':
-        messages = {'capability_not_ready':'所需资料能力尚未发布或已停用，本轮未查询资料。','rule_not_ready':'所需整理规则尚未发布或已停用，本轮未查询资料。','scenario_id': '请确认处理涉赌资料还是盗窃时空资料。', 'query_mode': '请确认使用已有结果说明，还是重新查询资料。',
+        messages = {'target_missing':'当前可信结果中没有可供确认的对象，本轮未查询。','target_candidates_exceed_limit':'候选对象过多，请明确对象后再查询。','capability_not_ready':'所需资料能力尚未发布或已停用，本轮未查询资料。','rule_not_ready':'所需整理规则尚未发布或已停用，本轮未查询资料。','scenario_id': '请确认处理涉赌资料还是盗窃时空资料。', 'query_mode': '请确认使用已有结果说明，还是重新查询资料。',
                     'method_conflict': '所选专项技能与问题不一致，请调整技能或明确所需方法。',
                     'unsupported_target_scope': '当前方法不支持该对象或对象组合，尚未查询；不会用场景主对象替代。',
                     'target_confirmation_required': '本阶段无法唯一确认所指对象，请明确当前资料范围内的对象。',

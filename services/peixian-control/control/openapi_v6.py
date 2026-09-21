@@ -13,7 +13,7 @@ def extend_schemas(result):
         if name in result:result[name]['properties'].update(fields)
     if 'AdminModel' in result:result['AdminModel']['properties'].update({'test_status':STRING,'updated_at':nullable({'type':'string','format':'date-time'})})
     result['ModelTestResult']=obj({'ok':BOOL,'message':STRING,'elapsed_ms':{'type':'integer'}},('ok','message','elapsed_ms'))
-    if 'Health' in result and 'schema_version' in result['Health'].get('properties',{}):result['Health']['properties']['schema_version']={'type':'integer','enum':[4,5,6,7]}
+    if 'Health' in result and 'schema_version' in result['Health'].get('properties',{}):result['Health']['properties']['schema_version']={'type':'integer','enum':[4,5,6,7,8]}
     result['Error']['properties']['field_errors']={'type':'object','additionalProperties':STRING}
     integer={'type':'integer'}
     dt={'type':'string','format':'date-time'}
@@ -32,7 +32,11 @@ def extend_schemas(result):
     result['AgentPublic']['properties']['supported_intents']=array(STRING)
     result['AgentList']=obj({'items':array(ref('AgentPublic'))},('items',))
     result['AgentIdentity']=obj({k:STRING for k in ('schema_version','registry_version','id','version','domain','profile_sha256','prompt_sha256','default_scenario_id')})
-    result['RunTask']=obj({'run_id':ID,'task_spec':nullable(ref('TaskSpec')),'agent_profile':nullable(ref('AgentIdentity')),'effective_system_prompt_sha256':nullable(STRING),'response':nullable(obj({'code':STRING,'message':STRING},('code','message')))},('run_id','task_spec','response'))
+    result['RunTask']=obj({'run_id':ID,'task_spec':nullable(ref('TaskSpec')),'agent_profile':nullable(ref('AgentIdentity')),'effective_system_prompt_sha256':nullable(STRING),'response':nullable(obj({'code':STRING,'message':STRING,'clarification_id':ID},('code','message')))},('run_id','task_spec','response'))
+    result['TaskClarification']=obj({'schema':{'const':'peixian.task-clarification'},'version':{'const':'1.0'},'clarification_id':ID,'agent_id':ID,'field':{'const':'target_refs'},'question':STRING,'options':array(obj({'id':ID,'label':STRING},('id','label'))),'context_generation':{'type':'integer','minimum':1},'context_version':{'type':'integer','minimum':1},'status':{'enum':['pending','resolved','cancelled','expired']},'updated_at':dt},('schema','version','clarification_id','agent_id','field','question','options','context_generation','context_version','status','updated_at'))
+    result['ClarificationCancelBody']=obj({'context_generation':{'type':'integer','minimum':1},'context_version':{'type':'integer','minimum':1},'client_request_id':{'type':'string','minLength':1,'maxLength':128}},('context_generation','context_version','client_request_id'))
+    result['ClarificationResolveBody']=obj({**result['ClarificationCancelBody']['properties'],'option_id':ID},('option_id','context_generation','context_version','client_request_id'))
+    result['ClarificationChange']=obj({'resolved':BOOL,'cancelled':BOOL,'context_generation':integer,'context_version':integer,'resume_required':BOOL},('context_generation','context_version','resume_required'))
     result['TaskContext']=obj({'schema':{'const':'session-context-v1'},'agent_id':ID,'agent_profile_sha256':STRING,'generation':{'type':'integer','minimum':1},'version':{'type':'integer','minimum':1},'last_completed_run_id':nullable(ID),'last_data_run_id':nullable(ID),'pending_clarification_id':nullable(ID),'updated_at':dt},('schema','agent_id','agent_profile_sha256','generation','version','last_completed_run_id','last_data_run_id','pending_clarification_id','updated_at'))
     result['RunSource']=obj({'run_id':ID,'run_kind':nullable({'enum':['data_query','history_explanation','clarification','ordinary_chat']}),'direct_parent_run_id':nullable(ID),'source_data_run_id':nullable(ID),'projection_version':nullable(STRING),'projection_digest':nullable(STRING)},('run_id','run_kind','direct_parent_run_id','source_data_run_id','projection_version','projection_digest'))
     result['MessageBody']['properties']['context_version']={'type':'integer','minimum':1,'description':'可选的已读取上下文版本；旧版本返回409 task_context_changed。同请求标识重放仍返回首次受理。'}
@@ -84,9 +88,12 @@ def contracts():
     add('post','/sessions/{sid}/messages','MessageBody',ref('RunAccepted'),'提交消息并受理持久执行',desc='HTTP 202返回持久run_id和固定message_id；plugin_ids 是偏好；同 client_request_id 同内容返回首次受理，不自动重发未知执行。')
     add('get','/sessions/{sid}/context',None,{'type':'object','properties':{'scenario_id':{'type':['string','null']},'name':{'type':['string','null']},'source':{'type':'string'},'generation':{'type':['string','null']}}},'读取本人会话场景')
     add('delete','/sessions/{sid}/context',None,{'type':'object'},'清除本人会话场景',desc='需要 Idempotency-Key；执行未结束返回409；持久清除边界不删除历史。')
-    add('get','/sessions/{sid}/task-context',None,ref('TaskContext'),'读取本人会话任务上下文',desc='仅 schema v7 且双账号灰度开启；新会话可指定 agent_id，已绑定会话不能切换。')
+    add('get','/sessions/{sid}/task-context',None,ref('TaskContext'),'读取本人会话任务上下文',desc='仅 schema v7/v8 且双账号灰度开启；新会话可指定 agent_id，已绑定会话不能切换。')
     add('delete','/sessions/{sid}/task-context',None,ref('TaskContext'),'重置本人会话任务上下文',desc='需要 Idempotency-Key；增加 generation/version，清空指针，不改变助手、不删除历史；迟到执行不能恢复旧上下文。')
     add('get','/sessions/{sid}/runs/{rid}/source',None,ref('RunSource'),'读取本人执行的冻结历史来源',desc='只返回归属核对后的来源标识及投影摘要，不返回 Prompt、插件配置或规则实现。')
+    add('get','/sessions/{sid}/clarifications/{cid}',None,ref('TaskClarification'),'读取本人对象确认选项',desc='选项来自冻结的可信结构化资料；只公开选项 ID 与名称。')
+    add('post','/sessions/{sid}/clarifications/{cid}/resolve','ClarificationResolveBody',ref('ClarificationChange'),'确认对象',desc='零模型、零插件；需上下文代次及版本。成功返回 resume_required=true，随后标准消息才能查询。')
+    add('post','/sessions/{sid}/clarifications/{cid}/cancel','ClarificationCancelBody',ref('ClarificationChange'),'取消对象确认',desc='零查询；client_request_id 为此确认操作的幂等标识。')
     add('get','/capabilities',None,ref('CapabilityPage'),'查询当前可用能力','能力目录')
     add('get','/sessions/{sid}/runs',None,ref('RunPage'),'查询会话执行记录')
     add('get','/sessions/{sid}/runs/{rid}',None,ref('Run'),'查询执行状态')

@@ -112,6 +112,8 @@ def admit(store,db,uid,sid,task):
     if not context:return
     count=db.execute('UPDATE session_task_contexts SET version=version+1,updated=? WHERE uid=? AND session_id=? AND generation=? AND version=? AND agent_id=? AND agent_profile_sha256=?',(now(),uid,sid,context['generation'],context['version'],context['agent_id'],context['agent_profile_sha256'])).rowcount
     if count!=1:error('task_context_changed','会话上下文已更新，请刷新后再提交。',409)
+    from . import clarifications
+    clarifications.admit(store,db,uid,sid,task)
 
 def freeze(snapshot,payload,task):
     if not task.get('session_task_context'):return
@@ -130,10 +132,16 @@ def completed(store,db,rid):
     if not context or any(context[k]!=frozen[k] for k in ('agent_id','agent_profile_sha256','generation','version')):return
     data=rid if snap.get('run_kind')=='data_query' and project(store,dict(row),snap) else context['last_data_run_id']
     db.execute('UPDATE session_task_contexts SET version=version+1,last_completed_run_id=?,last_data_run_id=?,updated=? WHERE uid=? AND session_id=? AND generation=? AND version=?',(rid,data,now(),row['uid'],row['session_id'],context['generation'],context['version']))
+    if store.schema_version()>=8:
+        from .clarifications import sync
+        sync(db,row['uid'],row['session_id'])
 
 def reset(store,uid,sid,profile):
     with store.tx() as db:
         ensure(store,uid,sid,profile)
+        if store.schema_version()>=8:
+            from .clarifications import expire
+            expire(store,db,uid,sid)
         db.execute('UPDATE session_task_contexts SET generation=generation+1,version=version+1,last_completed_run_id=NULL,last_data_run_id=NULL,confirmed_targets_ciphertext=NULL,pending_clarification_id=NULL,updated=? WHERE uid=? AND session_id=?',(now(),uid,sid))
         high=db.execute('SELECT coalesce(max(rowid),0) FROM business_runs WHERE uid=? AND session_id=?',(uid,sid)).fetchone()[0]
         store.audit(uid,'session.context.reset.'+str(high),sid,actor_role='user')

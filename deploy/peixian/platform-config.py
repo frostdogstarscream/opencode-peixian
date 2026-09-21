@@ -86,9 +86,9 @@ def image_supports_orchestration(labels, component, version):
     if labels.get("org.peixian.runtime.protocol") != "2":
         raise ConfigError("runtime_image_protocol_incompatible")
     if component == "control" and (labels.get("org.peixian.worker.protocol") != "2"
-                                     or labels.get("org.peixian.control.schema.max") not in ("4", "5", "6", "7")):
+                                     or labels.get("org.peixian.control.schema.max") not in ("4", "5", "6", "7", "8")):
         raise ConfigError("control_image_orchestration_incompatible")
-    if version == 4 and component == "control" and (labels.get("org.peixian.control.schema.max") not in ("5", "6", "7")
+    if version == 4 and component == "control" and (labels.get("org.peixian.control.schema.max") not in ("5", "6", "7", "8")
             or pool_settings.CAPABILITY not in labels.get("org.peixian.worker.capabilities", "").split(",")):
         raise ConfigError("control_image_runtime_pool_incompatible")
 

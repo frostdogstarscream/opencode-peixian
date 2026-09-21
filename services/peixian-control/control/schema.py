@@ -9,6 +9,8 @@ def validate(db):
         from .migrations_v6 import validate as check
     elif version == 7:
         from .migrations_v7 import validate as check
+    elif version == 8:
+        from .migrations_v8 import validate as check
     else:
         raise ValueError("Unsupported Control database schema")
     check(db)

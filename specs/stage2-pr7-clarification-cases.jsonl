@@ -1,0 +1,8 @@
+{"id": "C1", "agent_id": "theft-assistant", "seed": null, "reset": false, "text": "查看那辆车", "expected": "target_missing"}
+{"id": "C2", "agent_id": "theft-assistant", "seed": "看看车辆记录", "reset": false, "text": "查看那辆车", "expected": "target_confirmation_required"}
+{"id": "C3", "agent_id": "gambling-assistant", "seed": null, "reset": false, "text": "查看那辆车", "expected": "supported_scope"}
+{"id": "C4", "agent_id": "gambling-assistant", "seed": "看看资金", "reset": false, "text": "查询这个账户资金", "expected": "unsupported_target_scope"}
+{"id": "C5", "agent_id": "gambling-assistant", "seed": null, "reset": false, "text": "查询这两个人资金", "expected": "unsupported_target_scope"}
+{"id": "C6", "agent_id": "theft-assistant", "seed": null, "reset": false, "text": "查看他资金", "expected": "supported_scope"}
+{"id": "C7", "agent_id": "theft-assistant", "seed": "看看车辆记录", "reset": true, "text": "查看那辆车", "expected": "target_missing"}
+{"id": "C8", "agent_id": "theft-assistant", "seed": "看看车辆记录", "reset": false, "text": "查询身份证32038219980826003X的车辆", "expected": "supported_scope"}

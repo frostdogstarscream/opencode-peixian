@@ -1,0 +1,202 @@
+/* 2026-09-21: approved Peixian visual assets and full-width graph workspace. */
+.login-shell {
+  grid-template-columns: minmax(0, 64.5833%) minmax(0, 35.4167%);
+  min-height: 100dvh;
+  background: #eef6ff;
+}
+.login-shell .login-story {
+  min-width: 0;
+  background-color: #07396f;
+  background-image: var(--login-story);
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+.login-story-title {
+  position: absolute;
+  top: clamp(34px, 5.2vh, 66px);
+  left: clamp(38px, 5vw, 92px);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: clamp(18px, 2vw, 30px);
+  margin: 0;
+  color: #fff;
+  text-shadow: 0 2px 12px #052c5db0;
+}
+.login-story-title img {
+  width: clamp(64px, 5.4vw, 98px);
+  height: clamp(70px, 6vw, 108px);
+  object-fit: contain;
+}
+.login-story-title strong,
+.login-story-title span { display: block; }
+.login-story-title strong { font-size: clamp(27px, 2.65vw, 49px); letter-spacing: 7px; }
+.login-story-title span { margin-top: 6px; font-size: clamp(13px, 1.22vw, 22px); letter-spacing: 4px; }
+.login-story-slogan {
+  position: absolute;
+  z-index: 2;
+  top: 31.5%;
+  left: 23%;
+  display: grid;
+  gap: 18px;
+  color: #07366d;
+  text-align: center;
+  text-shadow: 0 1px 10px #ffffffc9;
+}
+.login-story-slogan strong { font: 700 clamp(31px, 3.1vw, 57px)/1.25 "STKaiti", "KaiTi", serif; letter-spacing: 8px; }
+.login-story-slogan span { font-size: clamp(13px, 1.25vw, 22px); font-weight: 600; letter-spacing: 4px; }
+.login-shell .login-side {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(150px, 19vh, 205px) clamp(30px, 3vw, 58px) clamp(125px, 15vh, 168px);
+  background-color: #f8fbff;
+  background-image: var(--login-side);
+  background-position: center center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+.login-shell .login-side::before,
+.login-corner-copy,
+.login-people-first,
+.login-shell .login-foot { display: none; }
+.login-side > .login-card {
+  width: min(100%, 520px);
+  max-width: 520px;
+  padding: clamp(31px, 4.1vh, 45px) clamp(30px, 2.5vw, 48px);
+  border: 1px solid #c8dcf5;
+  border-radius: 14px;
+  background: #ffffffed;
+  box-shadow: 0 18px 56px #174d8a17;
+  backdrop-filter: blur(3px);
+}
+
+.app-shell {
+  background: #e8f2fd url("./assets/peixian-judgement-background.webp") center center / cover no-repeat;
+}
+.business-shell > .sidebar,
+.admin-shell > .sidebar {
+  width: 215px;
+  padding: 0;
+  border-right: 1px solid #d4e4f348;
+  background: linear-gradient(180deg, #062f606b, #062b5685);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.business-shell > .sidebar .brand,
+.admin-shell > .sidebar .brand {
+  height: 82px;
+  margin: 0;
+  padding: 0 16px;
+  gap: 10px;
+  border-bottom: 1px solid #ffffff24;
+}
+.business-shell > .sidebar .brand-mark,
+.admin-shell > .sidebar .brand-mark {
+  width: 54px;
+  height: 58px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+  box-shadow: none;
+}
+.business-shell > .sidebar .brand strong,
+.admin-shell > .sidebar .brand strong { color: #fff; font-size: 19px; letter-spacing: 2px; text-shadow: 0 2px 8px #052950a8; }
+.business-shell > .sidebar .brand small,
+.admin-shell > .sidebar .brand small { color: #e1edf9; font-size: 9px; text-shadow: 0 1px 6px #052950c0; }
+.business-shell > .sidebar nav button,
+.admin-shell > .sidebar nav button { color: #ecf5ff; text-shadow: 0 1px 5px #062b59b0; }
+.business-shell > .sidebar nav button.active,
+.admin-shell > .sidebar nav button.active { background: linear-gradient(90deg, #0877ffcf, #0963daa8); }
+.business-shell .main-area,
+.admin-shell .main-area { background: transparent; }
+.business-shell .topbar,
+.admin-shell .topbar {
+  position: relative;
+  height: 82px;
+  min-height: 82px;
+  padding: 0 22px;
+  border-bottom: 1px solid #c7dbef82;
+  background: linear-gradient(90deg, #0c55a50f, #f9fcff42 52%, #f8fbffe0);
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.admin-shell .topbar::after { display: none; }
+.business-top-motto,
+.admin-top-motto {
+  position: absolute;
+  top: 13px;
+  left: 35px;
+  min-width: 430px;
+  transform: none;
+  color: #eef6ff;
+  text-align: left;
+  text-shadow: 0 1px 8px #07376a8c;
+}
+.business-top-motto strong,
+.admin-top-motto strong { font: 700 19px/1.4 "STKaiti", "KaiTi", serif; letter-spacing: 5px; }
+.business-top-motto small,
+.admin-top-motto small { margin-top: 3px; color: #e3eefb; font-size: 11px; letter-spacing: 3px; }
+.business-profile,
+.admin-profile { color: #143d70; }
+.business-shell .page-body,
+.admin-shell .page-body { background: #f5f9fdd4; }
+.business-shell .chat-page-body { background: #f7faffc9; }
+
+.graph-overlay {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  padding: clamp(56px, 8vh, 90px) clamp(32px, 6vw, 110px);
+  background: #071d3ca8;
+}
+.graph-overlay > div {
+  width: min(1180px, calc(100vw - 64px));
+  max-height: calc(100dvh - 112px);
+  padding: 18px;
+  overflow: auto;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 28px 80px #06172f5c;
+}
+.graph-overlay .entity-graph-canvas.large { width: 100%; height: min(66vh, 680px); }
+.graph-relation-tooltip {
+  position: absolute;
+  z-index: 8;
+  min-width: 190px;
+  max-width: 260px;
+  transform: translate(-50%, calc(-100% - 12px));
+  pointer-events: none;
+  box-shadow: 0 7px 22px #153b6638;
+}
+
+@media (max-width: 1100px) {
+  .login-shell { grid-template-columns: 56% 44%; }
+  .login-story-slogan { left: 14%; }
+  .login-shell .login-side { padding-right: 25px; padding-left: 25px; }
+  .business-top-motto,
+  .admin-top-motto { min-width: 330px; }
+}
+@media (max-width: 760px) {
+  .login-shell { display: block; background: #f7fbff; }
+  .login-shell .login-story { min-height: 230px; background-position: center 46%; }
+  .login-story-title { top: 22px; left: 24px; }
+  .login-story-title img { width: 53px; height: 60px; }
+  .login-story-title strong { font-size: 25px; }
+  .login-story-title span { font-size: 12px; }
+  .login-story-slogan { display: none; }
+  .login-shell .login-side { min-height: calc(100dvh - 230px); padding: 32px 18px 52px; background-position: center center; background-size: 100% 100%; }
+  .login-side > .login-card { padding: 27px 23px; }
+  .business-top-motto,
+  .admin-top-motto { display: none; }
+  .graph-overlay { padding: 24px 14px; }
+  .graph-overlay > div { width: 100%; max-height: calc(100dvh - 48px); }
+  .graph-overlay .entity-graph-canvas.large { height: 60vh; }
+}

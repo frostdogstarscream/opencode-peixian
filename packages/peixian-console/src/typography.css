@@ -1,0 +1,401 @@
+/* Typography and brand layout for the 1920 × 1080 Peixian prototype. */
+:root {
+  --font-ui: "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  --font-culture: "LXGW WenKai", "STKaiti", "KaiTi", serif;
+  --font-serif: "Source Han Serif SC", "Noto Serif CJK SC", "SimSun", serif;
+  --font-family-sans: var(--font-ui);
+  --font-family-cultural: "STKaiti", "KaiTi", serif;
+  --font-family-cultural-subtitle: var(--font-serif);
+  --police-header-gradient: linear-gradient(90deg, #123b75 0%, #1d5396 22%, #276ab7 45%, #83b9eb 68%, #d8eafb 86%, #eef7ff 100%);
+  --brand-emblem-login-box: 118px;
+  --brand-emblem-header-box: 88px;
+  --culture-title-login-box: 29px;
+  --culture-title-hero-box: 105px;
+  --culture-title-header-box: 26px;
+  font-family: var(--font-family-sans);
+}
+
+.app-shell > .sidebar {
+  position: relative;
+  z-index: 2;
+}
+
+.business-shell > .sidebar .brand,
+.admin-shell > .sidebar .brand {
+  position: relative;
+  z-index: 3;
+  width: 430px;
+  min-height: 128px;
+  height: 128px;
+  flex-shrink: 0;
+  gap: 18px;
+  padding: 0 28px 0 30px;
+  background: var(--police-header-gradient);
+  background-size: 100vw 100%;
+  background-position: left top;
+  border-bottom: 0;
+}
+
+.business-shell > .sidebar .brand::after,
+.admin-shell > .sidebar .brand::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 1px;
+  height: 70px;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, .45);
+  pointer-events: none;
+}
+
+.business-shell > .sidebar .brand-mark,
+.admin-shell > .sidebar .brand-mark {
+  width: var(--brand-emblem-header-box);
+  height: auto;
+  flex: 0 0 var(--brand-emblem-header-box);
+  object-fit: contain;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-shell > .sidebar .brand .police-brand-name {
+  overflow: visible;
+  color: #fff;
+  font-family: var(--font-family-sans);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 3px;
+  text-overflow: clip;
+}
+
+.app-shell > .sidebar .brand .police-brand-subtitle {
+  overflow: visible;
+  margin-top: 5px;
+  color: rgba(255, 255, 255, .92);
+  font-family: var(--font-family-sans);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 2px;
+  text-overflow: clip;
+}
+
+.business-shell .topbar,
+.admin-shell .topbar {
+  height: 128px;
+  min-height: 128px;
+  background: var(--police-header-gradient);
+  background-size: 100vw 100%;
+  background-position: -215px top;
+}
+
+.business-top-motto,
+.admin-top-motto {
+  top: 50%;
+  left: 255px;
+  min-width: 450px;
+  transform: translateY(-50%);
+  font-family: var(--font-family-sans);
+}
+
+.topbar .police-header-slogan {
+  display: block;
+  color: #fff;
+  font-family: var(--font-family-sans);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 6px;
+}
+
+.topbar .police-header-values {
+  display: block;
+  margin-top: 5px;
+  color: rgba(255, 255, 255, .62);
+  font-family: var(--font-family-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 7px;
+}
+
+/* Culture is a fixed, centered Header region separate from account information. */
+.business-shell .topbar-status,
+.admin-shell .topbar-status { margin-left: auto; gap: 24px; min-width: 0; }
+.app-header__culture {
+  display: flex;
+  flex: 0 0 330px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+.app-header__culture-title {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: var(--culture-title-header-box);
+  object-fit: contain;
+}
+.app-header__culture-subtitle {
+  display: block;
+  color: #315e9c;
+  font-family: var(--font-family-cultural-subtitle);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 6px;
+  white-space: nowrap;
+}
+.app-header__account {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 185px;
+  padding-left: 24px;
+  border-left: 1px solid rgba(35, 83, 135, .22);
+}
+.app-header__account .admin-avatar {
+  flex: 0 0 43px;
+  width: 43px;
+  min-width: 43px;
+  max-width: 43px;
+  height: 43px;
+  min-height: 43px;
+  max-height: 43px;
+  box-sizing: border-box;
+  border-radius: 50%;
+}
+.app-header__user { min-width: 65px; }
+
+.sidebar-people-first {
+  margin-top: auto;
+  padding: 0 8px 30px;
+  color: #fff;
+  font-family: var(--font-family-cultural);
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 4px;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 2px 5px rgba(3, 31, 70, .8);
+}
+
+/* Keep administrator avatars circular beside long account names. */
+.admin-profile .admin-avatar,
+.business-profile .admin-avatar {
+  flex: 0 0 43px;
+  width: 43px;
+  height: 43px;
+  min-width: 43px;
+  min-height: 43px;
+  box-sizing: border-box;
+  border-radius: 50%;
+}
+
+/* Match the other administration pages' light title card. */
+.admin-shell .content-page > .page-head {
+  min-height: 116px;
+  padding: 20px 22px;
+  align-items: center;
+  border: 1px solid #dbe8f6;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 3px 12px #1b589308;
+}
+
+@media (max-width: 1450px) {
+  .business-shell > .sidebar .brand,
+  .admin-shell > .sidebar .brand {
+    width: 360px;
+    gap: 12px;
+    padding-left: 18px;
+  }
+  .business-shell > .sidebar .brand-mark,
+  .admin-shell > .sidebar .brand-mark {
+    width: 78px;
+    height: auto;
+    flex-basis: 78px;
+  }
+  .business-top-motto,
+  .admin-top-motto { left: 165px; }
+  .app-header__culture { flex-basis: 270px; }
+  .app-header__account { min-width: 170px; }
+}
+
+@media (max-width: 1100px) {
+  .business-top-motto,
+  .admin-top-motto,
+  .app-header__culture { display: none; }
+}
+
+@media (max-width: 760px) {
+  .business-shell > .sidebar .brand,
+  .admin-shell > .sidebar .brand {
+    width: 100%;
+    min-height: 82px;
+    height: 82px;
+  }
+  .business-shell > .sidebar .brand::after,
+  .admin-shell > .sidebar .brand::after { display: none; }
+  .app-shell > .sidebar .brand .police-brand-name { font-size: 23px; }
+  .app-shell > .sidebar .brand .police-brand-subtitle { font-size: 12px; }
+  .business-shell .topbar,
+  .admin-shell .topbar {
+    height: 82px;
+    min-height: 82px;
+    background-position: left top;
+  }
+}
+
+/* The @2x title contains the complete calligraphic line. Its visible glyphs occupy
+   roughly 85.5% of the bitmap width and 91% of its height. */
+.login-story-title { top: 70px; left: 70px; gap: 16px; }
+.login-story-title .login-brand__emblem {
+  display: block;
+  width: var(--brand-emblem-login-box);
+  height: auto;
+  flex: 0 0 var(--brand-emblem-login-box);
+  object-fit: contain;
+}
+.login-shell .login-culture-heading {
+  position: absolute;
+  z-index: 1;
+  top: 66px;
+  right: 70px;
+  display: flex;
+  width: 320px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  text-align: center;
+}
+.login-culture-title {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: var(--culture-title-login-box);
+  object-fit: contain;
+}
+.login-shell .login-corner-subtitle {
+  margin: 0;
+  color: #7890b6;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 6px;
+  white-space: nowrap;
+}
+
+.login-shell .login-people-first {
+  display: block;
+  right: 0;
+  bottom: 123px;
+  left: 0;
+  color: #365a91;
+  font-family: var(--font-culture);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 5px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.login-shell .login-people-first::after {
+  width: 50px;
+  height: 1px;
+  margin: 18px auto 0;
+  background: rgba(120, 144, 182, .65);
+}
+
+.login-shell .login-foot {
+  display: block;
+  right: 0;
+  bottom: 34px;
+  left: 0;
+  color: #8296ba;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: .5px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+@media (min-width: 761px) and (max-width: 1439px) {
+  .login-shell .login-culture-heading { top: 45px; right: 26px; }
+  .login-shell .login-people-first { bottom: 88px; }
+  .login-shell .login-foot { bottom: 16px; font-size: 11px; }
+}
+
+@media (max-width: 760px) {
+  .login-shell .login-culture-heading,
+  .login-shell .login-people-first { display: none; }
+  .login-shell .login-foot {
+    bottom: 8px;
+    padding: 0 16px;
+    font-size: 10px;
+    line-height: 16px;
+    white-space: normal;
+  }
+}
+
+.login-story-slogan {
+  left: 50%;
+  width: min(860px, calc(100% - 48px));
+  transform: translateX(-50%);
+}
+.login-story-slogan .login-story-culture-image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: var(--culture-title-hero-box);
+  object-fit: contain;
+  justify-self: center;
+}
+.login-shell .login-side {
+  position: relative;
+  z-index: 1;
+  box-shadow: -2px 0 0 #f8fbff;
+}
+
+.admin-page-plugins > .section-toolbar,
+.admin-page-templates > .section-toolbar {
+  min-height: 62px;
+  margin: 18px 0 12px;
+  padding: 10px 16px;
+  border: 1px solid #dbe8f6;
+  border-radius: 10px;
+  background: rgba(248, 251, 255, .96);
+}
+.admin-page-plugins > .info-strip,
+.admin-page-connections .info-strip {
+  margin: 12px 0 18px;
+  border-color: #dbe8f6;
+  background: rgba(248, 251, 255, .96);
+}
+.admin-page-connections > .section-toolbar { display: none; }
+.admin-page-connections .info-strip { margin-top: 18px; }
+
+.audit-date-range { display: inline-flex; align-items: center; gap: 6px; }
+.prototype-filter-bar .audit-date-range input { width: 145px; min-height: 36px; padding: 0 8px; border: 1px solid #d6e4f2; border-radius: 6px; color: #315a8b; background: #fff; }
+
+@media (max-width: 760px) {
+  .login-story-title { top: 22px; left: 24px; }
+  .login-story-title .login-brand__emblem { width: 65px; flex-basis: 65px; }
+}
+
+@media (min-width: 761px) and (max-width: 1439px) {
+  :root { --culture-title-hero-box: 78px; }
+}

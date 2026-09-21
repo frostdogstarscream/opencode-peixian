@@ -1,9 +1,11 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, For, Index, onCleanup, Show } from "solid-js"
 import { api, ApiError, list, patch, post, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, Markdown, Modal, Spinner, Status } from "../components"
 import { useConsole } from "../context"
 import BusinessConfirmations from "../BusinessConfirmations"
-import { AnalysisResultView, ClueDrawer, CluePanel } from "../TrustedAnalysis"
+import { ClueDrawer, CluePanel } from "../TrustedAnalysis"
+import EntityGraphPanel from "../EntityGraph"
+import SmoothMarkdown from "../SmoothMarkdown"
 import type { TrustedEvidence } from "../TrustedAnalysis"
 import { isAnalysisResult, legacyPresentation } from "../result-contract"
 import RuntimeStatus from "../RuntimeStatus"
@@ -28,6 +30,7 @@ export default function Chat() {
   const [selectedPlugins, setSelectedPlugins] = createSignal<string[]>([])
   const [busy, setBusy] = createSignal(false)
   const [sending, setSending] = createSignal(false)
+  const [uploading, setUploading] = createSignal(false)
   const [uncertain, setUncertain] = createSignal(false)
   const [loading, setLoading] = createSignal(true)
   const [error, setError] = createSignal("")
@@ -49,6 +52,7 @@ export default function Chat() {
   const [trusted, setTrusted] = createSignal<TrustedEvidence>()
   const [selectedClue, setSelectedClue] = createSignal<AnalysisClue>()
   const [showClues, setShowClues] = createSignal(true)
+  const [insightTab, setInsightTab] = createSignal<"clues" | "graph">("clues")
   const [showHistory, setShowHistory] = createSignal(false)
   const [rename, setRename] = createSignal<Session>()
   const [title, setTitle] = createSignal("")
@@ -57,10 +61,14 @@ export default function Chat() {
   const [draftBusy, setDraftBusy] = createSignal(false)
   let scroll!: HTMLDivElement
   let textarea!: HTMLTextAreaElement
+  let fileInput!: HTMLInputElement
+  const displayedText = new Map<string, number>()
   let scrollFrame = 0
   let followOutput = true
+  let selectingText = false
+  let animateUntil = 0
   let selectionRevision = 0
-  let messageFlight: { id: string; revision: number; trailing: boolean; promise: Promise<void> } | undefined
+  let messageFlight: { id: string; revision: number; trailing: boolean; detail: boolean; promise: Promise<void> } | undefined
   const shownSessions = createMemo(() => sessions())
   const shownModels = createMemo(() => models())
   const shownCapabilities = createMemo(() => capabilities().filter((item) => item.enabled).map(item=>({...item,name:displayName(item.name),description:displayName(item.name)!==item.name?"整理相关资料并核对来源。":item.description})))
@@ -77,19 +85,19 @@ export default function Chat() {
     const gaps = result.run_id && runEvidence()?.run_id === result.run_id ? runEvidence()?.missing : undefined
     return { ...result, missing: [...new Set([...(result.missing ?? []), ...(gaps ?? [])])] }
   })
-  function analysisWithGaps(result: AnalysisResult): AnalysisResult {
-    return result.run_id && result.run_id === latestAnalysis()?.run_id ? latestAnalysis()! : result
-  }
-  const shownMessages = createMemo<{ message: Message; toolParts: Message["parts"] }[]>((previous) => messages().map((message, index, all) => {
-    const firstReply = message.info.role === "assistant" && all[index - 1]?.info.role !== "assistant"
-    const nextUser = firstReply ? all.findIndex((item, offset) => offset > index && item.info.role === "user") : -1
-    const toolParts = firstReply
-      ? all.slice(index, nextUser < 0 ? undefined : nextUser).flatMap((item) => item.info.role === "assistant" ? item.parts.filter((part) => part.type === "tool") : [])
-      : []
-    const old = previous?.[index]
-    return old?.message === message && old.toolParts.length === toolParts.length && old.toolParts.every((part, offset) => part === toolParts[offset])
-      ? old
-      : { message, toolParts }
+  const hasInsights = createMemo(() => Boolean(latestAnalysis()?.clues.length || latestAnalysis()?.diagram))
+  const sideMode = createMemo(() => !selected() && !messages().length ? "plugins" : hasInsights() ? (showClues() ? "insight" : "collapsed") : "empty")
+  const shownMessages = createMemo<{ message: Message; toolParts: Message["parts"]; missingBody: boolean }[]>(() => messages().flatMap((message, index, all) => {
+    if (message.info.role === "user") return [{ message, toolParts: [], missingBody: false }]
+    const turnStart = all.slice(0, index).map((item) => item.info.role).lastIndexOf("user") + 1
+    const nextUser = all.findIndex((item, offset) => offset > index && item.info.role === "user")
+    const turn = all.slice(turnStart, nextUser < 0 ? undefined : nextUser).filter((item) => item.info.role === "assistant")
+    const hasBody = (item: Message) => item.parts.some((part) => part.type === "text" && part.text?.trim()) || Boolean(item.info.error)
+    const anchor = turn.find(hasBody) ?? turn[0]
+    const toolParts = turn.flatMap((item) => item.parts.filter((part) => part.type === "tool"))
+    const hasAnalysis = turn.some((item) => item.parts.some((part) => part.type === "analysis_result" && isAnalysisResult(part.data)))
+    if (!hasBody(message) && (message !== anchor || (!toolParts.length && !hasAnalysis))) return []
+    return [{ message, toolParts: message === anchor ? toolParts : [], missingBody: message === anchor && !hasBody(message) && hasAnalysis }]
   }))
   createEffect(() => {
     const clue = selectedClue()
@@ -103,25 +111,29 @@ export default function Chat() {
   })
   const ready = createMemo(() => canSend(app.user().runtime))
   const available = createMemo(() => canObserve(app.user().runtime))
-  function fetchMessages(id: string): Promise<void> {
+  function fetchMessages(id: string, detail = true): Promise<void> {
     const revision = selectionRevision
     const owner = app.user().id
     if (messageFlight?.id === id && messageFlight.revision === revision) {
       messageFlight.trailing = true
+      messageFlight.detail ||= detail
       return messageFlight.promise
     }
-    const flight = { id, revision, trailing: false, promise: Promise.resolve() }
+    const flight = { id, revision, trailing: false, detail, promise: Promise.resolve() }
     messageFlight = flight
     const current = () => selected() === id && selectionRevision === revision && app.user().id === owner
     flight.promise = (async () => {
       do {
         flight.trailing = false
+        const includeDetail = flight.detail
+        flight.detail = false
         const data = await list<Message>("/sessions/" + id + "/messages")
         if (!current()) return
         setMessages((current) => data.map((message, index) => {
           const old = current[index]
           return old?.info.id === message.info.id && JSON.stringify(old) === JSON.stringify(message) ? old : message
         }))
+        if (!includeDetail) continue
         const hasAnalysis = data.some((message) => message.parts.some((part) => part.type === "analysis_result" && isAnalysisResult(part.data)))
         if (hasAnalysis) setTrusted(undefined)
         if (!hasAnalysis) {
@@ -227,7 +239,8 @@ export default function Chat() {
     void refresh()
     void resources()
   })
-  useResourceRefresh(["messages", "sessions", "runs"], refresh, 10000)
+  useResourceRefresh(["messages"], () => selected() ? fetchMessages(selected()!, false) : Promise.resolve(), 700)
+  useResourceRefresh(["sessions", "runs"], refresh, 10000)
   const poll = setInterval(() => {
     if (busy()) void refresh()
   }, 1800)
@@ -242,11 +255,17 @@ export default function Chat() {
     busy()
     cancelAnimationFrame(scrollFrame)
     scrollFrame = requestAnimationFrame(() => {
-      if (scroll && followOutput) scroll.scrollTop = scroll.scrollHeight
+      if (scroll && followOutput && !selectingText && !selectionInConversation()) scroll.scrollTop = scroll.scrollHeight
     })
   })
+  function selectionInConversation() {
+    const selection = window.getSelection()
+    return Boolean(selection && !selection.isCollapsed && selection.anchorNode && scroll?.contains(selection.anchorNode))
+  }
   async function choose(id: string) {
     selectionRevision++
+    displayedText.clear()
+    animateUntil = 0
     followOutput = true
     setSelected(id)
     setSelectedFiles([])
@@ -261,6 +280,8 @@ export default function Chat() {
     setRunEventRun(undefined)
     setRunEvidence(undefined)
     setSelectedClue(undefined)
+    setShowClues(true)
+    setInsightTab("clues")
     setError("")
     setShowHistory(false)
     setBusy(["busy", "retry"].includes(sessions().find((item) => item.id === id)?.status ?? "idle"))
@@ -272,6 +293,8 @@ export default function Chat() {
   }
   function fresh() {
     selectionRevision++
+    displayedText.clear()
+    animateUntil = 0
     followOutput = true
     setSelected(undefined)
     setMessages([])
@@ -282,6 +305,8 @@ export default function Chat() {
     setRunEventRun(undefined)
     setRunEvidence(undefined)
     setSelectedClue(undefined)
+    setShowClues(true)
+    setInsightTab("clues")
     if (!uncertain()) setDraft("")
     setSelectedFiles([])
     setScene(undefined)
@@ -339,6 +364,7 @@ export default function Chat() {
       if (app.user().id !== uid) return
       if (result.accepted !== true) throw new ApiError("提交结果待确认，请核对历史记录。", 0, "unknown_submission")
       accepted = true
+      animateUntil = Date.now() + 30000
       setLatestRun(result.run_id)
       setCurrentRun({ id: result.run_id, session_id: id, status: "queued", phase: "accepted", user_message_id: result.message_id, created_at: new Date().toISOString() })
       setRunEvents([])
@@ -402,6 +428,45 @@ export default function Chat() {
       return
     }
     setter(current.includes(id) ? current.filter((value) => value !== id) : [...current, id])
+  }
+  async function uploadLocal(chosen: FileList | null) {
+    if (!chosen?.length || uploading() || !ready()) return
+    const incoming = Array.from(chosen)
+    fileInput.value = ""
+    if (incoming.length + selectedFiles().length > 5) {
+      app.notify("每次最多关联五个文件。", "error")
+      return
+    }
+    const owner = app.user().id
+    const revision = selectionRevision
+    setUploading(true)
+    try {
+      for (const file of incoming) {
+        if (file.size > 20 * 1024 * 1024 || !/\.(xlsx|pdf|docx|txt|md|csv)$/i.test(file.name)) throw new Error("仅支持不超过 20 MiB 的 XLSX、PDF、DOCX、TXT、MD、CSV 文件。")
+        const body = new FormData()
+        body.append("file", file)
+        const uploaded = await api<FileItem>("/files", { method: "POST", body })
+        if (!uploaded.id) throw new Error("上传成功但未返回文件 ID，请在历史文件中核对。")
+        let readyFile: FileItem | undefined
+        for (let attempt = 0; attempt < 45; attempt++) {
+          if (owner !== app.user().id || revision !== selectionRevision) return
+          const inventory = await list<FileItem>("/files")
+          setFiles(inventory)
+          readyFile = inventory.find((item) => item.id === uploaded.id)
+          if (readyFile?.status === "ready") break
+          if (readyFile && ["partial", "failed", "error"].includes(readyFile.status ?? "")) throw new Error(`${file.name} 解析未完成，请拆分或重传。`)
+          await new Promise((resolve) => setTimeout(resolve, 2000))
+        }
+        if (readyFile?.status !== "ready") throw new Error(`${file.name} 已上传但仍在解析，暂不能关联；请稍后重新选择。`)
+        setSelectedFiles((current) => current.includes(uploaded.id) ? current : [...current, uploaded.id])
+      }
+      app.invalidate(["files"])
+      app.notify("文件已上传并解析完成，发送时将随消息关联。")
+    } catch (cause) {
+      app.notify((cause as Error).message, "error")
+    } finally {
+      if (owner === app.user().id) setUploading(false)
+    }
   }
   function toggleCapability(item: CapabilityItem) {
     if (item.available === false) {
@@ -542,12 +607,6 @@ export default function Chat() {
   }
   const RelatedCapabilities = () => (
     <aside class="related-capabilities">
-      <Show when={latestAnalysis()?.clues.length}>
-        <button class="clue-reopen" onClick={() => setShowClues(true)}>
-          <span><Icon name="star" size={16} />智能发现线索</span>
-          <b>{latestAnalysis()?.clues.length} 项 · 展开</b>
-        </button>
-      </Show>
       <div class="related-capabilities-head"><div><strong>相关插件技能</strong><small>当前账号全部可用能力</small></div><span>{shownCapabilities().length}</span></div>
       <div class="related-capabilities-list">
         <For each={shownCapabilities()}>
@@ -557,7 +616,7 @@ export default function Chat() {
     </aside>
   )
   return (
-    <div class="chat-layout">
+    <div class={"chat-layout side-mode-" + sideMode()}>
       <aside class={"history-panel " + (showHistory() ? "visible" : "")}>
         <div class="history-head">
           <strong>研判记录</strong>
@@ -622,6 +681,7 @@ export default function Chat() {
         </div>
       </aside>
       <section class="conversation">
+        <button class="mobile-history-open" aria-label="显示研判记录" aria-expanded={showHistory()} onClick={() => setShowHistory(!showHistory())}>研判记录</button>
         <Show when={!ready()}>
           <div class="runtime-banner">
             <Icon name="clock" size={17} />
@@ -638,29 +698,28 @@ export default function Chat() {
             <Status value={app.user().runtime?.status} />
           </div>
         </Show>
-        <div class="messages-scroll" ref={scroll} onScroll={() => { followOutput = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 96 }}>
+        <div class="messages-scroll" ref={scroll} onPointerDown={() => { selectingText = true }} onPointerUp={() => { selectingText = false }} onPointerCancel={() => { selectingText = false }} onScroll={() => { followOutput = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 96 }}>
           <Show
             when={messages().length}
-            fallback={<div class="conversation-blank" aria-label="空白研判对话区" />}
+            fallback={<Show when={!selected()} fallback={<div class="conversation-blank" aria-label="空白研判对话区" />}><div class="chat-welcome"><span class="welcome-icon"><Icon name="skill" size={25} /></span><h2>你好，我是你的智能研判助手</h2><p>可以从一个问题开始；重要结论请结合原始资料核验。</p><div class="welcome-questions"><For each={["你能帮我做什么？", "如何整理并核对已有资料？", "研判结论如何追溯依据？", "如何使用技能或插件？"]}>{(question) => <button onClick={() => { setDraft(question); textarea?.focus() }}>{question}<Icon name="send" size={14} /></button>}</For></div></div></Show>}
           >
             <div class="messages">
-              <For each={shownMessages()}>
+              <Index each={shownMessages()}>
                 {(entry) => {
-                  const message = entry.message
-                  const textParts = () => message.parts.filter((part) => part.type === "text" && part.text)
-                  const toolParts = () => entry.toolParts
-                  const analysisParts = () => message.parts.filter((part) => part.type === "analysis_result" && isAnalysisResult(part.data))
+                  const message = () => entry().message
+                  const textParts = () => message().parts.filter((part) => part.type === "text" && part.text)
+                  const toolParts = () => entry().toolParts
                   return (
-                  <article data-message-id={message.info.id} tabindex={-1} class={"message " + (message.info.role === "user" ? "user" : "assistant")}>
+                  <article data-message-id={message().info.id} tabindex={-1} class={"message " + (message().info.role === "user" ? "user" : "assistant")}>
                     <div class="message-avatar">
-                      <Show when={message.info.role === "user"} fallback={<Icon name="skill" size={17} />}>
+                      <Show when={message().info.role === "user"} fallback={<Icon name="skill" size={17} />}>
                         {app.user().username.slice(0, 1).toUpperCase()}
                       </Show>
                     </div>
                     <div class="message-content">
-                      <div class="message-author">{message.info.role === "user" ? "你" : "智能助手"}</div>
-                      <For each={textParts()}>{(part) => <Markdown text={part.text ?? ""} />}</For>
-                      <For each={analysisParts()}>{(part) => <AnalysisResultView result={analysisWithGaps(part.data as AnalysisResult)} onSelect={setSelectedClue}/>}</For>
+                      <div class="message-author">{message().info.role === "user" ? "你" : "智能助手"}</div>
+                      <For each={textParts()}>{(part, index) => message().info.role === "assistant" ? <SmoothMarkdown id={`${selected()}:${message().info.id}:${part.id ?? index()}`} text={part.text ?? ""} live={busy() || Date.now() < animateUntil} cache={displayedText} onProgress={() => { if (scroll && followOutput && !selectingText && !selectionInConversation()) scroll.scrollTop = scroll.scrollHeight }} /> : <Markdown text={part.text ?? ""} />}</For>
+                      <Show when={entry().missingBody}><p class="message-no-body">本轮暂无可展示的 Markdown 正文；右侧线索仍可查看。</p></Show>
                       <Show when={toolParts().length}>
                         <details class="tool-trace">
                           <summary>
@@ -724,11 +783,11 @@ export default function Chat() {
                           </div>
                         </details>
                       </Show>
-                      <Show when={message.info.error}>
+                      <Show when={message().info.error}>
                         <ErrorLine
                           message={
-                            message.info.error?.data?.message ||
-                            message.info.error?.message ||
+                            message().info.error?.data?.message ||
+                            message().info.error?.message ||
                             "本次生成未完成，请检查工作空间状态后重试。"
                           }
                         />
@@ -737,15 +796,7 @@ export default function Chat() {
                   </article>
                   )
                 }}
-              </For>
-              <Show when={!messageAnalysis() && latestAnalysis()}>{result=><article class="message assistant"><div class="message-avatar"><Icon name="skill" size={17}/></div><div class="message-content"><div class="message-author">智能助手</div><AnalysisResultView result={result()} onSelect={setSelectedClue}/></div></article>}</Show>
-              <Show when={busy()}>
-                <div class="thinking">
-                  <Spinner />
-                  <span>正在整理思路与资料…</span>
-                  <button onClick={abort}>停止</button>
-                </div>
-              </Show>
+              </Index>
             </div>
           </Show>
         </div>
@@ -806,6 +857,7 @@ export default function Chat() {
             </div>
           </Show>
           <div class="composer">
+            <input ref={fileInput} type="file" multiple accept=".xlsx,.pdf,.docx,.txt,.md,.csv" class="chat-file-input" aria-label="从本地选择文件" onChange={(event) => void uploadLocal(event.currentTarget.files)} />
             <textarea
               ref={textarea}
               aria-label="输入消息"
@@ -823,13 +875,13 @@ export default function Chat() {
             />
             <div class="composer-tools">
               <div class="composer-shortcuts">
-                <button class="history-toggle" aria-label="显示对话记录" title="显示对话记录" onClick={() => setShowHistory(!showHistory())}><Icon name="clock" size={17} /></button>
                 <button onClick={() => setPicker("capabilities")}>
                   <Icon name="skill" size={17} />
                   能力
                 </button>
-                <button aria-label="关联文件" title="关联文件" onClick={() => setPicker("files")}>
+                <button aria-label="从本地上传文件" title="从本地上传文件" disabled={uploading()} onClick={() => fileInput?.click()}>
                   <Icon name="paperclip" size={19} />
+                  {uploading() ? "解析中…" : "文件"}
                 </button>
               </div>
               <div class="model-choice">
@@ -863,8 +915,17 @@ export default function Chat() {
           </div>
         </div>
       </section>
-      <Show when={latestAnalysis()?.clues.length && showClues()} fallback={<RelatedCapabilities />}>
-        <CluePanel clues={latestAnalysis()?.clues ?? []} expanded={showClues()} onExpandedChange={setShowClues} onSelect={setSelectedClue} />
+      <Show when={sideMode() !== "empty"}>
+        <aside class={"insight-sidebar rail-" + sideMode()} aria-label="研判侧栏">
+          <Show when={sideMode() === "plugins"}><RelatedCapabilities /></Show>
+          <Show when={sideMode() === "collapsed"}><button class="insight-reopen" onClick={() => setShowClues(true)} aria-label="展开研判侧栏" title="展开研判侧栏"><Icon name="star" size={17} /></button></Show>
+          <Show when={sideMode() === "insight"}>
+            <div class="insight-single-head"><strong>{insightTab() === "clues" ? "智能发现线索" : "实体关系图谱"}</strong><div><button class="insight-icon-button" aria-label="切换侧栏内容" title="切换侧栏内容" onClick={() => setInsightTab(insightTab() === "clues" ? "graph" : "clues")}><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h15l-4-4M20 16H5l4 4" /></svg></button><button class="insight-icon-button" aria-label="收起侧栏" title="收起侧栏" onClick={() => setShowClues(false)}><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 15 7-7 7 7" /></svg></button></div></div>
+            <Show when={insightTab() === "clues"} fallback={<EntityGraphPanel />}>
+              <CluePanel clues={latestAnalysis()?.clues ?? []} expanded={showClues()} onExpandedChange={setShowClues} onSelect={setSelectedClue} hideHeader />
+            </Show>
+          </Show>
+        </aside>
       </Show>
       <Show when={selectedClue()}>{(clue) => <ClueDrawer clue={clue()} onClose={() => setSelectedClue(undefined)} onReturn={clue().message_id ? ()=>{const id=clue().message_id;setSelectedClue(undefined);queueMicrotask(()=>{const target=Array.from(document.querySelectorAll<HTMLElement>('[data-message-id]')).find(el=>el.dataset.messageId===id);target?.scrollIntoView({block:"center"});target?.focus()})}:undefined} />}</Show>
       <Show when={picker()}>

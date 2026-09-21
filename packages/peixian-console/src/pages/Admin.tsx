@@ -408,7 +408,7 @@ export default function Admin(props: { section?: string } = {}) {
     }
   }
   return (
-    <div class="content-page admin-page">
+    <div class={"content-page admin-page admin-page-" + tab()}>
       <PageHead
         eyebrow={roleNames[app.user().role]}
         title={tabs().find((item) => item.id === tab())?.label ?? "管理中心"}

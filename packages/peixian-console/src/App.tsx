@@ -14,14 +14,16 @@ import { defaultPlatform, platformMetadata } from "./platform"
 import type { Platform } from "./platform"
 import { connectEvents, createChangeBus, parseChange, resources } from "./events"
 import RuntimeStatus from "./RuntimeStatus"
-import loginStory from "./assets/peixian-login-story.webp"
+import loginStory from "./assets/peixian-login-left.webp"
+import loginSide from "./assets/peixian-login-right.webp"
+import policeEmblem from "./assets/police-emblem.png"
+import cultureTitle from "./assets/peixian-culture-title.png"
 import loginFeatureAnalysis from "./assets/login-feature-analysis.svg"
 import loginFeatureCapability from "./assets/login-feature-capability.svg"
 import loginFeatureKnowledge from "./assets/login-feature-knowledge.svg"
 import loginFeatureCollaboration from "./assets/login-feature-collaboration.svg"
 const pages = [
   { id: "chat", name: "智能研判", icon: "chat" },
-  { id: "files", name: "我的文件", icon: "file" },
   { id: "settings", name: "个人设置", icon: "settings" },
 ]
 export default function App() {
@@ -216,10 +218,10 @@ export default function App() {
                       setMenu(false)
                     }}
                   >
-                    <span class="brand-mark">{platform().short_name}</span>
+                    <img class="brand-mark app-header__emblem" src={policeEmblem} alt="中华人民共和国人民警察警徽" />
                     <span>
-                      <strong>{platform().name}</strong>
-                      <small>{platform().description}</small>
+                      <strong class="police-brand-name">沛警智枢</strong>
+                      <small class="police-brand-subtitle">沛县公安智能研判平台</small>
                     </span>
                   </a>
                   <div class="space-label">
@@ -248,6 +250,7 @@ export default function App() {
                       <For each={adminPages()}>{(item) => <button class={page() === item.id ? "active" : ""} onClick={() => { setPage(item.id); setMenu(false) }} aria-current={page() === item.id ? "page" : undefined}><Icon name={item.icon} /><span>{item.name}</span><Show when={page() === item.id}><span class="nav-dot" /></Show></button>}</For>
                     </Show>
                   </nav>
+                  <div class="sidebar-people-first">人民公安为人民</div>
                 </aside>
                 <main class="main-area">
                   <header class="topbar">
@@ -255,15 +258,21 @@ export default function App() {
                       <button class="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMenu(true)}>
                         <Icon name="menu" />
                       </button>
-                      <Show when={can("business.use")} fallback={<div class="admin-top-motto"><strong>忠诚　为民　公正　廉洁</strong><small>汉风古韵 · 平安沛县</small></div>}><div class="business-top-motto"><strong>忠诚　为民　公正　廉洁</strong><small>汉风古韵 · 平安沛县</small></div></Show>
+                      <Show when={can("business.use")} fallback={<div class="admin-top-motto"><strong class="police-header-slogan">科技赋能公安　智慧守护平安</strong><small class="police-header-values">忠诚｜为民｜公正｜廉洁</small></div>}><div class="business-top-motto"><strong class="police-header-slogan">科技赋能公安　智慧守护平安</strong><small class="police-header-values">忠诚｜为民｜公正｜廉洁</small></div></Show>
                     </div>
                     <div class="topbar-status">
                       <Show when={disconnected()}>
                         <span class="connection-note">正在恢复连接</span>
                       </Show>
-                      <Show when={can("business.use")} fallback={<div class="admin-profile"><span class="admin-avatar">警</span><span><strong>{session().user.display_name || session().user.username}</strong><small>{roleNames[session().user.role]}</small></span><button class="icon-button" aria-label="退出登录" title="退出登录" onClick={logout}><Icon name="logout" size={17} /></button></div>}>
-                        <div class="business-profile"><span class="business-location">江苏 · 沛县<small>千年汉风地 · 今日平安城</small></span><span class="admin-avatar">警</span><span><strong>{session().user.display_name || session().user.username}</strong><small>{session().user.position || roleNames[session().user.role]}</small></span><button class="icon-button" aria-label="退出登录" title="退出登录" onClick={logout}><Icon name="logout" size={17} /></button></div>
-                      </Show>
+                      <div class="app-header__culture">
+                        <img class="app-header__culture-title" src={cultureTitle} alt="汉风古韵 · 平安沛县" />
+                        <small class="app-header__culture-subtitle">千年文脉　警心守护</small>
+                      </div>
+                      <div class={"app-header__account " + (can("business.use") ? "business-profile" : "admin-profile")}>
+                        <span class="admin-avatar">警</span>
+                        <span class="app-header__user"><strong>{session().user.display_name || session().user.username}</strong><small>{can("business.use") ? session().user.position || roleNames[session().user.role] : roleNames[session().user.role]}</small></span>
+                        <button class="icon-button" aria-label="退出登录" title="退出登录" onClick={logout}><Icon name="logout" size={17} /></button>
+                      </div>
                     </div>
                   </header>
                   <Show when={can("business.use") && page() !== "chat"}><RuntimeStatus /></Show>
@@ -335,6 +344,8 @@ function Login(props: {
     <div class="login-shell">
       <div class="login-story" style={{ "--login-story": `url(${loginStory})` }}>
         <span class="login-story-accessible">沛警智枢，沛县公安智能研判平台。汉风古韵，平安沛县。</span>
+        <div class="login-story-title"><img class="login-brand__emblem" src={policeEmblem} alt="中华人民共和国人民警察警徽" /><div><strong>沛警智枢</strong><span>沛县公安智能研判平台</span></div></div>
+        <div class="login-story-slogan"><img class="login-story-culture-image" src={cultureTitle} alt="汉风古韵 平安沛县" /><span>—　以数据洞察风险　以智能守护平安　—</span></div>
         <div class="login-story-features">
           <div class="login-story-feature">
             <img src={loginFeatureAnalysis} alt="" />
@@ -358,8 +369,8 @@ function Login(props: {
           </div>
         </div>
       </div>
-      <div class="login-side">
-        <div class="login-corner-copy">汉风古韵 · 平安沛县</div>
+      <div class="login-side" style={{ "--login-side": `url(${loginSide})` }}>
+        <div class="login-culture-heading"><img class="login-culture-title" src={cultureTitle} alt="汉风古韵 · 平安沛县" /><div class="login-corner-subtitle">千年文脉　警心守护</div></div>
         <form class="login-card" onSubmit={submit}>
           <div class="login-welcome"><span>欢迎登录</span><strong>沛警智枢</strong></div>
           <p class="login-subtitle">沛 县 公 安 智 能 研 判 平 台</p>
@@ -394,7 +405,7 @@ function Login(props: {
           <small>登录遇到问题，请联系系统管理员</small>
         </form>
         <div class="login-people-first">人民公安为人民</div>
-        <div class="login-foot">© 2026 沛县公安局　|　建议使用 Chrome / Edge 浏览器</div>
+        <div class="login-foot">© 2024 沛县公安局 ｜ 苏ICP备XXXXXX号 ｜ 建议使用 Chrome / Edge 浏览器</div>
       </div>
     </div>
   )

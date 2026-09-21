@@ -16,8 +16,8 @@ export function AnalysisResultView(props: {result: Presentation; onSelect: (clue
     <Show when={props.result.next_steps?.trim()}><section class="analysis-section analysis-next-steps"><h3>下一步建议</h3><p>{props.result.next_steps}</p></section></Show>
   </div>
 }
-export function CluePanel(props:{clues:AnalysisClue[];expanded:boolean;onExpandedChange:(expanded:boolean)=>void;onSelect:(clue:AnalysisClue)=>void}) {
- return <aside class="clue-panel trusted-clues expanded" aria-label="智能发现线索"><button class="clue-panel-head" onClick={()=>props.onExpandedChange(false)} aria-expanded={props.expanded} aria-label="收起智能发现线索"><strong><Icon name="star" size={18}/>智能发现线索</strong><span class="clue-panel-actions"><small>{props.clues.length} 项</small><b>收起</b></span></button><div class="clue-list"><For each={props.clues}>{clue=><article class={"clue-card clue-"+clue.type}><div class="clue-card-head"><span><Icon name={icon(clue.type)} size={18}/></span><strong>{clue.title}</strong></div><h4>{clue.headline}</h4><button onClick={()=>props.onSelect(clue)}>查看详情</button></article>}</For></div></aside>
+export function CluePanel(props:{clues:AnalysisClue[];expanded:boolean;onExpandedChange:(expanded:boolean)=>void;onSelect:(clue:AnalysisClue)=>void;hideHeader?:boolean}) {
+ return <aside class="clue-panel trusted-clues expanded" aria-label="智能发现线索"><Show when={!props.hideHeader}><button class="clue-panel-head" onClick={()=>props.onExpandedChange(false)} aria-expanded={props.expanded} aria-label="收起智能发现线索"><strong><Icon name="star" size={18}/>智能发现线索</strong><span class="clue-panel-actions"><small>{props.clues.length} 项</small><b>收起</b></span></button></Show><div class="clue-list"><For each={props.clues}>{clue=><article class={"clue-card clue-"+clue.type}><div class="clue-card-head"><span><Icon name={icon(clue.type)} size={18}/></span><strong>{clue.title}</strong></div><h4>{clue.headline}</h4><button onClick={()=>props.onSelect(clue)}>查看详情</button></article>}</For></div></aside>
 }
 export function ClueDrawer(props:{clue:AnalysisClue;onClose:()=>void;onReturn?:()=>void}) {
  let dialog!:HTMLDialogElement

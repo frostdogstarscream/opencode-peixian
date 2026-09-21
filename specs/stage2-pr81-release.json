@@ -2,15 +2,20 @@
   "stage": "pr81",
   "baseline": "f0e8009b9f909a3798b7c1fb83ee9282402f714f",
   "schema_version": 9,
-  "closeout_status": "pending",
-  "implementation_revision": null,
+  "closeout_status": "completed",
+  "implementation_revision": "de61d887cf70f40beaccace262b2585df87237d3",
   "deployment_performed": false,
   "real_data_accessed": false,
   "model_requests": 0,
   "open_p0": 0,
   "unaccepted_p1": 0,
   "github_ci": {
-    "executed": false
+    "executed": true,
+    "head_sha": "de61d887cf70f40beaccace262b2585df87237d3",
+    "conclusion": "success",
+    "workflow": "Peixian PR-8.1 Result Integration Review checks",
+    "run_id": 35664888051,
+    "url": "https://github.com/frostdogstarscream/opencode-peixian/actions/runs/35664888051"
   },
   "tests": {
     "targeted": {
@@ -30,6 +35,32 @@
     "dependency_audit": {
       "total": 0,
       "exit_code": 0
+    },
+    "control_gateway": {
+      "exit_code": 0,
+      "passed": 948
+    },
+    "deployment": {
+      "exit_code": 0,
+      "passed": 57,
+      "subtests": 10
+    },
+    "bun": {
+      "exit_code": 0,
+      "passed": 14
+    },
+    "historical": {
+      "exit_code": 0,
+      "stages": [
+        "pr5",
+        "pr55",
+        "pr56",
+        "pr6",
+        "pr7",
+        "pr71",
+        "pr8a",
+        "pr8b"
+      ]
     }
   }
 }

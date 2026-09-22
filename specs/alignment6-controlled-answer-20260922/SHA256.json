@@ -1,0 +1,62 @@
+[
+  {
+    "path": "browser-results.json",
+    "sha256": "c81cf06243ae1e921ba3ca92e1fd73b6f7288a97a7e5ada9abe70b7e06869c22",
+    "bytes": 1855
+  },
+  {
+    "path": "graph-interaction.json",
+    "sha256": "e5aab5daff59856727f00c1c06cd161ebc74691c470607cbd3ed6f297fd8a664",
+    "bytes": 94
+  },
+  {
+    "path": "history-compatibility.json",
+    "sha256": "d08689f19ce95a71e832cb43058b2f883430f8c62f475f6ab213e673fd35d1ad",
+    "bytes": 364
+  },
+  {
+    "path": "http-acceptance.json",
+    "sha256": "9a59d7ff02c88469c5472c33d3d7e6a3f4180a38c3d59b70afdb90a08c88d0b4",
+    "bytes": 4519
+  },
+  {
+    "path": "model-budget.json",
+    "sha256": "85c1751981c322d1e507c0d73c6dce97cfff8fbfde7c17ab91882b6793eb4662",
+    "bytes": 95
+  },
+  {
+    "path": "openapi.json",
+    "sha256": "af297ad234e9cf50afcfc2364c1bee4d9b8a4896e42dbc97a8e3d9b1700294c0",
+    "bytes": 1172487
+  },
+  {
+    "path": "verification.json",
+    "sha256": "d279b7631a26319f39b5309044a7a60d5e9e7801053e2fa1110a2094a64ed473",
+    "bytes": 2738
+  },
+  {
+    "path": "visual-review.json",
+    "sha256": "6e335c9564ee2b511f3030e52f04d957b343ce6ae312bae89b413d9e2c5d0fd2",
+    "bytes": 866
+  },
+  {
+    "path": "供应方文档版本.json",
+    "sha256": "1ec43ac724418350d59437607eb063e354104a55b3403c7e77b135555a28b810",
+    "bytes": 527
+  },
+  {
+    "path": "修改与验收回执.md",
+    "sha256": "831779965eb31b02c4ff5c76005deaa303c2fcb5d35f8b821a5a6661308b02ba",
+    "bytes": 6931
+  },
+  {
+    "path": "回答修复接口说明.md",
+    "sha256": "bb8ff54e0980883e85f26f1e7dabbf191fc77c11fe2d4fb13568244477e811f7",
+    "bytes": 4110
+  },
+  {
+    "path": "盗窃接口契约矩阵.md",
+    "sha256": "9aa7310dac8011508e5442ba57399745f30ab6425660ead51462455d69154781",
+    "bytes": 7272
+  }
+]

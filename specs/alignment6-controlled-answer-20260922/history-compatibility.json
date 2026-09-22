@@ -1,0 +1,22 @@
+[
+  {
+    "case": "funds",
+    "result_unchanged": true,
+    "report_unchanged": true
+  },
+  {
+    "case": "vehicles",
+    "result_unchanged": true,
+    "report_unchanged": true
+  },
+  {
+    "case": "follow",
+    "result_unchanged": true,
+    "report_unchanged": true
+  },
+  {
+    "case": "unknown",
+    "result_unchanged": true,
+    "report_unchanged": true
+  }
+]

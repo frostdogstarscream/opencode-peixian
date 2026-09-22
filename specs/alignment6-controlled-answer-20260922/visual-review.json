@@ -1,0 +1,30 @@
+{
+  "desktop_1366": "passed",
+  "desktop_1920": "passed",
+  "mobile_390": "failed_readability",
+  "mobile_detail": "Sidebar layout consumes about 215px and compresses conversation; no CSS modification in this change. Automated overflow check is insufficient.",
+  "css_unchanged": true,
+  "model_narrative_diagnostic": "not_promoted_to_verified",
+  "screenshots": [
+    "a_unknown-1366.png",
+    "a_unknown-1920.png",
+    "a_unknown-390.png",
+    "a_vehicle-1366.png",
+    "a_vehicle-1920.png",
+    "a_vehicle-390.png",
+    "b_funds-1366.png",
+    "b_funds-1920.png",
+    "b_funds-390.png",
+    "funds-1366.png",
+    "funds-1920.png",
+    "funds-390.png",
+    "unknown-1366.png",
+    "unknown-1920.png",
+    "unknown-390.png",
+    "vehicle-graph-1366.png",
+    "vehicle-graph-large.png",
+    "vehicles-1366.png",
+    "vehicles-1920.png",
+    "vehicles-390.png"
+  ]
+}

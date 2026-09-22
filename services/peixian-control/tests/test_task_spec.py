@@ -335,3 +335,21 @@ def test_delivery_router_corpus():
     for row in rows:
         candidate=task_router.parse(row['text'],row['selected_skill'])
         assert (candidate['query_mode_candidate'],candidate['intent_candidate'])==(row['query_mode'],row['intent']),row['id']
+
+
+def test_actual_runtime_publication_freezes_official_skill_version(task_env):
+    from control.worker_api import runtime_spec
+    from control.task_methods import resolve as methods
+    store,app,client,session,user,data,payload,previous=task_env
+    revision=store.one('SELECT desired FROM runtimes WHERE uid=?',(user['uid'],))['desired']
+    published=runtime_spec(store,user['uid'],revision)
+    assert next(x for x in published['skills'] if x['id']=='method-funds')['version']==1
+    with store.tx() as db:
+        db.execute('UPDATE runtimes SET applied_spec_ciphertext=? WHERE uid=?',(store.encrypt(published),user['uid']))
+    assert methods(store,user['uid'],published,[],['funds'])[0][0]=='method-funds'
+    with store.tx() as db:
+        db.execute("UPDATE skills SET version=2 WHERE id='method-funds'")
+    with pytest.raises(HTTPException) as caught:
+        methods(store,user['uid'],published,[],['funds'])
+    assert caught.value.detail['code']=='official_method_pending'
+    assert next(x for x in published['skills'] if x['id']=='method-funds')['version']==1

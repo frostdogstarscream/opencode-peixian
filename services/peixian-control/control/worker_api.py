@@ -61,7 +61,7 @@ def runtime_spec(s, uid, revision, *, db=None):
         for tool in manifest.get("tools", []):
             if isinstance(tool, str) and tool.replace("_", "").replace("-", "").isalnum() and tool not in ("bash", "pty", "webfetch", "websearch"):
                 config["permission"][tool] = "allow"
-    return {"uid": uid, "runtime_id": runtime["id"], "revision": revision, "private": private, "config": config, "models": relay, "connections": connections, "plugins": plugins, "skills": rows("SELECT id,name,description,content FROM skills WHERE uid=? AND enabled=1", (uid,))}
+    return {"uid": uid, "runtime_id": runtime["id"], "revision": revision, "private": private, "config": config, "models": relay, "connections": connections, "plugins": plugins, "skills": rows("SELECT id,name,description,content,version FROM skills WHERE uid=? AND enabled=1", (uid,))}
 
 
 def register_worker(app):

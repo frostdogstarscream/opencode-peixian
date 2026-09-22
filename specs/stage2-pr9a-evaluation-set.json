@@ -1,0 +1,21 @@
+{
+  "schema": "peixian.evaluation-set",
+  "version": "1.0",
+  "baseline": "d3e4ea55db61bdbe9a9847a86548b32b9c5c9f6d",
+  "cases": 300,
+  "splits": {
+    "development": 180,
+    "fixed": 75,
+    "challenge": 45
+  },
+  "sha256": "723d84e310f9dd59627b1da8fcc414e51bf40149c80f692b27e407bb31f55ebc",
+  "oracle": "human_authored_without_implementation_outputs",
+  "data_environment": "synthetic",
+  "model_requests": 0,
+  "scope": "deterministic routing candidate plus resolved TaskSpec, real SQLite admission, frozen facts and result checks",
+  "split_policy": "stable hash, fixed before first execution; no result-based reassignment",
+  "known_limits": [
+    "Paraphrases and Agent variants share behavior families; 300 cases are not 300 independent real-world distributions.",
+    "TaskSpec accuracy and candidate accuracy are measured separately; neither measures model natural-language quality."
+  ]
+}

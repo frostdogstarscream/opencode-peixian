@@ -1,0 +1,585 @@
+{
+  "schema": "peixian.evaluation-report",
+  "version": "1.0",
+  "status": "passed",
+  "scope": "all",
+  "cases": 300,
+  "dataset_sha256": "723d84e310f9dd59627b1da8fcc414e51bf40149c80f692b27e407bb31f55ebc",
+  "model_requests": 0,
+  "real_data": false,
+  "metrics": {
+    "query_mode_accuracy": {
+      "passed": 140,
+      "total": 140,
+      "rate": 1.0,
+      "threshold": 0.97,
+      "passed_gate": true
+    },
+    "intent_accuracy": {
+      "passed": 140,
+      "total": 140,
+      "rate": 1.0,
+      "threshold": 0.95,
+      "passed_gate": true
+    },
+    "method_exact_match": {
+      "passed": 140,
+      "total": 140,
+      "rate": 1.0,
+      "threshold": 0.95,
+      "passed_gate": true
+    },
+    "candidate_mode_accuracy": {
+      "passed": 140,
+      "total": 140,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "narrative_contract": {
+      "passed": 40,
+      "total": 40,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "covered_conflict_detection": {
+      "passed": 28,
+      "total": 28,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "data_usage_accuracy": {
+      "passed": 20,
+      "total": 20,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "unknown_not_zero": {
+      "passed": 24,
+      "total": 24,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "claim_source_coverage": {
+      "passed": 40,
+      "total": 40,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "protected_fields_integrity": {
+      "passed": 40,
+      "total": 40,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "relationship_integrity": {
+      "passed": 40,
+      "total": 40,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "result_stability": {
+      "passed": 40,
+      "total": 40,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "plan_escape_blocking": {
+      "passed": 30,
+      "total": 30,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "agent_isolation": {
+      "passed": 6,
+      "total": 6,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "history_zero_query": {
+      "passed": 8,
+      "total": 8,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "context_cas": {
+      "passed": 2,
+      "total": 2,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "request_idempotency": {
+      "passed": 2,
+      "total": 2,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "resource_isolation": {
+      "passed": 4,
+      "total": 4,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "historical_scope": {
+      "passed": 4,
+      "total": 4,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "clarification_zero_query": {
+      "passed": 4,
+      "total": 4,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "client_forgery_blocking": {
+      "passed": 2,
+      "total": 2,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    },
+    "unpublished_zero_query": {
+      "passed": 4,
+      "total": 4,
+      "rate": 1.0,
+      "threshold": 1,
+      "passed_gate": true
+    }
+  },
+  "by_split": {
+    "challenge": {
+      "query_mode_accuracy": {
+        "passed": 21,
+        "total": 21,
+        "rate": 1.0,
+        "threshold": 0.97,
+        "passed_gate": true
+      },
+      "intent_accuracy": {
+        "passed": 21,
+        "total": 21,
+        "rate": 1.0,
+        "threshold": 0.95,
+        "passed_gate": true
+      },
+      "method_exact_match": {
+        "passed": 21,
+        "total": 21,
+        "rate": 1.0,
+        "threshold": 0.95,
+        "passed_gate": true
+      },
+      "candidate_mode_accuracy": {
+        "passed": 21,
+        "total": 21,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "narrative_contract": {
+        "passed": 6,
+        "total": 6,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "covered_conflict_detection": {
+        "passed": 3,
+        "total": 3,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "data_usage_accuracy": {
+        "passed": 3,
+        "total": 3,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "unknown_not_zero": {
+        "passed": 4,
+        "total": 4,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "claim_source_coverage": {
+        "passed": 6,
+        "total": 6,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "protected_fields_integrity": {
+        "passed": 6,
+        "total": 6,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "relationship_integrity": {
+        "passed": 6,
+        "total": 6,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "result_stability": {
+        "passed": 6,
+        "total": 6,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "plan_escape_blocking": {
+        "passed": 5,
+        "total": 5,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "agent_isolation": {
+        "passed": 3,
+        "total": 3,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "resource_isolation": {
+        "passed": 2,
+        "total": 2,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "historical_scope": {
+        "passed": 1,
+        "total": 1,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "history_zero_query": {
+        "passed": 1,
+        "total": 1,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      }
+    },
+    "fixed": {
+      "query_mode_accuracy": {
+        "passed": 35,
+        "total": 35,
+        "rate": 1.0,
+        "threshold": 0.97,
+        "passed_gate": true
+      },
+      "intent_accuracy": {
+        "passed": 35,
+        "total": 35,
+        "rate": 1.0,
+        "threshold": 0.95,
+        "passed_gate": true
+      },
+      "method_exact_match": {
+        "passed": 35,
+        "total": 35,
+        "rate": 1.0,
+        "threshold": 0.95,
+        "passed_gate": true
+      },
+      "candidate_mode_accuracy": {
+        "passed": 35,
+        "total": 35,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "narrative_contract": {
+        "passed": 10,
+        "total": 10,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "covered_conflict_detection": {
+        "passed": 8,
+        "total": 8,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "data_usage_accuracy": {
+        "passed": 5,
+        "total": 5,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "unknown_not_zero": {
+        "passed": 6,
+        "total": 6,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "claim_source_coverage": {
+        "passed": 10,
+        "total": 10,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "protected_fields_integrity": {
+        "passed": 10,
+        "total": 10,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "relationship_integrity": {
+        "passed": 10,
+        "total": 10,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "result_stability": {
+        "passed": 10,
+        "total": 10,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "plan_escape_blocking": {
+        "passed": 7,
+        "total": 7,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "agent_isolation": {
+        "passed": 1,
+        "total": 1,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "history_zero_query": {
+        "passed": 3,
+        "total": 3,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "request_idempotency": {
+        "passed": 1,
+        "total": 1,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "client_forgery_blocking": {
+        "passed": 1,
+        "total": 1,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "unpublished_zero_query": {
+        "passed": 2,
+        "total": 2,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "context_cas": {
+        "passed": 1,
+        "total": 1,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      }
+    },
+    "development": {
+      "query_mode_accuracy": {
+        "passed": 84,
+        "total": 84,
+        "rate": 1.0,
+        "threshold": 0.97,
+        "passed_gate": true
+      },
+      "intent_accuracy": {
+        "passed": 84,
+        "total": 84,
+        "rate": 1.0,
+        "threshold": 0.95,
+        "passed_gate": true
+      },
+      "method_exact_match": {
+        "passed": 84,
+        "total": 84,
+        "rate": 1.0,
+        "threshold": 0.95,
+        "passed_gate": true
+      },
+      "candidate_mode_accuracy": {
+        "passed": 84,
+        "total": 84,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "narrative_contract": {
+        "passed": 24,
+        "total": 24,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "covered_conflict_detection": {
+        "passed": 17,
+        "total": 17,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "data_usage_accuracy": {
+        "passed": 12,
+        "total": 12,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "unknown_not_zero": {
+        "passed": 14,
+        "total": 14,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "claim_source_coverage": {
+        "passed": 24,
+        "total": 24,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "protected_fields_integrity": {
+        "passed": 24,
+        "total": 24,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "relationship_integrity": {
+        "passed": 24,
+        "total": 24,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "result_stability": {
+        "passed": 24,
+        "total": 24,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "plan_escape_blocking": {
+        "passed": 18,
+        "total": 18,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "agent_isolation": {
+        "passed": 2,
+        "total": 2,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "history_zero_query": {
+        "passed": 4,
+        "total": 4,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "context_cas": {
+        "passed": 1,
+        "total": 1,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "historical_scope": {
+        "passed": 3,
+        "total": 3,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "clarification_zero_query": {
+        "passed": 4,
+        "total": 4,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "unpublished_zero_query": {
+        "passed": 2,
+        "total": 2,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "request_idempotency": {
+        "passed": 1,
+        "total": 1,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "resource_isolation": {
+        "passed": 2,
+        "total": 2,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      },
+      "client_forgery_blocking": {
+        "passed": 1,
+        "total": 1,
+        "rate": 1.0,
+        "threshold": 1,
+        "passed_gate": true
+      }
+    }
+  },
+  "errors": [],
+  "limits": [
+    "Paraphrases and Agent variants share behavior families; 300 cases are not 300 independent real-world distributions.",
+    "TaskSpec accuracy and candidate accuracy are measured separately; neither measures model natural-language quality."
+  ]
+}

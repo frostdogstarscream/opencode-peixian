@@ -1,0 +1,26 @@
+{
+  "stage": "pr9a",
+  "baseline": "d3e4ea55db61bdbe9a9847a86548b32b9c5c9f6d",
+  "schema_version": 9,
+  "closeout_status": "pending",
+  "implementation_revision": null,
+  "deployment_performed": false,
+  "real_data_accessed": false,
+  "model_requests": 0,
+  "open_p0": 0,
+  "unaccepted_p1": 0,
+  "github_ci": {
+    "executed": false
+  },
+  "tests": {
+    "evaluation": {
+      "passed": 300,
+      "regression": 30,
+      "exit_code": 0
+    },
+    "evaluation_checker": {
+      "passed": 15,
+      "exit_code": 0
+    }
+  }
+}

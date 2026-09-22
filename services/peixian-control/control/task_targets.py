@@ -62,7 +62,13 @@ def resolve(store, uid, sid, scene, text, methods, profile=None, confirmed=None)
                   '关联互查', '关系资料', '综合分析', '综合整理', '综合看看', '全面整理', '总流程',
                   '重新查询', '重新核对', '重新查', '再取一次', '最新资料', '最新', '更新一下',
                   '请帮我', '帮我', '请', '看看', '查询', '分析', '核对', '整理', '查一下', '统计',
-                  '记录', '资料', '一下', '情况', '明细', '展示', '列出', '的', '和', '与', '是否', '有', '吗')
+                  # Presentation requests are not target identifiers. Keep a finite vocabulary:
+                  # unknown names, date ranges, IDs and account requests still remain
+                  # in residual and fail closed; never drop arbitrary Han characters.
+                  '查看', '请看', '原始', '把', '列出来', '有哪些', '有几条', '记录数', '明确同行', '同行观测',
+                  '观测时间', '夜晚活动', '夜里活动', '晚上观测', '夜间分布',
+                  '同框时间', '车辆通行', '观测', '活动', '记录', '资料', '一下', '情况', '明细',
+                  '展示', '列出', '的', '和', '与', '是否', '有', '吗')
     if profile:vocabulary+=('车辆','车牌','卡口','过车','驾乘','凌晨','综合核对','全面分析','有没有')
     for word in sorted(vocabulary, key=len, reverse=True):
         residual = residual.replace(word, '')

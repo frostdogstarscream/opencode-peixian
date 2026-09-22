@@ -32,6 +32,16 @@ def validate_target(plan):
     task=plan.get('agent_task')
     if not task:return  # Immutable plans predating TaskSpec.
     target=plan.get('task_target') or {};scene=plan.get('scenario') or {}
+    # Bind every frozen module response contract to the scenario's recorded
+    # data snapshot. Do not consult today's fixtures or accept a substituted
+    # module version as the expected response for an already frozen Run.
+    records=plan.get('records') or {};modules=plan.get('modules') or []
+    expected_snapshot=scene.get('records_snapshot_id')
+    if (not isinstance(expected_snapshot,str) or not expected_snapshot
+        or set(records)!=set(modules)
+        or any(not isinstance(records[m],dict) or records[m].get('module')!=m
+               or records[m].get('snapshot_id')!=expected_snapshot for m in modules)):
+        raise ValueError('task_records_snapshot_mismatch')
     refs=target.get('target_refs');mode=target.get('target_mode')
     if (target.get('status')!='resolved' or target.get('contract_version') not in ('method-target-v1','method-target-v2')
         or not isinstance(refs,list) or len(refs)!=1 or not isinstance(refs[0],str) or not refs[0]

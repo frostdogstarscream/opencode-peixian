@@ -1,3 +1,5 @@
+import json
+import os
 import copy
 import uuid
 import pytest
@@ -12,8 +14,10 @@ from control.theft_provider_state import ProviderState
 
 
 def completed_task(env,monkeypatch):
-    store=env[0];user=env[4];original(env,monkeypatch);tid=new_task(env)['analysis_task_id'];key=str(uuid.uuid4())
-    signed=preview(store,user['uid'],'ses_multi',{'contract_version':'theft-provider-contract-v2','kind':'incidents','query':{'lon':'116.1','lat':'34.2','radius_m':500},'analysis_task_id':tid,'context_version':1,'step_request_id':key},env[-1],1)
+    store=env[0];user=env[4];_,source=original(env,monkeypatch)
+    config=json.loads(os.environ['PX_THEFT_REAL_CONFIG']);config['coordinate_compatibility']={'police:police':True};monkeypatch.setenv('PX_THEFT_REAL_CONFIG',json.dumps(config))
+    tid=new_task(env)['analysis_task_id'];key=str(uuid.uuid4())
+    signed=preview(store,user['uid'],'ses_multi',{'contract_version':'theft-provider-contract-v2','kind':'incidents','query':{'radius_m':500},'source_refs':[source],'analysis_task_id':tid,'context_version':1,'step_request_id':key},env[-1],1)
     request,task=prepare(env,'theft-assistant','查询明确范围',client_request_id=key,provider_query={k:signed[k] for k in ('plan','confirmation')})
     _,row,_=submit(env,request,task);state=ProviderState(store);rid=row['id'];op=state.begin(user['uid'],rid,1)
     state.reserve(user['uid'],rid,1,op,'incidents');state.dispatch(user['uid'],rid,1,op,'incidents')
@@ -33,6 +37,7 @@ def test_review_exact_record_corrections_and_readonly_export(task_provider,monke
     html=task_report.render(before,'html');md=task_report.render(before,'md')
     assert '<script>' not in html and '&lt;script&gt;' in html
     assert ref['record_id'] in html and ref['snapshot_id'] in md
+    assert before['sources'] and before['sources'][0]['reference']['run_id']!=rid
     dispatch=copy.deepcopy(before['task']['budget'])
     next_body={**body,'note':'补充核对，保留原意见','status':'needs_information','supersedes':first['id']}
     with pytest.raises(HTTPException):run_reviews.append(store,user,'ses_multi',rid,{**next_body,'record_refs':[],'claim_ids':[result['claims'][0]['claim_id']]})

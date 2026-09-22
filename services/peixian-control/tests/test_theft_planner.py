@@ -136,3 +136,13 @@ async def test_cancelled_planning_never_creates_data_run(task_provider,monkeypat
     result=view(store,user['uid'],'ses_multi',tid)
     assert result['planning'][0]['status']=='unknown'
     assert result['budget']['planning_calls']==1 and result['budget']['data_steps']==0
+
+
+
+def test_direction_change_keeps_history_but_not_unrequested_incident_filters():
+    frozen={'capabilities':['incidents'],'text':'查这个选定位置的警情','slots':{'r':{'field':'radius_m','value':500},'t':{'field':'start','value':'2026-09-20 00:00:00'}},'explicit_fields':[], 'source_refs':[{'run_id':'selected'}],'skills':[{'method_id':'method','capabilities':['incidents']}]}
+    proposal={'action':'query','kind':'incidents','slot_ids':{'radius_m':'r'},'missing':[],'skill_id':'method'}
+    result=planner.decision(proposal,frozen)
+    assert result['action']=='query' and result['query']=={'radius_m':500,'page':1}
+    frozen['explicit_fields']=['start']
+    assert planner.decision(proposal,frozen)['action']=='clarify'

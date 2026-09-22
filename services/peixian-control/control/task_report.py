@@ -27,8 +27,14 @@ def snapshot(store,uid,sid,tid):
         if any(c['state']=='sending' or (c['state']=='completed' and (not c.get('receipt') or (c.get('decision',{}).get('action')=='query' and not c.get('advanced')))) for c in state['planning_calls']):error('task_active','任务规划尚未结束，暂不能导出。',409)
         task=analysis_tasks.view(view,uid,sid,tid)
         if len(task['steps'])>100:error('task_report_limit','步骤较多，请按任务拆分导出。',413)
-        results=[];record_count=0
+        results=[];record_count=0;sources={}
         for step in task['steps']:
+            for reference in step['source_refs']:
+                key=json.dumps(reference,sort_keys=True)
+                if key not in sources:
+                    source_record,_=analysis_tasks.source(view,uid,sid,reference,row['environment'])
+                    sources[key]={'reference':reference,'record':source_record}
+                if len(sources)>1000:error('task_report_limit','来源引用过多，请拆分任务。',413)
             run=business_runs.owned(view,uid,sid,step['run_id'])
             if run['status'] not in business_runs.TERMINAL:error('task_active','任务仍有未结束执行。',409)
             result=trusted_results.read(view,uid,sid,run['id'])
@@ -37,7 +43,7 @@ def snapshot(store,uid,sid,tid):
             events=view.rows('SELECT * FROM run_events WHERE run_id=? ORDER BY sequence',(run['id'],))
             reviews=run_reviews.report_rows(view,uid,sid,run['id'])
             results.append({'run_id':run['id'],'status':run['status'],'result':result,'result_digest':trusted_results.digest(result),'events':events,'reviews':reviews})
-        frozen={'version':'theft-task-report-v1','task':task,'runs':results}
+        frozen={'version':'theft-task-report-v1','task':task,'runs':results,'sources':list(sources.values())}
         frozen=public_result(frozen,store.worker_key.encode(),uid+'/'+sid)
         frozen['digest']=trusted_results.digest(frozen)
         return frozen
@@ -46,6 +52,7 @@ def snapshot(store,uid,sid,tid):
 def render(value,format):
     if format not in ('html','md'):error('invalid_report_format','请选择html或md格式。',422)
     task=value['task'];groups=[('任务信息',['任务编号：'+task['analysis_task_id'],'目标：'+task['goal'],'数据环境：'+task['data_environment'],'资料包摘要：'+value['digest'],'任务上下文版本：'+str(task['context_version']),'预算计数：'+json.dumps(task['budget'],ensure_ascii=False),'仅包含本次只读快照中已保存的来源与复核；不新增取数。'])]
+    groups.append(('选定来源索引',[json.dumps(x,ensure_ascii=False,sort_keys=True) for x in value['sources']] or ['未引用外部步骤；来源见各查询结果。']))
     for step,run in zip(task['steps'],value['runs']):
         groups.append(('步骤 '+str(step['sequence']),['执行编号：'+run['run_id'],'执行状态：'+{'completed':'执行结束','failed':'失败','cancelled':'已中止'}.get(run['status'],'待核对'),'结果摘要：'+run['result_digest'],'来源关系：'+json.dumps(step['source_refs'],ensure_ascii=False),'实际版本：'+json.dumps({k:v for k,v in step.items() if k in ('provider_contract','plugin_version','connection_revision','planning_method')},ensure_ascii=False)]))
         groups.extend(trusted_report.sections(run['result'],run['events'],run['reviews']))

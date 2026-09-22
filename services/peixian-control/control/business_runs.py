@@ -55,6 +55,8 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
     snapshot['display_secrets']=tool_displays(store,user['uid']).get('_redaction',{}).get('_secrets',[])
     from .trusted_results import enabled
     if enabled(store,user['uid']):snapshot['trusted_result_version']='2.0';snapshot['data_environment']='synthetic'
+    from .record_checks import VERSION as record_check_version
+    snapshot['record_check_version']=record_check_version
     if context is not None:snapshot['scenario_context']={**context,'revision':revision}
     with store.tx() as db:
         current_authority(db,user)

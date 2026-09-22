@@ -93,7 +93,9 @@ def resolve_legacy(store, uid, sid, data, applied, confirmed=None):
     chosen = [x for x in applied.get('skills', []) if x['id'] in data['skill_ids']]
     if profile and any(identify(x['content']) and identify(x['content'])['id'] not in profile.data['official_method_ids'] for x in chosen):
         error('agent_method_not_allowed','所选技能不属于当前助手，请使用对应助手的新会话。',409)
-    route_text=data['text']
+    from .request_language import normalize
+    request_text=normalize(data['text'])
+    route_text=request_text
     if profile and store.schema_version()>=8:
         for alias in ('那辆车','这辆车','该车','哪辆车'):route_text=route_text.replace(alias,'车辆')
     candidate = task_router.parse(route_text, bool(data['skill_ids']),profile)
@@ -151,7 +153,7 @@ def resolve_legacy(store, uid, sid, data, applied, confirmed=None):
                 mode,intent,missing='clarify','clarification',['intent']
             else:
                 methods=profile.data['intents'][intent]['methods'] if profile else list(dict.fromkeys(m for name in wanted for m in BY_ID['peixian.method.'+name]['methods']))
-                target=resolve_targets(store,uid,sid,scene,data['text'],methods,profile,confirmed)
+                target=resolve_targets(store,uid,sid,scene,request_text,methods,profile,confirmed)
                 if target['status']!='resolved':
                     mode,intent,missing='clarify','clarification',[target['reason']]
                 else:
@@ -187,7 +189,7 @@ def resolve_legacy(store, uid, sid, data, applied, confirmed=None):
     elif mode == 'clarify':
         messages = {'target_missing':'当前可信结果中没有可供确认的对象，本轮未查询。','target_candidates_exceed_limit':'候选对象过多，请明确对象后再查询。','capability_not_ready':'所需资料能力尚未发布或已停用，本轮未查询资料。','rule_not_ready':'所需整理规则尚未发布或已停用，本轮未查询资料。','scenario_id': '请确认处理涉赌资料还是盗窃时空资料。', 'query_mode': '请确认使用已有结果说明，还是重新查询资料。',
                     'method_conflict': '所选专项技能与问题不一致，请调整技能或明确所需方法。',
-                    'unsupported_target_scope': '当前方法不支持该对象或对象组合，尚未查询；不会用场景主对象替代。',
+                    'unsupported_target_scope': '本轮尚未查询：暂时无法确认问题中的对象或范围。请先说明要沿用当前对象，还是更换对象；更换时请从本会话已有资料中选择，不会自动替换为默认对象。',
                     'target_confirmation_required': '本阶段无法唯一确认所指对象，请明确当前资料范围内的对象。',
                     'supported_scope': '当前仅支持已接入场景、对象和固定方法，尚未查询资料。'}
         local = {'code': missing[0] if missing else 'intent_required', 'message': messages.get(missing[0] if missing else '', ('请说明需要整理夜间、同行共现，还是车辆资料。' if profile and profile.data['domain']=='theft' else '请说明需要整理资金、夜间活动、同行共现，还是已有关系。'))}
@@ -195,6 +197,8 @@ def resolve_legacy(store, uid, sid, data, applied, confirmed=None):
 
 
 def bind(snapshot, payload, task):
+    from .request_language import VERSION
+    snapshot['request_language_version']=VERSION
     snapshot.update(task_candidate=copy.deepcopy(task['candidate']), task_spec=copy.deepcopy(task['spec']),
                     task_context_snapshot=copy.deepcopy(task['context']), task_router_version=task['candidate']['router_version'])
     if task['target']:

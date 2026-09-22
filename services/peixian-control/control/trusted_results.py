@@ -116,6 +116,11 @@ def build(row,snapshot,events):
     approved={f['fact_id']:f for f in checked.get('approved',[]) if f in table.get('facts',[]) and isinstance(f,dict)}
     checked_ok=all(checked.get(k)==table.get(k) for k in ('scenario_id','scenario_snapshot_id','records_snapshot_id'))
     if not checked_ok:approved={}
+    from .record_checks import verify
+    proof=state.get('record_checked')
+    if proof is not None and proof==verify(snapshot,events):
+        approved.update({f['fact_id']:f for f in proof['approved']})
+        if proof['rejected']:missing.append('部分车辆记录未通过逐条来源核对，请查看已有记录及缺失字段。')
     if table_ok:
         subject=scene['subject_ref']
         for module,rows in valid.items():

@@ -133,6 +133,10 @@ def test_checked_claims_and_computation_have_different_authority(enabled,chain,t
     test_theft_profile_real_plugin_http_and_control(enabled,chain,tmp_path,'vehicles','看看车辆记录',['vehicle'],False)
     s=enabled[0];row=s.one('SELECT * FROM business_runs ORDER BY created DESC LIMIT 1');snap=s.decrypt(row['request_ciphertext']);events=s.rows('SELECT * FROM run_events WHERE run_id=?',(row['id'],))
     snap['facts_state']['checked']['approved']=[]
+    # Without either independent record verification or checked summary claims,
+    # records cannot acquire fact authority. The new code-owned vehicle proof is
+    # covered separately, and old snapshots still require summary approval.
+    snap.pop('record_check_version',None)
     value=results.build(row,snap,events)
     assert not any(c['type']=='fact' for c in value['claims'])
     assert any(c['type']=='computed' for c in value['claims'])

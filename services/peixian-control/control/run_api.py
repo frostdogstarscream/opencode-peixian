@@ -7,6 +7,11 @@ from . import business_runs as runs
 from .store import now
 
 
+def public(store,row):
+    from .run_outcome import project
+    return {**runs.public(row),'outcome':project(store,row)}
+
+
 def evidence(store,row):
     # Caller has already verified Run ownership. Historical encrypted evidence
     # is not conditional on the old plugin remaining installed today.
@@ -46,7 +51,7 @@ def attach_results(store,uid,values,sid=None):
 def cancel(store,uid,sid,rid):
     row=runs.owned(store,uid,sid,rid)
     if row['status'] not in runs.TERMINAL:runs.set_state(store,rid,'cancelling','stopping')
-    return runs.public(runs.owned(store,uid,sid,rid))
+    return public(store,runs.owned(store,uid,sid,rid))
 
 
 def register(app):
@@ -60,7 +65,7 @@ def register(app):
             with s.read(snapshot=True) as db:
                 rows=[dict(x) for x in db.execute('SELECT * FROM business_runs WHERE uid=? AND session_id=? ORDER BY created DESC,id LIMIT ? OFFSET ?',(user['uid'],sid,page_size,offset))]
                 total=db.execute('SELECT count(*) FROM business_runs WHERE uid=? AND session_id=?',(user['uid'],sid)).fetchone()[0]
-            return {'items':[runs.public(x) for x in rows],'total':total,'page':page,'page_size':page_size}
+            return {'items':[public(s,x) for x in rows],'total':total,'page':page,'page_size':page_size}
         value=await app.state.db_work.run(read)
         if not value['total']:await session_owned(request,user,sid)
         return value
@@ -68,7 +73,7 @@ def register(app):
     @app.get(PREFIX+'/sessions/{sid}/runs/{rid}')
     @blocking_endpoint(app)
     def run_get(sid:str,rid:str,request:Request,user=Depends(normal)):
-        return runs.public(runs.owned(app.state.store,user['uid'],sid,rid))
+        return public(app.state.store,runs.owned(app.state.store,user['uid'],sid,rid))
 
     @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/task')
     @blocking_endpoint(app)

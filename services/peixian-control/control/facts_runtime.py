@@ -180,6 +180,12 @@ class FactsState:
                 expected=[b for b in rule_bindings(plan_registry) if state['modules'].get(b['module'],{}).get('status')=='completed']
                 if not isinstance(table,dict) or table.get('rule_executions')!=expected:reject('rule_execution_mismatch')
             state["table"] = table; state["checked"] = None; state["compiled_at"] = now()
+            from .record_checks import verify
+            proof=verify(snapshot,self.store.rows('SELECT * FROM run_events WHERE run_id=? ORDER BY sequence',(rid,)))
+            if proof is not None:
+                state['record_checked']=proof
+                runs.event(self.store,rid,'facts.vehicle-check','record_check','核对车辆记录与来源',
+                           'failed' if proof['rejected'] else 'completed',started=now(),completed=now(),count=len(proof['approved']))
             self._save(db,rid,snapshot)
             runs.event(self.store,rid,"facts.compile","facts","整理资料事实", "completed",completed=now())
 

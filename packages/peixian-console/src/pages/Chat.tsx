@@ -853,6 +853,9 @@ export default function Chat() {
         </div>
         <div class="composer-area">
           <RuntimeStatus compact />
+          <Show when={currentRun()?.outcome?.version === "run-outcome-v1" && currentRun()?.outcome}>
+            {(outcome) => <div class="runtime-banner" role="status" aria-label="本轮资料结果"><div><strong>{outcome().label}</strong><p>{outcome().message}</p><For each={outcome().next_steps}>{(step) => <small>{step}</small>}</For></div></div>}
+          </Show>
           <BusinessConfirmations sessionID={selected()} available={available()} onAnswered={() => void refresh()} />
           <ErrorLine message={error()} />
           <Show when={uncertain()}>

@@ -20,6 +20,8 @@ def extend_schemas(result):
     def paginated(item):return obj({'items':array(ref(item)),'total':integer,'page':integer,'page_size':integer},('items','total','page','page_size'))
     result['Run']=obj({'id':ID,'session_id':ID,'status':{'type':'string','enum':['queued','running','cancelling','reconciling','completed','failed','cancelled']},'phase':STRING,'cancel_requested':BOOL,'model_id':ID,'message_id':nullable(ID),'user_message_id':ID,'parent_run_id':nullable(ID),'created_at':dt,'started_at':nullable(dt),'completed_at':nullable(dt),'updated_at':dt,'error':nullable(obj({'code':STRING,'message':STRING}))},('id','session_id','status','phase','created_at'))
     from .task_spec import SPEC_SCHEMA,SPEC_V2_SCHEMA,SPEC_V3_SCHEMA,CANDIDATE_SCHEMA
+    result['RunOutcome']=obj({'version':{'const':'run-outcome-v1'},'status':{'enum':['processing','unconfirmed','cancelled','failed','needs_input','historical','partial','data_ready','no_query']},'label':STRING,'message':STRING,'next_steps':array(STRING),'execution_status':STRING,'data_status':STRING,'queried':nullable(BOOL)},('version','status','label','message','next_steps','execution_status','data_status','queried'))
+    result['Run']['properties']['outcome']=ref('RunOutcome')
     result['TaskSpecV1']=SPEC_SCHEMA
     result['TaskSpecV2']=SPEC_V2_SCHEMA
     result['TaskSpecV3']=SPEC_V3_SCHEMA

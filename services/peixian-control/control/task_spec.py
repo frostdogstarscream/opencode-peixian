@@ -57,6 +57,9 @@ for field in ('direct_parent_run_id','source_data_run_id'):
     SPEC_V3_SCHEMA['properties'][field]={'type':['string','null']}
 
 def resolve(store,uid,sid,data,applied):
+    from .theft_provider_flow import resolve as provider_resolve
+    provider=provider_resolve(store,uid,sid,data,applied)
+    if provider:return provider
     from . import task_context
     if 'context_version' in data and not task_context.enabled(store,uid):error('task_context_not_enabled','当前账号尚未启用多轮上下文。',409)
     from . import clarifications

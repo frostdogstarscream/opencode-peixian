@@ -712,7 +712,7 @@ def create_app(store=None):
 
     @app.post(PREFIX + "/sessions/{sid}/messages", status_code=202)
     async def message_send(sid: str, request: Request, user=Depends(normal)):
-        data = body_fields(await request.json(), ("text", "model_id", "skill_ids", "file_ids", "plugin_ids", "mode", "client_request_id", "agent_id", "context_version"))
+        data = body_fields(await request.json(), ("text", "model_id", "skill_ids", "file_ids", "plugin_ids", "mode", "client_request_id", "agent_id", "context_version", "provider_query"))
         from . import business_runs
         modern=await app.state.db_work.run(app.state.store.schema_version)>=6
         if modern:
@@ -835,6 +835,10 @@ def create_app(store=None):
     from .skill_drafts import register as register_drafts
     register_drafts(app)
     register_runs(app)
+    from .run_reviews import register as register_reviews
+    register_reviews(app)
+    from .theft_provider_flow import register as register_provider
+    register_provider(app)
     from .entity_graph import register as register_graphs
     register_graphs(app)
     register_invocations(app)

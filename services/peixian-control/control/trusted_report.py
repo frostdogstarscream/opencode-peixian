@@ -15,7 +15,7 @@ NARRATIVE = {'verified': '已通过冲突检查', 'unverified': '尚未通过核
              'conflicted': '存在冲突，未作为可信结论', 'not_generated': '尚未生成'}
 
 
-def sections(result, events):
+def sections(result, events, reviews=()):
     legacy = result.get('version') == 'legacy'
     agent, task = result.get('agent', {}), result.get('task', {})
     meta = [
@@ -48,11 +48,13 @@ def sections(result, events):
     else:
         groups.append(('模型辅助说明', [NARRATIVE.get(narrative.get('status'), '旧结构，未执行可信说明核验'), narrative.get('text') or '未提供模型说明。'] + [x['message'] for x in narrative.get('conflicts', [])]))
     groups.append(('来源与执行过程', [json.dumps(result.get('versions', {}), ensure_ascii=False, sort_keys=True)] + [e['name'] + '：' + {'completed':'已完成','failed':'失败','rejected':'已拒绝','cancelled':'已取消','running':'执行中','pending':'等待处理'}.get(e['status'], '状态待确认') for e in events]))
+    if reviews:
+        groups.append(('人工复核意见（不修改原事实）', [r['created_at']+'；'+r['reviewer']+'；'+r['status_label']+'；'+r['note']+'；引用：'+(', '.join(r['claim_ids']) or '本轮结果')+'；更正记录：'+(r.get('supersedes') or '无') for r in reviews]))
     return groups
 
 
-def render(result, events, format='html'):
-    groups = sections(result, events)
+def render(result, events, format='html', reviews=()):
+    groups = sections(result, events, reviews)
     if format == 'md':
         # Escape source text, including line breaks, so it cannot introduce report sections/HTML.
         def escape(value):

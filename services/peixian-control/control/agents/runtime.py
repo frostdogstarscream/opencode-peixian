@@ -53,6 +53,19 @@ def register(app):
 
 def validate_execution(snapshot):
     task=snapshot.get('task_spec') or {}
+    if task.get('schema_version')=='task-spec-v4':
+        from ..theft_provider_flow import pid,tool
+        from shared.theft_provider import request_spec,ContractError
+        meta=snapshot.get('agent_profile') or {};plan=snapshot.get('provider_plan') or {}
+        try:
+            valid=(meta['id']=='theft-assistant' and task['domain']==meta['domain']=='theft' and task['agent_version']==meta['version'] and task['query_mode']=='new_query' and snapshot['allowed_capabilities']==[plan['plugin_id']] and task['agent_id']==meta['id'] and task['agent_profile_sha256']==meta['profile_sha256']
+                and task['methods']==[plan['kind']] and plan['plugin_id']==pid(plan['kind']) and plan['tool_id']==tool(plan['kind'])
+                and plan['request']==request_spec(plan['kind'],plan['query']) and snapshot['allowed_tools']==[plan['tool_id']]
+                and snapshot['payload']['tools'].get(plan['tool_id']) is True and snapshot['payload']['tools'].get('*') is False
+                and snapshot['effective_system_prompt_sha256']==hashlib.sha256(snapshot['payload'].get('system','').encode()).hexdigest())
+        except (KeyError,TypeError,ValueError):valid=False
+        if not valid:error('provider_plan_mismatch','执行范围无法核对，未调用资料接口。',409)
+        return
     if task.get('schema_version') not in ('task-spec-v2','task-spec-v3'):return
     meta=snapshot.get('agent_profile') or {};plan=snapshot.get('facts_plan') or {}
     from shared.task_scope import validate_target

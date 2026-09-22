@@ -261,6 +261,38 @@
                   },
                   "type": "array"
                 },
+                "discovery_details": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "category": {
+                        "enum": [
+                          "metric",
+                          "limitation"
+                        ]
+                      },
+                      "source_ids": {
+                        "items": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "pattern": "^[A-Za-z0-9_-]+$",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "source_ids",
+                      "category"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
                 "evidence": {
                   "items": {
                     "additionalProperties": false,
@@ -1322,6 +1354,85 @@
         "required": [
           "ok",
           "message"
+        ],
+        "type": "object"
+      },
+      "ControlledAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ControlledAnswerItem"
+            },
+            "type": "array"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "next_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "partial",
+              "needs_input",
+              "unavailable"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "version": {
+            "const": "controlled-zh-v1"
+          }
+        },
+        "required": [
+          "version",
+          "status",
+          "summary",
+          "items",
+          "missing",
+          "next_steps"
+        ],
+        "type": "object"
+      },
+      "ControlledAnswerItem": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "source_run_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "claim_id",
+          "source_run_id",
+          "source_ids"
         ],
         "type": "object"
       },
@@ -2802,7 +2913,8 @@
               6,
               7,
               8,
-              9
+              9,
+              10
             ],
             "type": "integer"
           },
@@ -3489,6 +3601,35 @@
       "Message": {
         "additionalProperties": false,
         "properties": {
+          "attachments": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9_-]+$",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "available",
+                    "unavailable"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "info": {
             "additionalProperties": true,
             "properties": {
@@ -3743,6 +3884,9 @@
             },
             "maxItems": 5,
             "type": "array"
+          },
+          "provider_query": {
+            "$ref": "#/components/schemas/ProviderConfirmation"
           },
           "skill_ids": {
             "items": {
@@ -4692,6 +4836,198 @@
         ],
         "type": "object"
       },
+      "ProviderCapabilities": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "type": "string"
+          },
+          "data_environment": {
+            "const": "synthetic"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "available": {
+                  "type": "boolean"
+                },
+                "kind": {
+                  "enum": [
+                    "incidents",
+                    "captures",
+                    "tracks",
+                    "warnings",
+                    "warning_detail",
+                    "warning_logs"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "plugin_id": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9_-]+$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "name",
+                "plugin_id",
+                "available"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "data_environment",
+          "contract_version"
+        ],
+        "type": "object"
+      },
+      "ProviderConfirmation": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmation": {
+            "type": "string"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/ProviderPlan"
+          }
+        },
+        "required": [
+          "plan",
+          "confirmation"
+        ],
+        "type": "object"
+      },
+      "ProviderPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "expires": {
+            "type": "integer"
+          },
+          "generation": {},
+          "kind": {
+            "enum": [
+              "incidents",
+              "captures",
+              "tracks",
+              "warnings",
+              "warning_detail",
+              "warning_logs"
+            ]
+          },
+          "query": {
+            "$ref": "#/components/schemas/ProviderQuery"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "version": {
+            "const": "theft-provider-contract-v1"
+          }
+        },
+        "required": [
+          "version",
+          "kind",
+          "query",
+          "revision",
+          "generation",
+          "expires"
+        ],
+        "type": "object"
+      },
+      "ProviderPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmation": {
+            "type": "string"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/ProviderPlan"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "confirmation",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "ProviderPreviewBody": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "incidents",
+              "captures",
+              "tracks",
+              "warnings",
+              "warning_detail",
+              "warning_logs"
+            ]
+          },
+          "query": {
+            "$ref": "#/components/schemas/ProviderQuery"
+          }
+        },
+        "required": [
+          "kind",
+          "query"
+        ],
+        "type": "object"
+      },
+      "ProviderQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "center": {
+            "enum": [
+              "DEMO-LOCATION-A",
+              "DEMO-LOCATION-B"
+            ]
+          },
+          "end": {
+            "type": "string"
+          },
+          "page": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "page_size": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "radius_m": {
+            "maximum": 5000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "start": {
+            "type": "string"
+          },
+          "subject": {
+            "enum": [
+              "DEMO-PERSON-001",
+              "DEMO-PERSON-002"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "QuestionRejectBody": {
         "additionalProperties": false,
         "properties": {
@@ -4867,9 +5203,14 @@
           "action": {
             "enum": [
               "continue",
-              "cancel"
+              "cancel",
+              "retry"
             ],
             "type": "string"
+          },
+          "state_version": {
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -5005,6 +5346,163 @@
         ],
         "type": "object"
       },
+      "Review": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "result_digest": {
+            "type": "string"
+          },
+          "reviewer": {
+            "type": "string"
+          },
+          "run_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "consistent",
+              "needs_information",
+              "inconsistent"
+            ]
+          },
+          "status_label": {
+            "type": "string"
+          },
+          "supersedes": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "result_digest",
+          "status",
+          "note",
+          "claim_ids",
+          "reviewer",
+          "created_at",
+          "supersedes",
+          "status_label"
+        ],
+        "type": "object"
+      },
+      "ReviewBody": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "note": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "result_digest": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "consistent",
+              "needs_information",
+              "inconsistent"
+            ]
+          },
+          "supersedes": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "result_digest",
+          "status",
+          "note"
+        ],
+        "type": "object"
+      },
+      "ReviewList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Review"
+            },
+            "type": "array"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "result_digest": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "unreviewed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "result_digest",
+          "unreviewed",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "type": "object"
+      },
       "Run": {
         "additionalProperties": false,
         "properties": {
@@ -5069,6 +5567,9 @@
             "minLength": 1,
             "pattern": "^[A-Za-z0-9_-]+$",
             "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/RunOutcome"
           },
           "parent_run_id": {
             "anyOf": [
@@ -5944,6 +6445,66 @@
           "status",
           "cards",
           "summary"
+        ],
+        "type": "object"
+      },
+      "RunOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "data_status": {
+            "type": "string"
+          },
+          "execution_status": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "next_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "queried": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "processing",
+              "unconfirmed",
+              "cancelled",
+              "failed",
+              "needs_input",
+              "historical",
+              "partial",
+              "data_ready",
+              "no_query"
+            ]
+          },
+          "version": {
+            "const": "run-outcome-v1"
+          }
+        },
+        "required": [
+          "version",
+          "status",
+          "label",
+          "message",
+          "next_steps",
+          "execution_status",
+          "data_status",
+          "queried"
         ],
         "type": "object"
       },
@@ -6991,6 +7552,38 @@
                 "discoveries": {
                   "items": {
                     "type": "string"
+                  },
+                  "type": "array"
+                },
+                "discovery_details": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "category": {
+                        "enum": [
+                          "metric",
+                          "limitation"
+                        ]
+                      },
+                      "source_ids": {
+                        "items": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "pattern": "^[A-Za-z0-9_-]+$",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "source_ids",
+                      "category"
+                    ],
+                    "type": "object"
                   },
                   "type": "array"
                 },
@@ -8851,6 +9444,50 @@
           },
           {
             "$ref": "#/components/schemas/TaskSpecV3"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "agent_id": {
+                "const": "theft-assistant"
+              },
+              "domain": {
+                "const": "theft"
+              },
+              "methods": {
+                "items": {
+                  "enum": [
+                    "incidents",
+                    "captures",
+                    "tracks",
+                    "warnings",
+                    "warning_detail",
+                    "warning_logs"
+                  ]
+                },
+                "maxItems": 1,
+                "minItems": 1,
+                "type": "array"
+              },
+              "query_mode": {
+                "enum": [
+                  "new_query",
+                  "explain_existing",
+                  "clarify"
+                ]
+              },
+              "schema_version": {
+                "const": "task-spec-v4"
+              }
+            },
+            "required": [
+              "schema_version",
+              "domain",
+              "agent_id",
+              "query_mode",
+              "methods"
+            ],
+            "type": "object"
           }
         ]
       },
@@ -9645,6 +10282,9 @@
         "properties": {
           "agent": {
             "$ref": "#/components/schemas/AgentIdentity"
+          },
+          "answer": {
+            "$ref": "#/components/schemas/ControlledAnswer"
           },
           "claims": {
             "items": {
@@ -15867,7 +16507,7 @@
     },
     "/api/console/v1/admin/recovery/{uid}": {
       "post": {
-        "description": "仅超管选择继续等待或取消已准入活动后更新；取消不保证撤销外部副作用。",
+        "description": "仅超管；continue/cancel处理排空，retry需要repair_only及当前runtime state_version，按原快照重试失败恢复，保留入口关闭与原责任。必须提供Idempotency-Key；取消不保证撤销外部副作用。",
         "operationId": "recovery_action_api_console_v1_admin_recovery__uid__post",
         "parameters": [
           {
@@ -26787,6 +27427,210 @@
         "x-runtime-route": "/api/console/v1/sessions/{sid}/messages"
       }
     },
+    "/api/console/v1/sessions/{sid}/provider-query/preview": {
+      "post": {
+        "description": "只检查范围，签名有效期600秒，绑定账号、会话、配置、清除边界；不调用模型和资料服务。",
+        "operationId": "confirm_api_console_v1_sessions__sid__provider_query_preview_post",
+        "parameters": [
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderPreviewBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderPreview"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "确认资料范围",
+        "tags": [
+          "会话"
+        ],
+        "x-csrf": "Cookie sessions require X-CSRF-Token; personal Bearer tokens do not.",
+        "x-role": "user",
+        "x-runtime-route": "/api/console/v1/sessions/{sid}/provider-query/preview"
+      }
+    },
     "/api/console/v1/sessions/{sid}/runs": {
       "get": {
         "description": "当前账号资源；不属于本人返回404。",
@@ -30301,6 +31145,444 @@
         ],
         "x-role": "user",
         "x-runtime-route": "/api/console/v1/sessions/{sid}/runs/{rid}/result"
+      }
+    },
+    "/api/console/v1/sessions/{sid}/runs/{rid}/reviews": {
+      "get": {
+        "description": "分页读取；跨账号404，不授予管理员读取正文权限。",
+        "operationId": "get_reviews_api_console_v1_sessions__sid__runs__rid__reviews_get",
+        "parameters": [
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "rid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewList"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ],
+        "summary": "本人来源复核",
+        "tags": [
+          "会话"
+        ],
+        "x-role": "user",
+        "x-runtime-route": "/api/console/v1/sessions/{sid}/runs/{rid}/reviews"
+      },
+      "post": {
+        "description": "Idempotency-Key必填。终态且结果摘要匹配；追加更正保留原记录，不修改可信事实。",
+        "operationId": "post_review_api_console_v1_sessions__sid__runs__rid__reviews_post",
+        "parameters": [
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "资源标识；普通业务资源必须属于当前认证账号。",
+            "in": "path",
+            "name": "rid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Review"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "CsrfToken": [],
+            "SessionCookie": []
+          }
+        ],
+        "summary": "追加来源复核",
+        "tags": [
+          "会话"
+        ],
+        "x-csrf": "Cookie sessions require X-CSRF-Token; personal Bearer tokens do not.",
+        "x-role": "user",
+        "x-runtime-route": "/api/console/v1/sessions/{sid}/runs/{rid}/reviews"
       }
     },
     "/api/console/v1/sessions/{sid}/runs/{rid}/source": {
@@ -33919,6 +35201,184 @@
         "x-csrf": "Cookie sessions require X-CSRF-Token; personal Bearer tokens do not.",
         "x-role": "user",
         "x-runtime-route": "/api/console/v1/templates/{tid}/copy"
+      }
+    },
+    "/api/console/v1/theft-provider/capabilities": {
+      "get": {
+        "description": "只列当前账号授权且已生效能力；合成接口，不访问供应方。",
+        "operationId": "capabilities_api_console_v1_theft_provider_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderCapabilities"
+                }
+              }
+            },
+            "description": "成功"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "输入不合法或包含不支持的字段"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "登录或令牌无效"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "权限、CSRF、Origin 或初始改密要求未满足"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "资源不存在或不属于当前账号"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "环境未就绪、配置待应用或状态冲突"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求、上传配额或消息引用预算超限"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "不支持的文件类型"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求格式不正确"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "请求频率或并发超过限制",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务内部错误"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "账号环境返回异常"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "服务繁忙、数据库等待超限或账号环境暂时不可达",
+            "headers": {
+              "Retry-After": {
+                "description": "适用时给出建议等待秒数；只自动重试读取，不重放写操作。",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "写入提交结果待确认；先查询历史或状态，不自动重试生成或插件请求"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ],
+        "summary": "可用资料查询",
+        "tags": [
+          "会话"
+        ],
+        "x-role": "user",
+        "x-runtime-route": "/api/console/v1/theft-provider/capabilities"
       }
     },
     "/api/console/v1/tokens": {

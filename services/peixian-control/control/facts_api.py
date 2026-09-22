@@ -10,13 +10,17 @@ from .backend_contract import require_v6
 def register(app):
     # One owner per Control process. A restarted process cannot resend pending reads.
     state = None
+    provider_state = None
     initialization = threading.Lock()
     def execute(data, credential):
-        nonlocal state
+        nonlocal state,provider_state
         store = app.state.store
         require_v6(store)
         with initialization:
             if state is None: state = FactsState(store)
+            if provider_state is None:
+                from .theft_provider_state import ProviderState
+                provider_state=ProviderState(store)
         if not isinstance(data,dict) or len(json.dumps(data).encode()) > 2*1024*1024: raise HTTPException(422,"事实协议无效")
         if any(not isinstance(data.get(k),str) or not 1<=len(data[k])<=160 for k in ('runtime_id','action','gateway_boot_id')) or type(data.get('revision')) is not int: raise HTTPException(422,'事实协议无效')
         for k in ('run_id','operation','session_id','message_id','module'):
@@ -26,21 +30,25 @@ def register(app):
         if runtime['revision'] != data.get('revision'): reject('facts_revision_changed')
         if runtime['gateway_boot_id'] != data['gateway_boot_id']: reject('facts_gateway_changed')
         uid = runtime['uid']; action = data.get('action')
+        engine=provider_state if action.startswith('provider_') else state
+        if action.startswith('provider_'):
+            action=action[len('provider_'):]
+            if action not in ('begin','finish','authorize','reserve','complete','read'):raise HTTPException(422,'不支持的资料操作')
         if action == 'begin':
             if set(data) != {'action','runtime_id','revision','gateway_boot_id','session_id','message_id'}: raise HTTPException(422,'事实协议无效')
             row=store.one("SELECT * FROM business_runs WHERE uid=? AND session_id=? AND message_id=?",(uid,data['session_id'],data['message_id']))
             if not row: raise HTTPException(404,'执行记录不存在')
-            operation=state.begin(uid,row['id'],data['revision'],data['gateway_boot_id'])
-            return {'uid':uid,'run_id':row['id'],'revision':data['revision'],'operation':operation,**state.read(uid,row['id'],data['revision'])}
+            operation=engine.begin(uid,row['id'],data['revision'],data['gateway_boot_id'])
+            return {'uid':uid,'run_id':row['id'],'revision':data['revision'],'operation':operation,**engine.read(uid,row['id'],data['revision'])}
         if not {'action','runtime_id','revision','run_id','operation'} <= set(data):raise HTTPException(422,'事实协议无效')
         args=(uid,data['run_id'],data['revision'],data['operation'])
-        if action=='finish':state.finish(*args);return {'ok':True}
-        if action=='authorize':state.check(*args,data.get('module'));return {'ok':True}
-        if action=='reserve':return {'reserved':state.reserve(*args,data.get('module'))}
-        if action=='complete':return {'status':state.complete(*args,data.get('module'),data.get('status'),data.get('response'))}
-        if action=='read':state.check(*args);return state.read(*args[:3])
-        if action=='table':state.save_table(*args,data.get('table'));return {'ok':True}
-        if action=='check':return state.check_claims(*args,data.get('claims'))
+        if action=='finish':engine.finish(*args);return {'ok':True}
+        if action=='authorize':engine.check(*args,data.get('module'));return {'ok':True}
+        if action=='reserve':return {'reserved':engine.reserve(*args,data.get('module'))}
+        if action=='complete':return {'status':engine.complete(*args,data.get('module'),data.get('status'),data.get('response'))}
+        if action=='read':engine.check(*args);return engine.read(*args[:3])
+        if action=='table':engine.save_table(*args,data.get('table'));return {'ok':True}
+        if action=='check':return engine.check_claims(*args,data.get('claims'))
         raise HTTPException(422,'不支持的事实操作')
 
     @app.post('/internal/runtime/facts')

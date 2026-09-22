@@ -57,7 +57,7 @@ def test_openapi_is_valid_and_every_reference_resolves(document):
 
 def test_message_body_is_the_restricted_console_contract(document):
     body = document["components"]["schemas"]["MessageBody"]
-    assert set(body["properties"]) == {"text", "model_id", "skill_ids", "file_ids", "plugin_ids", "mode", "client_request_id", "agent_id", "context_version"}
+    assert set(body["properties"]) == {"text", "model_id", "skill_ids", "file_ids", "plugin_ids", "mode", "client_request_id", "agent_id", "context_version", "provider_query"}
     assert body["required"] == ["text"]
     assert body["additionalProperties"] is False
     valid = {"text": "A synthetic question", "model_id": "opaque-model-id", "skill_ids": ["own-skill"], "file_ids": ["own-file"]}

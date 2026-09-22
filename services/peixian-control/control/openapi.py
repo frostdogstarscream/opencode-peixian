@@ -440,6 +440,8 @@ from .openapi_v6 import contracts as backend_contracts
 CONTRACTS.update(backend_contracts())
 from .openapi_alignment import contracts as alignment_contracts
 CONTRACTS.update(alignment_contracts())
+from .openapi_provider import contracts as provider_contracts
+CONTRACTS.update(provider_contracts())
 
 
 def build_openapi(app):
@@ -457,6 +459,8 @@ def build_openapi(app):
     document.setdefault("components", {})["schemas"] = extend_schemas(schemas())
     from .openapi_alignment import extend as extend_alignment
     extend_alignment(document["components"]["schemas"])
+    from .openapi_provider import extend as extend_provider
+    extend_provider(document["components"]["schemas"])
     document["components"]["securitySchemes"] = {
         "SessionCookie": {"type": "apiKey", "in": "cookie", "name": "px_session",
                           "description": "auth/login 设置的 HttpOnly Cookie；不是可放入请求体的账号选择参数。"},

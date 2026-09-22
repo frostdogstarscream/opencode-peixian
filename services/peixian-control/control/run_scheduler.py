@@ -39,6 +39,7 @@ def track_messages(store,row,values,receipt):
     if plan:
         from .facts_plan import HELPERS
         permitted_tools=set(plan['allowed_tools']) | set(HELPERS) | {'question'}
+    if snapshot.get('provider_plan'):permitted_tools={snapshot['provider_plan']['tool_id']}
     for message in selected:
         info=message.get('info',{})
         if info.get('role')!='assistant':continue
@@ -70,6 +71,9 @@ def track_messages(store,row,values,receipt):
     # Persist evidence from canonical plugin facts only, never model-authored result parts.
     from .scenario_evidence import project,permitted
     from .scenario_presentation import presentation
+    if snapshot.get('provider_plan'):
+        from .theft_provider_state import ProviderState
+        ProviderState(store).terminate(row['uid'],row['id'],row['revision'])
     if plan and (row['cancel_requested'] or violations):
         from .facts_runtime import FactsState
         FactsState(store).terminate(row['uid'],row['id'],row['revision'])

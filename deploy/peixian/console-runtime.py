@@ -789,11 +789,13 @@ class RuntimeManager:
         config["plugin"] = []
         config["skills"] = {"paths": ["/managed/skills"]}
         seven_ids = {"peixian-records-" + m for m in ("funds","calls","portrait","composite","night","vehicle","lookup")}
+        provider_ids={'peixian-theft-'+m for m in ('incidents','captures','tracks','warnings','warning-detail','warning-logs')}
+        has_provider=any(p['id'] in provider_ids for p in spec['plugins'])
         has_seven = any(p["id"] in seven_ids for p in spec["plugins"])
         if has_seven and any(p["id"] == "peixian-synthetic-records" for p in spec["plugins"]):
             raise RuntimeFailure("ambiguous_records_plugin_chain")
         facts_token = hmac.new(spec["private"]["gateway_key"].encode(), b"facts-agent-v1", hashlib.sha256).hexdigest()
-        if has_seven:
+        if has_seven or has_provider:
             # These fixed platform helpers are not user-installed plugin tools.
             # Gateway still binds every invocation to the authorized durable Run.
             config.setdefault("permission", {}).update({name: "allow" for name in (
@@ -830,7 +832,7 @@ class RuntimeManager:
                 "const options = " + json.dumps(plugin["options"], ensure_ascii=False) + ";\n"
                 "const platform = createPlatform(" + json.dumps(bindings) + ");\n"
                 "export default async (context) => plugin(context, options, platform);\n", encoding="utf-8")
-            if plugin["id"] in seven_ids:
+            if plugin["id"] in seven_ids | provider_ids:
                 # Only Gateway holds the service connection bindings. Model-facing
                 # tools delegate through the account/Run checked facts endpoint.
                 loader.write_text(

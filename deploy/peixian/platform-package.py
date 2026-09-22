@@ -145,6 +145,9 @@ ALLOWED_FILES += ('deploy/peixian/examples/seven_data_plugins/package.py',
     'deploy/peixian/platform-facts/agent-client.mjs','deploy/peixian/platform-facts/engine.mjs',
     'specs/seven-plugins-pr1-4-operations.md')
 
+ALLOWED_FILES += tuple('deploy/peixian/examples/theft_provider/'+kind+'/'+name for kind in ('incidents','captures','tracks','warnings','warning_detail','warning_logs') for name in ('entry.mjs','manifest.json'))
+ALLOWED_FILES += ('deploy/peixian/examples/theft_provider/service.py','deploy/peixian/examples/theft_provider/package.py','deploy/peixian/examples/theft_provider/README.md','services/peixian-control/docs/theft-provider-api.md')
+ALLOWED_FILES += tuple('deploy/peixian/examples/theft_provider/skills/'+n+'/SKILL.md' for n in ('incident-to-observation','observation-to-incident'))
 OPTIONAL_FILES = ("deploy/peixian/GENERIC_ACCEPTANCE_REPORT.md", "deploy/peixian/examples/openai-fixture.py")
 ARTIFACTS = {"images.tar", "source.tar.gz", "source.tar", "release-manifest.json", "SHA256SUMS", "README.md"}
 FORBIDDEN = {".runtime", ".secrets", ".private", "output", "__pycache__", ".git", "node_modules", ".venv"}

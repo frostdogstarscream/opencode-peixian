@@ -169,6 +169,9 @@ def build(row,snapshot,events):
 
 
 def project(store,row,snapshot):
+    if snapshot.get('provider_plan'):
+        from .theft_provider_result import project as provider_project
+        return provider_project(row,snapshot)
     events=store.rows('SELECT * FROM run_events WHERE run_id=? ORDER BY sequence',(row['id'],))
     result=build(row,snapshot,events)
     projection=snapshot.get('historical_projection')
@@ -219,6 +222,9 @@ def read(store,uid,sid,rid):
 
 
 def data_usage(store,row,snapshot):
+    if snapshot.get("provider_plan"):
+        from .theft_provider_result import project
+        return project(row,snapshot)["data_usage"]
     events=store.rows('SELECT * FROM run_events WHERE run_id=?',(row['id'],))
     try:valid,records,invalid=confirmed_inputs(snapshot,events)
     except (ValueError,KeyError,TypeError,IndexError):valid={};invalid=list(snapshot.get('facts_plan',{}).get('modules',[]))

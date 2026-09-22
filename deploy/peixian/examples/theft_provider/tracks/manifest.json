@@ -1,0 +1,27 @@
+{
+  "id": "peixian-theft-tracks",
+  "version": "1.0.0",
+  "name": "指定对象轨迹",
+  "description": "按已确认的合成范围读取指定对象轨迹，不自动扩展对象或范围。",
+  "opencode_version": "1.18.30",
+  "entry": "entry.mjs",
+  "tools": [
+    "peixian_query_tracks"
+  ],
+  "connections": {
+    "provider": {
+      "description": "指定对象轨迹独立只读连接"
+    }
+  },
+  "display": {
+    "input_fields": [],
+    "output_fields": [
+      "code"
+    ]
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
+}

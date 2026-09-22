@@ -1,0 +1,27 @@
+{
+  "id": "peixian-theft-warning-logs",
+  "version": "1.0.0",
+  "name": "来源预警明细",
+  "description": "按已确认的合成范围读取来源预警明细，不自动扩展对象或范围。",
+  "opencode_version": "1.18.30",
+  "entry": "entry.mjs",
+  "tools": [
+    "peixian_query_warning_logs"
+  ],
+  "connections": {
+    "provider": {
+      "description": "来源预警明细独立只读连接"
+    }
+  },
+  "display": {
+    "input_fields": [],
+    "output_fields": [
+      "code"
+    ]
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
+}

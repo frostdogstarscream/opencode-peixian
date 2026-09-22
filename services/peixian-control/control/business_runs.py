@@ -86,8 +86,9 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         if agents.enabled(user['uid']):
             agents.bind(payload,profile,context,[x for x in applied.get('skills',[]) if x['id'] in (context or {}).get('effective_skill_ids',[])])
         from .facts_plan import build, bind_payload
-        plan = build(applied, context, data, task) if task and task['spec'] and task['spec']['query_mode']=='new_query' else None if task else build(applied, context, data)
-        if task and task['spec'] and task['spec']['query_mode']=='new_query' and not plan:error('task_plan_unavailable','固定方法执行链尚未生效。',409)
+        provider=task and task.get('provider_plan')
+        plan = None if provider else build(applied, context, data, task) if task and task['spec'] and task['spec']['query_mode']=='new_query' else None if task else build(applied, context, data)
+        if task and task['spec'] and task['spec']['query_mode']=='new_query' and not plan and not provider:error('task_plan_unavailable','固定方法执行链尚未生效。',409)
         if plan:
             # Verify every planned dependency, not only the user's preferences.
             check_selection(store,user['uid'],{'skill_ids':context['effective_skill_ids'],'plugin_ids':plan['allowed_capabilities']})
@@ -98,8 +99,11 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
             snapshot['allowed_capabilities']=plan['allowed_capabilities']
             snapshot['allowed_tools']=plan['allowed_tools']
         from .task_context import admit
-        if task:admit(store,db,user['uid'],sid,task)
-        if task is not None:
+        if task and not provider:admit(store,db,user['uid'],sid,task)
+        if provider:
+            from .theft_provider_flow import bind
+            bind(snapshot,payload,task)
+        elif task is not None:
             from .task_spec import bind
             bind(snapshot,payload,task)
         snapshot["agent_profile"]=profile.snapshot()
@@ -154,7 +158,7 @@ def set_state(store,rid,status,phase,code=None):
         if (row['status'],row['phase'],row['error_code'])==(status,phase,code):return
         if status=='cancelling':db.execute('UPDATE business_runs SET cancel_requested=1 WHERE id=?',(rid,))
         db.execute("UPDATE business_runs SET status=?,phase=?,error_code=?,updated=?,started=CASE WHEN ? IN ('running','cancelling') THEN coalesce(started,?) ELSE started END,completed=CASE WHEN ? IN ('completed','failed','cancelled') THEN ? ELSE completed END WHERE id=?",(status,phase,code,now(),status,now(),status,now(),rid))
-        if status=='completed':
+        if status=='completed' and not store.decrypt(db.execute('SELECT request_ciphertext FROM business_runs WHERE id=?',(rid,)).fetchone()[0]).get('provider_plan'):
             from .task_context import completed
             completed(store,db,rid)
         if status in TERMINAL:

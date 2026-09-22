@@ -1,0 +1,27 @@
+{
+  "id": "peixian-theft-captures",
+  "version": "1.0.0",
+  "name": "周边抓拍资料",
+  "description": "按已确认的合成范围读取周边抓拍资料，不自动扩展对象或范围。",
+  "opencode_version": "1.18.30",
+  "entry": "entry.mjs",
+  "tools": [
+    "peixian_query_captures"
+  ],
+  "connections": {
+    "provider": {
+      "description": "周边抓拍资料独立只读连接"
+    }
+  },
+  "display": {
+    "input_fields": [],
+    "output_fields": [
+      "code"
+    ]
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
+}

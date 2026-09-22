@@ -15,6 +15,8 @@ from .plugin_test import specification
 HELPERS={'peixian_get_scenario_context','peixian_prepare_scenario_facts','peixian_check_scenario_summary'}
 MODULES=('funds','calls','portrait','composite','night','vehicle','lookup')
 TOOLS={'peixian_get_'+m+'_records':m for m in MODULES}
+from shared.theft_provider import CATALOG
+PROVIDER_TOOLS={'peixian_query_'+m:m for m in CATALOG}
 
 async def process(input):
     with tempfile.TemporaryDirectory(prefix='px-facts-') as temporary:
@@ -51,7 +53,7 @@ def register(app):
     @app.post('/internal/facts/execute')
     async def execute(request:Request):
         value=await json_body(request,16384)
-        if not isinstance(value,dict) or set(value)!={'session_id','message_id','tool','args'} or not isinstance(value['tool'],str) or value['tool'] not in HELPERS|set(TOOLS):raise HTTPException(422,'资料调用无效')
+        if not isinstance(value,dict) or set(value)!={'session_id','message_id','tool','args'} or not isinstance(value['tool'],str) or value['tool'] not in HELPERS|set(TOOLS)|set(PROVIDER_TOOLS):raise HTTPException(422,'资料调用无效')
         for name in ('session_id','message_id'):
             if not isinstance(value[name],str) or not value[name] or len(value[name])>150 or any(not(c.isalnum() or c in '_-') for c in value[name]):raise HTTPException(422,'执行身份无效')
         config=app.state.settings;manager=getattr(app.state,'runtime_management',None)
@@ -70,6 +72,9 @@ def register(app):
                 json={'action':action,'runtime_id':config.runtime_id,'revision':config.revision,'gateway_boot_id':gate.boot_id,**fields},timeout=5)
             if response.status_code>=400:raise HTTPException(409,'当前资料能力不可用或执行已停止')
             return response.json()
+        if value['tool'] in PROVIDER_TOOLS:
+            from .theft_provider_execution import execute
+            return await execute(request,app,value,rpc,info['parentID'],process)
         admitted=await rpc('begin',session_id=value['session_id'],message_id=info['parentID'])
         identity={'run_id':admitted['run_id'],'operation':admitted['operation']}
         plan=admitted['plan'];args=value['args'];selected=value['tool']

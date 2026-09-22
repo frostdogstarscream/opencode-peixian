@@ -86,9 +86,9 @@ def image_supports_orchestration(labels, component, version):
     if labels.get("org.peixian.runtime.protocol") != "2":
         raise ConfigError("runtime_image_protocol_incompatible")
     if component == "control" and (labels.get("org.peixian.worker.protocol") != "2"
-                                     or labels.get("org.peixian.control.schema.max") not in ("4", "5", "6", "7", "8", "9")):
+                                     or labels.get("org.peixian.control.schema.max") not in ("4", "5", "6", "7", "8", "9", "10")):
         raise ConfigError("control_image_orchestration_incompatible")
-    if version == 4 and component == "control" and (labels.get("org.peixian.control.schema.max") not in ("5", "6", "7", "8", "9")
+    if version == 4 and component == "control" and (labels.get("org.peixian.control.schema.max") not in ("5", "6", "7", "8", "9", "10")
             or pool_settings.CAPABILITY not in labels.get("org.peixian.worker.capabilities", "").split(",")):
         raise ConfigError("control_image_runtime_pool_incompatible")
 
@@ -261,7 +261,7 @@ def load_config(path):
     except ValueError as error:
         raise ConfigError(str(error)) from None
     feature_scopes = raw.get("feature_scopes", {})
-    if (not isinstance(feature_scopes, dict) or set(feature_scopes) - {"task_spec_v1", "multi_agent_v1", "trusted_result_v2"}
+    if (not isinstance(feature_scopes, dict) or set(feature_scopes) - {"task_spec_v1", "multi_agent_v1", "trusted_result_v2", "theft_provider_v1"}
             or any(not isinstance(v, list) or len(v)>10000
                    or any(not isinstance(uid,str) or not re.fullmatch(r"[a-f0-9]{32}",uid) for uid in v) or len(set(v))!=len(v)
                    for v in feature_scopes.values())):

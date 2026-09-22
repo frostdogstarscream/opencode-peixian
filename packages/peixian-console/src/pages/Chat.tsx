@@ -1,3 +1,4 @@
+import { ProviderQuery, OwnerReviews } from "../TheftProvider"
 import { createEffect, createMemo, createSignal, For, Index, onCleanup, Show } from "solid-js"
 import { api, ApiError, list, patch, post, remove, safeMessage } from "../api"
 import { Button, Empty, ErrorLine, Field, Icon, Markdown, Modal, Spinner, Status } from "../components"
@@ -36,6 +37,7 @@ export default function Chat() {
   const [uncertain, setUncertain] = createSignal(false)
   const [loading, setLoading] = createSignal(true)
   const [error, setError] = createSignal("")
+  const [providerSession, setProviderSession] = createSignal<string>()
   const [picker, setPicker] = createSignal<"files" | "capabilities">()
   const [search, setSearch] = createSignal("")
   const [slashFilter, setSlashFilter] = createSignal("")
@@ -361,6 +363,7 @@ export default function Chat() {
     const attachments = selectedFiles().map((id) => ({ id, name: files().find((file) => file.id === id)?.name ?? "已上传文件" }))
     const payload = {
       text: text.trim(),
+      agent_id: providerSession() === selected() && selected() ? "theft-assistant" : undefined,
       model_id: model() || undefined,
       skill_ids: [...selectedSkills()],
       plugin_ids: [...selectedPlugins()],
@@ -376,6 +379,11 @@ export default function Chat() {
     let accepted = false
     try {
       let id = selected()
+      const previous = currentRun()
+      if (id && previous?.session_id === id) {
+        const binding = await api<{agent_profile?:{id:string}}>(`/sessions/${id}/runs/${previous.id}/task`)
+        if (binding.agent_profile?.id) payload.agent_id = binding.agent_profile.id
+      }
       if (!id) {
         const session = await post<Session>("/sessions", { title: text.trim().slice(0, 35) })
         if (app.user().id !== uid) return
@@ -853,6 +861,8 @@ export default function Chat() {
         </div>
         <div class="composer-area">
           <RuntimeStatus compact />
+          <ProviderQuery model={model() || shownModels()[0]?.id || ""} disabled={busy() || sending() || uncertain() || !ready() || !shownModels().length} sessionID={selected()} runID={currentRun()?.id} onAccepted={id=>{setProviderSession(id);void choose(id)}} />
+          <Show when={selected() && currentRun() && terminalRun(currentRun()!.status)}><OwnerReviews sessionID={selected()!} runID={currentRun()!.id} /></Show>
           <Show when={currentRun()?.outcome?.version === "run-outcome-v1" && currentRun()?.outcome}>
             {(outcome) => <div class="runtime-banner" role="status" aria-label="本轮资料结果"><div><strong>{outcome().label}</strong><p>{outcome().message}</p><For each={outcome().next_steps}>{(step) => <small>{step}</small>}</For></div></div>}
           </Show>

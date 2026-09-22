@@ -15,7 +15,7 @@ try {
   const {default:factory}=await import(pathToFileURL(input.entry).href);
   const plugin=await factory({},input.options,createPlatform(input.platform_connections));
   if(Object.keys(plugin.tool).length!==1||!plugin.tool[input.tool])throw new Error('invalid_module');
-  value=JSON.parse(await plugin.tool[input.tool].execute({}));
+  value=JSON.parse(await plugin.tool[input.tool].execute(input.args ?? {}));
  }
  output(JSON.stringify({ok:true,value}));
 } catch { output(JSON.stringify({ok:false}));process.exitCode=1; }

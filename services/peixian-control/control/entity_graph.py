@@ -59,6 +59,10 @@ def build(result, sid):
             relation = ('ledger_record', '流水记录归属'); endpoints = [('person', record.get('member_ref')), ('record', record['record_id'])]
         elif module == 'night':
             relation = ('observation_record', '夜间记录归属'); endpoints = [('person', record.get('subject_ref')), ('record', record['record_id'])]
+        elif module in ('captures','tracks','warnings','warning_detail') and result.get('versions',{}).get('provider_contract')=='theft-provider-contract-v1':
+            fields=record.get('fields',{})
+            subject=fields.get('target_id_card') if module=='captures' else fields.get('idCard') if module in ('warnings','warning_detail') else result.get('versions',{}).get('query',{}).get('subject')
+            relation=('source_record','来源记录归属');endpoints=[('person',subject),('record',record['record_id'])]
         else:
             omitted += 1
             continue

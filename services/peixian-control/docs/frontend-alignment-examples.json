@@ -1,0 +1,422 @@
+{
+  "notice": "确定性合成函数输出；不是线上请求截获，不含真实人员资料。",
+  "T1": {
+    "messages": [
+      {
+        "info": {
+          "id": "msg-example",
+          "role": "assistant"
+        },
+        "parts": [
+          {
+            "id": "part-example",
+            "type": "text",
+            "text": "你好，请说明需要整理哪些资料。"
+          }
+        ]
+      }
+    ],
+    "graphs": {
+      "items": [],
+      "total": 0,
+      "page": 1,
+      "page_size": 20
+    }
+  },
+  "T2": {
+    "selected_but_not_called": {
+      "observed_steps": []
+    },
+    "cancelled_actual_call": {
+      "call_id": "call-example",
+      "message_id": null,
+      "part_id": "part-call",
+      "step_type": "skill",
+      "name": "资料整理方法",
+      "status": "cancelled",
+      "capability_id": "skill-example",
+      "capability_name": "资料整理方法",
+      "capability_version": "3",
+      "input_summary": "按本轮已确认范围执行",
+      "output_summary": "",
+      "result": {},
+      "result_truncated": false,
+      "record_count": 0,
+      "details": {
+        "inputs": {},
+        "outputs": {}
+      }
+    }
+  },
+  "T4": [
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.01元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-0",
+      "source_ids": [
+        "DEMO-0"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.02元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-1",
+      "source_ids": [
+        "DEMO-1"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.03元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-2",
+      "source_ids": [
+        "DEMO-2"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.04元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-3",
+      "source_ids": [
+        "DEMO-3"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.05元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-4",
+      "source_ids": [
+        "DEMO-4"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.06元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-5",
+      "source_ids": [
+        "DEMO-5"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.07元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-6",
+      "source_ids": [
+        "DEMO-6"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.08元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-7",
+      "source_ids": [
+        "DEMO-7"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.09元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-8",
+      "source_ids": [
+        "DEMO-8"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.10元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-9",
+      "source_ids": [
+        "DEMO-9"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.11元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-10",
+      "source_ids": [
+        "DEMO-10"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    },
+    {
+      "type": "funds",
+      "label": "资金流水记录 · 2026-09-14 20:14",
+      "content": "原始流水：支出，1200.12元；不合并双边记录，不据此推断资金用途。",
+      "record_id": "DEMO-11",
+      "source_ids": [
+        "DEMO-11"
+      ],
+      "occurred_at": "2026-09-14T20:14:00+08:00",
+      "synthetic": true,
+      "verification_status": "source_verified"
+    }
+  ],
+  "T5": {
+    "unsupported_source": {
+      "status": "partial",
+      "nodes": [],
+      "edges": []
+    },
+    "denied": {
+      "message": "节点不存在。",
+      "code": "node_not_found",
+      "request_id": "example-request",
+      "field_errors": {}
+    }
+  },
+  "T6": {
+    "id": "file-example",
+    "name": "合成资料.txt",
+    "size": 20,
+    "status": "partial",
+    "truncated": true
+  },
+  "T7": {
+    "page": {
+      "schema": "peixian.entity-graph",
+      "version": "1.0",
+      "graph_id": "graph_1a5e08852ff225736404e43c",
+      "session_id": "session-example",
+      "run_id": "run-1",
+      "status": "ready",
+      "nodes": [
+        {
+          "id": "n_00a1674aae8a8842c7ee3faf",
+          "type": "person",
+          "label": "人员1",
+          "properties": {
+            "synthetic": true
+          },
+          "evidence_refs": [
+            {
+              "id": "DEMO-0",
+              "type": "record",
+              "label": "同框与同行"
+            },
+            {
+              "id": "DEMO-1",
+              "type": "record",
+              "label": "同框与同行"
+            },
+            {
+              "id": "DEMO-2",
+              "type": "record",
+              "label": "同框与同行"
+            },
+            {
+              "id": "DEMO-3",
+              "type": "record",
+              "label": "同框与同行"
+            }
+          ]
+        },
+        {
+          "id": "n_dda1762fd4aafa6daebe856b",
+          "type": "person",
+          "label": "人员2",
+          "properties": {
+            "synthetic": true
+          },
+          "evidence_refs": [
+            {
+              "id": "DEMO-0",
+              "type": "record",
+              "label": "同框与同行"
+            },
+            {
+              "id": "DEMO-1",
+              "type": "record",
+              "label": "同框与同行"
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "e_4572dafd6f870e0f3b2f6171",
+          "source": "n_00a1674aae8a8842c7ee3faf",
+          "target": "n_dda1762fd4aafa6daebe856b",
+          "type": "same_frame",
+          "label": "同框",
+          "directed": false,
+          "properties": {
+            "synthetic": true,
+            "occurred_at": "2026-09-20T22:00:00+08:00"
+          },
+          "evidence_refs": [
+            {
+              "id": "DEMO-0",
+              "type": "record",
+              "label": "同框与同行"
+            }
+          ]
+        }
+      ],
+      "analysis": [],
+      "meta": {
+        "mode": "snapshot",
+        "data_revision": "611917e45583bf0a123ad62b59824035fbecbef1c11b70969f3f6c296534d241",
+        "generated_at": "2026-09-22T00:00:00Z",
+        "total_nodes": 3,
+        "total_edges": 4,
+        "returned_nodes": 2,
+        "returned_edges": 1,
+        "max_depth": 2,
+        "truncated": true,
+        "next_cursor": "eyJiaW5kaW5nIjoiMzg5Y2ZkZGY0OTczMzljYzk0ODhiNDJiIiwib2Zmc2V0IjoxLCJyZXZpc2lvbiI6IjYxMTkxN2U0NTU4M2JmMGExMjNhZDYyYjU5ODI0MDM1ZmJlY2JlZjFjMTFiNzA5NjlmM2Y2YzI5NjUzNGQyNDEifQ.1ba1638d6ed7aded92e0f77e5d97283523736d1ed64122069111c755706eede3",
+        "limits": {
+          "node_limit": 200,
+          "edge_limit": 400,
+          "max_depth": 2,
+          "total_nodes": 500,
+          "total_edges": 1000
+        },
+        "weight_semantics": "本版不返回权重，不代表风险或置信度。"
+      }
+    },
+    "paths": {
+      "schema": "peixian.entity-graph",
+      "version": "1.0",
+      "graph_id": "graph_1a5e08852ff225736404e43c",
+      "data_revision": "611917e45583bf0a123ad62b59824035fbecbef1c11b70969f3f6c296534d241",
+      "found": true,
+      "paths": [
+        {
+          "node_ids": [
+            "n_00a1674aae8a8842c7ee3faf",
+            "n_dda1762fd4aafa6daebe856b"
+          ],
+          "edge_ids": [
+            "e_4572dafd6f870e0f3b2f6171"
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    "analysis": {
+      "schema": "peixian.entity-graph",
+      "version": "1.0",
+      "graph_id": "graph_1a5e08852ff225736404e43c",
+      "data_revision": "611917e45583bf0a123ad62b59824035fbecbef1c11b70969f3f6c296534d241",
+      "analysis": [
+        {
+          "id": "metric_n_00a1674aae8a8842c7ee3faf",
+          "type": "metric",
+          "label": "直接相邻节点数",
+          "node_ids": [
+            "n_00a1674aae8a8842c7ee3faf"
+          ],
+          "metrics": {
+            "degree": 2
+          },
+          "summary": "仅为图结构计数，不是人员重要性、风险或犯罪判断。"
+        },
+        {
+          "id": "metric_n_bad0bae88ebd31c3f859324e",
+          "type": "metric",
+          "label": "直接相邻节点数",
+          "node_ids": [
+            "n_bad0bae88ebd31c3f859324e"
+          ],
+          "metrics": {
+            "degree": 1
+          },
+          "summary": "仅为图结构计数，不是人员重要性、风险或犯罪判断。"
+        },
+        {
+          "id": "metric_n_dda1762fd4aafa6daebe856b",
+          "type": "metric",
+          "label": "直接相邻节点数",
+          "node_ids": [
+            "n_dda1762fd4aafa6daebe856b"
+          ],
+          "metrics": {
+            "degree": 1
+          },
+          "summary": "仅为图结构计数，不是人员重要性、风险或犯罪判断。"
+        }
+      ],
+      "meta": {
+        "algorithm": "centrality",
+        "params": {
+          "method": "degree"
+        },
+        "scope": "current_run_approved_records",
+        "generated_at": "2026-09-22T00:00:00Z",
+        "truncated": false,
+        "maximum_nodes": 500,
+        "maximum_edges": 1000
+      }
+    }
+  },
+  "recommendations": {
+    "missing_details": [
+      {
+        "id": "gap-example",
+        "category": "source_missing",
+        "text": "本轮车辆资料尚未取得。",
+        "source_ids": []
+      }
+    ],
+    "clues": [],
+    "conclusions": [],
+    "recommendations": [
+      {
+        "id": "next-source_missing",
+        "type": "request_information",
+        "text": "先补齐未取得的资料，再核对相关问题；当前缺少记录不表示没有发生。",
+        "gap_refs": [
+          "gap-example"
+        ],
+        "source_ids": [],
+        "actionable": false
+      }
+    ],
+    "next_steps_status": "available",
+    "next_steps": "- 先补齐未取得的资料，再核对相关问题；当前缺少记录不表示没有发生。",
+    "public_markdown": "### 资料范围与待核对项\n- 本轮车辆资料尚未取得。\n\n### 下一步建议\n- 先补齐未取得的资料，再核对相关问题；当前缺少记录不表示没有发生。"
+  }
+}

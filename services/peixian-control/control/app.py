@@ -248,6 +248,7 @@ def tool_displays(store, uid):
 
 
 def display_values(value, fields, secrets_to_hide=()):
+    import math
     if not isinstance(value, dict) or not isinstance(fields, list):
         return {}
     result = {}
@@ -255,6 +256,8 @@ def display_values(value, fields, secrets_to_hide=()):
         if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,59}", name) or re.search(r"secret|password|token|key|credential|authorization|cookie|url|path|command|shell", name, re.I):
             continue
         item = value.get(name)
+        if type(item) is float and not math.isfinite(item):
+            continue
         if type(item) not in (str, int, float, bool):
             continue
         if isinstance(item, str):
@@ -311,11 +314,11 @@ def public_messages(values, displays=None):
     result = []
     for message in values:
         info = message.get("info", {})
-        output = {"info": {k: info[k] for k in ("id", "role", "time", "sessionID", "finish") if k in info}, "parts": []}
+        output = {"info": {k: info[k] for k in ("id", "role", "time", "sessionID", "finish", "parentID") if k in info}, "parts": []}
         if info.get("error"):
             output["info"]["error"] = {"message": "已停止生成，已收到的内容仍然保留" if info["error"].get("name") == "MessageAbortedError" else "模型请求未完成，请稍后重试或选择其他模型"}
         for part in message.get("parts", []):
-            common = {k: part[k] for k in ("id", "type", "sessionID", "messageID") if k in part}
+            common = {k: part[k] for k in ("id", "type", "sessionID", "messageID", "callID") if k in part}
             if part.get("type") == "text" and not part.get("synthetic"):
                 timing = info.get("time", {})
                 incomplete = info.get("role") == "assistant" and (
@@ -471,6 +474,13 @@ def create_app(store=None):
     app.add_middleware(RequestLimits)
 
     @app.middleware("http")
+    async def request_identity(request, call_next):
+        request.state.request_id = ident()
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request.state.request_id
+        return response
+
+    @app.middleware("http")
     async def management_audit(request, call_next):
         if not request.url.path.startswith(PREFIX + "/admin/"):
             return await call_next(request)
@@ -513,11 +523,12 @@ def create_app(store=None):
         if isinstance(detail, dict) and {"message", "code"} <= set(detail):
             payload = {k:detail[k] for k in ("message","code","field_errors") if k in detail}
         payload.setdefault("field_errors", {})
-        return JSONResponse({**payload, "request_id": ident()}, status_code=exc.status_code, headers=headers)
+        return JSONResponse({**payload, "request_id": getattr(request.state,"request_id",None) or ident()}, status_code=exc.status_code, headers=headers)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):
-        return JSONResponse({"message": "请求格式不正确，请检查填写内容", "code": "invalid_request", "request_id": ident()}, status_code=422)
+        code = "GRAPH_INVALID_QUERY" if "/graphs" in request.url.path else "invalid_request"
+        return JSONResponse({"message": "请求格式不正确，请检查填写内容", "code": code, "field_errors": {}, "request_id": getattr(request.state,"request_id",None) or ident()}, status_code=422)
 
     @app.exception_handler(sqlite3.OperationalError)
     async def database_error(request, exc):
@@ -822,6 +833,8 @@ def create_app(store=None):
     from .skill_drafts import register as register_drafts
     register_drafts(app)
     register_runs(app)
+    from .entity_graph import register as register_graphs
+    register_graphs(app)
     register_invocations(app)
     register_catalog(app)
     from .organization import register as register_organization
@@ -864,6 +877,15 @@ def register_files(app):
                     db.executemany("INSERT OR REPLACE INTO files VALUES(?,?,?)", changed)
         await app.state.db_work.run(synchronize)
         return result
+
+    @app.get(PREFIX + "/files/{fid}")
+    async def file_status(fid: str, request: Request, user=Depends(normal)):
+        own_id(fid)
+        result = await files(request, user)
+        item = next((x for x in result.get("items", []) if x["id"] == fid), None)
+        if item is None:
+            fail("文件不存在", 404)
+        return item
 
     @app.post(PREFIX + "/files", status_code=202)
     async def upload(request: Request, file: UploadFile = File(...), user=Depends(normal)):

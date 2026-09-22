@@ -49,8 +49,10 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
     require_v6(store)
     identity=ident();message='msg_'+ident();timestamp=now();payload={**payload,'messageID':message}
     snapshot={'request':data,'payload':payload,'models':[x['id'] for x in applied.get('models',[])],
-              'plugins':[{'id':x['id'],'version':x.get('version'),'tools':x.get('manifest',{}).get('tools',[])} for x in applied.get('plugins',[])],
+              'plugins':[{'id':x['id'],'version':x.get('version'),'name':x.get('manifest',{}).get('name',x['id']),'display':x.get('manifest',{}).get('display',{}),'tools':x.get('manifest',{}).get('tools',[])} for x in applied.get('plugins',[])],
               'skills':[{'id':x['id'],'name':x['name'],'version':x.get('version')} for x in applied.get('skills',[])]}
+    from .app import tool_displays
+    snapshot['display_secrets']=tool_displays(store,user['uid']).get('_redaction',{}).get('_secrets',[])
     from .trusted_results import enabled
     if enabled(store,user['uid']):snapshot['trusted_result_version']='2.0';snapshot['data_environment']='synthetic'
     if context is not None:snapshot['scenario_context']={**context,'revision':revision}
@@ -153,17 +155,33 @@ def set_state(store,rid,status,phase,code=None):
             finalize(store,db,rid)
 
 
-def event(store,rid,key,kind,name,status,started=None,completed=None,capability=None,count=0):
+def event(store,rid,key,kind,name,status,started=None,completed=None,capability=None,count=0,metadata=None):
     with store.tx() as db:
         existing=db.execute('SELECT * FROM run_events WHERE run_id=? AND event_key=?',(rid,key)).fetchone()
+        # Terminal observations cannot regress when a delayed Agent snapshot arrives.
+        if existing and existing['status'] in ('completed','failed','cancelled') and status in ('pending','running'):return
+        metadata_changed=False
+        if metadata is not None:
+            run=db.execute('SELECT request_ciphertext FROM business_runs WHERE id=?',(rid,)).fetchone()
+            frozen=store.decrypt(run['request_ciphertext']);steps=frozen.setdefault('public_steps',{})
+            metadata_changed=steps.get(key)!=metadata
+            steps[key]=metadata
+            db.execute('UPDATE business_runs SET request_ciphertext=? WHERE id=?',(store.encrypt(frozen),rid))
+            if existing:
+                db.execute('UPDATE run_events SET name=?,capability_id=?,input_summary=?,output_summary=? WHERE id=?',
+                           (name,capability,metadata.get('input_summary',''),metadata.get('output_summary',''),existing['id']))
         if existing:
             first=existing['started'] if existing['started'] is not None else started
-            if (existing['status'],existing['started'],existing['completed'],existing['record_count'])==(status,first,completed,count):return
+            if (existing['status'],existing['started'],existing['completed'],existing['record_count'])==(status,first,completed,count) and not metadata_changed:return
             sequence=db.execute('SELECT coalesce(max(sequence),0)+1 FROM run_events WHERE run_id=?',(rid,)).fetchone()[0]
             db.execute('UPDATE run_events SET sequence=?,status=?,started=?,completed=?,record_count=? WHERE id=?',(sequence,status,first,completed,count,existing['id']))
         else:
             sequence=db.execute('SELECT coalesce(max(sequence),0)+1 FROM run_events WHERE run_id=?',(rid,)).fetchone()[0]
             db.execute('INSERT INTO run_events(id,run_id,event_key,sequence,step_type,name,status,started,completed,capability_id,record_count) VALUES(?,?,?,?,?,?,?,?,?,?,?)',(ident(),rid,key,sequence,kind,name,status,started,completed,capability,count))
+
+        if metadata is not None:
+            db.execute('UPDATE run_events SET input_summary=?,output_summary=? WHERE run_id=? AND event_key=?',
+                       (metadata.get('input_summary',''),metadata.get('output_summary',''),rid,key))
 
 
 def public_event(row):

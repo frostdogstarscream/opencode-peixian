@@ -84,9 +84,10 @@ def presentation(result, messages, frozen_data=None):
         process.append({"id":key,"title":title,"detail":detail,"status":state,"time":clock(at) if at else "—"})
     clues=[]; evidence=[]; conclusions=[]
     window=context["window_start"][:10]+" 至 "+context["window_end"][:10]+"（结束不含）"
+    from .source_display import source,complete
     def add(kind,title,value,unit,summary,rows,discoveries):
         cid="finding-"+kind
-        sources=[{"type":kind,"label":x["record_id"],"content":x.get("occurred_at", "时间未提供"),"source_ids":[x["record_id"]]} for x in rows]
+        sources=[source(kind,x) for x in rows]
         evidence.append({"type":kind,"title":title,"value":value if value is not None else "未获取" if kind!="place" else "无法核对","unit":unit if value is not None else "","summary":window,"items":[summary],"clue_id":cid})
         if value is None: return
         clue={"id":cid,"type":kind,"title":title,"headline":summary,"summary":summary,"discoveries":discoveries,"evidence":sources}
@@ -114,8 +115,14 @@ def presentation(result, messages, frozen_data=None):
         names = {"alone": "明确独行观测（仅本片段）", "accompanied": "明确同行观测", "unknown": "同行状态无法判断"}
         summary = "；".join((f.get("occurred_at") or "时间未明确")[11:16] + " " + names[f["observation"]] for f in observations)
         refs = [f["record_id"] for f in observations]
-        clues.append({"id":"finding-observation","type":"trajectory","title":"观测状态","headline":summary,"summary":summary,"discoveries":["独行仅限有明确来源的该次观测片段。"],"evidence":[{"type":"trajectory","label":x,"content":cards[x]["time"],"source_ids":cards[x]["source_ids"]} for x in refs]})
+        clues.append({"id":"finding-observation","type":"trajectory","title":"观测状态","headline":summary,"summary":summary,"discoveries":["独行仅限有明确来源的该次观测片段。"],"evidence":[{**source("trajectory",{"record_id":x,"occurred_at":cards[x]["time"]}),"source_ids":cards[x]["source_ids"]} for x in refs]})
         if result.get("summary_check")=="checked": conclusions.append({"text":summary,"clue_id":"finding-observation","source_ids":refs})
     missing=["部分资料未取得或核对未完成，请查看步骤状态。"] if result['status']!='complete' else []
     missing += ["观察范围："+window+"。", "地点无距离测量依据。" if theft else "流水缺少跨账户唯一配对依据。"]
-    return {"diagram":result.get("diagram"),"version":"1.0","turn_id":result.get('turn_id',messages[starts[-1]].get('info',{}).get('id','')),"title":NAMES[sid],"process":process,"conclusions":conclusions[:5],"evidence":evidence,"clues":clues,"missing":missing,"subject_ref":subject}
+    details=[{"id":"scope-"+str(i),"category":"scope_limit","text":text,"source_ids":[]} for i,text in enumerate(missing[-2:])]
+    for module in context['required_modules']:
+        if LABELS.get(module) not in acquired:
+            details.append({'id':'missing-'+module,'category':'source_missing','text':LABELS.get(module,'所选')+'资料尚未取得。','source_ids':[]})
+    if result.get('summary_check')!='checked':
+        details.append({'id':'verification-summary','category':'verification_pending','text':'摘要与来源的核对尚未完成。','source_ids':[]})
+    return complete({"missing_details":details,"diagram":result.get("diagram"),"version":"1.0","turn_id":result.get('turn_id',messages[starts[-1]].get('info',{}).get('id','')),"title":NAMES[sid],"process":process,"conclusions":conclusions[:5],"evidence":evidence,"clues":clues,"missing":missing,"subject_ref":subject})

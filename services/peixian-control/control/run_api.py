@@ -35,6 +35,9 @@ def attach_results(store,uid,values,sid=None):
                     'parts':[{'id':'part_'+mid,'type':'text','text':text}]})
                 known.add(mid)
         values.sort(key=lambda m:m['info'].get('time',{}).get('created',0))
+    if sid:
+        from .execution_view import attach
+        values=attach(store,uid,sid,values)
     return values
 
 
@@ -98,7 +101,9 @@ def register(app):
         s=app.state.store;runs.owned(s,user['uid'],sid,rid);offset=page_values(page,page_size)
         if after<0:error('invalid_sequence','事件序号无效')
         rows=s.rows('SELECT * FROM run_events WHERE run_id=? AND sequence>? ORDER BY sequence LIMIT ? OFFSET ?',(rid,after,page_size,offset))
-        return {'items':[runs.public_event(x) for x in rows],'total':s.one('SELECT count(*) AS n FROM run_events WHERE run_id=? AND sequence>?',(rid,after))['n'],'page':page,'page_size':page_size}
+        from .execution_view import event_view
+        row=runs.owned(s,user['uid'],sid,rid);snapshot=s.decrypt(row['request_ciphertext'])
+        return {'items':[event_view(x,snapshot) for x in rows],'total':s.one('SELECT count(*) AS n FROM run_events WHERE run_id=? AND sequence>?',(rid,after))['n'],'page':page,'page_size':page_size}
 
     @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/evidence')
     @blocking_endpoint(app)

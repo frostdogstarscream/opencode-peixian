@@ -49,9 +49,15 @@ def track_messages(store,row,values,receipt):
             if (plan or snapshot.get('task_spec')) and tool not in permitted_tools:violations.append(str(part.get('id') or part.get('callID')))
             if pid:actual.add(pid)
             kind='skill' if tool=='skill' else 'plugin' if pid else 'analysis'
-            timing=state.get('time',{});status={'completed':'completed','error':'failed','running':'running','pending':'pending'}.get(state.get('status'),'pending')
-            runs.event(store,row['id'],str(part.get('id') or part.get('callID')),kind,'使用技能' if kind=='skill' else '调用已授权插件' if pid else '执行辅助操作',status,timing.get('start')//1000 if type(timing.get('start')) is int else None,timing.get('end')//1000 if type(timing.get('end')) is int else None,pid)
-    with store.tx() as db:db.execute('UPDATE invocations SET actual_plugins=? WHERE run_id=?',(encode(sorted(actual)),row['id']))
+            timing=state.get('time',{});status={'completed':'completed','error':'failed','running':'running','pending':'pending','cancelled':'cancelled'}.get(state.get('status'),'pending')
+            from .execution_view import observed
+            metadata=observed(snapshot,{**part,'messageID':info.get('id')})
+            runs.event(store,row['id'],str(part.get('id') or part.get('callID')),kind,metadata['name'],status,timing.get('start')//1000 if type(timing.get('start')) is int else None,timing.get('end')//1000 if type(timing.get('end')) is int else None,metadata['capability_id'],metadata['record_count'],metadata=metadata)
+    with store.tx() as db:
+        db.execute('UPDATE invocations SET actual_plugins=? WHERE run_id=?',(encode(sorted(actual)),row['id']))
+        latest_snapshot=store.decrypt(db.execute('SELECT request_ciphertext FROM business_runs WHERE id=?',(row['id'],)).fetchone()['request_ciphertext'])
+        latest_snapshot['observed_message_ids']=list(dict.fromkeys(latest_snapshot.get('observed_message_ids',[])+[m['info']['id'] for m in assistants if isinstance(m.get('info',{}).get('id'),str)]))[:1000]
+        db.execute('UPDATE business_runs SET request_ciphertext=? WHERE id=?',(store.encrypt(latest_snapshot),row['id']))
     if violations:
         with store.tx() as db:
             for key in violations:runs.event(store,row['id'],'plan-denied.'+key,'authorization','发现非计划工具，停止并核对','rejected',completed=now())
@@ -86,7 +92,7 @@ def track_messages(store,row,values,receipt):
     if view:
         if view.get('diagram'): view['diagram']['run_id']=row['id']
         evidence['presentation']=view
-        result={'schema':'peixian.analysis-result','version':'1.0','run_id':row['id'],'generated_at':iso(now()),'intro':'','process':view['process'],'subjects':[],'conclusions':[x['text'] for x in view['conclusions']],'evidence':view['evidence'],'next_steps':'','clues':view['clues'],'conclusion_sources':view['conclusions'],'source_metadata':evidence.get('scenario',{}),'presentation_version':view['version'],'diagram':view.get('diagram')}
+        result={'schema':'peixian.analysis-result','version':'1.0','run_id':row['id'],'generated_at':iso(now()),'intro':'','process':view['process'],'subjects':[],'conclusions':[x['text'] for x in view['conclusions']],'evidence':view['evidence'],'next_steps':view.get('next_steps',''),'recommendations':view.get('recommendations',[]),'missing':view.get('missing',[]),'missing_details':view.get('missing_details',[]),'public_markdown':view.get('public_markdown',''),'clues':view['clues'],'conclusion_sources':view['conclusions'],'source_metadata':evidence.get('scenario',{}),'presentation_version':view['version'],'diagram':view.get('diagram')}
     failure='FactsPlanViolation' if violations else info.get('error',{}).get('name')
     status='cancelled' if failure=='MessageAbortedError' else 'failed' if failure else 'completed'
     with store.tx() as db:

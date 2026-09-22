@@ -275,6 +275,8 @@ def schemas():
     installed = result["Plugin"]["properties"]["installed"]["anyOf"][0]["properties"]
     installed["missing_connections"] = array(STRING)
     installed["state"]["enum"].append("unconfigured")
+    from .openapi_alignment import extend_presentation
+    extend_presentation(result)
     from .openapi_r2 import extend
     return extend(result, obj, ref, array, ID, STRING, BOOL, INTEGER)
 
@@ -436,6 +438,8 @@ def annotate_response(operation, schema):
 
 from .openapi_v6 import contracts as backend_contracts
 CONTRACTS.update(backend_contracts())
+from .openapi_alignment import contracts as alignment_contracts
+CONTRACTS.update(alignment_contracts())
 
 
 def build_openapi(app):
@@ -451,6 +455,8 @@ def build_openapi(app):
     document.pop("security", None)
     from .openapi_v6 import extend_schemas
     document.setdefault("components", {})["schemas"] = extend_schemas(schemas())
+    from .openapi_alignment import extend as extend_alignment
+    extend_alignment(document["components"]["schemas"])
     document["components"]["securitySchemes"] = {
         "SessionCookie": {"type": "apiKey", "in": "cookie", "name": "px_session",
                           "description": "auth/login 设置的 HttpOnly Cookie；不是可放入请求体的账号选择参数。"},

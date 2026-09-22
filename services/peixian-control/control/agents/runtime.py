@@ -11,8 +11,20 @@ def enabled(uid):
     from ..task_spec import enabled as task_enabled
     return task_enabled(uid) and uid in {x.strip() for x in os.getenv('PX_MULTI_AGENT_V1_UIDS','').split(',') if x.strip()}
 
+def active_ids():
+    # Keep archived profiles readable; deployment policy controls new execution only.
+    mode=os.getenv('PX_AGENT_MODE','dual')
+    if mode not in ('dual','theft_only'):
+        error('agent_policy_invalid','助手配置不可用，请联系管理员。',503)
+    return ('theft-assistant',) if mode=='theft_only' else ('gambling-assistant','theft-assistant')
+
+
 def select(uid,data):
-    profile=require(data.get('agent_id','gambling-assistant'))
+    available=active_ids()
+    identity=data.get('agent_id',available[0])
+    if identity not in available:
+        error('agent_retired','涉赌助手已下线；历史记录仍可查看，请新建盗窃助手会话。',422)
+    profile=require(identity)
     if profile.id!='gambling-assistant' and not enabled(uid):error('unsupported_agent','该助手尚未对当前账号开放。',422)
     return profile
 
@@ -30,7 +42,7 @@ def session(store,uid,sid,profile):
             if prior and prior['id']==profile.id and prior.get('profile_sha256')!=profile.profile_sha256:
                 error('session_profile_changed','此会话使用旧助手版本，请新建会话。',409)
     if any(frozen_identity(store.decrypt(row['request_ciphertext']))!=profile.id for row in rows):
-        error('session_agent_mismatch','此会话已绑定其他助手，请新建会话使用所选助手。',409)
+        error('session_agent_mismatch','此会话属于其他助手，历史记录仍可查看；请新建盗窃助手会话继续。' if active_ids()==('theft-assistant',) else '此会话已绑定其他助手，请新建会话使用所选助手。',409)
 
 def bind(payload,profile,context,skills):
     payload['system']=payload.get('system','')+'\n\n'+POLICY+'\n'+profile.prompt
@@ -45,7 +57,7 @@ def register(app):
     from ..app import PREFIX,normal
     @app.get(PREFIX+'/agents')
     def agents(user=Depends(normal)):
-        return {'items':[p.public() for p in PROFILES.values() if p.id=='gambling-assistant' or enabled(user['uid'])]}
+        return {'items':[p.public() for p in PROFILES.values() if p.id in active_ids() and (p.id=='gambling-assistant' or enabled(user['uid']))]}
     @app.get(PREFIX+'/agents/{agent_id}')
     def agent(agent_id:str,user=Depends(normal)):
         return select(user['uid'],{'agent_id':agent_id}).public()

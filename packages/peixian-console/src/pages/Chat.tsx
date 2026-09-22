@@ -37,7 +37,6 @@ export default function Chat() {
   const [uncertain, setUncertain] = createSignal(false)
   const [loading, setLoading] = createSignal(true)
   const [error, setError] = createSignal("")
-  const [providerSession, setProviderSession] = createSignal<string>()
   const [picker, setPicker] = createSignal<"files" | "capabilities">()
   const [search, setSearch] = createSignal("")
   const [slashFilter, setSlashFilter] = createSignal("")
@@ -363,7 +362,7 @@ export default function Chat() {
     const attachments = selectedFiles().map((id) => ({ id, name: files().find((file) => file.id === id)?.name ?? "已上传文件" }))
     const payload = {
       text: text.trim(),
-      agent_id: providerSession() === selected() && selected() ? "theft-assistant" : undefined,
+      agent_id: "theft-assistant",
       model_id: model() || undefined,
       skill_ids: [...selectedSkills()],
       plugin_ids: [...selectedPlugins()],
@@ -382,7 +381,7 @@ export default function Chat() {
       const previous = currentRun()
       if (id && previous?.session_id === id) {
         const binding = await api<{agent_profile?:{id:string}}>(`/sessions/${id}/runs/${previous.id}/task`)
-        if (binding.agent_profile?.id) payload.agent_id = binding.agent_profile.id
+        if (binding.agent_profile?.id && binding.agent_profile.id !== "theft-assistant") throw new ApiError("涉赌助手已下线，历史记录仍可查看。请点击新建研判，使用盗窃助手继续；当前输入已保留。", 409, "session_agent_mismatch")
       }
       if (!id) {
         const session = await post<Session>("/sessions", { title: text.trim().slice(0, 35) })
@@ -744,7 +743,7 @@ export default function Chat() {
         <div class="messages-scroll" ref={scroll} onPointerDown={() => { selectingText = true }} onPointerUp={() => { selectingText = false }} onPointerCancel={() => { selectingText = false }} onScroll={() => { followOutput = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 96 }}>
           <Show
             when={messages().length || pendingPrompt() || awaitingReply()}
-            fallback={<Show when={!selected()} fallback={<div class="conversation-blank" aria-label="空白研判对话区" />}><div class="chat-welcome"><span class="welcome-icon"><Icon name="skill" size={25} /></span><h2>你好，我是你的智能研判助手</h2><p>可以从一个问题开始；重要结论请结合原始资料核验。</p><div class="welcome-questions"><For each={["你能帮我做什么？", "如何整理并核对已有资料？", "研判结论如何追溯依据？", "如何使用技能或插件？"]}>{(question) => <button onClick={() => { setDraft(question); textarea?.focus() }}>{question}<Icon name="send" size={14} /></button>}</For></div></div></Show>}
+            fallback={<Show when={!selected()} fallback={<div class="conversation-blank" aria-label="空白研判对话区" />}><div class="chat-welcome"><span class="welcome-icon"><Icon name="skill" size={25} /></span><h2>你好，我是盗窃资料助手</h2><p>可以咨询盗窃资料核对方法，或点击“盗窃资料查询”确认范围后查询。</p><div class="welcome-questions"><For each={["你能帮我做什么？", "如何整理并核对已有资料？", "研判结论如何追溯依据？", "如何使用技能或插件？"]}>{(question) => <button onClick={() => { setDraft(question); textarea?.focus() }}>{question}<Icon name="send" size={14} /></button>}</For></div></div></Show>}
           >
             <div class="messages">
               <Index each={shownMessages()}>
@@ -861,7 +860,7 @@ export default function Chat() {
         </div>
         <div class="composer-area">
           <RuntimeStatus compact />
-          <ProviderQuery model={model() || shownModels()[0]?.id || ""} disabled={busy() || sending() || uncertain() || !ready() || !shownModels().length} sessionID={selected()} runID={currentRun()?.id} onAccepted={id=>{setProviderSession(id);void choose(id)}} />
+          <ProviderQuery model={model() || shownModels()[0]?.id || ""} disabled={busy() || sending() || uncertain() || !ready() || !shownModels().length} sessionID={selected()} runID={currentRun()?.id} onAccepted={id=>{void choose(id)}} />
           <Show when={selected() && currentRun() && terminalRun(currentRun()!.status)}><OwnerReviews sessionID={selected()!} runID={currentRun()!.id} /></Show>
           <Show when={currentRun()?.outcome?.version === "run-outcome-v1" && currentRun()?.outcome}>
             {(outcome) => <div class="runtime-banner" role="status" aria-label="本轮资料结果"><div><strong>{outcome().label}</strong><p>{outcome().message}</p><For each={outcome().next_steps}>{(step) => <small>{step}</small>}</For></div></div>}
@@ -918,7 +917,7 @@ export default function Chat() {
               ref={textarea}
               aria-label="输入消息"
               maxlength={32000}
-              placeholder="输入研判内容，使用 / 唤醒技能或插件…"
+              placeholder="向盗窃助手提问，使用 / 选择技能或插件…"
               value={draft()}
               rows={3}
               onInput={(event) => setDraft(event.currentTarget.value)}

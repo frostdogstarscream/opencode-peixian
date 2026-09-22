@@ -773,12 +773,14 @@ def create_app(store=None):
             selected_skill_materials.append(skill)
             prelude.append(skill_material(skill) if (multi or gambling_enabled(context)) else "请使用已启用的技能：" + skill["name"])
         budget = 24000
+        attachments = []
         for fid in files:
             file = (await upstream(request, user, "GET", f"/files/{own_id(fid)}/text")).json()
             if file.get("status") not in ("ready", "partial"):
                 fail("所选文件尚未完成解析", 409)
             if file.get("status") == "partial" or file.get("truncated") is True:
                 fail("所选文件仅完成部分解析，请拆分文件后重新上传；可在我的文件查看已提取范围", 413)
+            attachments.append({"id": fid, "name": file.get("name", "文件")})
             chunks = file.get("chunks", [])
             content = "\n".join("[来源 " + json.dumps(chunk.get("source", {}), ensure_ascii=False) + "] " + chunk.get("text", "") for chunk in chunks) if chunks else file.get("text", "")
             input_bytes += len(content.encode("utf-8"))
@@ -799,7 +801,7 @@ def create_app(store=None):
             # Gate capability is checked before admitting a durable Run.
             probe=(await upstream(request,user,'GET','/internal/runtime/runs/'+'0'*32)).json()
             if probe.get('protocol')!='durable_run_v1':fail('运行环境需要升级后才能受理执行',409)
-            return await app.state.db_work.run(business_runs.submit,s,user,sid,data,payload,applied,applied_row['revision'],getattr(request.state,"run_parent",None),getattr(request.state,"draft_id",None),getattr(request.state,"trial_id",None),context,task)
+            return await app.state.db_work.run(business_runs.submit,s,user,sid,data,payload,applied,applied_row['revision'],getattr(request.state,"run_parent",None),getattr(request.state,"draft_id",None),getattr(request.state,"trial_id",None),context,task,attachments)
         await upstream(request, user, "POST", f"/session/{sid}/prompt_async", json=payload)
         return {"accepted": True, "run_id": ident()}
 

@@ -126,6 +126,7 @@ class PlatformConfig:
     concurrency: dict
     orchestration: dict
     runtime_pool: dict
+    feature_scopes: dict
 
     def verify_control_image(self, labels):
         image_supports_config(labels, self.version)
@@ -187,7 +188,7 @@ def load_config(path):
     except (OSError, ValueError):
         raise ConfigError("platform_configuration_unavailable") from None
     fields = {"version", "deployment_id", "product", "public_url", "bind_host", "https_port", "control_port",
-              "data_root", "tls", "network_pool", "max_runtimes", "resource_limits", "images"}
+              "data_root", "tls", "network_pool", "max_runtimes", "resource_limits", "images", "feature_scopes"}
     if not isinstance(raw, dict) or type(raw.get("version")) is not int or raw["version"] not in (1, 2, 3, 4):
         raise ConfigError("invalid_platform_configuration_version_or_fields")
     version = raw["version"]
@@ -259,6 +260,12 @@ def load_config(path):
         runtime_pool = pool_settings.validate(raw.get("runtime_pool", {})) if version == 4 else {}
     except ValueError as error:
         raise ConfigError(str(error)) from None
+    feature_scopes = raw.get("feature_scopes", {})
+    if (not isinstance(feature_scopes, dict) or set(feature_scopes) - {"task_spec_v1", "multi_agent_v1", "trusted_result_v2"}
+            or any(not isinstance(v, list) or len(v)>10000
+                   or any(not isinstance(uid,str) or not re.fullmatch(r"[a-f0-9]{32}",uid) for uid in v) or len(set(v))!=len(v)
+                   for v in feature_scopes.values())):
+        raise ConfigError("invalid_feature_scopes")
     product = raw.get("product", PRODUCT)
     if (not isinstance(product, dict) or set(product) != set(PRODUCT)
             or any(not isinstance(v, str) or not v.strip() or len(v) > 200 or any(c in v for c in "\0\r\n") for v in product.values())):
@@ -279,4 +286,4 @@ def load_config(path):
     return PlatformConfig(source, identity, product, raw["public_url"].rstrip("/"), host, *ports,
                           data_root,
                           safe_path(tls["certificate"], source.parent), safe_path(tls["private_key"], source.parent),
-                          str(pool), maximum, limits, images, version, raw.get("profile"), control, policy, concurrency, orchestration, runtime_pool)
+                          str(pool), maximum, limits, images, version, raw.get("profile"), control, policy, concurrency, orchestration, runtime_pool, feature_scopes)

@@ -78,6 +78,9 @@ def attach(store, uid, sid, messages):
             continue
         info.update(run_id=row['id'], turn_id=row['message_id'])
         snapshot = store.decrypt(row['request_ciphertext'])
+        if info.get('role')=='user' and info.get('id')==row['message_id']:
+            from .message_attachments import project
+            message['attachments']=project(store,uid,snapshot)
         events = {e['event_key']: e for e in store.rows('SELECT * FROM run_events WHERE run_id=?', (row['id'],))}
         for part in message.get('parts', []):
             if part.get('type') != 'tool':

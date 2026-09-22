@@ -84,13 +84,13 @@ def presentation(result, messages, frozen_data=None):
         process.append({"id":key,"title":title,"detail":detail,"status":state,"time":clock(at) if at else "—"})
     clues=[]; evidence=[]; conclusions=[]
     window=context["window_start"][:10]+" 至 "+context["window_end"][:10]+"（结束不含）"
-    from .source_display import source,complete
+    from .source_display import source,complete,describe
     def add(kind,title,value,unit,summary,rows,discoveries):
         cid="finding-"+kind
         sources=[source(kind,x) for x in rows]
         evidence.append({"type":kind,"title":title,"value":value if value is not None else "未获取" if kind!="place" else "无法核对","unit":unit if value is not None else "","summary":window,"items":[summary],"clue_id":cid})
         if value is None: return
-        clue={"id":cid,"type":kind,"title":title,"headline":summary,"summary":summary,"discoveries":discoveries,"evidence":sources}
+        clue={"id":cid,"type":kind,"title":title,**describe(kind,title,summary,rows,window,discoveries),"evidence":sources}
         clues.append(clue)
         if result.get("summary_check")=="checked" or (result["status"]=="complete" and not prepare_status):
             conclusions.append({"text":summary,"clue_id":cid,"source_ids":[x["record_id"] for x in rows]})

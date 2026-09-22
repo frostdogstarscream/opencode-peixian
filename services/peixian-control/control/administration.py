@@ -196,10 +196,12 @@ def register_admin(app):
     @app.post(PREFIX + "/admin/recovery/{uid}")
     @blocking_endpoint(app, json_body=True)
     def recovery_action(uid: str, request: Request, user=Depends(require_capability("runtimes.manage"))):
-        data = body_fields(request.state.json_body, ("action",))
-        if data.get("action") not in ("continue", "cancel"):
-            fail("请选择继续等待或取消活动后更新")
+        data = body_fields(request.state.json_body, ("action", "state_version"))
         from .orchestration import Orchestration
+        if data.get("action") == "retry":
+            return Orchestration(app.state.store).retry_recovery(own_id(uid),data.get("state_version"),user["uid"])
+        if data.get("action") not in ("continue", "cancel"):
+            fail("请选择恢复重试、继续等待或取消活动后更新")
         return Orchestration(app.state.store).resolve_drain(own_id(uid), data["action"], user["uid"])
 
     @app.get(PREFIX + "/admin/audit")

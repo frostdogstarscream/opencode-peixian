@@ -289,7 +289,7 @@ CONTRACTS = {
     ("post", "/me/runtime/stop"): ("RuntimeStopBody", ref("SelfRuntimeResult"), "显式停止或取消本人助手启动", "助手", "状态版本必须匹配；取消启动另传start_job_id。202表示排空停止已受理，200表示无需宿主操作。保留文件和历史，不取消管理员禁止。"),
     ("get", "/admin/maintenance"): (None, ref("Maintenance"), "查看维护与恢复状态", "管理：环境", "仅超级管理员；不包含用户正文或内部凭据。"),
     ("post", "/admin/maintenance"): ("MaintenanceBody", ref("Maintenance"), "调整持久维护状态", "管理：环境", "要求当前状态版本；冻结跨重启保留。解除冻结不跳过实际运行状态核对。"),
-    ("post", "/admin/recovery/{uid}"): ("RecoveryBody", ref("Queued"), "处理等待排空的环境", "管理：环境", "仅超管选择继续等待或取消已准入活动后更新；取消不保证撤销外部副作用。"),
+    ("post", "/admin/recovery/{uid}"): ("RecoveryBody", ref("Queued"), "处理等待排空的环境", "管理：环境", "仅超管；continue/cancel处理排空，retry需要repair_only及当前runtime state_version，按原快照重试失败恢复，保留入口关闭与原责任。必须提供Idempotency-Key；取消不保证撤销外部副作用。"),
     ("get", "/platform"): (None, ref("Platform"), "获取公开产品信息", "平台", "仅产品名称、简称与介绍，不包含部署标识、内部地址或任何凭据。"),
     ("get", "/admin/connections"): (None, items(ref("ServiceConnection")), "列出服务连接", "管理：连接", "仅超级管理员；凭据只返回 secret_configured。"),
     ("post", "/admin/connections"): ("ServiceConnectionCreate", ref("ServiceConnection"), "创建固定服务连接", "管理：连接", "配置鉴权、固定地址、方法及路径范围。"),

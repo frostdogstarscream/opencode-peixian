@@ -461,7 +461,7 @@ class Orchestration:
                 safe = (not runtime["security_blocked"] and not job["cancel_requested"] and runtime["stop_reason"] == "none"
                         and (not self.store.on_demand(db) or runtime["manual_stop_reason"] == "none")
                         and self.store.maintenance_status(db)["maintenance_mode"] == "normal")
-                db.execute("UPDATE runtimes SET revision=?,applied_spec_ciphertext=?,applied_spec_digest=?,gateway_boot_id=?,status=?,gate_policy=?,reserved=1,recovery_required=0,drain_job_id=NULL,state_version=state_version+1,updated=? WHERE uid=?",
+                db.execute("UPDATE runtimes SET revision=?,applied_spec_ciphertext=?,applied_spec_digest=?,gateway_boot_id=?,status=?,gate_policy=?,reserved=1,recovery_required=0,error=NULL,drain_job_id=NULL,state_version=state_version+1,updated=? WHERE uid=?",
                            (attempt["revision"], attempt["spec_ciphertext"], attempt["spec_digest"], observed["gateway_boot_id"], "ready" if safe else "draining", "reopen_check" if safe else "closed", current, job["uid"]))
                 if self.store.on_demand(db):
                     db.execute("UPDATE runtimes SET provisioned_at=COALESCE(provisioned_at,?),ready_since=? WHERE uid=?", (current, current if safe else None, job["uid"]))
@@ -562,6 +562,14 @@ class Orchestration:
             if mode == "normal" and (not platform["capacity_healthy"] or db.execute("SELECT 1 FROM runtimes WHERE recovery_required=1").fetchone()):
                 reject("Reconciliation is required before normal scheduling")
             db.execute("UPDATE platform_state SET maintenance_mode=?,state_version=state_version+1,updated=? WHERE id=1", (mode, self.clock()))
+            if mode == "normal" and platform["maintenance_mode"] != "normal":
+                # Repair completion remains closed during maintenance. Re-observe
+                # the applied snapshot before reopening; never trust an old receipt.
+                for row in db.execute("SELECT r.* FROM runtimes r JOIN users u ON u.id=r.uid WHERE u.active=1 AND r.status='draining' AND r.gate_policy='closed' AND r.recovery_required=0 AND r.security_blocked=0 AND r.stop_reason='none' AND r.drain_job_id IS NULL AND r.reserved=1 AND r.applied_spec_ciphertext IS NOT NULL AND r.applied_spec_digest IS NOT NULL AND NOT EXISTS(SELECT 1 FROM jobs j WHERE j.uid=r.uid AND (j.status IN ('queued','running') OR j.recovery_required=1))").fetchall():
+                    if dict(row).get("manual_stop_reason", "none") != "none":
+                        continue
+                    db.execute("UPDATE runtimes SET recovery_required=1,state_version=state_version+1,updated=? WHERE uid=?", (self.clock(),row["uid"]))
+                    self.store.ensure_recovery_job(db,row["uid"])
             db.execute("INSERT INTO audit(id,actor,actor_role,action,target,result,created) VALUES(?,?,'worker','maintenance.changed',?,'success',?)", (ident(), actor, mode, self.clock()))
             return self.store.maintenance_status(db)
 
@@ -571,6 +579,34 @@ class Orchestration:
             result = db.execute("DELETE FROM worker_operation_receipts WHERE rowid IN (SELECT w.rowid FROM worker_operation_receipts w WHERE w.expires<? AND EXISTS(SELECT 1 FROM jobs j JOIN job_attempts a ON a.job_id=j.id WHERE j.id=w.job_id AND a.attempt=w.attempt AND j.status IN ('succeeded','failed','cancelled') AND j.recovery_required=0 AND a.outcome IS NOT NULL AND a.updated+?<=?) LIMIT 100)",
                                 (self.clock(), self.config["receipt_retention_seconds"], self.clock()))
             return {"deleted": result.rowcount}
+
+    def retry_recovery(self, uid, expected_state_version, actor):
+        """Requeue the same frozen responsibility; never clear uncertainty by fiat."""
+        integer(expected_state_version, "state_version")
+        with self.store.tx() as db:
+            runtime = self._runtime(db, uid)
+            if self.store.maintenance_status(db)["maintenance_mode"] != "repair_only":
+                reject("请先进入修复模式", code="recovery_requires_repair_mode")
+            if runtime["state_version"] != expected_state_version:
+                reject("环境状态已变化，请刷新后重试", code="worker_state_changed")
+            if not runtime["recovery_required"] or runtime["security_blocked"] or dict(runtime).get("manual_stop_reason", "none") != "none":
+                reject("当前环境不允许普通恢复重试", code="recovery_retry_unavailable")
+            user = db.execute("SELECT active FROM users WHERE id=?", (uid,)).fetchone()
+            if not user or not user["active"]:
+                reject("已停用账号不能恢复", code="recovery_retry_unavailable")
+            if db.execute("SELECT 1 FROM jobs WHERE uid=? AND status IN ('queued','running')", (uid,)).fetchone():
+                reject("已有任务承担环境恢复", code="recovery_in_progress")
+            jobs = db.execute("SELECT * FROM jobs WHERE uid=? AND recovery_required=1", (uid,)).fetchall()
+            if len(jobs) != 1 or jobs[0]["status"] != "failed":
+                reject("恢复责任不明确，需要进一步核对", code="recovery_retry_unavailable")
+            job = jobs[0]
+            attempt = db.execute("SELECT * FROM job_attempts WHERE job_id=? ORDER BY attempt DESC LIMIT 1", (job["id"],)).fetchone()
+            if not attempt or not attempt["spec_ciphertext"] or not attempt["spec_digest"]:
+                reject("原执行快照缺失", code="recovery_snapshot_missing")
+            db.execute("UPDATE jobs SET status='queued',phase='reconciling',not_before=0,lease=NULL,heartbeat=NULL,updated=? WHERE id=?", (self.clock(),job["id"]))
+            db.execute("UPDATE runtimes SET gate_policy='closed',drain_job_id=?,state_version=state_version+1 WHERE uid=?", (job["id"],uid))
+            db.execute("INSERT INTO audit(id,actor,actor_role,action,target,result,created) VALUES(?,?,'super_admin','runtime.recovery',?,'success',?)", (ident(),actor,uid,self.clock()))
+            return {"accepted": True, "job": self._public_job(db,self._job(db,job["id"]))}
 
     def resolve_drain(self, uid, action, actor):
         if action not in ("continue", "cancel"):

@@ -41,15 +41,24 @@ export type Part = {
   id?: string
   type: string
   text?: string
+  origin?: "verified_result" | string
+  run_id?: string
+  step_id?: string
+  call_id?: string | null
+  execution?: RunEvent
   data?: Json | AnalysisResult
   tool?: string
   details?: { inputs?: Record<string, string | number | boolean>; outputs?: Record<string, string | number | boolean> }
   state?: { status?: string; title?: string; output?: string; error?: string }
 }
 export type Message = {
+  attachments?: { id: string; name: string; status: "available" | "unavailable" }[]
   info: {
     id: string
     role: string
+    run_id?: string
+    turn_id?: string
+    parentID?: string | null
     error?: { message?: string; data?: { message?: string } }
     time?: { created?: number; completed?: number }
     finish?: string
@@ -77,6 +86,7 @@ export type FileItem = {
   name: string
   size?: number
   status?: string
+  truncated?: boolean
   error?: string
   created_at?: string
   created?: number
@@ -131,7 +141,7 @@ export type AnalysisClue = {
   level?: string
   source?: string
   discoveries: string[]
-  evidence: { type: string; label: string; content: string }[]
+  evidence: { type: string; label: string; content: string; source_ids?: string[]; record_id?: string; occurred_at?: string | null; synthetic?: boolean; verification_status?: string }[]
 }
 export type AnalysisResult = {
   diagram?: import("./event-diagram").EventDiagram | null
@@ -145,6 +155,10 @@ export type AnalysisResult = {
   conclusions: string[]
   evidence: AnalysisEvidenceCard[]
   next_steps?: string
+  next_steps_status?: "available" | "no_verified_suggestion"
+  public_markdown?: string
+  missing_details?: { id: string; category: "scope_limit" | "source_missing" | "verification_pending"; text: string; source_ids: string[] }[]
+  recommendations?: { id: string; type: "request_information" | "manual_review"; text: string; gap_refs: string[]; source_ids: string[]; actionable: false }[]
   conclusion_sources?: { text: string; clue_id?: string; source_ids: string[] }[]
   source_metadata?: Record<string, Json>
   missing?: string[]
@@ -187,6 +201,11 @@ export type SkillDraft = {
 }
 export type RunEvent = {
   id: string
+  step_id?: string
+  run_id?: string
+  call_id?: string | null
+  message_id?: string | null
+  part_id?: string | null
   sequence: number
   step_type: string
   name: string
@@ -195,8 +214,12 @@ export type RunEvent = {
   completed_at?: string | null
   elapsed_ms?: number | null
   capability_id?: string | null
+  capability_name?: string | null
+  capability_version?: string | null
   input_summary?: string
   output_summary?: string
+  result?: Record<string, string | number | boolean | null>
+  result_truncated?: boolean
   record_count?: number
   evidence_refs?: string[]
   error_message?: string | null

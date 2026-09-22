@@ -27,6 +27,10 @@ class RuntimeInfrastructureTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.manager = base.FakeRuntime(self.temp.name)
+        # This suite exercises lifecycle logic without host ACL commands.
+        acl = patch.object(base.runtime, "grant_container_read")
+        acl.start()
+        self.addCleanup(acl.stop)
 
     def tearDown(self):
         self.temp.cleanup()

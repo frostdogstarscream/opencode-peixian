@@ -116,12 +116,18 @@
 
 /* Clue cards share the rail palette while retaining a narrow type accent. */
 .business-shell .insight-sidebar .insight-single-head {
-  min-height: 60px;
-  padding: 10px 72px 10px 12px;
+  min-height: 48px;
+  padding: 0 12px;
   background: #fbfdff;
   border-bottom-color: var(--right-panel-border);
 }
-.business-shell .insight-sidebar .insight-single-head strong { font-size: 15px; font-weight: 600; }
+.business-shell .insight-sidebar .insight-single-head strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: .5px;
+  color: #123b6d;
+}
 .business-shell .insight-sidebar .insight-icon-button {
   width: 30px;
   height: 30px;

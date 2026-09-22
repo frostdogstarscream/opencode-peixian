@@ -412,10 +412,18 @@ class Worker:
                     if state is not None:
                         self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])
                 elif job["phase"] == "reconciling":
+                    # Control recreation loses dynamic management-network attachments.
+                    # Restore the owned link before probing; an unreachable Gateway
+                    # must never be mistaken for an unregistered live boot.
+                    self.manager.attach_control(spec["runtime_id"], spec["uid"])
                     # Recovered attempts have a new authority epoch. Register the
                     # actual boot before collecting evidence under that authority.
                     raw, state = self.manager.observe(job, spec, self.boot_id)
-                    if state is not None and raw["mutation_state"] == "idle":
+                    if raw["mutation_state"] != "idle":
+                        raise runtime.RuntimeFailure("runtime_recovery_requires_review")
+                    if state is None and raw.get("components", {}).get("gateway") == "running":
+                        raise runtime.RuntimeFailure("runtime_probe_unavailable")
+                    if state is not None:
                         receipt = self.operation(job, "boot", {"runtime_id": spec["runtime_id"],
                             "gateway_boot_id": state["boot_id"], "relay_boot_id": (state.get("relay") or {}).get("boot_id")})
                         self.gate(job, spec, receipt["gate_action"], state, receipt["operation_id"])

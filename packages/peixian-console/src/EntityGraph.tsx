@@ -48,7 +48,7 @@ const sample: EntityGraphData = {
 const colors = { person: "#e75d64", vehicle: "#2375dc", place: "#f29d35", event: "#1ca98d" }
 const initialIds = ["p-1", "p-2", "v-1", "l-1"]
 
-function GraphCanvas(props: { nodes: EntityNode[]; edges: EntityEdge[]; selected?: string; path: string[]; onSelect: (id: string) => void; large?: boolean }) {
+export function GraphCanvas(props: { nodes: EntityNode[]; edges: EntityEdge[]; selected?: string; path: string[]; onSelect: (id: string) => void; large?: boolean }) {
   let container!: HTMLDivElement
   let graph: import("@antv/g6").Graph | undefined
   const [loadError, setLoadError] = createSignal(false)
@@ -115,7 +115,7 @@ function GraphCanvas(props: { nodes: EntityNode[]; edges: EntityEdge[]; selected
   </div>
 }
 
-export default function EntityGraphPanel() {
+export default function EntityGraphPanel(props: { notice?: string }) {
   const [demo, setDemo] = createSignal(false)
   const [visibleIds, setVisibleIds] = createSignal(initialIds)
   const [filter, setFilter] = createSignal("all")
@@ -148,7 +148,7 @@ export default function EntityGraphPanel() {
     setPath([])
   }
   return <div class="entity-graph-panel" role="tabpanel" aria-label="实体关系图谱">
-    <div class="graph-notice"><strong>暂无真实图谱数据</strong><p>后端图谱接口尚未接入；以下演示与当前会话和案件无关。</p></div>
+    <div class="graph-notice"><strong>暂无真实图谱数据</strong><p>{props.notice ?? "后端图谱接口尚未接入；以下演示与当前会话和案件无关。"}</p></div>
     <Show when={!demo()} fallback={<>
       <div class="graph-demo-banner">示例数据 · 非真实研判结果</div>
       <div class="graph-controls">

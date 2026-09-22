@@ -34,6 +34,19 @@
 .welcome-questions button { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 13px; border: 1px solid #c7dcf3; border-radius: 9px; color: #225888; background: #f9fcff; text-align: left; transition: transform .18s, border-color .18s, box-shadow .18s; }
 .welcome-questions button:hover { transform: translateY(-2px); border-color: #4b97eb; box-shadow: 0 5px 13px #1c71c818; }
 .smooth-message-text { overflow-wrap: anywhere; }
+.business-shell .pending-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin: 3px 12px 8px; }
+.business-shell .pending-attachments button { display: inline-flex; align-items: center; gap: 5px; max-width: min(260px, 100%); padding: 5px 7px; border: 1px solid #d8e5f3; border-radius: 6px; background: #f7fbff; color: #315a83; font-size: 12px; }
+.business-shell .pending-attachments button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.business-shell .pending-attachments button:hover { border-color: #9ebfe3; background: #edf5ff; }
+.business-shell .message-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.business-shell .message-attachments > span { display: inline-flex; align-items: center; gap: 5px; max-width: min(260px, 100%); padding: 5px 7px; border: 1px solid #d8e5f3; border-radius: 6px; background: #f7fbff; color: #315a83; font-size: 12px; }
+.business-shell .message-attachments > span > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.business-shell .pending-prompt small { color: #7890ad; font-size: 11px; }
+.business-shell .assistant-thinking { display: flex; align-items: center; gap: 10px; margin: 12px 0; color: #617d99; font-size: 13px; }
+.business-shell .assistant-thinking .message-avatar { flex: 0 0 auto; }
+.business-shell .active-run-trace { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin: 12px 0; color: #42688b; font-size: 12px; }
+.business-shell .active-run-trace > span { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid #d5e5f3; border-radius: 6px; background: #f7fbff; }
+.business-shell .verified-result-label { display: inline-block; margin: 9px 0 3px; padding: 2px 7px; border-radius: 4px; color: #23699f; background: #edf6fd; font-size: 11px; }
 .smooth-caret { display: inline-block; width: 2px; height: 1em; margin-left: 2px; vertical-align: -.15em; background: #2179e7; animation: smooth-blink .75s step-end infinite; }
 .graph-relation-tooltip { position: absolute; z-index: 3; top: 8px; left: 8px; display: grid; gap: 4px; max-width: calc(100% - 16px); padding: 8px 10px; border: 1px solid #9ec7f0; border-radius: 7px; color: #15476e; background: #fffffff2; box-shadow: 0 3px 12px #153b6628; pointer-events: none; font-size: 12px; }
 .graph-relation-tooltip span { color: #1c69b6; }

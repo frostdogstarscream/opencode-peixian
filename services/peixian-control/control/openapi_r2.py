@@ -56,7 +56,7 @@ def extend(s, obj, ref, array, ID, STRING, BOOL, INTEGER):
         "safety_sync_failures": INTEGER}, extra=True)
     s["MaintenanceBody"] = obj({"mode": {**STRING, "enum": ["normal", "frozen", "repair_only"]}, "state_version": INTEGER}, ("mode", "state_version"))
     s["WorkerMaintenanceBody"] = obj({"maintenance_mode": {**STRING, "enum": ["normal", "frozen", "repair_only"]}, "expected_state_version": INTEGER}, ("maintenance_mode", "expected_state_version"))
-    s["RecoveryBody"] = obj({"action": {**STRING, "enum": ["continue", "cancel"]}}, ("action",))
+    s["RecoveryBody"] = obj({"action": {**STRING, "enum": ["continue", "cancel", "retry"]}, "state_version": {"type":"integer","minimum":0}}, ("action",))
     s["LegacyRollbackBody"]["properties"].update(observation_id=ID, expected_state_version=INTEGER, operation_id=ID)
     s["LegacyRollbackBody"]["required"] += ["observation_id", "expected_state_version", "operation_id"]
     claim = s["WorkerClaim"]["properties"]["job"]["anyOf"][0]["properties"]

@@ -38,6 +38,9 @@ def fixture(tmp_path, *, busy=False, reject_applying=False, lose_complete=False,
     class Manager:
         root = tmp_path
 
+        def attach_control(self, runtime_id, uid):
+            records.append(("attach", runtime_id))
+
         def reconcile(self, **kwargs):
             records.append(("reconcile", kwargs["batch"]))
             return []
@@ -258,6 +261,9 @@ def test_real_v4_store_and_worker_complete_one_registered_revision(tmp_path, mon
             self.root.mkdir()
             self.active, self.count = False, 0
             self.current = None
+
+        def attach_control(self, runtime_id, uid):
+            assert len(runtime_id)==32 and len(uid)==32
 
         def components(self, snapshot):
             return {key: "running" if self.active else "stopped" for key in ("agent", "gateway", "relay")}, True

@@ -35,6 +35,8 @@ def attach_results(store,uid,values,sid=None):
                     'parts':[{'id':'part_'+mid,'type':'text','text':text}]})
                 known.add(mid)
         values.sort(key=lambda m:m['info'].get('time',{}).get('created',0))
+    for message in values:
+        if message['info'].get('role')=='user':message['attachments']=[]
     if sid:
         from .execution_view import attach
         values=attach(store,uid,sid,values)

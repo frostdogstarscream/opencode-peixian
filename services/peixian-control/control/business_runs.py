@@ -44,7 +44,7 @@ def replay(store, uid, sid, data):
         return receipt(row)
 
 
-def submit(store, user, sid, data, payload, applied, revision, parent=None, draft=None, trial=None, context=None, task=None):
+def submit(store, user, sid, data, payload, applied, revision, parent=None, draft=None, trial=None, context=None, task=None, attachments=None):
     from .app import current_authority
     require_v6(store)
     identity=ident();message='msg_'+ident();timestamp=now();payload={**payload,'messageID':message}
@@ -101,6 +101,8 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
             from .task_spec import bind
             bind(snapshot,payload,task)
         agents.freeze(snapshot,payload,profile)
+        from .message_attachments import freeze
+        snapshot['attachments'] = freeze(db,user['uid'],data.get('file_ids',[]),attachments)
         # Admission freezes encrypted inputs; SQL never holds a network operation.
         db.execute("INSERT INTO business_runs(id,uid,session_id,request_key,request_hash,message_id,parent_id,status,phase,model_id,revision,auth_version,request_ciphertext,created,updated) VALUES(?,?,?,?,?,?,?,'queued','pending_dispatch',?,?,?,?,?,?)",(identity,user['uid'],sid,data['client_request_id'],fingerprint(store,data),message,parent,payload['model']['modelID'],revision,user['version'],store.encrypt(snapshot),timestamp,timestamp))
         if task and task['local']:

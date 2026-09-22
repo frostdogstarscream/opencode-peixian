@@ -2,25 +2,55 @@
   "stage": "pr9a",
   "baseline": "d3e4ea55db61bdbe9a9847a86548b32b9c5c9f6d",
   "schema_version": 9,
-  "closeout_status": "pending",
-  "implementation_revision": null,
+  "closeout_status": "completed",
+  "implementation_revision": "c341286b2c1777fbbb94e1280b2361f2385a214b",
   "deployment_performed": false,
   "real_data_accessed": false,
   "model_requests": 0,
   "open_p0": 0,
   "unaccepted_p1": 0,
   "github_ci": {
-    "executed": false
+    "executed": true,
+    "head_sha": "c341286b2c1777fbbb94e1280b2361f2385a214b",
+    "conclusion": "success",
+    "workflow": "Peixian PR-9A Evaluation checks",
+    "run_id": 35671877587,
+    "url": "https://github.com/frostdogstarscream/opencode-peixian/actions/runs/35671877587"
   },
   "tests": {
     "evaluation": {
       "passed": 300,
       "regression": 30,
-      "exit_code": 0
+      "exit_code": 0,
+      "github_ci_passed": true
     },
     "evaluation_checker": {
       "passed": 15,
       "exit_code": 0
+    },
+    "control_gateway": {
+      "exit_code": 0,
+      "evidence": "GitHub CI 35671877587"
+    },
+    "deployment": {
+      "exit_code": 0,
+      "evidence": "GitHub CI 35671877587"
+    },
+    "bun": {
+      "exit_code": 0,
+      "evidence": "GitHub CI 35671877587"
+    },
+    "historical": {
+      "exit_code": 0,
+      "evidence": "GitHub CI 35671877587"
+    },
+    "frontend": {
+      "exit_code": 0,
+      "evidence": "GitHub CI 35671877587"
+    },
+    "browser": {
+      "exit_code": 0,
+      "evidence": "GitHub CI 35671877587"
     }
   }
 }

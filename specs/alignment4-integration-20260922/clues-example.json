@@ -1,0 +1,224 @@
+{
+  "clues": [
+    {
+      "id": "finding-funds",
+      "type": "funds",
+      "title": "资金流水",
+      "headline": "取得 12 条原始资金流水。",
+      "summary": "观察范围：2026-09-10 至 2026-09-17（结束不含）。取得 12 条原始资金流水。有明确时间的资料覆盖 7 个自然日。",
+      "discoveries": [
+        "本次取得 12 条原始记录，保留各条来源，不按时间接近或金额相似合并。",
+        "有明确时间的记录涉及 7 个北京时间自然日；记录时间从 2026-09-10 09:12 至 2026-09-16 11:08。",
+        "按原始收支字段：收入 5 条、支出 7 条；方向未明确 0 条。",
+        "逐条保留，不合并双边记录，不推断资金用途。"
+      ],
+      "discovery_details": [
+        {
+          "text": "本次取得 12 条原始记录，保留各条来源，不按时间接近或金额相似合并。",
+          "source_ids": [
+            "demo1",
+            "demo2",
+            "demo7",
+            "demo63",
+            "demo65",
+            "demo67",
+            "demo69",
+            "demo73",
+            "demo77",
+            "demo79",
+            "demo83",
+            "demo87"
+          ],
+          "category": "metric"
+        },
+        {
+          "text": "有明确时间的记录涉及 7 个北京时间自然日；记录时间从 2026-09-10 09:12 至 2026-09-16 11:08。",
+          "source_ids": [
+            "demo1",
+            "demo2",
+            "demo7",
+            "demo63",
+            "demo65",
+            "demo67",
+            "demo69",
+            "demo73",
+            "demo77",
+            "demo79",
+            "demo83",
+            "demo87"
+          ],
+          "category": "metric"
+        },
+        {
+          "text": "按原始收支字段：收入 5 条、支出 7 条；方向未明确 0 条。",
+          "source_ids": [
+            "demo1",
+            "demo2",
+            "demo7",
+            "demo63",
+            "demo65",
+            "demo67",
+            "demo69",
+            "demo73",
+            "demo77",
+            "demo79",
+            "demo83",
+            "demo87"
+          ],
+          "category": "metric"
+        },
+        {
+          "text": "逐条保留，不合并双边记录，不推断资金用途。",
+          "source_ids": [],
+          "category": "limitation"
+        }
+      ],
+      "evidence": [
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-14 20:14",
+          "content": "原始流水：收入，128.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo1",
+          "source_ids": [
+            "demo1"
+          ],
+          "occurred_at": "2026-09-14T20:14:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-14 20:17",
+          "content": "原始流水：支出，126.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo2",
+          "source_ids": [
+            "demo2"
+          ],
+          "occurred_at": "2026-09-14T20:17:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-15 00:42",
+          "content": "原始流水：支出，32.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo7",
+          "source_ids": [
+            "demo7"
+          ],
+          "occurred_at": "2026-09-15T00:42:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-10 09:12",
+          "content": "原始流水：支出，45.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo63",
+          "source_ids": [
+            "demo63"
+          ],
+          "occurred_at": "2026-09-10T09:12:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-10 18:33",
+          "content": "原始流水：收入，88.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo65",
+          "source_ids": [
+            "demo65"
+          ],
+          "occurred_at": "2026-09-10T18:33:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-11 08:20",
+          "content": "原始流水：支出，12.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo67",
+          "source_ids": [
+            "demo67"
+          ],
+          "occurred_at": "2026-09-11T08:20:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-11 19:05",
+          "content": "原始流水：收入，56.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo69",
+          "source_ids": [
+            "demo69"
+          ],
+          "occurred_at": "2026-09-11T19:05:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-12 12:40",
+          "content": "原始流水：支出，21.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo73",
+          "source_ids": [
+            "demo73"
+          ],
+          "occurred_at": "2026-09-12T12:40:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-13 10:02",
+          "content": "原始流水：支出，150.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo77",
+          "source_ids": [
+            "demo77"
+          ],
+          "occurred_at": "2026-09-13T10:02:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-13 20:55",
+          "content": "原始流水：收入，67.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo79",
+          "source_ids": [
+            "demo79"
+          ],
+          "occurred_at": "2026-09-13T20:55:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-15 14:22",
+          "content": "原始流水：支出，8.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo83",
+          "source_ids": [
+            "demo83"
+          ],
+          "occurred_at": "2026-09-15T14:22:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        },
+        {
+          "type": "funds",
+          "label": "资金流水记录 · 2026-09-16 11:08",
+          "content": "原始流水：收入，99.00元；不合并双边记录，不据此推断资金用途。",
+          "record_id": "demo87",
+          "source_ids": [
+            "demo87"
+          ],
+          "occurred_at": "2026-09-16T11:08:00+08:00",
+          "synthetic": true,
+          "verification_status": "source_verified"
+        }
+      ]
+    }
+  ]
+}

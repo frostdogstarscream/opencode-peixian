@@ -1,0 +1,27 @@
+{
+  "source_commit": "40cb937a4cdc891aac1fabb10ada31c251ba1d49",
+  "image": "agent-platform-control:alignment4-40cb937a4cdc",
+  "image_id": "sha256:d5318fc4e201e83318997a5da0c5306e91f0c56603f267c5d6a0f80647d51aee",
+  "runtimes": [
+    {
+      "username": "alignment-a",
+      "status": "ready",
+      "gate": "open",
+      "revision": 54
+    },
+    {
+      "username": "alignment-b",
+      "status": "ready",
+      "gate": "open",
+      "revision": 27
+    }
+  ],
+  "maintenance": {
+    "mode": "normal",
+    "state_version": 286,
+    "capacity_healthy": true,
+    "recovery_required": 0,
+    "security_pending": 0,
+    "safety_sync_failures": 6
+  }
+}

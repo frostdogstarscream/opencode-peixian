@@ -102,6 +102,9 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         if task is not None:
             from .task_spec import bind
             bind(snapshot,payload,task)
+        snapshot["agent_profile"]=profile.snapshot()
+        from .controlled_answer import freeze as freeze_answer
+        freeze_answer(snapshot,payload)
         agents.freeze(snapshot,payload,profile)
         from .message_attachments import freeze
         snapshot['attachments'] = freeze(db,user['uid'],data.get('file_ids',[]),attachments)

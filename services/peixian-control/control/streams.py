@@ -359,7 +359,8 @@ async def _event_body(request, response, item):
             except StopAsyncIteration:
                 return
             pending = asyncio.create_task(iterator.__anext__())
-            item.registry.cache.observe(item.uid, envelope, item.id)
+            from .controlled_answer import observe
+            await observe(request.app,item.uid,envelope,item.id)
             notice = change_notice(envelope)
             if notice is not None:
                 yield ("event: change\ndata: " + json.dumps(notice, separators=(",", ":")) + "\n\n").encode()

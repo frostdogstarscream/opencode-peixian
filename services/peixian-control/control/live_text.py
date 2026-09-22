@@ -176,6 +176,10 @@ class LiveTextCache:
         self.account_bytes[key[0]] = self.account_bytes.get(key[0], 0) + size
         return True
 
+    def discard_message(self, uid, sid, mid):
+        with self.lock:
+            self._drop_message((uid, sid, mid))
+
     def observe(self, uid, envelope, stream_id):
         """Accept only known assistant text from the current owner's native stream."""
         if not isinstance(envelope, dict) or envelope.get("directory") != "/workspace":

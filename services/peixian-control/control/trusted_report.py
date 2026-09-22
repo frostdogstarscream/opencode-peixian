@@ -39,7 +39,14 @@ def sections(result, events):
         groups.append((title, values or ['当前结果未提供；不能解释为没有发生。']))
     groups.append(('待核验来源记录', [json.dumps(x, ensure_ascii=False, sort_keys=True) for x in result.get('records', [])] or ['未提供来源记录。']))
     narrative = result.get('narrative', {})
-    groups.append(('模型辅助说明', [NARRATIVE.get(narrative.get('status'), '旧结构，未执行可信说明核验'), narrative.get('text') or '未提供模型说明。'] + [x['message'] for x in narrative.get('conflicts', [])]))
+    if 'answer' in result:
+        answer=result['answer']
+        if answer.get('version')=='controlled-zh-v1':
+            groups.append(('中文事实说明', [answer['summary']]+[x['text']+'【Claim：'+x['claim_id']+'；来源：'+('、'.join(x['source_ids']) or '本次查询统计')+'】' for x in answer['items']]))
+            groups.append(('可以继续',answer['next_steps']))
+        else:groups.append(('中文事实说明',['当前说明版本暂不受支持，请查看已核验事实。']))
+    else:
+        groups.append(('模型辅助说明', [NARRATIVE.get(narrative.get('status'), '旧结构，未执行可信说明核验'), narrative.get('text') or '未提供模型说明。'] + [x['message'] for x in narrative.get('conflicts', [])]))
     groups.append(('来源与执行过程', [json.dumps(result.get('versions', {}), ensure_ascii=False, sort_keys=True)] + [e['name'] + '：' + {'completed':'已完成','failed':'失败','rejected':'已拒绝','cancelled':'已取消','running':'执行中','pending':'等待处理'}.get(e['status'], '状态待确认') for e in events]))
     return groups
 

@@ -183,6 +183,10 @@ def project(store,row,snapshot):
         original=checked_result(store,prior) if prior else build(source,frozen,store.rows('SELECT * FROM run_events WHERE run_id=?',(source['id'],)))
         result.update(claims=copy.deepcopy(original['claims']),records=copy.deepcopy(original['records']),missing=copy.deepcopy(original['missing']),versions=copy.deepcopy(original['versions']))
         result['narrative']=review(snapshot.get('model_narrative'),result['claims'],result['data_usage'])
+    from .controlled_answer import enabled as answer_enabled, build as build_answer
+    if answer_enabled(snapshot):
+        result['answer']=build_answer(result,snapshot,row)
+        result['narrative']={**result['narrative'],'text':None,'coverage':'原模型说明仅保留内部诊断；用户回答来自受控中文事实投影。'}
     return result
 
 

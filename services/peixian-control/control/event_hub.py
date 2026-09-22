@@ -245,7 +245,7 @@ class AccountHub:
                         except StopAsyncIteration:
                             break
                         pending = asyncio.create_task(iterator.__anext__())
-                        self.manager.cache.observe(self.uid, envelope, self.id)
+                        await self.manager.observe(self.uid, envelope, self.id) if self.manager.observe else self.manager.cache.observe(self.uid, envelope, self.id)
                         notice = change_notice(envelope)
                         if notice is not None:
                             self.publish(notice)
@@ -284,6 +284,7 @@ class AccountEventHubs:
         self.stopped = False
         self.created = self.closed_count = self.reconnects = self.overflow = 0
         self.reasons = {}
+        self.observe = None
 
     async def subscribe(self, reservation, authorize):
         uid = reservation.uid
@@ -368,4 +369,9 @@ def create_hubs(app, maximum):
                         and relay.get("complete") is True and relay.get("idle") is True)
         except (httpx.HTTPError, ValueError):
             return True  # Unknown may retain briefly, never beyond the hard TTL.
-    return AccountEventHubs(app.state.stream_http, app.state.live_text, app.state.limits, binding, active, maximum=maximum)
+    hubs=AccountEventHubs(app.state.stream_http, app.state.live_text, app.state.limits, binding, active, maximum=maximum)
+    from .controlled_answer import observe
+    async def guarded(uid,envelope,stream_id):
+        await observe(app,uid,envelope,stream_id)
+    hubs.observe=guarded
+    return hubs

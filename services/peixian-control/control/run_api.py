@@ -45,6 +45,9 @@ def attach_results(store,uid,values,sid=None):
     if sid:
         from .execution_view import attach
         values=attach(store,uid,sid,values)
+    if sid:
+        from .controlled_answer import messages
+        values=messages(store,uid,sid,values)
     return values
 
 
@@ -86,7 +89,8 @@ def register(app):
     @blocking_endpoint(app)
     def run_result(sid:str,rid:str,request:Request,user=Depends(normal)):
         from .trusted_results import read
-        return read(app.state.store,user['uid'],sid,rid)
+        from .controlled_answer import public_result
+        return public_result(read(app.state.store,user['uid'],sid,rid))
 
     @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/claims')
     @blocking_endpoint(app)

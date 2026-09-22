@@ -37,6 +37,7 @@ export type TrustedResult = {
   missing?: string[]
   versions?: Record<string, unknown>
   generated_at?: string
+  answer?: { version: string; status: string; summary: string; items: { text: string; claim_id: string; source_run_id: string; source_ids: string[] }[]; missing: string[]; next_steps: string[] }
   narrative?: { status: string; text: string | null; conflicts: { message: string }[]; coverage: string }
 }
 export const usageLabels: Record<string, string> = {
@@ -155,4 +156,19 @@ export const fieldLabels: Record<string, string> = {
   records_snapshot_id: "资料快照",
   registry: "能力与规则版本",
   plugin_versions: "插件版本",
+}
+
+export function controlledAnswer(result: TrustedResult) {
+  const answer = result.answer
+  if (!answer || answer.version !== "controlled-zh-v1" || !["ready", "partial", "needs_input", "unavailable"].includes(answer.status)
+    || typeof answer.summary !== "string" || !Array.isArray(answer.items) || answer.items.length > 5
+    || !strings(answer.missing) || !strings(answer.next_steps) || answer.next_steps.length > 2) return undefined
+  const claims = new Map((result.claims ?? []).map(claim => [claim.claim_id, claim]))
+  if (!answer.items.every(item => {
+    if (!object(item) || typeof item.text !== "string" || !strings(item.source_ids)) return false
+    const claim = claims.get(item.claim_id)
+    return !!claim && claim.verification_status === "approved" && item.source_run_id === claim.source_run_id
+      && item.source_ids.length === claim.source_ids.length && item.source_ids.every(id => claim.source_ids.includes(id))
+  })) return undefined
+  return answer
 }

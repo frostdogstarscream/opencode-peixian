@@ -1,7 +1,7 @@
 import { createEffect, createSignal, For, Show, onCleanup } from "solid-js"
 import { api, post, remove, ApiError } from "./api"
 import { Modal, Button, ErrorLine } from "./components"
-import { ownedResult, usageLabels, narrativeLabels, taskLabels, fieldLabels, label } from "./trusted-v2"
+import { controlledAnswer, ownedResult, usageLabels, narrativeLabels, taskLabels, fieldLabels, label } from "./trusted-v2"
 import type { TaskContext, TrustedResult, Claim } from "./trusted-v2"
 import "./trusted-result.css"
 type Ticket = {
@@ -346,11 +346,21 @@ export default function TrustedResultPanel(props: {
                   </For>
                 </section>
                 <section class={`trusted-narrative ${value().narrative?.status}`}>
-                  <h4>模型辅助说明</h4>
-                  <strong>{narrativeLabels[value().narrative?.status ?? ""] ?? "状态无法确认"}</strong>
-                  <p>{value().narrative?.text ?? "尚未生成说明。"}</p>
-                  <For each={value().narrative?.conflicts}>{(item) => <p>{item.message}</p>}</For>
-                  <small>此项检查不代替对所有自然语言语义的人工复核。</small>
+                  <Show when={value().answer} fallback={<>
+                    <h4>模型辅助说明</h4>
+                    <strong>{narrativeLabels[value().narrative?.status ?? ""] ?? "状态无法确认"}</strong>
+                    <p>{value().narrative?.text ?? "尚未生成说明。"}</p>
+                    <For each={value().narrative?.conflicts}>{(item) => <p>{item.message}</p>}</For>
+                    <small>此项检查不代替对所有自然语言语义的人工复核。</small>
+                  </>}>
+                    <h4>中文事实说明</h4>
+                    <Show when={controlledAnswer(value())} fallback={<p>当前说明版本暂不受支持，请查看已有事实卡片。</p>}>
+                      <p>{value().answer?.summary}</p>
+                      <ul><For each={value().answer?.items}>{item => <li>{item.text}<small> 来源：{item.source_ids.join("、") || "本次已确认查询统计"}</small></li>}</For></ul>
+                      <For each={value().answer?.missing}>{item => <p>{item}</p>}</For>
+                      <For each={value().answer?.next_steps}>{item => <p>{item}</p>}</For>
+                    </Show>
+                  </Show>
                 </section>
                 <section>
                   <h4>来源与执行过程</h4>

@@ -149,8 +149,10 @@ def attach(store,db,user,sid,rid,metadata,plan,request):
     budget=payload['limits'];count=db.execute('SELECT count(*) FROM analysis_task_steps WHERE task_id=?',(row['id'],)).fetchone()[0]
     if count>=budget['max_steps'] or count>=budget['max_data_calls']:error('task_budget_exhausted','本任务查询预算已用完，保留已有结果。',429)
     key=request['client_request_id'];fingerprint=business_runs.fingerprint(store,request)
-    if key not in payload['user_requests'] and len(payload['user_requests'])>=budget['max_user_requests']:error('task_budget_exhausted','本任务请求预算已用完。',429)
-    payload['user_requests'][key]=fingerprint;payload['selected_refs']=metadata['selected_refs']
+    planning=next((c for c in payload['planning_calls'] if c['request_key']==key),None)
+    budget_key=planning.get('root_request_key',key) if planning else key
+    if budget_key not in payload['user_requests'] and len(payload['user_requests'])>=budget['max_user_requests']:error('task_budget_exhausted','本任务请求预算已用完。',429)
+    payload['user_requests'].setdefault(budget_key,fingerprint);payload['selected_refs']=metadata['selected_refs']
     links={**copy.deepcopy(metadata),'query_mode':'new_query','normalized_query':plan['query'],'input_origin':'selected_source' if metadata['source_refs'] else 'user_confirmed','source_data_run_id':metadata['source_refs'][0]['run_id'] if len(metadata['source_refs'])==1 else None,'provider_contract':plan['version'],'plugin_version':plan['plugin_version'],'connection_revision':plan.get('connection_revision')}
     db.execute('INSERT INTO analysis_task_steps VALUES(?,?,?,?,?,?,?,?)',(ident(),row['id'],rid,key,fingerprint,count+1,store.encrypt(links),now()))
     updated=db.execute('UPDATE analysis_tasks SET payload_ciphertext=?,context_version=context_version+1,updated=? WHERE id=? AND context_version=?',(store.encrypt(payload),now(),row['id'],metadata['context_version']))

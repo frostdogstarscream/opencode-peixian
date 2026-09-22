@@ -62,5 +62,26 @@ def resolve(store,uid,sid,data,applied,plan):
     spec={'schema_version':'task-spec-v4','router_version':adapter.VERSION,'domain':'theft','query_mode':'new_query','intent':'provider_'+kind,'scenario_id':None,'target_refs':targets,'target_mode':'provider_query','methods':[kind],'official_skill_ids':[],'output_types':['summary','evidence'],'direct_parent_run_id':None,'source_data_run_id':None,'context_generation':context['generation'],'agent_id':profile.id,'agent_version':profile.data['version'],'agent_profile_sha256':profile.profile_sha256}
     if metadata:spec.update(analysis_task_id=metadata['analysis_task_id'],direct_parent_run_id=metadata['direct_parent_run_id'],source_data_run_id=metadata['source_refs'][0]['run_id'] if len(metadata['source_refs'])==1 else None)
     task={'agent_profile':profile.snapshot(),'candidate':{'router_version':adapter.VERSION},'spec':spec,'context':context,'target':None,'local':None,'provider_plan':frozen}
-    if metadata:task['analysis_task']=metadata
+    if metadata:
+        task['analysis_task']=metadata
+        from .analysis_tasks import owned
+        state=store.decrypt(owned(store,uid,sid,metadata['analysis_task_id'])['payload_ciphertext'])
+        call=next((x for x in state['planning_calls'] if x['request_key']==data['client_request_id']),None)
+        if call:
+            choice=call.get('decision',{})
+            method=next((m for m in call['skills'] if m['method_id']==choice.get('skill_id')),None)
+            if call['state']!='completed' or choice.get('action')!='query' or not method:error('planner_skill_unavailable','规划方法未核对。',409)
+            actual=next((x for x in applied.get('skills',[]) if x['id']==method['skill_id']),None)
+            current_skill=store.one('SELECT content,version FROM skills WHERE id=? AND uid=? AND enabled=1',(method['skill_id'],uid))
+            import hashlib
+            if not actual or not current_skill or actual.get('version')!=method['version'] or current_skill['version']!=method['version'] or actual['content']!=current_skill['content'] or hashlib.sha256(actual['content'].encode()).hexdigest()!=method['sha256']:
+                error('planner_skill_unavailable','官方方法已变更或停用，请重新规划。',409)
+            context['effective_skill_ids']=[method['skill_id']]
+            spec['official_skill_ids']=[method['method_id']]
+            metadata['planning_method']={k:method[k] for k in ('method_id','skill_id','version','method_version','sha256')}
+            metadata['planning_call_id']=call['id']
+            if call.get('continuation_of'):
+                previous=next(x for x in state['planning_calls'] if x['id']==call['continuation_of'])
+                spec['direct_parent_run_id']=previous['receipt']['run_id']
+                metadata['direct_parent_run_id']=previous['receipt']['run_id']
     return task

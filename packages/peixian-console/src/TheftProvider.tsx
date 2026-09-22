@@ -1,7 +1,8 @@
+import TheftTaskQuery from "./TheftTaskQuery"
 import { createEffect, createSignal, For, Show, onCleanup } from "solid-js"
 import { api, post, ApiError, safeMessage } from "./api"
 import { Button, Field, Modal, ErrorLine } from "./components"
-type Choice={kind:string;name:string;available:boolean}
+type Choice={kind:string;name:string;available:boolean;contract_version?:string}
 type Confirmation={plan:Record<string,unknown>;confirmation:string;summary:string}
 type Row={record_id:string;module:string;fields:Record<string,unknown>}
 type Result={agent?:{id:string};records?:Row[];versions?:{query?:Record<string,unknown>};claims?:{claim_id:string}[]}
@@ -32,7 +33,7 @@ export function ProviderQuery(props:{model:string;disabled:boolean;sessionID?:st
    await post(`/sessions/${sid()}/messages`,{text:`请按我确认的范围查询${choices().find(c=>c.kind===kind())?.name}，并核对来源。`,agent_id:"theft-assistant",model_id:props.model,skill_ids:[],plugin_ids:[],file_ids:[],mode:"standard",client_request_id:crypto.randomUUID(),provider_query:{plan:v.plan,confirmation:v.confirmation}})
    setOpen(false);props.onAccepted(sid());setRefresh(x=>x+1)
  }catch(e){if(!(e instanceof ApiError)||e.status===0||e.status>=500){setUncertain(true);props.onAccepted(sid())}setError(safeMessage((e as Error).message))}finally{setBusy(false)}}
- return <Show when={choices().some(c=>c.available)}>
+ return <><Show when={choices().some(c=>c.contract_version==="theft-provider-contract-v2")}><TheftTaskQuery {...props}/></Show><Show when={!choices().some(c=>c.contract_version==="theft-provider-contract-v2")&&choices().some(c=>c.available)}>
    <div class="provider-actions"><Button disabled={props.disabled||busy()} onClick={()=>void launch()}>盗窃资料查询</Button><ErrorLine message={!open()&&error()}/></div>
    <Show when={result()?.versions?.query}><details class="provider-records"><summary>查看本轮来源与下一步查询（{result()?.records?.length??0} 条）</summary><p>仅依据选定记录继续；先核对时间和范围，再确认发起。资料不用于人员嫌疑评分。</p>
      <For each={result()?.records}>{(row,index)=><article><strong>来源记录 {index()+1}</strong><small>　{row.record_id}</small><dl><For each={Object.entries(row.fields)}>{([k,v])=><><dt>{({cjbh:"处警编号",jjbh:"接警编号",ajType:"来源警情类型",tags:"来源标签",records:"来源明细",lon:"来源经度字段",lat:"来源纬度字段",cjsj:"处警时间",address:"来源地址",target_name:"来源对象",target_id_card:"对象引用",capture_count:"抓拍汇总次数",deviceName:"来源地点",captureTime:"观测时间",idCard:"对象引用",personName:"来源名称",warningTypes:"来源预警类型",warningCount:"来源类型数",deviceId:"设备引用",trackType:"来源轨迹类型",latestTime:"最近触发时间",warningType:"来源预警类型",count:"来源规则触发次数",gisX:"来源经度字段",gisY:"来源纬度字段",longitude:"来源经度字段",latitude:"来源纬度字段",logs:"来源明细",communityName:"来源区域名称",id:"来源编号"} as Record<string,string>)[k]??k}</dt><dd>{typeof v==="object"?JSON.stringify(v):String(v??"未提供")}</dd></>}</For></dl>
@@ -52,7 +53,7 @@ export function ProviderQuery(props:{model:string;disabled:boolean;sessionID?:st
     <div class="provider-actions"><Button disabled={busy()||uncertain()} onClick={()=>void preview()}>检查范围</Button><Button variant="primary" disabled={!confirmed()||busy()||uncertain()} onClick={()=>void execute()}>确认并查询</Button></div>
     <Show when={uncertain()}><p>受理结果待确认，请关闭此窗口查看原会话，不会自动重新发起。</p></Show>
    </Modal></Show>
- </Show>
+ </Show></>
 }
 export function OwnerReviews(props:{sessionID:string;runID:string}) {
  const [data,setData]=createSignal<{items:{id:string;status_label:string;note:string;created_at:string;supersedes:string|null}[];result_digest:string;total:number}>(),[error,setError]=createSignal("")

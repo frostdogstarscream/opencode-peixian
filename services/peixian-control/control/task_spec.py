@@ -57,6 +57,9 @@ for field in ('direct_parent_run_id','source_data_run_id'):
     SPEC_V3_SCHEMA['properties'][field]={'type':['string','null']}
 
 def resolve(store,uid,sid,data,applied):
+    from .theft_planner import local_task
+    planned=local_task(store,uid,sid,data,applied)
+    if planned:return planned
     from .theft_provider_flow import resolve as provider_resolve
     provider=provider_resolve(store,uid,sid,data,applied)
     if provider:return provider

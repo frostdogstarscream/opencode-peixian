@@ -712,12 +712,14 @@ def create_app(store=None):
 
     @app.post(PREFIX + "/sessions/{sid}/messages", status_code=202)
     async def message_send(sid: str, request: Request, user=Depends(normal)):
-        data = body_fields(await request.json(), ("text", "model_id", "skill_ids", "file_ids", "plugin_ids", "mode", "client_request_id", "agent_id", "context_version", "provider_query"))
+        data = body_fields(await request.json(), ("text", "model_id", "skill_ids", "file_ids", "plugin_ids", "mode", "client_request_id", "agent_id", "context_version", "provider_query", "analysis_task_id", "scope", "source_refs"))
         from . import business_runs
         modern=await app.state.db_work.run(app.state.store.schema_version)>=6
         if modern:
             data=business_runs.normalized(data)
-            previous=await app.state.db_work.run(business_runs.replay,app.state.store,user['uid'],sid,data)
+            from .theft_planner import enabled as planner_enabled
+            planned=await app.state.db_work.run(planner_enabled,app.state.store,user['uid'])
+            previous=None if planned and not data.get('provider_query') else await app.state.db_work.run(business_runs.replay,app.state.store,user['uid'],sid,data)
             if previous:return previous
         elif any(k in data for k in ('plugin_ids','mode','client_request_id','agent_id')):
             from .backend_contract import error
@@ -736,6 +738,14 @@ def create_app(store=None):
         if not isinstance(text, str) or not text.strip() or len(text) > 32000:
             from .backend_contract import error
             error('invalid_text','请输入问题，且单次文字不超过32000个字符',422,{'text':'1至32000个字符且不能全为空白'})
+        from .theft_planner import enabled as planning_enabled,plan_message
+        if modern and planning_enabled(s,user['uid']) and not data.get('provider_query') and not getattr(request.state,'draft_no_tools',False):
+            from .agents.runtime import select,session
+            profile=select(user['uid'],data)
+            if profile.id!='theft-assistant':fail('请使用盗窃助手。',409)
+            await app.state.db_work.run(session,s,user['uid'],sid,profile)
+            data['model_id']=model['id']
+            return await plan_message(app,user,sid,data,applied,applied_row['revision'])
         from .scenario_context import resolve, LANGUAGE, instruction, historical
         from . import task_spec
         from .agents import runtime as agents

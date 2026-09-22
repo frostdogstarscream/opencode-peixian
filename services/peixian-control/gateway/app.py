@@ -149,6 +149,8 @@ def create_app(settings=None, *, transport=None, management_transport=None):
     register_management(app)
     from .facts_execution import register as register_facts
     register_facts(app)
+    from .planning import register as register_planning
+    register_planning(app)
 
     @app.exception_handler(QuotaExceeded)
     async def quota_exceeded(request, exception):

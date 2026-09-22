@@ -1,0 +1,41 @@
+{
+  "version": "theft-soft-methods-v1",
+  "skills": [
+    {
+      "id": "incident-to-observation",
+      "version": "2.0.0",
+      "state": "published",
+      "sha256": "823f11a3fbf130a1cb1fa825db97d80f93318ac7315053ae97d9389747708016",
+      "content": "---\nname: incident-to-observation\ndescription: 警情与观测资料核对的软剧本参考，版本2.0.0。\n---\n\n# 警情与观测资料核对\n\n参考方向：先明确用户选择的警情及来源位置，核对处警时间与案发时间的区别。仅在用户范围齐全时查询抓拍资料；新返回多个人员时先请求选择，不默认第一条。用户已明确人员和范围后可以按需选择轨迹、夜间或跨小区资料。方向可随追问改变，无需新建会话。\n\n这是一份方法参考，不是固定执行清单。模型选择必要下一步，服务端校验授权、对象、范围、来源与预算，每步使用冻结参数。条件已经明确就直接执行，只追问缺项。不得自行扩大范围、自动翻页、地名转坐标、计算嫌疑评分或排列人员。解释、复核、导出只读取已保存结果；失败和未知不自动重试，不能回退演示资料。只用简体中文解释事实与缺口。\n",
+      "capabilities": [
+        "incidents",
+        "captures",
+        "tracks",
+        "night",
+        "community",
+        "warning_detail",
+        "warning_logs",
+        "profile",
+        "warnings"
+      ]
+    },
+    {
+      "id": "observation-to-incident",
+      "version": "2.0.0",
+      "state": "published",
+      "sha256": "ce65b7d7af82a584dacdd6040d62c5bb3b30dcf1079453ad98e9310b192a40ae",
+      "content": "---\nname: observation-to-incident\ndescription: 观测与警情资料核对的软剧本参考，版本2.0.0。\n---\n\n# 观测与警情资料核对\n\n参考方向：用户明确一个人员和时间后，按需读取轨迹。只对用户选择的位置串行查询警情，未选择的位置不得自动遍历。警情空间接口不支持近期或仅盗窃过滤，不能静默忽略；返回多个警情时请求业务选择。可以返回人员资料方向，不要求用户选择工作流。\n\n这是一份方法参考，不是固定执行清单。模型选择必要下一步，服务端校验授权、对象、范围、来源与预算，每步使用冻结参数。条件已经明确就直接执行，只追问缺项。不得自行扩大范围、自动翻页、地名转坐标、计算嫌疑评分或排列人员。解释、复核、导出只读取已保存结果；失败和未知不自动重试，不能回退演示资料。只用简体中文解释事实与缺口。\n",
+      "capabilities": [
+        "tracks",
+        "incidents",
+        "captures",
+        "night",
+        "community",
+        "warning_detail",
+        "warning_logs",
+        "profile",
+        "warnings"
+      ]
+    }
+  ]
+}

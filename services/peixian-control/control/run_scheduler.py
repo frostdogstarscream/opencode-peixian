@@ -118,10 +118,13 @@ def track_messages(store,row,values,receipt):
 
 class Coordinator:
     def __init__(self,app):
-        self.app=app;self.stop=asyncio.Event();self.task=None
+        self.app=app;self.stop=asyncio.Event();self.task=None;self.planner_task=None
     def start(self):self.task=asyncio.create_task(self.loop())
     async def close(self):
         self.stop.set()
+        if self.planner_task:
+            self.planner_task.cancel()
+            await asyncio.gather(self.planner_task,return_exceptions=True)
         if self.task:
             self.task.cancel()
             await asyncio.gather(self.task,return_exceptions=True)
@@ -130,6 +133,12 @@ class Coordinator:
             try:
                 s=self.app.state.store
                 await self.recover_drafts()
+                if self.planner_task is None or self.planner_task.done():
+                    if self.planner_task and not self.planner_task.cancelled():
+                        failure=self.planner_task.exception()
+                        if failure:logging.getLogger('peixian.runs').warning('planner_failure type=%s',type(failure).__name__)
+                    from .theft_planner import continue_one
+                    self.planner_task=asyncio.create_task(continue_one(self.app))
                 rows=await self.app.state.db_work.run(s.rows,"SELECT r.*, (SELECT coalesce(max(sequence),0) FROM run_events e WHERE e.run_id=r.id) AS event_cursor FROM business_runs r JOIN run_deliveries d ON d.run_id=r.id WHERE r.status IN ('queued','running','cancelling','reconciling') AND d.next_check<=? ORDER BY d.next_check,r.created LIMIT 4",(now(),))
                 await asyncio.gather(*(self.step(row) for row in rows))
             except asyncio.CancelledError:raise

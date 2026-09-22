@@ -22,11 +22,12 @@ def extend(s):
  s['ProviderCapabilities']['properties']['contract_versions']=array(STRING)
  s['ProviderCapabilities']['properties']['items']['items']['properties'].update(kind={'enum':list(V2_CATALOG)},reason=nullable(STRING),data_environment={'enum':['synthetic','acceptance_real']},contract_version=STRING)
  s['MessageBody']['properties']['provider_query']=ref('ProviderConfirmation')
+ s['MessageBody']['properties'].update(analysis_task_id=ID,source_refs=array(source_ref),scope=obj({'lon':STRING,'lat':STRING,'radius_m':{'type':'integer','minimum':1},'start':STRING,'end':STRING,'page':{'type':'integer','minimum':1},'page_size':{'type':'integer','minimum':1,'maximum':100},'person_identity':{'type':'string','writeOnly':True}}))
  s['Health']['properties']['schema_version']['enum'].append(10)
  s['Health']['properties']['schema_version']['enum'].append(11)
  s['AnalysisTaskBody']=obj({'goal':{'type':'string','minLength':1,'maxLength':4000},'client_request_id':{'type':'string','format':'uuid'},'data_environment':{'enum':['synthetic','acceptance_real']}},('goal','client_request_id','data_environment'))
  s['AnalysisTask']=obj({'analysis_task_id':ID,'scenario_id':ID,'session_id':ID,'goal':STRING,'context_version':{'type':'integer'},'scope_version':{'type':'integer'},'steps':array({'type':'object'}),'selected_refs':array(source_ref),'budget':{'type':'object'},'data_environment':{'enum':['synthetic','acceptance_real']},'updated_at':STRING},('analysis_task_id','scenario_id','session_id','goal','context_version','scope_version','steps','selected_refs','budget','data_environment','updated_at'))
- s['TaskSpec']['oneOf'].append(obj({'schema_version':{'const':'task-spec-v4'},'domain':{'const':'theft'},'agent_id':{'const':'theft-assistant'},'query_mode':{'enum':['new_query','explain_existing','clarify']},'methods':array(kinds,minItems=1,maxItems=1)},('schema_version','domain','agent_id','query_mode','methods'),extra=True))
+ s['TaskSpec']['oneOf'].append(obj({'schema_version':{'const':'task-spec-v4'},'domain':{'const':'theft'},'agent_id':{'const':'theft-assistant'},'query_mode':{'enum':['new_query','explain_existing','clarify']},'methods':array(kinds,minItems=0,maxItems=1)},('schema_version','domain','agent_id','query_mode','methods'),extra=True))
  s['TaskSpec']['oneOf'][-1]['properties']['methods']['items']={'enum':list(V2_CATALOG)}
  status={'enum':['consistent','needs_information','inconsistent']}
  s['ReviewBody']=obj({'result_digest':STRING,'status':status,'note':{'type':'string','minLength':1,'maxLength':2000},'claim_ids':array(STRING,maxItems=100,uniqueItems=True),'supersedes':nullable(ID)},('result_digest','status','note'))

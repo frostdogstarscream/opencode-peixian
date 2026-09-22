@@ -5535,4 +5535,4 @@ tr:hover td {
 .provider-form{border:0;padding:0;margin:0;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .provider-records{max-height:240px;overflow:auto;border:1px solid var(--border,#d9e6f5);border-radius:8px;padding:10px;margin:6px 0;overflow-wrap:anywhere}
 .provider-records summary{cursor:pointer;font-weight:600}.provider-records article{border-top:1px solid #d9e6f5;padding:10px 0}.provider-records dl{display:grid;grid-template-columns:minmax(80px,1fr) 3fr;gap:5px}.provider-records dd{margin:0;overflow-wrap:anywhere}
-@media(max-width:680px){.app-shell.business-shell{grid-template-columns:minmax(0,1fr)}.provider-form{grid-template-columns:minmax(0,1fr)}.business-shell .main-area{min-width:0}.provider-records{max-height:160px}}
+@media(max-width:680px){.app-shell.business-shell>.sidebar{position:fixed;z-index:100}.provider-form{grid-template-columns:minmax(0,1fr)}.business-shell .main-area{min-width:0}.provider-records{max-height:160px}}

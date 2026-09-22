@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   core:
-    if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'codex/stage2-')
+    if: github.event_name != 'pull_request' || github.head_ref == 'codex/stage2-release-governance-v1' || github.head_ref == 'codex/stage2-ab-closeout-v1' || github.head_ref == 'codex/stage2-release'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -111,7 +111,7 @@ jobs:
         working-directory: deploy/peixian
         run: python stage2-governance.py --check-source
   frontend:
-    if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'codex/stage2-')
+    if: github.event_name != 'pull_request' || github.head_ref == 'codex/stage2-release-governance-v1' || github.head_ref == 'codex/stage2-ab-closeout-v1' || github.head_ref == 'codex/stage2-release'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -150,7 +150,7 @@ jobs:
           path: packages/peixian-console/output/playwright/pr8b
 
   evaluation:
-    if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'codex/stage2-')
+    if: github.event_name != 'pull_request' || github.head_ref == 'codex/stage2-release-governance-v1' || github.head_ref == 'codex/stage2-ab-closeout-v1' || github.head_ref == 'codex/stage2-release'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:

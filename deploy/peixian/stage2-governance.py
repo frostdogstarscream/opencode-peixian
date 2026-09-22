@@ -30,6 +30,7 @@ def verify_rules(value,root=ROOT):
 
 def check_source(root=ROOT):
     root=Path(root);c=contract(root);text=(root/'.github/workflows/peixian-stage2-release-governance.yml').read_text()
+    require(set(re.findall(r"github.head_ref == '([^']+)'",text))=={'codex/stage2-release-governance-v1','codex/stage2-ab-closeout-v1','codex/stage2-release'} and 'startsWith(github.head_ref' not in text,'workflow_branch_scope')
     actual=dict(re.findall(r'- \{name: ([^,]+), job: ([^}]+)\}',text))
     require(set(actual)==set(c['required_checks']),'workflow_check_set')
     require(all(v==('frontend' if k=='Frontend Build' else 'evaluation' if k=='Evaluation' else 'core') for k,v in actual.items()),'workflow_coverage')

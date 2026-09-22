@@ -16,7 +16,8 @@ HELPERS={'peixian_get_scenario_context','peixian_prepare_scenario_facts','peixia
 MODULES=('funds','calls','portrait','composite','night','vehicle','lookup')
 TOOLS={'peixian_get_'+m+'_records':m for m in MODULES}
 from shared.theft_provider import CATALOG
-PROVIDER_TOOLS={'peixian_query_'+m:m for m in CATALOG}
+from shared.theft_provider_v2 import CATALOG as PROVIDER_V2
+PROVIDER_TOOLS={'peixian_query_'+m:m for m in set(CATALOG)|set(PROVIDER_V2)}
 
 async def process(input):
     with tempfile.TemporaryDirectory(prefix='px-facts-') as temporary:

@@ -96,7 +96,8 @@ def test_provider_history_does_not_requery_or_change_scope(provider):
     assert not s.one('SELECT * FROM run_deliveries WHERE run_id=?',(new['id'],))
     request,task=prepare(provider,'theft-assistant','解释已有结果');_,again,_=submit(provider,request,task)
     again_result=trusted_results.read(s,uid,'ses_multi',again['id'])
-    assert again_result['records'] and again_result['data_usage']['source_data_run_id']==row['id']
+    assert not again_result['records']
+    assert again_result['data_usage']['source_data_run_id']==new['id']
 
 
 def test_provider_actual_http_admission(provider):

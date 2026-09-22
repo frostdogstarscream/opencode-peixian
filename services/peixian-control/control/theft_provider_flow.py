@@ -19,6 +19,10 @@ def availability(store,uid,kind,applied):
 def signature(store,uid,sid,body):
     return hmac.new(store.worker_key.encode(),canonical([uid,sid,body]).encode(),hashlib.sha256).hexdigest()
 def preview(store,uid,sid,body,applied,revision):
+    from shared.theft_provider_v2 import VERSION as V2
+    if isinstance(body,dict) and body.get('contract_version')==V2:
+        from .provider_real_flow import preview as real_preview
+        return real_preview(store,uid,sid,body,applied,revision)
     if not isinstance(body,dict) or set(body)!={'kind','query'}:error('provider_query_invalid','查询字段无效。',422)
     kind=body['kind'];availability(store,uid,kind,applied)
     try:q=normalize_query(kind,body['query'])
@@ -36,6 +40,10 @@ def resolve(store,uid,sid,data,applied):
     if not isinstance(value,dict) or set(value)!={'plan','confirmation'}:error('provider_confirmation_required','请先确认查询范围。',422)
     plan=value['plan']
     if not isinstance(plan,dict) or not isinstance(value['confirmation'],str) or not hmac.compare_digest(signature(store,uid,sid,plan),value['confirmation']):error('provider_confirmation_invalid','范围确认已失效，请重新确认。',409)
+    from shared.theft_provider_v2 import VERSION as V2
+    if plan.get('version')==V2:
+        from .provider_real_flow import resolve as real_resolve
+        return real_resolve(store,uid,sid,data,applied,plan)
     runtime=store.one('SELECT revision FROM runtimes WHERE uid=?',(uid,))
     if plan.get('version')!=VERSION or plan['expires']<int(time.time()) or not runtime or plan['revision']!=runtime['revision'] or plan['generation']!=current(store,uid,sid)['generation']:error('provider_confirmation_expired','查询确认已过期或配置已变化，请重新确认。',409)
     kind=plan['kind'];plugin=availability(store,uid,kind,applied);profile=select(uid,data);session(store,uid,sid,profile)
@@ -48,7 +56,13 @@ def bind(snapshot,payload,task):
     blocked={**payload.get('tools',{}),'*':False,'question':False,**{name:False for name in HELPERS},**{name:False for p in snapshot['plugins'] for name in p.get('tools',[])}}
     plan=task['provider_plan'];snapshot['provider_plan']=copy.deepcopy(plan)
     snapshot['task_spec']=copy.deepcopy(task['spec']);snapshot['allowed_capabilities']=[plan['plugin_id']];snapshot['allowed_tools']=[plan['tool_id']]
-    snapshot['trusted_result_version']='2.0';snapshot['data_environment']='synthetic'
+    snapshot['trusted_result_version']='2.0';snapshot['data_environment']=plan.get('data_environment','synthetic')
+    if snapshot['data_environment']=='acceptance_real':
+        import re
+        # The encrypted ticket retains the supplier identity; model-facing
+        # content gets no full identity or serialized private query plan.
+        for part in payload.get('parts',[]):
+            if part.get('type')=='text':part['text']=re.sub(r'(?<!\d)\d{17}[\dXx](?!\d)','[本轮已确认人员]',part.get('text',''))
     if task.get('local'):
         snapshot['task_response']=task['local'];snapshot['provider_followup']=task['provider_followup']
         if task.get('provider_history'):snapshot['provider_history']=copy.deepcopy(task['provider_history'])
@@ -76,12 +90,20 @@ def register(app):
         def read():
             s=app.state.store;row=s.one('SELECT applied_spec_ciphertext FROM runtimes WHERE uid=?',(user['uid'],));applied=s.decrypt(row['applied_spec_ciphertext']) if row and row['applied_spec_ciphertext'] else {}
             from fastapi import HTTPException
+            from shared import theft_provider_v2 as v2
+            from .provider_contracts import binding
             items=[]
-            for kind,(name,_,__) in CATALOG.items():
-                try:availability(s,user['uid'],kind,applied);available=True
-                except HTTPException:available=False
-                items.append({'kind':kind,'name':name,'plugin_id':pid(kind),'available':available})
-            return {'items':items,'data_environment':'synthetic','contract_version':VERSION}
+            for kind,definition in v2.CATALOG.items():
+                real=any(p['id']==pid(kind) and p.get('version')=='2.0.0' for p in applied.get('plugins',[]))
+                reason=None
+                try:
+                    if real:binding(s,user['uid'],kind,applied)
+                    else:availability(s,user['uid'],kind,applied)
+                    available=True
+                except HTTPException as exc:
+                    available=False;reason=exc.detail.get('code','provider_unavailable') if isinstance(exc.detail,dict) else 'provider_unavailable'
+                items.append({'kind':kind,'name':definition[0],'plugin_id':pid(kind),'available':available,'reason':reason,'data_environment':'acceptance_real' if real else 'synthetic','contract_version':v2.VERSION if real else VERSION})
+            return {'items':items,'data_environment':'synthetic','contract_version':VERSION,'contract_versions':[VERSION,v2.VERSION]}
         return await app.state.db_work.run(read)
 
 
@@ -98,14 +120,9 @@ def followup(store,uid,sid,data):
     text=data['text'].strip().rstrip('。！!？?')
     explain=text in ('继续','解释已有结果','展开依据','解释刚才的结果','查看已有资料','说明资料缺口')
     source=read(store,uid,sid,row['id']) if row['status'] in ('completed','failed','cancelled') else None
-    if explain and not (source and source.get('records')):
-        for prior in store.rows('SELECT id,request_ciphertext FROM business_runs WHERE uid=? AND session_id=? AND rowid>? AND rowid<? AND status IN (?,?,?) ORDER BY rowid DESC LIMIT 100',(uid,sid,after,row['rowid'],'completed','failed','cancelled')):
-            frozen=store.decrypt(prior['request_ciphertext'])
-            if not frozen.get('provider_plan'):break
-            candidate=read(store,uid,sid,prior['id'])
-            if candidate.get('records'):
-                source=candidate;break
-    historical=source and source.get('records') and explain
+    # The latest execution is the explicit default target even when it is empty,
+    # failed or only a clarification. Never silently substitute an older success.
+    historical=bool(source is not None and explain)
     context=current(store,uid,sid);context.update(scenario_id='DEMO-CASE-THEFT',effective_skill_ids=[])
     spec=copy.deepcopy(snap['task_spec']);spec.update(query_mode='explain_existing' if historical else 'clarify',direct_parent_run_id=row['id'],source_data_run_id=(source.get('data_usage',{}).get('source_data_run_id') or source['run_id']) if historical else None,context_generation=context['generation'])
     msg='继续说明已有来源，没有重新取数。' if historical else '仍在盗窃资料核对会话中。请点击“盗窃资料查询”，选择对象或位置并确认时间范围；如只解释已有资料，可说“解释已有结果”。本轮尚未发起新查询。'

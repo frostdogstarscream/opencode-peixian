@@ -68,11 +68,12 @@ def validate_execution(snapshot):
     if task.get('schema_version')=='task-spec-v4':
         from ..theft_provider_flow import pid,tool
         from shared.theft_provider import request_spec,ContractError
+        from shared import theft_provider_v2 as provider_v2
         meta=snapshot.get('agent_profile') or {};plan=snapshot.get('provider_plan') or {}
         try:
             valid=(meta['id']=='theft-assistant' and task['domain']==meta['domain']=='theft' and task['agent_version']==meta['version'] and task['query_mode']=='new_query' and snapshot['allowed_capabilities']==[plan['plugin_id']] and task['agent_id']==meta['id'] and task['agent_profile_sha256']==meta['profile_sha256']
                 and task['methods']==[plan['kind']] and plan['plugin_id']==pid(plan['kind']) and plan['tool_id']==tool(plan['kind'])
-                and plan['request']==request_spec(plan['kind'],plan['query']) and snapshot['allowed_tools']==[plan['tool_id']]
+                and plan['request']==(provider_v2.request_spec(plan['kind'],plan['query'],plan['limits'],plan['identities']) if plan.get('version')==provider_v2.VERSION else request_spec(plan['kind'],plan['query'])) and snapshot['allowed_tools']==[plan['tool_id']]
                 and snapshot['payload']['tools'].get(plan['tool_id']) is True and snapshot['payload']['tools'].get('*') is False
                 and snapshot['effective_system_prompt_sha256']==hashlib.sha256(snapshot['payload'].get('system','').encode()).hexdigest())
         except (KeyError,TypeError,ValueError):valid=False

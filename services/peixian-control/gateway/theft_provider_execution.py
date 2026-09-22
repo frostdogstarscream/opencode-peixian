@@ -14,6 +14,11 @@ async def execute(request,app,value,rpc,parent,process):
         kind=plan['kind'];await call('authorize',module=kind)
         if (await call('reserve',module=kind))['reserved']:
             spec=specification(config.managed_root,plan['plugin_id'])
+            gate.require_egress()
+            if await request.is_disconnected():
+                await call('complete',module=kind,status='cancelled')
+                raise asyncio.CancelledError()
+            await call('dispatch',module=kind)
             task=asyncio.create_task(process({**spec,'action':'invoke','tool':plan['tool_id'],'args':{'request':plan['request']}}))
             try:
                 while not task.done():

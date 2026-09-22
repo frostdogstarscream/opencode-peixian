@@ -5,6 +5,7 @@ from .business_runs import event
 from .store import now,encode
 from .theft_provider_flow import availability,pid
 from shared.theft_provider import parse_response,ContractError,CATALOG
+from shared import theft_provider_v2 as v2
 class ProviderState(FactsState):
     def _load(self,db,uid,rid,revision):
         row=db.execute('SELECT * FROM business_runs WHERE id=? AND uid=?',(rid,uid)).fetchone()
@@ -15,8 +16,13 @@ class ProviderState(FactsState):
         return row,snapshot,state
     def read(self,uid,rid,revision):
         with self.store.read(snapshot=True) as db:
-            _,snap,state=self._load(db,uid,rid,revision)
-            return copy.deepcopy({'plan':snap['provider_plan'],'state':state})
+            row,snap,state=self._load(db,uid,rid,revision)
+            value=copy.deepcopy({'plan':snap['provider_plan'],'state':state})
+            if value['plan'].get('version')==v2.VERSION:
+                value['plan'].pop('identities',None)
+                for entry in value['state']['modules'].values():
+                    if 'response' in entry:entry['response']=v2.public_result(entry['response'],self.store.worker_key.encode(),uid+'/'+row['session_id'])
+            return value
     def authorize(self,db,row,snapshot,module=None):
         from .agents.runtime import validate_execution
         validate_execution(snapshot)
@@ -28,19 +34,33 @@ class ProviderState(FactsState):
         if snapshot.get('provider_followup'):reject('provider_followup_read_only')
         if module is not None and module!=plan['kind']:reject('provider_method_changed')
         if snapshot.get('task_spec',{}).get('schema_version')!='task-spec-v4' or snapshot.get('agent_profile',{}).get('id')!='theft-assistant':reject('provider_agent_changed')
-        p=availability(self.store,row['uid'],plan['kind'],self.store.decrypt(runtime['applied_spec_ciphertext']))
+        applied=self.store.decrypt(runtime['applied_spec_ciphertext'])
+        if plan.get('version')==v2.VERSION:
+            from .provider_contracts import validate
+            validate(self.store,row['uid'],plan,applied)
+            return
+        p=availability(self.store,row['uid'],plan['kind'],applied)
         if p['version']!=plan['plugin_version']:reject('provider_plugin_changed')
     def _event(self,rid,module,status):
-        event(self.store,rid,'provider.'+module,'plugin',CATALOG[module][0],{'pending':'running','unknown':'failed'}.get(status,status),completed=now() if status!='pending' else None,capability=pid(module))
+        event(self.store,rid,'provider.'+module,'plugin',(v2.CATALOG.get(module) or CATALOG[module])[0],{'pending':'running','unknown':'failed'}.get(status,status),completed=now() if status!='pending' else None,capability=pid(module))
     def reserve(self,uid,rid,revision,operation,module):
         with self.store.tx() as db:
             row,snap,state=self._owned(db,uid,rid,revision,operation);self.authorize(db,row,snap,module)
             if module in state['modules']:return False
-            state['modules'][module]={'status':'pending','started':now()}
+            state['modules'][module]={'status':'pending','started':now(),'reservation_count':1,'dispatch_attempts':0,'response_count':0,'may_have_sent':False}
             self._save(db,rid,snap);self._event(rid,module,'pending')
             prior=db.execute('SELECT actual_plugins FROM invocations WHERE run_id=?',(rid,)).fetchone()
             if prior:db.execute('UPDATE invocations SET actual_plugins=? WHERE run_id=?',(encode(sorted(set(json.loads(prior[0]))|{pid(module)})),rid))
             return True
+    def dispatch(self,uid,rid,revision,operation,module):
+        with self.store.tx() as db:
+            row,snap,state=self._owned(db,uid,rid,revision,operation);self.authorize(db,row,snap,module)
+            value=state['modules'].get(module)
+            if not value or value['status']!='pending' or value.get('dispatch_attempts',0):reject('provider_dispatch_already_reserved')
+            # This is a durable send-boundary attempt, not proof the supplier received HTTP.
+            value.update(dispatch_attempts=1,may_have_sent=True)
+            self._save(db,rid,snap)
+
     def complete(self,uid,rid,revision,operation,module,status,response=None):
         if status not in ('completed','unknown','cancelled'):reject('provider_invalid_status')
         with self.store.tx() as db:
@@ -48,7 +68,13 @@ class ProviderState(FactsState):
             value=state['modules'].get(module)
             if not value or value['status']!='pending':reject('provider_not_pending')
             if status=='completed':
-                try:value['response']=parse_response(module,snap['provider_plan']['query'],response)
+                value['response_count']=1
+                value['may_have_sent']=True
+                try:
+                    plan=snap['provider_plan']
+                    value['response']=(v2.parse_response(module,plan['query'],response,plan['limits'],plan['identities']) if plan.get('version')==v2.VERSION else parse_response(module,plan['query'],response))
+                    if plan.get('version')==v2.VERSION:
+                        value['public_response']=v2.public_result(value['response'],self.store.worker_key.encode(),uid+'/'+row['session_id'])
                 except (ContractError,ValueError,TypeError,KeyError):status='rejected'
             value.update(status=status,completed=now());self._save(db,rid,snap);self._event(rid,module,status)
             return status

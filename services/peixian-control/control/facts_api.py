@@ -33,7 +33,7 @@ def register(app):
         engine=provider_state if action.startswith('provider_') else state
         if action.startswith('provider_'):
             action=action[len('provider_'):]
-            if action not in ('begin','finish','authorize','reserve','complete','read'):raise HTTPException(422,'不支持的资料操作')
+            if action not in ('begin','finish','authorize','reserve','dispatch','complete','read'):raise HTTPException(422,'不支持的资料操作')
         if action == 'begin':
             if set(data) != {'action','runtime_id','revision','gateway_boot_id','session_id','message_id'}: raise HTTPException(422,'事实协议无效')
             row=store.one("SELECT * FROM business_runs WHERE uid=? AND session_id=? AND message_id=?",(uid,data['session_id'],data['message_id']))
@@ -45,6 +45,7 @@ def register(app):
         if action=='finish':engine.finish(*args);return {'ok':True}
         if action=='authorize':engine.check(*args,data.get('module'));return {'ok':True}
         if action=='reserve':return {'reserved':engine.reserve(*args,data.get('module'))}
+        if action=='dispatch' and engine is provider_state:engine.dispatch(*args,data.get('module'));return {'ok':True}
         if action=='complete':return {'status':engine.complete(*args,data.get('module'),data.get('status'),data.get('response'))}
         if action=='read':engine.check(*args);return engine.read(*args[:3])
         if action=='table':engine.save_table(*args,data.get('table'));return {'ok':True}

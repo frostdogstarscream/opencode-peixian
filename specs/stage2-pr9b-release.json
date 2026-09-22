@@ -1,15 +1,162 @@
 {
   "stage": "pr9b",
   "baseline": "e6db3296537d2d201e64b2c7f9ec4a99fda524f7",
-  "status": "pending",
-  "implementation_revision": null,
+  "status": "completed",
+  "implementation_revision": "fe2b72977432d79c27dedfa3c0d0af2da26ac424",
   "deployment_performed": false,
   "real_data_accessed": false,
   "model_requests": 0,
   "github_ci": {
-    "executed": false
+    "executed": true,
+    "id": 35675315892,
+    "url": "https://github.com/frostdogstarscream/opencode-peixian/actions/runs/35675315892",
+    "head_sha": "fe2b72977432d79c27dedfa3c0d0af2da26ac424",
+    "conclusion": "success",
+    "required_checks": [
+      "Agent Registry",
+      "Capability Registry",
+      "Rule Registry",
+      "TaskSpec",
+      "Session Context",
+      "Clarification",
+      "Claim",
+      "Result V2",
+      "Frontend Build",
+      "Evaluation",
+      "Migration",
+      "Seven Plugin Contract",
+      "Historical Closeout Worktree",
+      "Release Artifact Check"
+    ]
   },
-  "ruleset": null,
-  "artifact_manifest_sha256": null,
-  "independent_human_review": "not_performed"
+  "ruleset": {
+    "id": 23799147,
+    "name": "Peixian Stage2 protected release",
+    "target": "branch",
+    "source_type": "Repository",
+    "source": "frostdogstarscream/opencode-peixian",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "exclude": [],
+        "include": [
+          "refs/heads/codex/stage2-release"
+        ]
+      }
+    },
+    "rules": [
+      {
+        "type": "deletion"
+      },
+      {
+        "type": "non_fast_forward"
+      },
+      {
+        "type": "pull_request",
+        "parameters": {
+          "required_approving_review_count": 1,
+          "dismiss_stale_reviews_on_push": true,
+          "required_reviewers": [],
+          "require_code_owner_review": true,
+          "require_last_push_approval": true,
+          "required_review_thread_resolution": true,
+          "require_extra_approval_for_unattributed_changes": true,
+          "allowed_merge_methods": [
+            "merge",
+            "squash",
+            "rebase"
+          ]
+        }
+      },
+      {
+        "type": "required_status_checks",
+        "parameters": {
+          "strict_required_status_checks_policy": true,
+          "do_not_enforce_on_create": false,
+          "required_status_checks": [
+            {
+              "context": "Agent Registry",
+              "integration_id": 15368
+            },
+            {
+              "context": "Capability Registry",
+              "integration_id": 15368
+            },
+            {
+              "context": "Rule Registry",
+              "integration_id": 15368
+            },
+            {
+              "context": "TaskSpec",
+              "integration_id": 15368
+            },
+            {
+              "context": "Session Context",
+              "integration_id": 15368
+            },
+            {
+              "context": "Clarification",
+              "integration_id": 15368
+            },
+            {
+              "context": "Claim",
+              "integration_id": 15368
+            },
+            {
+              "context": "Result V2",
+              "integration_id": 15368
+            },
+            {
+              "context": "Frontend Build",
+              "integration_id": 15368
+            },
+            {
+              "context": "Evaluation",
+              "integration_id": 15368
+            },
+            {
+              "context": "Migration",
+              "integration_id": 15368
+            },
+            {
+              "context": "Seven Plugin Contract",
+              "integration_id": 15368
+            },
+            {
+              "context": "Historical Closeout Worktree",
+              "integration_id": 15368
+            },
+            {
+              "context": "Release Artifact Check",
+              "integration_id": 15368
+            }
+          ]
+        }
+      }
+    ],
+    "node_id": "RRS_lACqUmVwb3NpdG9yec5Rn4zQzgFrJWs",
+    "created_at": "2026-09-22T09:28:54.285+08:00",
+    "updated_at": "2026-09-22T09:28:54.368+08:00",
+    "bypass_actors": [],
+    "current_user_can_bypass": "never",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/frostdogstarscream/opencode-peixian/rulesets/23799147"
+      },
+      "html": {
+        "href": "https://github.com/frostdogstarscream/opencode-peixian/rules/23799147"
+      }
+    }
+  },
+  "artifact_manifest_sha256": "11e67f79b079be7f86bcf6ba2005f269996f661576a40a1e610d4cef5e759c51",
+  "independent_human_review": "not_performed",
+  "tag": {
+    "name": "stage2-dual-agent-v1.0.0-rc1",
+    "commit": "fe2b72977432d79c27dedfa3c0d0af2da26ac424",
+    "remote_verified": true
+  },
+  "package_files": 29,
+  "package_bytes": 1779186955,
+  "image_digest_type": "local Docker content-addressed image IDs; no registry repo_digest",
+  "human_review_policy": "one independent approval required for future protected-branch updates; no bypass actors"
 }

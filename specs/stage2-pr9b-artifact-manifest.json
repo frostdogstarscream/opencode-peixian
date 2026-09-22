@@ -1,0 +1,140 @@
+{
+  "schema": "peixian.stage2-release",
+  "version": "1.0",
+  "schema_version": 9,
+  "tag": "stage2-dual-agent-v1.0.0-rc1",
+  "source_revision": "fe2b72977432d79c27dedfa3c0d0af2da26ac424",
+  "source_matches_commit": true,
+  "contains_runtime_data": false,
+  "data_environment": "synthetic",
+  "images": {
+    "control": {
+      "image_id": "sha256:1dcd7bfe04df5c381c3a83ddfa0c75af926d66a536a8457ddccb19ac6f3f36de",
+      "source_revision": "fe2b72977432d79c27dedfa3c0d0af2da26ac424",
+      "repo_digests": []
+    },
+    "gateway": {
+      "image_id": "sha256:fc37dad52a088883323aeff351ebfe9b68105c4e58faa24143818cb65acc1a75",
+      "source_revision": "fe2b72977432d79c27dedfa3c0d0af2da26ac424",
+      "repo_digests": []
+    },
+    "agent": {
+      "image_id": "sha256:4d8cf4e09da6c3a43c03358d20e99369f2f728a2cb3250ee48939cf85a967e0c",
+      "source_revision": "fe2b72977432d79c27dedfa3c0d0af2da26ac424",
+      "repo_digests": []
+    }
+  },
+  "frontend": {
+    "source_revision": "fe2b72977432d79c27dedfa3c0d0af2da26ac424",
+    "tree_sha256": "0e3b1e76ca08fe05cdd2b772812d660886f6b1088000496d56a760992b8f6590",
+    "package_lock_sha256": "0d8200eab1e685c8fa60f2de9c50aedc2bab96b4fae94f9cdd3509fe78818fd1"
+  },
+  "plugins": {
+    "peixian-records-funds": {
+      "id": "peixian-records-funds",
+      "version": "1.0.0",
+      "sha256": "35b1fcebbd9be0d2aa8725fcbac68c576940fbc3f23cb16d4369ff098050baa2"
+    },
+    "peixian-records-calls": {
+      "id": "peixian-records-calls",
+      "version": "1.0.0",
+      "sha256": "d43177ee3a8fab96c97b149c5b086b68febe356b01684e83ffb148cdf22df23a"
+    },
+    "peixian-records-portrait": {
+      "id": "peixian-records-portrait",
+      "version": "1.0.0",
+      "sha256": "4dc3c1b57ba5da51ae7de92be599dc25fa6de0dccec1ef856fcccbed79de7e9e"
+    },
+    "peixian-records-composite": {
+      "id": "peixian-records-composite",
+      "version": "1.0.0",
+      "sha256": "6324eba6eaa0f361d669aa5f2765504e6e80fc9beeb5c16a107eecaed174f824"
+    },
+    "peixian-records-night": {
+      "id": "peixian-records-night",
+      "version": "1.0.0",
+      "sha256": "fbb33521201cc02943ae1efc3121bca244abdf305a00c9ed8ed6ee042004fc5c"
+    },
+    "peixian-records-vehicle": {
+      "id": "peixian-records-vehicle",
+      "version": "1.0.0",
+      "sha256": "2ea89ebf1628e0bf56b61cc5fd6de9b4960633443f686f7507330191a9ccfa6c"
+    },
+    "peixian-records-lookup": {
+      "id": "peixian-records-lookup",
+      "version": "1.0.0",
+      "sha256": "7c7f64c8c0149e5cfb96e293ec198cf1e5f4e18ba994a68765cdf2d7d2dc7301"
+    }
+  },
+  "skills": {
+    "peixian.method.night": {
+      "version": "3.0.0",
+      "state": "published",
+      "sha256": "39e9a691b9e433687df7a2fc11a717e7bf6219ac27c0a15aaee980feaae25464"
+    },
+    "peixian.method.companions": {
+      "version": "3.0.0",
+      "state": "published",
+      "sha256": "ed00078db0840610e4729300ccc9cdaa721a3aa4291cbfaca6ba15f7aff80b66"
+    },
+    "peixian.method.funds": {
+      "version": "3.0.0",
+      "state": "published",
+      "sha256": "9de9b027ff4deec0540a2fe8de7d320f9524462e80f7c81749a0c4a4e4683f57"
+    },
+    "peixian.method.relations": {
+      "version": "3.0.0",
+      "state": "published",
+      "sha256": "1df49f2958f78e2d384b681b801c0fbc49f7dc364fb6210eeaee7d89454d1eb4"
+    },
+    "peixian.method.gambling": {
+      "version": "3.0.0",
+      "state": "published",
+      "sha256": "8cc1df0eec0a344f0eb3fce9a9ee0ad139f06dd632227ca6358d7db89f687972"
+    },
+    "peixian.method.theft": {
+      "version": "3.0.0",
+      "state": "published",
+      "sha256": "c901b6b52784fef26c277c88b6fc01632c0db30e5bc8c0c76cc55f3ca1125d7f"
+    }
+  },
+  "registries": {
+    "agent-gambling.json": "ceaca14e37a9c5017d09684915301154411e65237755e5542f0a70fab1875d14",
+    "agent-theft.json": "8519ef95a636dc5d99def9a91379fcb2558927f8bbeb0217a6f0ce9da4bc121b",
+    "capabilities.json": "f0499bb490bb425843dd02944b987411d23950042f2c464355d38c7e26b07171",
+    "methods.json": "377f154d258af797cf8ab8a318f54ac1b8f73ad447032c04399b5a20701c3c78",
+    "rules.json": "2eb506f21ca75c55b25ad046d7814eca15778a6c81430ea14b6038b67fd4302c"
+  },
+  "sbom_scope": "Runtime filesystem inventories plus source lockfiles; opaque compiled dependencies may need source-level inspection. This is not a vulnerability clearance.",
+  "files": {
+    "frontend.tar.gz": "7e0867769033061123cd311ccfec7c2606efdbf7dd51d9be4c8fd27b81bc600c",
+    "images/agent.tar": "9007aa9e44778d7e4e2aaed523beab3e692cf40587157b172dcf10d0e24f2e87",
+    "images/control.tar": "2350940081ff59cd45855ae005c1d95dfdf96830ae5e44ec0973c02b6c03c442",
+    "images/gateway.tar": "8dacadffe65a5cd6c2524abf23e2343e6c14807c47a3683f05da0bc363f0fa1c",
+    "openapi.json": "53085dfe1021571058e339f44f83cfebb35034b84d0926a1ce509610f0142ac0",
+    "plugins/peixian-records-calls-1.0.0.zip": "d43177ee3a8fab96c97b149c5b086b68febe356b01684e83ffb148cdf22df23a",
+    "plugins/peixian-records-composite-1.0.0.zip": "6324eba6eaa0f361d669aa5f2765504e6e80fc9beeb5c16a107eecaed174f824",
+    "plugins/peixian-records-funds-1.0.0.zip": "35b1fcebbd9be0d2aa8725fcbac68c576940fbc3f23cb16d4369ff098050baa2",
+    "plugins/peixian-records-lookup-1.0.0.zip": "7c7f64c8c0149e5cfb96e293ec198cf1e5f4e18ba994a68765cdf2d7d2dc7301",
+    "plugins/peixian-records-night-1.0.0.zip": "fbb33521201cc02943ae1efc3121bca244abdf305a00c9ed8ed6ee042004fc5c",
+    "plugins/peixian-records-portrait-1.0.0.zip": "4dc3c1b57ba5da51ae7de92be599dc25fa6de0dccec1ef856fcccbed79de7e9e",
+    "plugins/peixian-records-vehicle-1.0.0.zip": "2ea89ebf1628e0bf56b61cc5fd6de9b4960633443f686f7507330191a9ccfa6c",
+    "registries/agent-gambling.json": "ceaca14e37a9c5017d09684915301154411e65237755e5542f0a70fab1875d14",
+    "registries/agent-theft.json": "8519ef95a636dc5d99def9a91379fcb2558927f8bbeb0217a6f0ce9da4bc121b",
+    "registries/capabilities.json": "f0499bb490bb425843dd02944b987411d23950042f2c464355d38c7e26b07171",
+    "registries/methods.json": "377f154d258af797cf8ab8a318f54ac1b8f73ad447032c04399b5a20701c3c78",
+    "registries/rules.json": "2eb506f21ca75c55b25ad046d7814eca15778a6c81430ea14b6038b67fd4302c",
+    "rollback-manifest.json": "14a5e6088687cbd4120002181d8d79d246a5f9dbbe26dc103d91d5c64f4f9250",
+    "sbom/agent.cdx.json": "c6e44dc80627a4b8a3e65c24de7fbfb813238c36d7d1f14610f410445a144733",
+    "sbom/control.cdx.json": "27c6e66f9e3505417edf685c298208009a6eb6814fee753e7b32f250f743f995",
+    "sbom/gateway.cdx.json": "d31f76ad6b943102441138a9a348dc0e72252c59c95139e6407c300dcf74b4ff",
+    "sbom/source.cdx.json": "4237ab1b10dad3bea127fbc39074d1583ffc3ecee7e887e7d51d7d883016c751",
+    "skills/peixian.method.companions.md": "ed00078db0840610e4729300ccc9cdaa721a3aa4291cbfaca6ba15f7aff80b66",
+    "skills/peixian.method.funds.md": "9de9b027ff4deec0540a2fe8de7d320f9524462e80f7c81749a0c4a4e4683f57",
+    "skills/peixian.method.gambling.md": "8cc1df0eec0a344f0eb3fce9a9ee0ad139f06dd632227ca6358d7db89f687972",
+    "skills/peixian.method.night.md": "39e9a691b9e433687df7a2fc11a717e7bf6219ac27c0a15aaee980feaae25464",
+    "skills/peixian.method.relations.md": "1df49f2958f78e2d384b681b801c0fbc49f7dc364fb6210eeaee7d89454d1eb4",
+    "skills/peixian.method.theft.md": "c901b6b52784fef26c277c88b6fc01632c0db30e5bc8c0c76cc55f3ca1125d7f",
+    "source.tar.gz": "a171f303c83ad6f725e6f9bd5dda9609abc103751afce0c006667574ad180b2e"
+  }
+}

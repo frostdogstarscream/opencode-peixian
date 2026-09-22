@@ -1,0 +1,201 @@
+/* Chat assistant rail only. The graph needs a wider third column than cards. */
+.business-shell .chat-layout {
+  --right-panel-bg: #f7faff;
+  --right-panel-card-bg: #fff;
+  --right-panel-border: #dce8f5;
+  --right-panel-text: #153b6b;
+  --right-panel-muted: #7890ad;
+  --right-panel-radius: 9px;
+  --assistant-panel-width: 320px;
+  --graph-panel-width: clamp(380px, 22vw, 420px);
+}
+@media (min-width: 1451px) {
+  .business-shell .chat-layout.side-mode-plugins,
+  .business-shell .chat-layout.side-mode-insight:not(:has(.entity-graph-panel)) {
+    grid-template-columns: 270px minmax(0, 1fr) var(--assistant-panel-width);
+  }
+  .business-shell .chat-layout.side-mode-insight:has(.entity-graph-panel) {
+    grid-template-columns: 270px minmax(0, 1fr) var(--graph-panel-width);
+  }
+}
+@media (min-width: 1051px) and (max-width: 1450px) {
+  .business-shell .chat-layout.side-mode-plugins,
+  .business-shell .chat-layout.side-mode-insight:not(:has(.entity-graph-panel)) {
+    grid-template-columns: 220px minmax(0, 1fr) 300px;
+  }
+  .business-shell .chat-layout.side-mode-insight:has(.entity-graph-panel) {
+    grid-template-columns: 220px minmax(0, 1fr) var(--graph-panel-width);
+  }
+}
+.business-shell .chat-layout > .insight-sidebar:not(.rail-collapsed) {
+  background: var(--right-panel-bg);
+  border-left-color: var(--right-panel-border);
+  scrollbar-width: thin;
+  scrollbar-color: #bfd0e3 transparent;
+}
+.business-shell .chat-layout > .insight-sidebar::-webkit-scrollbar { width: 7px; }
+.business-shell .chat-layout > .insight-sidebar::-webkit-scrollbar-thumb { border-radius: 8px; background: #bfd0e3; }
+.business-shell .chat-layout > .insight-sidebar::-webkit-scrollbar-track { background: transparent; }
+.business-shell .chat-layout > .insight-sidebar .related-capabilities,
+.business-shell .chat-layout > .insight-sidebar .trusted-clues { height: auto; overflow: visible; }
+.business-shell .chat-layout > .insight-sidebar .related-capabilities-list,
+.business-shell .chat-layout > .insight-sidebar .clue-list { flex: none; overflow: visible; }
+
+/* Capability cards: clear name, description, type, and action hierarchy. */
+.business-shell .insight-sidebar .related-capabilities-head {
+  min-height: 64px;
+  padding: 10px 14px;
+  background: #fbfdff;
+  border-bottom-color: var(--right-panel-border);
+}
+.business-shell .insight-sidebar .related-capabilities-list { display: grid; gap: 8px; padding: 12px 12px 16px; }
+.business-shell .insight-sidebar .related-capabilities-list > button {
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  min-height: 0;
+  padding: 11px;
+  border: 1px solid var(--right-panel-border);
+  border-radius: var(--right-panel-radius);
+  background: var(--right-panel-card-bg);
+  box-shadow: 0 1px 3px #153b6b0b;
+}
+.business-shell .insight-sidebar .related-capabilities-list > button:hover,
+.business-shell .insight-sidebar .related-capabilities-list > button.selected {
+  border-color: #a9c9eb;
+  background: #f5faff;
+}
+.business-shell .insight-sidebar .capability-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  filter: saturate(.72);
+}
+.business-shell .insight-sidebar .related-capabilities-list strong {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  color: var(--right-panel-text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: normal;
+}
+.business-shell .insight-sidebar .related-capabilities-list strong em {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  color: var(--right-panel-muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.business-shell .insight-sidebar .related-capabilities-list small {
+  display: -webkit-box;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #617b99;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.business-shell .insight-sidebar .related-capabilities-list i {
+  margin-top: 7px;
+  color: var(--right-panel-muted);
+  font-size: 10px;
+}
+.business-shell .insight-sidebar .related-capabilities-list b {
+  align-self: end;
+  min-width: 44px;
+  padding: 5px 8px;
+  border-color: #b9d3ee;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* Clue cards share the rail palette while retaining a narrow type accent. */
+.business-shell .insight-sidebar .insight-single-head {
+  min-height: 60px;
+  padding: 10px 72px 10px 12px;
+  background: #fbfdff;
+  border-bottom-color: var(--right-panel-border);
+}
+.business-shell .insight-sidebar .insight-single-head strong { font-size: 15px; font-weight: 600; }
+.business-shell .insight-sidebar .insight-icon-button {
+  width: 30px;
+  height: 30px;
+  border-color: #c1d5e9;
+  border-radius: 7px;
+  color: #286bad;
+}
+.business-shell .insight-sidebar .clue-list { display: grid; gap: 9px; padding: 12px; }
+.business-shell .insight-sidebar .clue-card {
+  margin: 0;
+  padding: 11px 13px 43px;
+  border-top-color: var(--right-panel-border);
+  border-right-color: var(--right-panel-border);
+  border-bottom-color: var(--right-panel-border);
+  border-radius: var(--right-panel-radius);
+  background: var(--right-panel-card-bg);
+  box-shadow: 0 1px 3px #153b6b0b;
+}
+.business-shell .insight-sidebar .clue-card-head { grid-template-columns: 30px minmax(0, 1fr); gap: 9px; }
+.business-shell .insight-sidebar .clue-card-head > span { width: 29px; height: 29px; }
+.business-shell .insight-sidebar .clue-card-head strong { color: var(--right-panel-text); font-size: 13px; font-weight: 600; }
+.business-shell .insight-sidebar .clue-card h4 {
+  margin: 9px 0 0;
+  color: #355779;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.business-shell .insight-sidebar .clue-card > button {
+  right: 13px;
+  bottom: 10px;
+  min-width: 78px;
+  height: 29px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 11px;
+}
+
+/* The graph remains an independent view inside the same scroll surface. */
+.business-shell .insight-sidebar .entity-graph-panel { min-width: 0; padding: 12px; color: var(--right-panel-text); }
+.business-shell .insight-sidebar .graph-notice {
+  padding: 10px 12px;
+  border-color: var(--right-panel-border);
+  border-radius: var(--right-panel-radius);
+  background: #f1f7fd;
+}
+.business-shell .insight-sidebar .graph-notice strong { font-size: 12px; font-weight: 600; }
+.business-shell .insight-sidebar .graph-notice p { color: #627d98; font-size: 11px; }
+.business-shell .insight-sidebar .graph-demo-banner {
+  margin: 10px 0;
+  padding: 6px 10px;
+  border: 1px solid #e6dfca;
+  border-radius: 6px;
+  color: #77684f;
+  background: #faf8f1;
+  font-size: 11px;
+  font-weight: 500;
+}
+.business-shell .insight-sidebar .graph-controls { align-items: end; gap: 10px; margin-bottom: 10px; }
+.business-shell .insight-sidebar .graph-controls select { max-width: 170px; }
+.business-shell .insight-sidebar .entity-graph-canvas {
+  height: 360px;
+  border-color: var(--right-panel-border);
+  border-radius: var(--right-panel-radius);
+  background: #fff;
+}
+.business-shell .insight-sidebar .graph-help { margin: 9px 0 12px; color: var(--right-panel-muted); font-size: 11px; }
+.business-shell .insight-sidebar .graph-detail,
+.business-shell .insight-sidebar .graph-path {
+  padding: 12px;
+  border-color: var(--right-panel-border);
+  border-radius: var(--right-panel-radius);
+  box-shadow: 0 1px 3px #153b6b0b;
+}
+.business-shell .insight-sidebar .graph-path select { max-width: 100%; min-width: 0; }

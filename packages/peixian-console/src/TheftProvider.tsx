@@ -11,7 +11,7 @@ export function ProviderQuery(props:{model:string;disabled:boolean;sessionID?:st
  const [subject,setSubject]=createSignal("DEMO-PERSON-001"),[center,setCenter]=createSignal("DEMO-LOCATION-A"),[radius,setRadius]=createSignal(500)
  const [page,setPage]=createSignal(1),[confirmed,setConfirmed]=createSignal<Confirmation>(),[busy,setBusy]=createSignal(false),[error,setError]=createSignal("")
  const [uncertain,setUncertain]=createSignal(false),[result,setResult]=createSignal<Result>(),[refresh,setRefresh]=createSignal(0)
- let generation=0,alive=true
+ let generation=0,alive=true,trigger:HTMLElement|undefined
  api<{items:Choice[]}>("/theft-provider/capabilities").then(v=>{if(alive)setChoices(v.items)}).catch(()=>{})
  onCleanup(()=>{alive=false;generation++})
  createEffect(()=>{const session=props.sessionID,run=props.runID;refresh();const g=++generation;setResult(undefined)
@@ -20,7 +20,7 @@ export function ProviderQuery(props:{model:string;disabled:boolean;sessionID?:st
  const query=()=>({...(kind().startsWith("warning_")?{}:{start:start()+" 00:00:00",end:end()+" 23:59:59"}),...(["tracks","warnings","warning_detail","warning_logs"].includes(kind())?{subject:subject()}:{}),...(["incidents","captures"].includes(kind())?{center:center(),radius_m:radius()}:{}),...(["incidents","captures","warnings"].includes(kind())?{page:page(),page_size:20}:{})})
  const change=()=>{setConfirmed(undefined);setError("")}
  async function launch(next="incidents",row?:Row){
-   setError("");setConfirmed(undefined);setKind(next);setPage(1);setUncertain(false);setBusy(true)
+   trigger=document.activeElement instanceof HTMLElement?document.activeElement:undefined;setError("");setConfirmed(undefined);setKind(next);setPage(1);setUncertain(false);setBusy(true)
    if(row?.fields.target_id_card)setSubject(String(row.fields.target_id_card))
    if(row?.fields.idCard)setSubject(String(row.fields.idCard))
    if(row?.fields.deviceName==="DEMO-LOCATION-A"||row?.fields.deviceName==="DEMO-LOCATION-B")setCenter(String(row.fields.deviceName))
@@ -40,7 +40,7 @@ export function ProviderQuery(props:{model:string;disabled:boolean;sessionID?:st
        <Show when={row.module==="captures"||row.module==="warnings"||row.module==="warning_detail"}><Button disabled={props.disabled} onClick={()=>void launch("tracks",row)}>核对选定对象轨迹</Button><Button disabled={props.disabled} onClick={()=>void launch("warning_detail",row)}>核对来源预警</Button></Show>
        <Show when={row.module==="tracks"&&["DEMO-LOCATION-A","DEMO-LOCATION-B"].includes(String(row.fields.deviceName))}><Button disabled={props.disabled} onClick={()=>void launch("incidents",row)}>以此地点核对警情范围</Button></Show>
      </article>}</For></details></Show>
-   <Show when={open()}><Modal title="确认盗窃资料查询范围" onClose={()=>{if(!busy()){setOpen(false);setConfirmed(undefined)}}} text="当前使用合成接口。每次只查询选定资料与当前页；不会自动扩展对象或继续翻页。">
+   <Show when={open()}><Modal title="确认盗窃资料查询范围" onClose={()=>{if(!busy()){setOpen(false);setConfirmed(undefined);queueMicrotask(()=>{if(trigger?.isConnected)trigger.focus()})}}} text="当前使用合成接口。每次只查询选定资料与当前页；不会自动扩展对象或继续翻页。">
     <fieldset disabled={busy()||uncertain()} class="provider-form" onInput={change} onChange={change}>
      <Field label="查询资料"><select disabled={busy()||uncertain()} value={kind()} onChange={e=>{setKind(e.currentTarget.value);setPage(1)}}><For each={choices()}>{c=><option value={c.kind} disabled={!c.available}>{c.name}{c.available?"":"（尚不可用）"}</option>}</For></select></Field>
      <Show when={!kind().startsWith("warning_")}><Field label="开始日期（北京时间）"><input type="date" value={start()} onInput={e=>setStart(e.currentTarget.value)} /></Field><Field label="结束日期（包含全天）"><input type="date" value={end()} onInput={e=>setEnd(e.currentTarget.value)}/></Field></Show>

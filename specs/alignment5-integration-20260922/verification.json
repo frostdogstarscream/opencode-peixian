@@ -1,0 +1,90 @@
+{
+  "checked_at": "2026-09-22T10:29:30.806335+00:00",
+  "source_commit": "a7f639ce2e3e9e219a517a3b1f1efffa20d10a8f",
+  "image": "agent-platform-control:alignment5-a7f639ce2e3e",
+  "image_id": "sha256:a09b4fb00afc11635f42cd8a7400367c32fa747343dad0d01edde203999ed7c9",
+  "running_image_matches": true,
+  "image_revision": "a7f639ce2e3e9e219a517a3b1f1efffa20d10a8f",
+  "source_python_files_verified": 89,
+  "frontend_css_sha256": "6939df9f518d754748bf99bb3b524f66b3aa47cd4d957630c4d8ed3da5eadd1b",
+  "frontend_css_unchanged": true,
+  "openapi_sha256": "5854af116eb3a94415ea7f1c6ca49728dbd0a3f8fa82adafc0bab3b93b00b23e",
+  "worker": "active",
+  "runtime_status": {
+    "users": [
+      {
+        "username": "alignment-a",
+        "runtime": {
+          "id": "b053e6369d274ba08b48ab1f78b1b13b",
+          "status": "ready",
+          "revision": 54,
+          "desired": 54,
+          "error": null,
+          "security_blocked": false,
+          "recovery_required": false,
+          "gate_policy": "open",
+          "cancellation_confirmed": true,
+          "phase": null,
+          "maintenance_mode": "normal",
+          "interaction": {
+            "can_submit_new": true,
+            "can_observe": true,
+            "can_continue": true
+          },
+          "runtime_mode": "on_demand",
+          "ready": true,
+          "waiting": null,
+          "wait_result": null,
+          "state_version": 942,
+          "stop_reason": "none",
+          "manual_stop_reason": "none",
+          "allowed_actions": [
+            "stop"
+          ],
+          "job": null
+        }
+      },
+      {
+        "username": "alignment-b",
+        "runtime": {
+          "id": "2ab39109b18847e089c72951d26d6da5",
+          "status": "ready",
+          "revision": 27,
+          "desired": 27,
+          "error": null,
+          "security_blocked": false,
+          "recovery_required": false,
+          "gate_policy": "open",
+          "cancellation_confirmed": true,
+          "phase": null,
+          "maintenance_mode": "normal",
+          "interaction": {
+            "can_submit_new": true,
+            "can_observe": true,
+            "can_continue": true
+          },
+          "runtime_mode": "on_demand",
+          "ready": true,
+          "waiting": null,
+          "wait_result": null,
+          "state_version": 826,
+          "stop_reason": "none",
+          "manual_stop_reason": "none",
+          "allowed_actions": [
+            "stop"
+          ],
+          "job": null
+        }
+      }
+    ],
+    "maintenance": {
+      "mode": "normal",
+      "state_version": 288,
+      "capacity_healthy": true,
+      "recovery_required": 0,
+      "security_pending": 0,
+      "safety_sync_failures": 9
+    }
+  },
+  "git_worktree_clean": true
+}

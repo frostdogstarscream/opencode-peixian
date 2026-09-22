@@ -1,0 +1,7 @@
+{
+  "canvas": true,
+  "path": true,
+  "largeDialog": true,
+  "zoomDrag": true,
+  "sameCanvasAfterReconnect": true
+}

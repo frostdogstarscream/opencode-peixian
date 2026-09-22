@@ -1,0 +1,6 @@
+FROM sha256:d5318fc4e201e83318997a5da0c5306e91f0c56603f267c5d6a0f80647d51aee
+COPY control /app/control
+COPY shared /app/shared
+COPY static /app/static
+LABEL org.peixian.control.schema.max="9" org.peixian.alignment="alignment5-request-result-vehicle"
+LABEL org.opencontainers.image.revision="a7f639ce2e3e9e219a517a3b1f1efffa20d10a8f" org.peixian.source.commit="a7f639ce2e3e9e219a517a3b1f1efffa20d10a8f"

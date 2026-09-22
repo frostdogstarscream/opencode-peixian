@@ -70,6 +70,13 @@ def test_real_gate_closed_by_default(provider,monkeypatch):
     assert exc.value.status_code==409
 
 
+def test_missing_warning_connection_does_not_block_police(provider,monkeypatch):
+    store=provider[0];uid=provider[4]['uid'];row,plan=candidate(provider,monkeypatch,'tracks')
+    config=json.loads(__import__('os').environ['PX_THEFT_REAL_CONFIG']);del config['connections']['warning']
+    monkeypatch.setenv('PX_THEFT_REAL_CONFIG',json.dumps(config))
+    assert provider_contracts.freeze(store,uid,'tracks',query('tracks'),{REF:ID},provider[-1])['connection_id']=='police-test'
+
+
 def test_preview_ticket_and_admission_do_not_expose_identity_to_model(provider,monkeypatch):
     store=provider[0];uid=provider[4]['uid'];row,_=candidate(provider,monkeypatch,'tracks')
     state=ProviderState(store);op=state.begin(uid,row['id'],1);state.finish(uid,row['id'],1,op)
@@ -78,6 +85,7 @@ def test_preview_ticket_and_admission_do_not_expose_identity_to_model(provider,m
     signed=preview(store,uid,'ses_multi',{'kind':'tracks','query':q,'person_identity':ID,'contract_version':adapter.VERSION},provider[-1],1)
     assert ID not in json.dumps(signed)
     request,task=prepare(provider,'theft-assistant','查询 '+ID+' 的指定轨迹',provider_query={k:signed[k] for k in ('plan','confirmation')})
+    provider[-2]['parts']=[{'type':'text','text':request['text']}]
     receipt,new,snapshot=submit(provider,request,task)
     assert ID not in json.dumps(snapshot['payload'])
     assert snapshot['provider_plan']['request']['json']['certificateNo']==ID

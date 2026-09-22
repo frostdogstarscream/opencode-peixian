@@ -1,5 +1,5 @@
 FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea
-LABEL org.peixian.control.schema.min="0" org.peixian.control.schema.max="10"
+LABEL org.peixian.control.schema.min="0" org.peixian.control.schema.max="11"
 LABEL org.peixian.control.config.max="4" org.peixian.runtime.protocol="2"
 LABEL org.peixian.worker.capabilities="runtime_pool_v1,runtime_pool_wait_v1,idle_activity_v1"
 LABEL org.peixian.worker.protocol="2"

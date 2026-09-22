@@ -13,7 +13,7 @@ from argon2 import PasswordHasher, extract_parameters
 from cryptography.fernet import Fernet
 
 SCHEMA_VERSION = 4  # Legacy initialization remains v4 unless on_demand is explicit.
-MAX_SCHEMA_VERSION = 10
+MAX_SCHEMA_VERSION = 11
 
 
 def ident():
@@ -140,6 +140,9 @@ class Store:
                 migrate(db, fresh=fresh, timestamp=now())
             if db.execute('PRAGMA user_version').fetchone()[0] == 9 and os.getenv('PX_OWNER_REVIEWS_V1') == '1':
                 from .migrations_v10 import migrate
+                migrate(db,fresh=fresh,timestamp=now())
+            if db.execute('PRAGMA user_version').fetchone()[0] == 10 and os.getenv('PX_ANALYSIS_TASKS_V1') == '1':
+                from .migrations_v11 import migrate
                 migrate(db,fresh=fresh,timestamp=now())
             validate(db)
 

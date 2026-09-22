@@ -55,6 +55,7 @@ def bind(snapshot,payload,task):
     from .facts_plan import HELPERS
     blocked={**payload.get('tools',{}),'*':False,'question':False,**{name:False for name in HELPERS},**{name:False for p in snapshot['plugins'] for name in p.get('tools',[])}}
     plan=task['provider_plan'];snapshot['provider_plan']=copy.deepcopy(plan)
+    if task.get('analysis_task'):snapshot['analysis_task']=copy.deepcopy(task['analysis_task'])
     snapshot['task_spec']=copy.deepcopy(task['spec']);snapshot['allowed_capabilities']=[plan['plugin_id']];snapshot['allowed_tools']=[plan['tool_id']]
     snapshot['trusted_result_version']='2.0';snapshot['data_environment']=plan.get('data_environment','synthetic')
     if snapshot['data_environment']=='acceptance_real':

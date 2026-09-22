@@ -38,6 +38,9 @@ class ProviderState(FactsState):
         if plan.get('version')==v2.VERSION:
             from .provider_contracts import validate
             validate(self.store,row['uid'],plan,applied)
+            if snapshot.get('analysis_task'):
+                from .analysis_tasks import check_execution
+                check_execution(self.store,row['uid'],row['session_id'],row['id'],snapshot['analysis_task'])
             return
         p=availability(self.store,row['uid'],plan['kind'],applied)
         if p['version']!=plan['plugin_version']:reject('provider_plugin_changed')

@@ -839,6 +839,8 @@ def create_app(store=None):
     register_reviews(app)
     from .theft_provider_flow import register as register_provider
     register_provider(app)
+    from .analysis_tasks import register as register_analysis_tasks
+    register_analysis_tasks(app)
     from .entity_graph import register as register_graphs
     register_graphs(app)
     register_invocations(app)

@@ -114,6 +114,9 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
         snapshot['attachments'] = freeze(db,user['uid'],data.get('file_ids',[]),attachments)
         # Admission freezes encrypted inputs; SQL never holds a network operation.
         db.execute("INSERT INTO business_runs(id,uid,session_id,request_key,request_hash,message_id,parent_id,status,phase,model_id,revision,auth_version,request_ciphertext,created,updated) VALUES(?,?,?,?,?,?,?,'queued','pending_dispatch',?,?,?,?,?,?)",(identity,user['uid'],sid,data['client_request_id'],fingerprint(store,data),message,parent,payload['model']['modelID'],revision,user['version'],store.encrypt(snapshot),timestamp,timestamp))
+        if provider and task.get('analysis_task'):
+            from .analysis_tasks import attach
+            attach(store,db,user,sid,identity,task['analysis_task'],task['provider_plan'],data)
         if task and task['local']:
             response=task['local']
             phase='clarification' if task['spec']['query_mode']=='clarify' else 'history_unavailable'

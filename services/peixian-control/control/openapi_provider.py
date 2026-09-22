@@ -10,6 +10,10 @@ def extend(s):
  v2_query=obj({'lon':STRING,'lat':STRING,'radius_m':{'type':['number','string']},'start':STRING,'end':STRING,'start_date':STRING,'end_date':STRING,'track_types':array({'enum':[0,1,2]},minItems=1,maxItems=3,uniqueItems=True),'page':{'type':'integer','minimum':1},'page_size':{'type':'integer','minimum':1,'maximum':100}})
  s['ProviderPreviewBody']={'oneOf':[s['ProviderPreviewBody'],obj({'contract_version':{'const':V2},'kind':{'enum':list(V2_CATALOG)},'query':v2_query,'person_identity':{'type':'string','pattern':'^[0-9]{17}[0-9X]$'}},('contract_version','kind','query'))]}
  s['ProviderPreviewBody'].update(type='object',properties={'kind':{'enum':list(V2_CATALOG)},'query':{'type':'object'},'contract_version':{'const':V2},'person_identity':{'type':'string','writeOnly':True}})
+ source_ref=obj({'run_id':ID,'result_digest':STRING,'record_id':STRING,'snapshot_id':STRING},('run_id','result_digest','record_id','snapshot_id'))
+ task_fields={'analysis_task_id':ID,'context_version':{'type':'integer','minimum':1},'step_request_id':{'type':'string','format':'uuid'},'source_refs':array(source_ref),'analysis_direction':{'enum':['single_query','case_to_person','person_to_case']},'direct_parent_run_id':nullable(ID)}
+ s['ProviderPreviewBody']['properties'].update(task_fields)
+ s['ProviderPreviewBody']['oneOf'][1]['properties'].update(task_fields)
  s['ProviderPlan']={'oneOf':[s['ProviderPlan'],obj({'version':{'const':V2},'token':STRING},('version','token'))]}
  s['ProviderConfirmation']=obj({'plan':ref('ProviderPlan'),'confirmation':STRING},('plan','confirmation'))
  s['ProviderPreview']=obj({**s['ProviderConfirmation']['properties'],'summary':STRING},('plan','confirmation','summary'))
@@ -19,6 +23,9 @@ def extend(s):
  s['ProviderCapabilities']['properties']['items']['items']['properties'].update(kind={'enum':list(V2_CATALOG)},reason=nullable(STRING),data_environment={'enum':['synthetic','acceptance_real']},contract_version=STRING)
  s['MessageBody']['properties']['provider_query']=ref('ProviderConfirmation')
  s['Health']['properties']['schema_version']['enum'].append(10)
+ s['Health']['properties']['schema_version']['enum'].append(11)
+ s['AnalysisTaskBody']=obj({'goal':{'type':'string','minLength':1,'maxLength':4000},'client_request_id':{'type':'string','format':'uuid'},'data_environment':{'enum':['synthetic','acceptance_real']}},('goal','client_request_id','data_environment'))
+ s['AnalysisTask']=obj({'analysis_task_id':ID,'scenario_id':ID,'session_id':ID,'goal':STRING,'context_version':{'type':'integer'},'scope_version':{'type':'integer'},'steps':array({'type':'object'}),'selected_refs':array(source_ref),'budget':{'type':'object'},'data_environment':{'enum':['synthetic','acceptance_real']},'updated_at':STRING},('analysis_task_id','scenario_id','session_id','goal','context_version','scope_version','steps','selected_refs','budget','data_environment','updated_at'))
  s['TaskSpec']['oneOf'].append(obj({'schema_version':{'const':'task-spec-v4'},'domain':{'const':'theft'},'agent_id':{'const':'theft-assistant'},'query_mode':{'enum':['new_query','explain_existing','clarify']},'methods':array(kinds,minItems=1,maxItems=1)},('schema_version','domain','agent_id','query_mode','methods'),extra=True))
  s['TaskSpec']['oneOf'][-1]['properties']['methods']['items']={'enum':list(V2_CATALOG)}
  status={'enum':['consistent','needs_information','inconsistent']}
@@ -29,6 +36,8 @@ def extend(s):
 def contracts():
  from .openapi import ref
  return {
+ ('post','/sessions/{sid}/scenarios'):('AnalysisTaskBody',ref('AnalysisTask'),'创建资料任务','会话','任务组织同会话多个Run；不是用户必须选择的分析模式。'),
+ ('get','/sessions/{sid}/scenarios/{scenario_id}'):(None,ref('AnalysisTask'),'读取资料任务','会话','本人任务、步骤和来源版本；跨账号404。'),
  ('get','/theft-provider/capabilities'):(None,ref('ProviderCapabilities'),'可用资料查询','会话','只列当前账号授权且已生效能力；合成接口，不访问供应方。'),
  ('post','/sessions/{sid}/provider-query/preview'):('ProviderPreviewBody',ref('ProviderPreview'),'确认资料范围','会话','只检查范围，签名有效期600秒，绑定账号、会话、配置、清除边界；不调用模型和资料服务。'),
  ('get','/sessions/{sid}/runs/{rid}/reviews'):(None,ref('ReviewList'),'本人来源复核','会话','分页读取；跨账号404，不授予管理员读取正文权限。'),

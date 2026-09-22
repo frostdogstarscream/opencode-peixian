@@ -51,3 +51,12 @@ def test_invalid_policy_does_not_reopen_gambling(multi,monkeypatch):
     monkeypatch.setenv('PX_AGENT_MODE','typo')
     with pytest.raises(HTTPException) as e:runtime.select(multi[4]['uid'],{})
     assert e.value.status_code==503
+
+
+def test_scope_prompt_has_no_retired_scene_options(monkeypatch):
+    from control.scenario_context import instruction
+    monkeypatch.setenv('PX_AGENT_MODE','theft_only')
+    value=instruction({'scenario_id':None})
+    assert '当前平台仅开放盗窃资料助手' in value
+    assert '请只询问涉赌资料或盗窃' not in value
+    assert '只询问盗窃资料查询所需信息' in value

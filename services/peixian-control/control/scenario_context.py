@@ -78,6 +78,9 @@ def unsupported(text):
 
 def instruction(context):
     scene=context['scenario_id']
+    from .agents.runtime import active_ids
+    if not scene and active_ids()==('theft-assistant',):
+        return '当前平台仅开放盗窃资料助手。普通聊天与能力介绍直接以盗窃助手身份回答；不提供涉赌助手或双场景选项，不要求用户再次选择助手。尚未确认查询对象和范围时，只询问盗窃资料查询所需信息，不声称已经取数。'
     if not scene:return '本轮尚未确定资料场景。普通聊天正常回答；若要求场景资料分析，请只询问涉赌资料或盗窃时空资料，不要求内部编号。不要凭历史模型文字自行恢复已清除场景。'
     return '本轮平台确认场景：'+NAMES[scene]+'；工具场景参数：'+scene+'。已确定场景，不要再次询问。追问只展开相关事实。仅处理固定场景对象与范围；不得声称查询任意真实人员，不将旧结果当成本轮新取数。按代码事实表与来源核对流程执行。'
 
@@ -120,7 +123,7 @@ def register(app):
                         row=db.execute('SELECT agent_id FROM session_task_contexts WHERE uid=? AND session_id=?',(user['uid'],sid)).fetchone()
                         prior=db.execute('SELECT request_ciphertext FROM business_runs WHERE uid=? AND session_id=? ORDER BY rowid LIMIT 1',(user['uid'],sid)).fetchone()
                         from .agents.runtime import frozen_identity
-                        identity=row['agent_id'] if row else frozen_identity(s.decrypt(prior[0])) if prior else 'gambling-assistant'
+                        identity=row['agent_id'] if row else frozen_identity(s.decrypt(prior[0])) if prior else select(user['uid'],{}).id
                         task_context.reset(s,user['uid'],sid,select(user['uid'],{'agent_id':identity}))
                         return public(current(s,user['uid'],sid))
                     high=db.execute('SELECT coalesce(max(rowid),0) FROM business_runs WHERE uid=? AND session_id=?',(user['uid'],sid)).fetchone()[0]

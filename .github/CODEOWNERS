@@ -1,3 +1,20 @@
 # web + desktop packages
 packages/app/      @Hona @Brendonovich
 packages/desktop/  @Hona @Brendonovich
+
+# Peixian maintained release surfaces (upstream ownership above is preserved).
+/services/peixian-control/control/agents/ @frostdogstarscream
+/services/peixian-control/control/developer_registry/ @frostdogstarscream
+/services/peixian-control/control/task_* @frostdogstarscream
+/services/peixian-control/control/clarifications.py @frostdogstarscream
+/services/peixian-control/control/entity_projection.py @frostdogstarscream
+/services/peixian-control/control/facts_* @frostdogstarscream
+/services/peixian-control/control/trusted_* @frostdogstarscream
+/services/peixian-control/control/migrations_* @frostdogstarscream
+/services/peixian-control/gateway/ @frostdogstarscream
+/services/peixian-control/shared/ @frostdogstarscream
+/packages/peixian-console/ @frostdogstarscream
+/specs/stage2-* @frostdogstarscream
+/deploy/peixian/ @frostdogstarscream
+/.github/workflows/peixian-stage2-* @frostdogstarscream
+/.github/CODEOWNERS @frostdogstarscream

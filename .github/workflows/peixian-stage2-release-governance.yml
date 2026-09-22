@@ -1,0 +1,215 @@
+name: Peixian PR-9B Release Governance checks
+
+on:
+  push:
+    branches: ["codex/stage2-release-governance-v1", "codex/stage2-ab-closeout-v1", "codex/stage2-release"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: peixian-pr9b-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'codex/stage2-')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PX_BACKEND_V6: "0"
+      PEIXIAN_TEST_JS_COMMAND: '["bun"]'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - name: Install test dependencies
+        run: python -m pip install -r services/peixian-control/requirements.txt pytest-subtests
+      - name: Locate Bun
+        run: echo "BUN_EXECUTABLE=$(command -v bun)" >> "$GITHUB_ENV"
+      - name: Control, Gateway, fixed HTTP contracts and migration
+        working-directory: services/peixian-control
+        run: python -m pytest tests gateway/tests -q
+      - name: Runtime templates and release consistency
+        working-directory: deploy/peixian
+        run: python -m pytest tests/test_seven_runtime.py tests/test_console_runtime.py tests/test_stage1_release.py tests/test_stage2_evaluation_report.py tests/test_stage2_artifact.py tests/test_stage2_governance.py tests/test_runtime_pool_delivery.py -q
+      - name: Plugin module behavior
+        working-directory: deploy/peixian/examples/seven_data_plugins
+        run: bun test plugin.test.mjs
+      - name: Verify historical release evidence and artifact hashes
+        working-directory: deploy/peixian
+        run: python stage1-release-check.py
+      - name: Verify PR-5 at its immutable closeout commit
+        run: |
+          git worktree add --detach /tmp/pr5-closeout d78451a26feff089f0ce1b7fea40f0ab482dd1d0
+          cd /tmp/pr5-closeout/deploy/peixian
+          python stage2-pr5-release-check.py
+          python -m pytest tests/test_stage2_pr5_release.py -q
+      - name: Verify PR-5.5 at its immutable closeout commit
+        run: |
+          git worktree add --detach /tmp/pr55-closeout 8d33ec3d5ae61143164803ce3406e9b72a1819ba
+          cd /tmp/pr55-closeout/deploy/peixian
+          python stage2-pr55-release-check.py
+          python -m pytest tests/test_stage2_pr55_release.py -q
+      - name: Verify PR-5.6 immutable closeout
+        run: |
+          git worktree add --detach /tmp/pr56-closeout 679e4e6f7cbe60642c529e0ed840b172e7bd8370
+          cd /tmp/pr56-closeout/deploy/peixian
+          python stage2-pr56-release-check.py
+          python -m pytest tests/test_stage2_pr56_release.py -q
+      - name: Verify PR-6 immutable closeout
+        run: |
+          git worktree add --detach /tmp/pr6-closeout cb8e9cdcd9af997fe0c75d1283f178cf3c410b3e
+          cd /tmp/pr6-closeout/deploy/peixian
+          python stage2-pr6-release-check.py
+          python -m pytest tests/test_stage2_pr6_release.py -q
+      - name: Verify PR-7 immutable closeout
+        run: |
+          git worktree add --detach /tmp/pr7-closeout cb080805cb26d5ebbaa95a7283605737e634fee4
+          cd /tmp/pr7-closeout/deploy/peixian
+          python stage2-pr7-release-check.py
+          python -m pytest tests/test_stage2_pr7_release.py -q
+      - name: Verify PR-7.1 immutable closeout
+        run: |
+          git worktree add --detach /tmp/pr71-closeout 77d3f05647abee50fc1185a2441c1ae4f686a7d1
+          cd /tmp/pr71-closeout/deploy/peixian
+          python stage2-pr71-release-check.py
+          python -m pytest tests/test_stage2_pr71_release.py -q
+      - name: Verify PR-8A immutable closeout
+        run: |
+          git worktree add --detach /tmp/pr8a-closeout b5910d279d9130ee53cc0d9c8cfb6078607636e8
+          cd /tmp/pr8a-closeout/deploy/peixian
+          python stage2-pr8a-release-check.py
+          python -m pytest tests/test_stage2_pr8a_release.py -q
+      - name: Verify PR-8B immutable closeout
+        run: |
+          git worktree add --detach /tmp/pr8b-closeout f0e8009b9f909a3798b7c1fb83ee9282402f714f
+          cd /tmp/pr8b-closeout/deploy/peixian
+          python stage2-pr8b-release-check.py
+          python -m pytest tests/test_stage2_pr8b_release.py -q
+      - name: Verify PR-8.1 immutable closeout
+        run: |
+          git worktree add --detach /tmp/pr81-closeout d3e4ea55db61bdbe9a9847a86548b32b9c5c9f6d
+          cd /tmp/pr81-closeout/deploy/peixian
+          python stage2-pr81-release-check.py
+          python -m pytest tests/test_stage2_pr81_release.py -q
+      - name: Verify PR-9A immutable closeout
+        run: |
+          git worktree add --detach /tmp/pr9a-closeout e6db3296537d2d201e64b2c7f9ec4a99fda524f7
+          cd /tmp/pr9a-closeout/deploy/peixian
+          python stage2-pr9a-release-check.py
+          python -m pytest tests/test_stage2_pr9a_release.py -q
+      - name: Candidate release governance contracts
+        working-directory: deploy/peixian
+        run: python stage2-governance.py --check-source
+  frontend:
+    if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'codex/stage2-')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - name: Install isolated locked console dependencies
+        run: |
+          mkdir "$RUNNER_TEMP/console-deps"
+          cp packages/peixian-console/package*.json "$RUNNER_TEMP/console-deps/"
+          npm ci --ignore-scripts --prefix "$RUNNER_TEMP/console-deps"
+          ln -s "$RUNNER_TEMP/console-deps/node_modules" packages/peixian-console/node_modules
+      - name: Console types, unit tests and production build
+        working-directory: packages/peixian-console
+        run: |
+          npm audit --prefix "$RUNNER_TEMP/console-deps" --audit-level=moderate
+          bun run typecheck
+          bun test tests
+          bun run build
+      - name: Install isolated browser
+        run: '"$RUNNER_TEMP/console-deps/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Browser clarification, result, source and layout checks
+        working-directory: packages/peixian-console
+        run: |
+          bun run dev --port 19783 > "$RUNNER_TEMP/pr81-vite.log" 2>&1 &
+          for attempt in {1..30}; do curl -fsS http://127.0.0.1:19783/tests/trusted-result-harness.html > /dev/null && break; sleep 1; done
+          node tests/trusted-result-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr9b-browser-evidence
+          path: packages/peixian-console/output/playwright/pr8b
+
+  evaluation:
+    if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'codex/stage2-')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PX_BACKEND_V6: "0"
+      PEIXIAN_TEST_JS_COMMAND: '["bun"]'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - run: python -m pip install -r services/peixian-control/requirements.txt
+      - run: echo "BUN_EXECUTABLE=$(command -v bun)" >> "$GITHUB_ENV"
+      - name: Execute all frozen synthetic cases
+        working-directory: services/peixian-control
+        run: python -m pytest evaluation/test_cases.py --evaluation-output "$RUNNER_TEMP/evaluation-observations.json" -q
+      - name: Enforce overall and per-split thresholds
+        run: python deploy/peixian/evaluate-stage2.py "$RUNNER_TEMP/evaluation-observations.json" --output "$RUNNER_TEMP/evaluation-report.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr9b-evaluation-evidence
+          path: |
+            ${{ runner.temp }}/evaluation-observations.json
+            ${{ runner.temp }}/evaluation-report.json
+  required-checks:
+    name: ${{ matrix.check.name }}
+    if: always()
+    needs: [core, frontend, evaluation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - {name: Agent Registry, job: core}
+          - {name: Capability Registry, job: core}
+          - {name: Rule Registry, job: core}
+          - {name: TaskSpec, job: core}
+          - {name: Session Context, job: core}
+          - {name: Clarification, job: core}
+          - {name: Claim, job: core}
+          - {name: Result V2, job: core}
+          - {name: Frontend Build, job: frontend}
+          - {name: Evaluation, job: evaluation}
+          - {name: Migration, job: core}
+          - {name: Seven Plugin Contract, job: core}
+          - {name: Historical Closeout Worktree, job: core}
+          - {name: Release Artifact Check, job: core}
+    steps:
+      - name: Require the actual covering test suite to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          COVERING_JOB: ${{ matrix.check.job }}
+        run: |
+          python3 - <<'PY'
+          import json,os
+          result=json.loads(os.environ['RESULTS'])[os.environ['COVERING_JOB']]['result']
+          if result!='success':raise SystemExit('Required covering suite did not succeed: '+result)
+          PY

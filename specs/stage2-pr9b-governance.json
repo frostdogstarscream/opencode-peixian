@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "release_branch": "codex/stage2-release",
+  "code_owner": "frostdogstarscream",
+  "required_checks": [
+    "Agent Registry",
+    "Capability Registry",
+    "Rule Registry",
+    "TaskSpec",
+    "Session Context",
+    "Clarification",
+    "Claim",
+    "Result V2",
+    "Frontend Build",
+    "Evaluation",
+    "Migration",
+    "Seven Plugin Contract",
+    "Historical Closeout Worktree",
+    "Release Artifact Check"
+  ],
+  "github_actions_app_id": 15368,
+  "review_required": 1,
+  "candidate_tag": "stage2-dual-agent-v1.0.0-rc1",
+  "baseline": "e6db3296537d2d201e64b2c7f9ec4a99fda524f7"
+}

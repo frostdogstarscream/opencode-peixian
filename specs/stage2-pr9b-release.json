@@ -1,0 +1,15 @@
+{
+  "stage": "pr9b",
+  "baseline": "e6db3296537d2d201e64b2c7f9ec4a99fda524f7",
+  "status": "pending",
+  "implementation_revision": null,
+  "deployment_performed": false,
+  "real_data_accessed": false,
+  "model_requests": 0,
+  "github_ci": {
+    "executed": false
+  },
+  "ruleset": null,
+  "artifact_manifest_sha256": null,
+  "independent_human_review": "not_performed"
+}

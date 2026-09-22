@@ -24,7 +24,7 @@ Result V2 保留原结构。task.schema_version=task-spec-v4，methods为一个�
 
 ## 3. 人工复核
 
-`GET /sessions/{sid}/runs/{rid}/reviews?page=1&page_size=20` 返回 items/total/page/page_size/unreviewed/result_digest。只支持v10且终态Result V2。列表追加排序，不可编辑/删除。
+`GET /sessions/{sid}/runs/{rid}/reviews?page=1&page_size=20` 返回 items/total/page/page_size/unreviewed/result_digest。要求schema v10；读取可返回尚无复核记录，追加仅允许终态Result V2。列表追加排序，不可编辑/删除。
 
 `POST` 同路径，必须 Idempotency-Key，body含 result_digest、status、note，可选claim_ids(本轮Claim最多100)、supersedes(本轮本人未被更正意见ID)。status：consistent来源核对一致、needs_information需要补充、inconsistent发现不一致。note为1–2000字。返回201 Review；同幂等键同内容返回原结果，冲突409；结果摘要不一致409。
 

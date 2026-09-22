@@ -52,3 +52,13 @@ def test_image_identity_requires_exact_revision():
     d={'Id':'sha256:'+'a'*64,'Config':{'Labels':{'org.opencontainers.image.revision':'1'*40,'org.peixian.control.schema.max':'9'}}}
     artifact.image_identity(d,'1'*40,'control')
     with pytest.raises(ValueError,match='image_source_mismatch'):artifact.image_identity(d,'2'*40,'control')
+
+@pytest.mark.parametrize('tag',['stage2-dual-agent-v1.0.0-rc1','stage2-dual-agent-v1.0.0-rc2'])
+def test_distinct_candidate_tags_keep_pinned_manifests(bundle,tag):
+    mutate(bundle,lambda m:m.update(tag=tag))
+    assert artifact.validate_manifest(bundle,artifact.digest(bundle/'release-manifest.json'))['tag']==tag
+
+@pytest.mark.parametrize('tag',['stage2-dual-agent-v1.0.0-rc0','latest','../rc2'])
+def test_invalid_candidate_tag(bundle,tag):
+    mutate(bundle,lambda m:m.update(tag=tag))
+    with pytest.raises(ValueError,match='release_identity'):artifact.validate_manifest(bundle)

@@ -40,7 +40,7 @@ jobs:
         run: python -m pytest tests gateway/tests -q
       - name: Runtime templates and release consistency
         working-directory: deploy/peixian
-        run: python -m pytest tests/test_seven_runtime.py tests/test_console_runtime.py tests/test_stage1_release.py tests/test_stage2_evaluation_report.py tests/test_stage2_artifact.py tests/test_stage2_governance.py tests/test_runtime_pool_delivery.py -q
+        run: python -m pytest tests/test_seven_runtime.py tests/test_console_runtime.py tests/test_stage1_release.py tests/test_stage2_evaluation_report.py tests/test_stage2_artifact.py tests/test_stage2_governance.py tests/test_stage2_rollout.py tests/test_runtime_pool_delivery.py -q
       - name: Plugin module behavior
         working-directory: deploy/peixian/examples/seven_data_plugins
         run: bun test plugin.test.mjs
@@ -109,7 +109,14 @@ jobs:
           python -m pytest tests/test_stage2_pr9a_release.py -q
       - name: Candidate release governance contracts
         working-directory: deploy/peixian
-        run: python stage2-governance.py --check-source
+        run: |
+          if [ -f ../../specs/stage2-pr9c-release.json ]; then
+            git worktree add --detach "$RUNNER_TEMP/pr9b-history" 71e7c7a15d1215e017a6b5b451d3aa3e6d9ad1a6
+            python "$RUNNER_TEMP/pr9b-history/deploy/peixian/stage2-governance.py" --check-source
+            python stage2-pr9c-release-check.py
+          else
+            python stage2-governance.py --check-source
+          fi
   frontend:
     if: github.event_name != 'pull_request' || github.head_ref == 'codex/stage2-release-governance-v1' || github.head_ref == 'codex/stage2-ab-closeout-v1' || github.head_ref == 'codex/stage2-release'
     runs-on: ubuntu-24.04

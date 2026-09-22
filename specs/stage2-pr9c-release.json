@@ -1,0 +1,11 @@
+{
+  "stage": "pr9c",
+  "status": "pending",
+  "baseline": "71e7c7a15d1215e017a6b5b451d3aa3e6d9ad1a6",
+  "real_data_accessed": false,
+  "load_test_performed": false,
+  "model_requests": 0,
+  "deployment_performed": false,
+  "candidate_tag": "stage2-dual-agent-v1.0.0-rc2",
+  "gates": {}
+}

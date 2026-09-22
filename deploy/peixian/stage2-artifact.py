@@ -4,6 +4,7 @@ from pathlib import Path,PurePosixPath
 ROLES=('control','gateway','agent')
 MODULES=('funds','calls','portrait','composite','night','vehicle','lookup')
 TAG='stage2-dual-agent-v1.0.0-rc1'
+TAG_PATTERN=r'stage2-dual-agent-v1\.0\.0-rc[1-9][0-9]*'
 
 def require(ok,code):
     if not ok:raise ValueError(code)
@@ -41,7 +42,7 @@ def validate_manifest(folder,expected_digest=None):
     m=json.loads((folder/'release-manifest.json').read_text(encoding='utf-8'))
     require(m.get('schema')=='peixian.stage2-release' and m.get('version')=='1.0','manifest_schema')
     require(m.get('schema_version')==9 and m.get('data_environment')=='synthetic','release_scope')
-    require(m.get('tag')==TAG and re.fullmatch('[0-9a-f]{40}',m.get('source_revision','')),'release_identity')
+    require(re.fullmatch(TAG_PATTERN,m.get('tag','')) is not None and re.fullmatch('[0-9a-f]{40}',m.get('source_revision','')),'release_identity')
     require(m.get('source_matches_commit') is True and m.get('contains_runtime_data') is False,'source_identity')
     require(set(m.get('images',{}))==set(ROLES),'image_set')
     require(set(m.get('plugins',{}))=={'peixian-records-'+x for x in MODULES},'plugin_set')
@@ -71,7 +72,8 @@ def validate_manifest(folder,expected_digest=None):
     require(rollback.get('requires_full_backup') is True,'rollback_backup')
     return m
 
-def assemble(root,revision,frontend,stamp,images,output,syft,rollback_images):
+def assemble(root,revision,frontend,stamp,images,output,syft,rollback_images,tag=TAG):
+    require(re.fullmatch(TAG_PATTERN,tag) is not None,'invalid_candidate_tag')
     root=Path(root).resolve();output=Path(output).absolute();frontend=Path(frontend).resolve()
     require(not output.exists(),'existing_artifact_preserved')
     require(root not in output.parents,'output_inside_source')
@@ -113,16 +115,16 @@ def assemble(root,revision,frontend,stamp,images,output,syft,rollback_images):
     rollback={'previous_image_ids':rollback_images,'previous_set_requires_preupgrade_backup_restore':True,'schema_version':9,'restore_to_empty_target':True,'downgrade_database':False,'requires_full_backup':True,'required_materials':['control_database','user_volumes','published_configuration','host_execution_state','matching_keys','deployment_configuration','image_manifest'],'rule':'Use a compatible v9 image set, or restore a complete pre-upgrade backup into an empty namespace. Never connect old v6/v8 writers to v9.'}
     (output/'rollback-manifest.json').write_text(json.dumps(rollback,indent=2)+'\n',encoding='utf-8')
     require(command(['git','rev-parse','HEAD'],cwd=root)==revision and not command(['git','status','--porcelain'],cwd=root),'source_changed_during_assembly')
-    m={'schema':'peixian.stage2-release','version':'1.0','schema_version':9,'tag':TAG,'source_revision':revision,'source_matches_commit':True,'contains_runtime_data':False,'data_environment':'synthetic','images':identities,'frontend':metadata,'plugins':plugins,'skills':skills,'registries':inventory(output/'registries'),'sbom_scope':'Runtime filesystem inventories plus source lockfiles; opaque compiled dependencies may need source-level inspection. This is not a vulnerability clearance.','files':inventory(output)}
+    m={'schema':'peixian.stage2-release','version':'1.0','schema_version':9,'tag':tag,'source_revision':revision,'source_matches_commit':True,'contains_runtime_data':False,'data_environment':'synthetic','images':identities,'frontend':metadata,'plugins':plugins,'skills':skills,'registries':inventory(output/'registries'),'sbom_scope':'Runtime filesystem inventories plus source lockfiles; opaque compiled dependencies may need source-level inspection. This is not a vulnerability clearance.','files':inventory(output)}
     (output/'release-manifest.json').write_text(json.dumps(m,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     validate_manifest(output);return m
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--verify',type=Path);p.add_argument('--manifest-sha256');p.add_argument('--root',type=Path);p.add_argument('--revision');p.add_argument('--frontend',type=Path);p.add_argument('--frontend-stamp',type=Path);p.add_argument('--images',type=Path);p.add_argument('--rollback-images',type=Path);p.add_argument('--output',type=Path);p.add_argument('--syft',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--verify',type=Path);p.add_argument('--manifest-sha256');p.add_argument('--root',type=Path);p.add_argument('--revision');p.add_argument('--frontend',type=Path);p.add_argument('--frontend-stamp',type=Path);p.add_argument('--images',type=Path);p.add_argument('--rollback-images',type=Path);p.add_argument('--output',type=Path);p.add_argument('--syft',type=Path);p.add_argument('--tag',default=TAG);a=p.parse_args()
     if a.verify:
         if not a.manifest_sha256:p.error('verification requires the manifest SHA256 from the trusted release receipt')
         m=validate_manifest(a.verify,a.manifest_sha256)
     else:
         if not all((a.root,a.revision,a.frontend,a.frontend_stamp,a.images,a.output,a.syft,a.rollback_images)):p.error('assembly requires source, frontend, image identities, output and pinned syft')
-        m=assemble(a.root,a.revision,a.frontend,a.frontend_stamp,json.loads(a.images.read_text(encoding='utf-8')),a.output,a.syft,json.loads(a.rollback_images.read_text(encoding='utf-8')))
+        m=assemble(a.root,a.revision,a.frontend,a.frontend_stamp,json.loads(a.images.read_text(encoding='utf-8')),a.output,a.syft,json.loads(a.rollback_images.read_text(encoding='utf-8')),a.tag)
     print(json.dumps({'status':'verified','source_revision':m['source_revision'],'tag':m['tag'],'files':len(m['files'])}))

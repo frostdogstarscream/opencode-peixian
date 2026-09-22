@@ -26,11 +26,11 @@ def extend(s):
  s['Health']['properties']['schema_version']['enum'].append(10)
  s['Health']['properties']['schema_version']['enum'].append(11)
  s['AnalysisTaskBody']=obj({'goal':{'type':'string','minLength':1,'maxLength':4000},'client_request_id':{'type':'string','format':'uuid'},'data_environment':{'enum':['synthetic','acceptance_real']}},('goal','client_request_id','data_environment'))
- s['AnalysisTask']=obj({'analysis_task_id':ID,'scenario_id':ID,'session_id':ID,'goal':STRING,'context_version':{'type':'integer'},'scope_version':{'type':'integer'},'steps':array({'type':'object'}),'selected_refs':array(source_ref),'budget':{'type':'object'},'data_environment':{'enum':['synthetic','acceptance_real']},'updated_at':STRING},('analysis_task_id','scenario_id','session_id','goal','context_version','scope_version','steps','selected_refs','budget','data_environment','updated_at'))
+ s['AnalysisTask']=obj({'analysis_task_id':ID,'scenario_id':ID,'session_id':ID,'goal':STRING,'context_version':{'type':'integer'},'scope_version':{'type':'integer'},'steps':array({'type':'object'}),'planning':array({'type':'object'}),'selected_refs':array(source_ref),'budget':{'type':'object'},'data_environment':{'enum':['synthetic','acceptance_real']},'updated_at':STRING},('analysis_task_id','scenario_id','session_id','goal','context_version','scope_version','steps','selected_refs','budget','data_environment','updated_at'))
  s['TaskSpec']['oneOf'].append(obj({'schema_version':{'const':'task-spec-v4'},'domain':{'const':'theft'},'agent_id':{'const':'theft-assistant'},'query_mode':{'enum':['new_query','explain_existing','clarify']},'methods':array(kinds,minItems=0,maxItems=1)},('schema_version','domain','agent_id','query_mode','methods'),extra=True))
  s['TaskSpec']['oneOf'][-1]['properties']['methods']['items']={'enum':list(V2_CATALOG)}
  status={'enum':['consistent','needs_information','inconsistent']}
- s['ReviewBody']=obj({'result_digest':STRING,'status':status,'note':{'type':'string','minLength':1,'maxLength':2000},'claim_ids':array(STRING,maxItems=100,uniqueItems=True),'supersedes':nullable(ID)},('result_digest','status','note'))
+ s['ReviewBody']=obj({'result_digest':STRING,'status':status,'note':{'type':'string','minLength':1,'maxLength':2000},'claim_ids':array(STRING,maxItems=100,uniqueItems=True),'record_refs':array(obj({'record_id':STRING,'snapshot_id':STRING},('record_id','snapshot_id')),maxItems=100),'supersedes':nullable(ID)},('result_digest','status','note'))
  s['Review']=obj({**s['ReviewBody']['properties'],'id':ID,'run_id':ID,'status_label':STRING,'reviewer':STRING,'created_at':STRING},('id','run_id','result_digest','status','note','claim_ids','reviewer','created_at','supersedes','status_label'))
  s['ReviewList']=obj({'items':array(ref('Review')),'result_digest':STRING,'unreviewed':BOOL,'total':{'type':'integer'},'page':{'type':'integer'},'page_size':{'type':'integer'}},('items','result_digest','unreviewed','total','page','page_size'))
 
@@ -38,6 +38,7 @@ def contracts():
  from .openapi import ref
  return {
  ('post','/sessions/{sid}/scenarios'):('AnalysisTaskBody',ref('AnalysisTask'),'创建资料任务','会话','任务组织同会话多个Run；不是用户必须选择的分析模式。'),
+ ('get','/sessions/{sid}/scenarios/{scenario_id}/report'):(None,{'type':'string'},'任务资料包','会话','HTML或Markdown；同一只读快照；执行未结束409；不新增取数。'),
  ('get','/sessions/{sid}/scenarios/{scenario_id}'):(None,ref('AnalysisTask'),'读取资料任务','会话','本人任务、步骤和来源版本；跨账号404。'),
  ('get','/theft-provider/capabilities'):(None,ref('ProviderCapabilities'),'可用资料查询','会话','只列当前账号授权且已生效能力；合成接口，不访问供应方。'),
  ('post','/sessions/{sid}/provider-query/preview'):('ProviderPreviewBody',ref('ProviderPreview'),'确认资料范围','会话','只检查范围，签名有效期600秒，绑定账号、会话、配置、清除边界；不调用模型和资料服务。'),

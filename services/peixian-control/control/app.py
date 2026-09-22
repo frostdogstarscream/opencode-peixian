@@ -851,6 +851,8 @@ def create_app(store=None):
     register_provider(app)
     from .analysis_tasks import register as register_analysis_tasks
     register_analysis_tasks(app)
+    from .task_report import register as register_task_report
+    register_task_report(app)
     from .entity_graph import register as register_graphs
     register_graphs(app)
     register_invocations(app)

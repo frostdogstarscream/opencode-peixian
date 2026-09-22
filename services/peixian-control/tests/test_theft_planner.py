@@ -99,3 +99,40 @@ def test_missing_and_omitted_fields_cannot_execute():
 
 @pytest.fixture
 def anyio_backend():return "asyncio"
+
+
+
+def test_explanation_cannot_become_query_even_if_model_proposes_it():
+    frozen={'capabilities':['tracks'],'text':'解释刚才的记录，不要重新查','slots':{},'source_refs':[]}
+    proposal={'action':'query','kind':'tracks','slot_ids':{},'missing':[]}
+    assert planner.decision(proposal,frozen)['action']=='explain'
+
+
+def test_unknown_planning_keeps_count_without_automatic_retry(task_provider,monkeypatch):
+    env=task_provider;store=env[0];user=env[4];original(env,monkeypatch)
+    monkeypatch.setenv('PX_THEFT_PLANNER_UIDS',user['uid']);tid=new_task(env)['analysis_task_id']
+    req={'text':'需要补充什么','client_request_id':str(uuid.uuid4()),'model_id':env[-1]['models'][0]['id']}
+    call,_=planner.reserve(store,user,'ses_multi',tid,req,env[-1],1)
+    planner.failed_call(store,user['uid'],'ses_multi',tid,call['id'],'planning_unconfirmed')
+    prior,fresh=planner.reserve(store,user,'ses_multi',tid,req,env[-1],1)
+    assert not fresh and prior['state']=='unknown'
+    from control.analysis_tasks import view
+    assert view(store,user['uid'],'ses_multi',tid)['budget']['planning_calls']==1
+
+
+
+@pytest.mark.anyio
+async def test_cancelled_planning_never_creates_data_run(task_provider,monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    env=task_provider;store=env[0];user=env[4];original(env,monkeypatch)
+    monkeypatch.setenv('PX_THEFT_PLANNER_UIDS',user['uid']);tid=new_task(env)['analysis_task_id']
+    req={'text':'核对资料','analysis_task_id':tid,'client_request_id':str(uuid.uuid4()),'model_id':env[-1]['models'][0]['id']}
+    async def work(fn,*args):return fn(*args)
+    async def post(*args,**kwargs):raise asyncio.CancelledError()
+    app=SimpleNamespace(state=SimpleNamespace(store=store,db_work=SimpleNamespace(run=work),http=SimpleNamespace(post=post)))
+    with pytest.raises(asyncio.CancelledError):await planner.plan_message(app,user,'ses_multi',req,env[-1],1)
+    from control.analysis_tasks import view
+    result=view(store,user['uid'],'ses_multi',tid)
+    assert result['planning'][0]['status']=='unknown'
+    assert result['budget']['planning_calls']==1 and result['budget']['data_steps']==0

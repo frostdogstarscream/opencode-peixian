@@ -49,7 +49,7 @@ def sections(result, events, reviews=()):
         groups.append(('模型辅助说明', [NARRATIVE.get(narrative.get('status'), '旧结构，未执行可信说明核验'), narrative.get('text') or '未提供模型说明。'] + [x['message'] for x in narrative.get('conflicts', [])]))
     groups.append(('来源与执行过程', [json.dumps(result.get('versions', {}), ensure_ascii=False, sort_keys=True)] + [e['name'] + '：' + {'completed':'已完成','failed':'失败','rejected':'已拒绝','cancelled':'已取消','running':'执行中','pending':'等待处理'}.get(e['status'], '状态待确认') for e in events]))
     if reviews:
-        groups.append(('人工复核意见（不修改原事实）', [r['created_at']+'；'+r['reviewer']+'；'+r['status_label']+'；'+r['note']+'；引用：'+(', '.join(r['claim_ids']) or '本轮结果')+'；更正记录：'+(r.get('supersedes') or '无') for r in reviews]))
+        groups.append(('人工复核意见（不修改原事实）', [r['created_at']+'；'+r['reviewer']+'；'+r['status_label']+'；'+r['note']+'；引用：'+(', '.join(r['claim_ids']+[x['record_id']+'@'+x['snapshot_id'] for x in r.get('record_refs',[])]) or '历史整轮意见')+'；更正记录：'+(r.get('supersedes') or '无') for r in reviews]))
     return groups
 
 

@@ -68,6 +68,8 @@ def decision(value,frozen):
     if value['action']!='query':
         if value['kind'] is not None or value['slot_ids']:error('planner_invalid','非查询动作不能携带查询参数。',422)
         return copy.deepcopy(value)
+    if re.search(r'不要(?:重新|再)?查|不(?:要|再)?(?:重新)?取数|仅解释|只解释|解释.{0,8}(?:已有|刚才)',frozen['text']):
+        return {'action':'explain','kind':None,'slot_ids':{},'missing':[]}
     kind=value['kind']
     if not isinstance(kind,str) or kind not in frozen['capabilities']:error('planner_capability_denied','规划选择的资料能力不可用。',403)
     if kind=='incidents' and re.search(r'近期|最近|近\s*\d+\s*[天月年]|仅.*盗窃|只.*盗窃|盗窃(?:类|警情)',frozen.get('constraints_text',frozen['text'])):
@@ -253,6 +255,7 @@ def failed_call(store,uid,sid,tid,cid,code):
 
 async def plan_message(app,user,sid,data,applied,revision,continuation=None):
     import httpx
+    import asyncio
     store=app.state.store;work=app.state.db_work.run
     if data.get('skill_ids') or data.get('file_ids') or data.get('plugin_ids'):error('planning_attachments_unsupported','此规划版本暂不接受附加文件或个人技能；请保留文字目标与明确来源。',422)
     tid=data.get('analysis_task_id')
@@ -280,6 +283,9 @@ async def plan_message(app,user,sid,data,applied,revision,continuation=None):
     try:
         response=await app.state.http.post(base+'/internal/runtime/planning',headers=headers,json={'call_id':call['id'],'revision':revision,'model_id':call['model_id'],'system':PROMPT,'input':model_input},timeout=55)
         response.raise_for_status();proposal=json.loads(response.json()['content'])
+    except asyncio.CancelledError:
+        await asyncio.shield(work(failed_call,store,user['uid'],sid,tid,call['id'],'planning_unconfirmed'))
+        raise
     except (httpx.HTTPError,ValueError,KeyError,TypeError):
         await work(failed_call,store,user['uid'],sid,tid,call['id'],'planning_unconfirmed')
         error('planning_unconfirmed','规划未取得可核对结果，尚未查询资料；本次已计入预算，不自动重试。',409)

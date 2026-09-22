@@ -12,10 +12,14 @@ def append(store,user,sid,rid,data):
     from .app import current_authority
     from .trusted_results import read,digest
     require(store)
-    if not isinstance(data,dict) or set(data)-{'result_digest','status','note','claim_ids','supersedes'}:error('invalid_review','复核字段无效。',422)
+    if not isinstance(data,dict) or set(data)-{'result_digest','status','note','claim_ids','record_refs','supersedes'}:error('invalid_review','复核字段无效。',422)
     if not isinstance(data.get('status'),str) or data.get('status') not in STATES or not isinstance(data.get('note'),str) or not 1<=len(data['note'].strip())<=2000:error('invalid_review','请选择复核状态并填写1至2000字意见。',422)
     ids=data.get('claim_ids',[])
     if not isinstance(ids,list) or len(ids)>100 or any(not isinstance(x,str) for x in ids) or len(set(ids))!=len(ids):error('invalid_review_claims','复核来源引用无效。',422)
+    refs=data.get('record_refs',[])
+    if not isinstance(refs,list) or len(refs)>100 or any(not isinstance(x,dict) or set(x)!={'record_id','snapshot_id'} or any(not isinstance(v,str) or not 1<=len(v)<=300 for v in x.values()) for x in refs):error('invalid_review_records','复核记录引用无效。',422)
+    if len({(x['record_id'],x['snapshot_id']) for x in refs})!=len(refs):error('invalid_review_records','复核条目重复。',422)
+    if store.schema_version()>=11 and not ids and not refs:error('review_target_required','请明确选择要复核的事实或来源记录。',422)
     with store.tx() as db:
         current_authority(db,user);run=owned(store,user['uid'],sid,rid)
         if run['status'] not in TERMINAL:error('review_run_active','请等待本轮执行结束后复核。',409)
@@ -23,13 +27,17 @@ def append(store,user,sid,rid,data):
         if result.get('version')!='2.0':error('review_result_unsupported','当前结果结构不支持复核。',409)
         if data.get('result_digest')!=digest(result):error('review_result_changed','结果版本不匹配，请刷新。',409)
         if not set(ids)<={c['claim_id'] for c in result['claims']}:error('invalid_review_claims','复核引用不属于本轮结果。',422)
+        if not {(x['record_id'],x['snapshot_id']) for x in refs}<={(x['record_id'],x.get('snapshot_id')) for x in result.get('records',[])}:error('invalid_review_records','复核条目不属于本轮来源快照。',422)
         supersedes=data.get('supersedes')
         if supersedes is not None:
             if not isinstance(supersedes,str) or not db.execute('SELECT 1 FROM run_reviews WHERE id=? AND run_id=? AND uid=?',(supersedes,rid,user['uid'])).fetchone():error('review_not_found','被更正的复核记录不存在。',404)
             if db.execute('SELECT 1 FROM run_reviews WHERE supersedes=?',(supersedes,)).fetchone():error('review_already_superseded','此意见已被更正，请刷新后选择最新记录。',409)
+        if supersedes and store.schema_version()>=11:
+            prior=store.decrypt(db.execute('SELECT payload_ciphertext FROM run_reviews WHERE id=?',(supersedes,)).fetchone()[0])
+            if set(prior['claim_ids'])!=set(ids) or {(x['record_id'],x['snapshot_id']) for x in prior.get('record_refs',[])}!={(x['record_id'],x['snapshot_id']) for x in refs}:error('review_target_changed','更正必须针对原条目；其他来源请另建复核。',409)
         identity=ident()
         actor=db.execute('SELECT username FROM users WHERE id=?',(user['uid'],)).fetchone()[0]
-        payload={'reviewer':actor,'note':data['note'].strip(),'claim_ids':ids}
+        payload={'reviewer':actor,'note':data['note'].strip(),'claim_ids':ids,'record_refs':refs}
         db.execute('INSERT INTO run_reviews VALUES(?,?,?,?,?,?,?,?)',(identity,rid,user['uid'],data['result_digest'],data['status'],store.encrypt(payload),supersedes,now()))
         store.audit(user['uid'],'run.review.append',identity)
         return public(store,dict(db.execute('SELECT * FROM run_reviews WHERE id=?',(identity,)).fetchone()))

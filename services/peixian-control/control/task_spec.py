@@ -128,7 +128,11 @@ def resolve_legacy(store, uid, sid, data, applied, confirmed=None):
                'generation': inherited['generation'], 'effective_skill_ids': []}
     if not candidate['data_related']:
         # Still disable every tool in ordinary help/chat under this rollout.
-        return {'agent_profile':profile.snapshot() if profile else None, 'candidate': candidate, 'spec': None, 'context': {**context, 'scenario_id': None}, 'target': None, 'local': None}
+        local = None
+        if profile and profile.id == 'theft-assistant' and task_router.introduction(data['text']):
+            local = {'code': 'assistant_introduction', 'message':
+                     '我是盗窃资料助手。可以根据你明确提供的警情、人员或位置，使用已授权的只读资料核对记录、来源和资料缺口，并整理供人工复核的说明。请直接说出想核对的问题；缺少必要范围时，我会只追问缺少的信息。本轮尚未查询资料。'}
+        return {'agent_profile':profile.snapshot() if profile else None, 'candidate': candidate, 'spec': None, 'context': {**context, 'scenario_id': None}, 'target': None, 'local': local}
     mode, intent = candidate['query_mode_candidate'], candidate['intent_candidate']
     missing = candidate['conflicts'][:]
     if len(scenes) > 1:
@@ -193,7 +197,7 @@ def resolve_legacy(store, uid, sid, data, applied, confirmed=None):
     if mode == 'explain_existing':
         local = {'code': 'history_explanation_pending_pr6', 'message': '已识别为解释已有结果，本轮没有重新查询资料。完整历史结果解释将在下一阶段提供；请先查看原执行的已核验结果。'}
     elif mode == 'clarify':
-        messages = {'target_missing':'当前可信结果中没有可供确认的对象，本轮未查询。','target_candidates_exceed_limit':'候选对象过多，请明确对象后再查询。','capability_not_ready':'所需资料能力尚未发布或已停用，本轮未查询资料。','rule_not_ready':'所需整理规则尚未发布或已停用，本轮未查询资料。','scenario_id': '请确认处理涉赌资料还是盗窃时空资料。', 'query_mode': '请确认使用已有结果说明，还是重新查询资料。',
+        messages = {'target_missing':'当前可信结果中没有可供确认的对象，本轮未查询。','target_candidates_exceed_limit':'候选对象过多，请明确对象后再查询。','capability_not_ready':'所需资料能力尚未发布或已停用，本轮未查询资料。','rule_not_ready':'所需整理规则尚未发布或已停用，本轮未查询资料。','scenario_id': '请确认本轮资料查询的对象和范围。', 'query_mode': '请确认使用已有结果说明，还是重新查询资料。',
                     'method_conflict': '所选专项技能与问题不一致，请调整技能或明确所需方法。',
                     'unsupported_target_scope': '本轮尚未查询：暂时无法确认问题中的对象或范围。请先说明要沿用当前对象，还是更换对象；更换时请从本会话已有资料中选择，不会自动替换为默认对象。',
                     'target_confirmation_required': '本阶段无法唯一确认所指对象，请明确当前资料范围内的对象。',

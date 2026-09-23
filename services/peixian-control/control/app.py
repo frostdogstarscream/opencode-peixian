@@ -718,8 +718,9 @@ def create_app(store=None):
         if modern:
             data=business_runs.normalized(data)
             from .theft_planner import enabled as planner_enabled
+            from .task_router import introduction
             planned=await app.state.db_work.run(planner_enabled,app.state.store,user['uid'])
-            previous=None if planned and not data.get('provider_query') else await app.state.db_work.run(business_runs.replay,app.state.store,user['uid'],sid,data)
+            previous=None if planned and not introduction(data.get('text','')) and not data.get('provider_query') else await app.state.db_work.run(business_runs.replay,app.state.store,user['uid'],sid,data)
             if previous:return previous
         elif any(k in data for k in ('plugin_ids','mode','client_request_id','agent_id')):
             from .backend_contract import error
@@ -738,8 +739,15 @@ def create_app(store=None):
         if not isinstance(text, str) or not text.strip() or len(text) > 32000:
             from .backend_contract import error
             error('invalid_text','请输入问题，且单次文字不超过32000个字符',422,{'text':'1至32000个字符且不能全为空白'})
+        if modern:
+            from .agents.runtime import active_ids
+            from .scenario_context import explicit
+            if active_ids() == ('theft-assistant',) and 'DEMO-CASE-GAMBLING' in explicit(text):
+                from .backend_contract import error
+                error('scenario_retired', '当前仅开放盗窃资料助手，本轮未查询资料；请提出盗窃资料核对问题。', 422,
+                      {'text': '当前场景不可用'})
         from .theft_planner import enabled as planning_enabled,plan_message
-        if modern and planning_enabled(s,user['uid']) and not data.get('provider_query') and not getattr(request.state,'draft_no_tools',False):
+        if modern and planning_enabled(s,user['uid']) and not introduction(text) and not data.get('provider_query') and not getattr(request.state,'draft_no_tools',False):
             from .agents.runtime import select,session
             profile=select(user['uid'],data)
             if profile.id!='theft-assistant':fail('请使用盗窃助手。',409)
@@ -802,7 +810,7 @@ def create_app(store=None):
             from .backend_contract import error
             error('message_budget_exceeded','文字、技能与文件合计超过当前模型引用预算，请缩短问题或拆分资料后重试',413,{'text':'UTF-8合计最多18000字节'})
         parts = [{"type": "text", "text": value, "synthetic": True} for value in prelude] + [{"type": "text", "text": text}]
-        payload={"model": {"providerID": "peixian", "modelID": model["id"]}, "parts": parts, "system": LANGUAGE + ("\n" + instruction(context) if context else "")}
+        payload={"model": {"providerID": "peixian", "modelID": model["id"]}, "parts": parts, "system": LANGUAGE + ("\n" + instruction(context,profile) if context else "")}
         if not multi:bind_gambling(payload, context, selected_skill_materials)
         if context and not context['scenario_id']:
             payload['tools']={'skill':False,'peixian_prepare_scenario_facts':False,'peixian_check_scenario_summary':False,'peixian_get_scenario_context':False}

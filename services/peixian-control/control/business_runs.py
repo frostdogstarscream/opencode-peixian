@@ -119,10 +119,10 @@ def submit(store, user, sid, data, payload, applied, revision, parent=None, draf
             attach(store,db,user,sid,identity,task['analysis_task'],task['provider_plan'],data)
         if task and task['local']:
             response=task['local']
-            phase='clarification' if task['spec']['query_mode']=='clarify' else 'history_unavailable'
+            phase='introduction' if task['spec'] is None else 'clarification' if task['spec']['query_mode']=='clarify' else 'history_unavailable'
             empty={'status':'empty','cards':[],'summary':[],'missing':[response['message']]}
             db.execute("UPDATE business_runs SET status='completed',phase=?,assistant_id=?,completed=?,evidence_ciphertext=? WHERE id=?",(phase,'msg_task_'+identity,timestamp,store.encrypt(empty),identity))
-            event(store,identity,'task-route','routing','需要补充信息' if phase=='clarification' else '历史解释尚未开放','completed',timestamp,timestamp)
+            event(store,identity,'task-route','routing','助手能力说明' if phase=='introduction' else '需要补充信息' if phase=='clarification' else '历史解释尚未开放','completed',timestamp,timestamp)
         else:
             db.execute("INSERT INTO run_deliveries(run_id,state) VALUES(?,'pending')",(identity,))
         profile=db.execute('SELECT department_id FROM user_profiles WHERE uid=?',(user['uid'],)).fetchone()

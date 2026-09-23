@@ -13,7 +13,8 @@ def enabled(uid):
 
 def active_ids():
     # Keep archived profiles readable; deployment policy controls new execution only.
-    mode=os.getenv('PX_AGENT_MODE','dual')
+    # An omitted deployment flag must never silently reopen the retired Agent.
+    mode=os.getenv('PX_AGENT_MODE','theft_only')
     if mode not in ('dual','theft_only'):
         error('agent_policy_invalid','助手配置不可用，请联系管理员。',503)
     return ('theft-assistant',) if mode=='theft_only' else ('gambling-assistant','theft-assistant')
@@ -23,7 +24,7 @@ def select(uid,data):
     available=active_ids()
     identity=data.get('agent_id',available[0])
     if identity not in available:
-        error('agent_retired','涉赌助手已下线；历史记录仍可查看，请新建盗窃助手会话。',422)
+        error('agent_retired','该旧助手已下线；历史记录仍可查看，请新建盗窃助手会话。',422)
     profile=require(identity)
     if profile.id!='gambling-assistant' and not enabled(uid):error('unsupported_agent','该助手尚未对当前账号开放。',422)
     return profile

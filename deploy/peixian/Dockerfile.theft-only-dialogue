@@ -1,0 +1,11 @@
+# Control-only release layer. BASE_CONTROL_IMAGE must be the currently verified
+# schema-compatible image; no static assets, gateway or agent files are copied.
+ARG BASE_CONTROL_IMAGE
+FROM ${BASE_CONTROL_IMAGE}
+COPY control/agents/runtime.py /candidate/control/agents/runtime.py
+COPY control/app.py /candidate/control/app.py
+COPY control/business_runs.py /candidate/control/business_runs.py
+COPY control/run_api.py /candidate/control/run_api.py
+COPY control/scenario_context.py /candidate/control/scenario_context.py
+COPY control/task_router.py /candidate/control/task_router.py
+COPY control/task_spec.py /candidate/control/task_spec.py

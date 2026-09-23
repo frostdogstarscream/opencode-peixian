@@ -31,7 +31,7 @@ def attach_results(store,uid,values,sid=None):
         if row:message['parts'].append({'id':'part_run_'+row['id'],'type':'analysis_result','data':store.decrypt(row['result_ciphertext'])})
     if sid:
         known={m['info'].get('id') for m in values}
-        for row in store.rows("SELECT * FROM business_runs WHERE uid=? AND session_id=? AND phase IN ('clarification','history_unavailable') ORDER BY created,id",(uid,sid)):
+        for row in store.rows("SELECT * FROM business_runs WHERE uid=? AND session_id=? AND phase IN ('clarification','history_unavailable','introduction') ORDER BY created,id",(uid,sid)):
             snap=store.decrypt(row['request_ciphertext'])
             if not snap.get('task_response'):continue
             for mid,role,text in ((row['message_id'],'user',snap['request']['text']),(row['assistant_id'],'assistant',snap['task_response']['message'])):

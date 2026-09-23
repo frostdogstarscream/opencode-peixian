@@ -14,6 +14,15 @@ METHODS = {'night_activity': ['night'], 'companions_check': ['companions'],
            'funds_analysis': ['funds'], 'relations_check': ['relations']}
 
 
+def introduction(text):
+    """Only exact, ordinary greetings/help questions get a local assistant intro."""
+    clean = unicodedata.normalize('NFKC', text).strip()
+    return bool(re.fullmatch(
+        r'(?:你好|您好|早上好|晚上好|你是谁|介绍一下你自己|你(?:能|可以)?(?:帮我)?做什么|能帮我做什么|能做什么|怎么使用)(?:[！!。，,.？?]*)',
+        clean,
+    ))
+
+
 def parse(text, selected=False, profile=None):
     text = unicodedata.normalize('NFKC', text).strip()
     # Quoted documents/code are not routing directives. Unresolved text is clarified.

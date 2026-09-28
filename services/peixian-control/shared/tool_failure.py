@@ -52,6 +52,16 @@ MESSAGES = {
  'person_case_centers_done': ('轨迹停留点周边警情已全部比对，不再追问位置；请按已取得资料作答。', 'stop'),
  'case_entry_missing': ('请用户提供小区名、路名、场所或案件类型（可加时间，如「近7天的入室盗窃」）；不向用户索要经纬度。', 'stop'),
  'person_case_tracks_first': ('请先查询该人员轨迹；警情按轨迹停留点自动比对，不向用户追问经纬度。', 'stop'),
+ 'candidate_limit_invalid': ('核验人数须为正整数，请修正后再调用。', 'clarify'),
+ 'candidate_set_empty': ('尚无可核验的抓拍候选人；请先查询周边抓拍，再核验人员。', 'clarify'),
+ 'candidate_source_incomplete': ('该候选人缺少可核验的来源，请改用本任务抓拍或查人结果中的人员。', 'select_source'),
+ 'source_selection_invalid': ('请从已有结果中明确选择一条来源记录，平台不自动选择候选。', 'select_source'),
+ 'source_contract_unsupported': ('所选来源不是可核对的接口结果，请选择其他来源。', 'select_source'),
+ 'intent_review_invalid': ('调用核对结果无效，尚未访问资料接口。', 'stop'),
+ 'intent_binding_changed': ('调用核对与本次调用不一致，尚未访问资料接口。', 'stop'),
+ 'tool_call_identity_invalid': ('工具调用身份无法核对，尚未访问资料接口。', 'stop'),
+ 'scope_unavailable': ('本轮确认的查询范围不可用，尚未访问资料接口。', 'stop'),
+ 'native_plugin_version_required': ('资料插件版本尚未生效，需要管理员检查。', 'check_capability'),
 }
 LIMIT_TEXT={'max_days':'单次时间跨度上限 {} 天','max_radius_m':'半径上限 {} 米','max_page':'页码上限 {}','max_page_size':'每页条数上限 {}'}
 FIELDS={'person_identity':'人员','start':'开始时间','end':'结束时间','lon':'经度','lat':'纬度','radius_m':'半径','page':'页码','page_size':'每页条数'}

@@ -63,7 +63,8 @@ def grounded_arguments(kind, args, context):
     if kind=='incidents' and {'lon','lat'}&kept.keys():
         said={Decimal(n) for n in NUMBER.findall(text)}
         def stated(value):
-            try:return Decimal(str(value).strip()) in said
+            # Zero is always a placeholder; "00" in a time like 15:20:00 must not ground it.
+            try:number=Decimal(str(value).strip());return number!=0 and number in said
             except (InvalidOperation,ValueError):return False
         if not all(stated(kept[k]) for k in ('lon','lat') if k in kept):
             kept={k:v for k,v in kept.items() if k not in ('lon','lat')}

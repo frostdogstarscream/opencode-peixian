@@ -61,6 +61,8 @@ def test_model_placeholders_count_as_missing():
     assert scope.grounded_arguments('incidents', args, stated) == args
     answered = {**_context('person_to_case', {'start': '2026-09-13 00:00:00', 'end': '2026-09-28 00:00:00'}), 'current_text': '查一下'}
     assert scope.grounded_arguments('tracks', {'start': '2026-09-13 00:00:00', 'end': '2026-09-28 00:00:00'}, answered)['start'] == '2026-09-13 00:00:00'
+    timed = {**_context('person_to_case', {}), 'constraints_text': '时间 2026-09-13 15:20:00 至 2026-09-28 15:20:00；半径 500 米', 'current_text': '查一下'}
+    assert scope.grounded_arguments('incidents', {'lon': 0, 'lat': 0, 'radius_m': 500}, timed) == {'radius_m': 500}
 
 
 def test_card_matches_when_model_drops_custom_but_free_text_is_refused():

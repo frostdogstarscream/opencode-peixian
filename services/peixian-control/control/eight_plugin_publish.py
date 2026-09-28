@@ -13,15 +13,20 @@ import zipfile
 from .data_plugin_policy import ACTIVE_KINDS, valid_bundle
 from .store import encode, ident, now
 from shared.connection_policy import policy
-from shared.theft_provider_v2 import CATALOG
+from shared.theft_provider_v2 import CATALOG, LOOKUP_PATHS
 
 VERSION='3.0.0'
 
 
-def publish(store, folder):
+SOURCE_OVERRIDES={'peixian-theft-warnings':('peixian-theft-warning-detail',VERSION)}
+
+
+def publish(store, folder, only=None):
     folder=Path(folder)
     prepared=[]
     for kind in ACTIVE_KINDS:
+        if only and kind not in only:
+            continue
         pid='peixian-theft-'+kind.replace('_','-')
         path=folder/(pid+'-'+VERSION+'.zip')
         raw=path.read_bytes()
@@ -36,19 +41,20 @@ def publish(store, folder):
     output=[]
     with store.tx() as db:
         for kind,pid,raw,digest,manifest in prepared:
+            origin,origin_version=SOURCE_OVERRIDES.get(pid,(pid,'2.0.0'))
             source=db.execute(
                 "SELECT c.config,c.secret FROM connections c JOIN plugin_connections b ON b.connection_id=c.id "
-                "WHERE b.plugin=? AND b.version='2.0.0' AND b.alias='provider'",(pid,)).fetchone()
+                "WHERE b.plugin=? AND b.version=? AND b.alias='provider'",(origin,origin_version)).fetchone()
             if not source:
                 raise ValueError('previous_connection_missing:'+pid)
             prior=json.loads(source['config'])
             method,upstream,group=CATALOG[kind][1:]
             if not prior.get('enabled') or method not in prior.get('allowed_methods',[]):
                 raise ValueError('previous_connection_disabled:'+pid)
-            target_path=upstream.replace('{person}','*')
+            paths=list(LOOKUP_PATHS.values()) if kind=='warnings' else [upstream.replace('{person}','*')]
             connection=policy({**{k:v for k,v in prior.items() if k!='request_rules'},
                 'name':manifest['name']+'专属连接','allowed_methods':[method],
-                'allowed_paths':[target_path]})
+                'allowed_paths':paths})
             cid=hashlib.sha256(('native-eight-v3:'+pid).encode()).hexdigest()[:32]
             existing=db.execute('SELECT config,secret FROM connections WHERE id=?',(cid,)).fetchone()
             if existing and (existing['config']!=encode(connection) or existing['secret']!=source['secret']):
@@ -84,9 +90,10 @@ def publish(store, folder):
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--packages',required=True,type=Path)
+    parser.add_argument('--only',nargs='*')
     args=parser.parse_args()
     from .settings import configured_store
-    print(json.dumps({'published':publish(configured_store(),args.packages)},ensure_ascii=False))
+    print(json.dumps({'published':publish(configured_store(),args.packages,set(args.only or ()) or None)},ensure_ascii=False))
 
 
 if __name__=='__main__':

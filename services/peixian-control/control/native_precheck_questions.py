@@ -438,6 +438,12 @@ def scope_card(kind, asked, context, store, uid, sid):
             questions[-1]['header'] = '抓拍范围'
             fields.append('radius_m')
         return questions, values, fields, extra
+    if kind == 'incidents' and {'start', 'end'} <= set(asked) and direction == 'case_to_person':
+        options, mapped = recent_time_presets()
+        values.update(mapped)
+        questions.append(_time_question(options, f"请选择要查询的{confirmed.get('case_type') or ''}警情时间范围。", '警情时间'))
+        fields += ['start', 'end']
+        return questions, values, fields, extra
     if kind in ('tracks', 'night', 'community') and {'start', 'end'} <= set(asked) and direction == 'person_to_case':
         options, mapped = recent_time_presets()
         values.update(mapped)
@@ -646,6 +652,8 @@ def apply_reply(spec, answers, context, store=None, uid=None, sid=None):
         user_conditions[key] = value
     if spec.get('kind') == 'captures':
         next_context.setdefault('capture_conditions',{}).update({k:v for k,v in updates.items() if k in ('start','end','radius_m')})
+    if spec.get('kind') == 'incidents' and {'start', 'end'} <= updates.keys():
+        next_context['incident_window'] = {k: updates[k] for k in ('start', 'end')}
     if spec.get('kind') == 'captures' and {'lon','lat'} <= updates.keys():
         next_context['capture_position_confirmed'] = True
         next_context['source_refs'] = []

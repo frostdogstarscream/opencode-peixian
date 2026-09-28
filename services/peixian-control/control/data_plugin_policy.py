@@ -4,7 +4,7 @@ from shared.theft_provider_v2 import CATALOG
 
 ACTIVE_KINDS = (
     'incidents', 'captures', 'tracks', 'night', 'community',
-    'warning_detail', 'warning_logs', 'profile',
+    'warning_detail', 'warning_logs', 'profile', 'warnings',
 )
 ACTIVE_VERSION = '3.0.0'
 ACTIVE_PLUGIN_IDS = frozenset('peixian-theft-' + kind.replace('_', '-') for kind in ACTIVE_KINDS)

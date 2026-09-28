@@ -10,7 +10,7 @@ import zipfile
 
 ROOT=Path(__file__).resolve().parents[4]
 sys.path.insert(0,str(ROOT/'services/peixian-control'))
-from shared.theft_provider_v2 import CATALOG, PAGED, TIMED
+from shared.theft_provider_v2 import CATALOG, LOOKUP_PATHS, PAGED, TIMED
 from control.data_plugin_policy import ACTIVE_KINDS
 
 VERSION='3.0.0'
@@ -23,20 +23,24 @@ BASE_FIELDS={
     'page':{'type':'integer','description':'明确请求的页码'},
     'page_size':{'type':'integer','description':'明确请求的每页条数'},
     'person_identity':{'type':'string','description':'已确认的单人身份号码，不得猜测'},
+    'person_name':{'type':'string','description':'用户原话中的人员姓名'},
+    'person_phone':{'type':'string','description':'用户原话中的11位手机号'},
 }
 
 def arguments(kind):
-    fields=('lon','lat','radius_m') if kind=='incidents' else ('radius_m',) if kind=='captures' else ('person_identity',)
+    fields=('lon','lat','radius_m') if kind=='incidents' else ('radius_m',) if kind=='captures' else ('person_name','person_phone') if kind=='warnings' else ('person_identity',)
     if kind in TIMED: fields+=('start','end')
     if kind in PAGED: fields+=('page','page_size')
     return {key:BASE_FIELDS[key] for key in fields}
 
-def build(output):
+def build(output,only=None):
     output=Path(output);output.mkdir(parents=True,exist_ok=True)
     for kind in ACTIVE_KINDS:
+        if only and kind not in only:continue
         name,method,path,group=CATALOG[kind]
         pid='peixian-theft-'+kind.replace('_','-');tool='peixian_query_'+kind
-        pattern='^'+path.replace('{person}','[0-9]{17}[0-9X]')+'$'
+        pattern=('^('+'|'.join(LOOKUP_PATHS.values())+')$' if kind=='warnings'
+            else '^'+path.replace('{person}','[0-9]{17}[0-9X]')+'$')
         manifest={'id':pid,'version':VERSION,'name':name,
             'description':'按本轮确认的对象、来源和范围查询；不能扩展条件或自动翻页。',
             'opencode_version':'1.18.30','entry':'entry.mjs','tools':[tool],
@@ -61,4 +65,4 @@ export async function test(){return {ok:false,message:'无资料健康检查合�
             archive.writestr('manifest.json',json.dumps(manifest,ensure_ascii=False,indent=2))
             archive.writestr('entry.mjs',entry)
 
-if __name__=='__main__':build(sys.argv[1])
+if __name__=='__main__':build(sys.argv[1],set(sys.argv[2:]) or None)

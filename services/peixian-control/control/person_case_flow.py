@@ -79,8 +79,6 @@ def task_completed_kinds(store, uid, sid, task_id):
             status = call.get('status')
             if status == 'completed':
                 kinds.add(kind)
-                if kind == 'warnings':
-                    kinds.add('warning_detail')
             elif status in ('rejected', 'failed', 'unknown'):
                 failed.add(kind)
     return kinds, failed

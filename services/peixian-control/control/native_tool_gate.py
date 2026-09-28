@@ -95,6 +95,10 @@ def _prepare(store,uid,sid,message_id,call_id,tool,args,revision):
         if centre_count is not None and not auto_center:
             if centre_count:error('person_case_centers_done','轨迹停留点周边警情已全部比对，请按已取得资料作答。',409)
             error('person_case_tracks_first','请先查询该人员轨迹，警情按轨迹停留点自动比对。',409)
+        # Case-to-person never asks for coordinates either; it needs a place or a case type.
+        if (kind=='incidents' and context.get('direction')=='case_to_person' and not context.get('source_refs')
+                and not {'lon','lat','address','case_type'}&(set(args)|set(context.get('confirmed') or {}))):
+            error('case_entry_missing','缺少小区、路名、场所或案件类型。',409)
         if any(x['status'] in ('review_pending','approved','dispatching') for x in calls.values()):
             error('tool_call_busy','当前工具调用尚未结束。',409)
         # A scoped display reference is accepted when it equals the confirmed
@@ -171,7 +175,7 @@ def _prepare(store,uid,sid,message_id,call_id,tool,args,revision):
             checked_args=resolve_arguments(kind,checked_args,work_context)
             query=arguments(kind,checked_args,work_context)
             identities={}
-            if work_context['source_refs']:
+            if work_context['source_refs'] and kind!='warnings':
                 from .native_tool_scope import source_values
                 derived,identities=source_values(store,uid,sid,kind,work_context)
                 query.update(derived)

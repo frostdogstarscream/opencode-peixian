@@ -15,7 +15,7 @@ from test_multi_agent import multi
 from control import eight_plugin_archive, eight_plugin_publish
 from control.data_plugin_policy import ACTIVE_KINDS, ACTIVE_VERSION
 from shared.connection_policy import policy
-from shared.theft_provider_v2 import CATALOG
+from shared.theft_provider_v2 import CATALOG, LOOKUP_PATHS
 
 
 def test_eight_release_and_account_convergence(provider, tmp_path):
@@ -58,7 +58,7 @@ def test_eight_release_and_account_convergence(provider, tmp_path):
     package_folder=tmp_path/'bundles'
     module.build(package_folder)
     published=eight_plugin_publish.publish(store,package_folder)
-    assert len(published)==8
+    assert len(published)==len(ACTIVE_KINDS)
     assert eight_plugin_publish.publish(store,package_folder)==published
     for kind in ACTIVE_KINDS:
         pid='peixian-theft-'+kind.replace('_','-')
@@ -67,21 +67,20 @@ def test_eight_release_and_account_convergence(provider, tmp_path):
         config=json.loads(row['config'])
         method,path,_=CATALOG[kind][1:]
         assert config['allowed_methods']==[method]
-        assert config['allowed_paths']==[path.replace('{person}','*')]
+        assert config['allowed_paths']==(list(LOOKUP_PATHS.values()) if kind=='warnings' else [path.replace('{person}','*')])
         assert '/health' not in config['allowed_paths']
     with store.tx() as db:
         db.execute("UPDATE jobs SET status='succeeded' WHERE uid=? AND status IN ('queued','running','waiting_capacity')",(uid,))
     granted_before={r['resource'] for r in store.rows(
         "SELECT resource FROM grants WHERE uid=? AND kind='plugin'",(uid,))
-        if r['resource'].startswith('peixian-theft-') and r['resource']!='peixian-theft-warnings'}
+        if r['resource'].startswith('peixian-theft-')}
     receipt=tmp_path/'account.receipt'
     changed=eight_plugin_archive.migrate_account(store,uid,receipt)
     assert changed['upgraded_plugin_count']==len(granted_before)
     assert changed['revoked_grant_count']>0
     assert receipt.exists()
     assert all(row['version']==ACTIVE_VERSION for row in store.rows(
-        "SELECT version FROM installs WHERE uid=? AND plugin LIKE 'peixian-theft-%' "
-        "AND plugin<>'peixian-theft-warnings'",(uid,)))
+        "SELECT version FROM installs WHERE uid=? AND plugin LIKE 'peixian-theft-%'",(uid,)))
     granted_after={r['resource'] for r in store.rows(
         "SELECT resource FROM grants WHERE uid=? AND kind='plugin'",(uid,))}
     assert granted_after==granted_before
@@ -108,7 +107,6 @@ def test_eight_release_and_account_convergence(provider, tmp_path):
     assert not old_path.exists()
     assert {r['id'] for r in store.rows("SELECT id FROM plugins")}=={
         'peixian-theft-'+kind.replace('_','-') for kind in ACTIVE_KINDS}
-    assert not store.one("SELECT 1 FROM installs WHERE uid=? AND plugin='peixian-theft-warnings'",(uid,))
     assert not store.one("SELECT 1 FROM plugins WHERE id='peixian-theft-tracks' AND version='2.0.0'")
     assert store.one("SELECT enabled FROM plugins WHERE id='peixian-theft-tracks' AND version='3.0.0'")['enabled']==1
     assert trusted_results.read(store,uid,'ses_multi',historical['id'])==history_before

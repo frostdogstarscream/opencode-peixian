@@ -7,7 +7,7 @@ question; only the independent execution gate may call a supplier.
 import copy
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from .backend_contract import error
@@ -24,7 +24,26 @@ SCORING_NEGATE=re.compile(
 CASE_HINT=re.compile(r'案件|警情|案发|盗窃案|由案到人|周边人员|可疑人员')
 PERSON_HINT=re.compile(r'由人到案|此人|该人|这名人员|已确认人员')
 ADDRESS=re.compile(r'[\u4e00-\u9fa5A-Za-z0-9·]{2,20}?(?:小区|花园|家园|家属院|名邸|公寓|新村|苑|广场|大厦|商圈|御景|公园|玫瑰园|碧桂园)')
-ADDRESS_PREFIX=re.compile(r'^(?:由案到人)?(?:请|帮我|帮忙|麻烦)?(?:查一下|查询一下|查询|查查|查|看看|看一下|分析一下|分析|核查一下|核查|研判一下|研判|排查一下|排查)?')
+PLACE=re.compile(r'[\u4e00-\u9fa5A-Za-z0-9·]{1,20}?(?:路|街|巷|大道|村|镇|市场|超市|商场|学校|中学|小学|医院|车站|酒店|宾馆|菜场)(?:\d{1,5}号(?:楼)?)?')
+NEARBY=re.compile(r'([\u4e00-\u9fa5A-Za-z0-9·]{2,20}?)(?:附近|周边|一带)')
+ADDRESS_PREFIX=re.compile(r'^(?:由案到人)?(?:请|帮我|帮忙|麻烦)?(?:查一下|查询一下|查询|查查|查|看看|看一下|分析一下|分析|核查一下|核查|研判一下|研判|排查一下|排查)?(?:在|位于)?')
+CASE_INTENT=re.compile(r'附近|周边|一带|可疑|警情|案|盗|抢|扒窃')
+NOT_ADDRESS=re.compile(r'查|看|分析|对比|重新|再|跨|这些|哪|他|她|平时|同期|夜间|轨迹|人员|身份证|此人|该人|这个人|最近|近\d')
+VAGUE_ADDRESS={'附近','周边','这里','那里','案发地','该地','本地','此地','这个地方','那个地方','沛县'}
+CASE_TYPES=(
+    ('入室盗窃',('入室盗窃','入户盗窃')),
+    ('盗窃电动车',('盗窃电动车','电动车盗窃','电动车被盗','偷电动车','盗窃电瓶车','电瓶车被盗')),
+    ('盗窃车内财物',('盗窃车内财物','车内财物被盗','砸车窗')),
+    ('商铺盗窃',('商铺盗窃','店铺盗窃')),
+    ('扒窃',('扒窃','扒手')),
+    ('抢劫',('抢劫',)),
+    ('抢夺',('抢夺',)),
+)
+PHONE=re.compile(r'(?<!\d)1[3-9]\d{9}(?!\d)')
+NAMED=re.compile(r'(?:姓名|名字|名叫)[是为叫:：\s]*([\u4e00-\u9fa5·]{2,4}?)(?=$|[^\u4e00-\u9fa5·]|的|这|此)')
+LOOKUP_NAME=re.compile(r'(?:查一下|查询一下|查查|查询|核查一下|核查|查)([\u4e00-\u9fa5·]{2,4}?)(?:这个人|这名人员|此人|的情况|的轨迹|的活动|的预警|的档案|有没有|是否)')
+NOT_NAME=re.compile(r'他|她|此|该|这|那|谁|什么|人员|嫌疑|附近|周边|小区|警情|案件|轨迹|身份|手机|一下|情况|最近')
+CN_NUMBER={'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10}
 
 
 NUMBER=re.compile(r'-?\d+(?:\.\d+)?')
@@ -62,12 +81,113 @@ def grounded_arguments(kind, args, context):
     return kept
 
 
-def community_address(text):
-    """Community or address keyword for the incident address match; never coordinates."""
-    for match in ADDRESS.finditer(text or ''):
-        value = ADDRESS_PREFIX.sub('', match.group(0))
-        if len(value) >= 2:
-            return value[:40]
+def _address_value(raw):
+    value = ADDRESS_PREFIX.sub('', raw)
+    if len(value) < 2 or value in VAGUE_ADDRESS or NOT_ADDRESS.search(value):
+        return None
+    return value[:40]
+
+
+def case_address(text):
+    """Address keyword for the /jq/search address match; never coordinates.
+
+    Community names always count. Roads, villages and places count only when the
+    text is about a case or is little more than the place itself, so person
+    follow-ups that mention a road do not switch direction.
+    """
+    text = text or ''
+    for match in ADDRESS.finditer(text):
+        value = _address_value(match.group(0))
+        if value:
+            return value
+    short = lambda value: len(re.sub(r'\s', '', text)) - len(value) <= 6
+    for match in PLACE.finditer(text):
+        value = _address_value(match.group(0))
+        if value and (CASE_INTENT.search(text) or short(value)):
+            return value
+    for match in NEARBY.finditer(text):
+        value = _address_value(match.group(1))
+        if value:
+            return value
+    return None
+
+
+community_address = case_address
+
+
+def person_lookup(text):
+    """A person given only by phone number or by an explicitly written name."""
+    text=text or ''
+    if re.search(r'(?<!\d)\d{17}[\dXx](?!\d)',text):
+        return {}
+    phone=PHONE.search(text)
+    if phone:
+        return {'person_phone':phone.group()}
+    for pattern in (NAMED,LOOKUP_NAME):
+        found=pattern.search(text)
+        if found and not NOT_NAME.search(found.group(1)):
+            return {'person_name':found.group(1)}
+    return {}
+
+
+def case_type(text):
+    """Supplier ajType keyword named by the user; bare '盗窃' is the default scope already."""
+    for name, words in CASE_TYPES:
+        if any(w in (text or '') for w in words):
+            return name
+    return None
+
+
+def relative_window(text, now=None):
+    """Start/end for relative phrases; None when absent or longer than one query may span."""
+    text = text or ''
+    now = (now or datetime.now()).replace(microsecond=0)
+    day = lambda d: d.replace(hour=0, minute=0, second=0)
+    fmt = lambda d: d.strftime('%Y-%m-%d %H:%M:%S')
+    last = lambda d: d.replace(hour=23, minute=59, second=59)
+    match = re.search(r'(?:最近|近|过去)\s*(\d{1,3}|[一二两三四五六七八九十]{1,3})\s*(?:天|日)', text)
+    days = None
+    if match:
+        raw = match.group(1)
+        if raw.isdigit():
+            days = int(raw)
+        elif '十' in raw:
+            tens, _, ones = raw.partition('十')
+            days = CN_NUMBER.get(tens, 1 if not tens else 0) * 10 + CN_NUMBER.get(ones, 0)
+        else:
+            days = CN_NUMBER.get(raw[-1], 0)
+    elif re.search(r'(?:最近|近)\s*一?\s*(?:周|星期)', text):
+        days = 7
+    elif re.search(r'(?:最近|近)\s*半\s*个?月', text):
+        days = 15
+    elif re.search(r'(?:最近|近)\s*一?\s*个?月', text):
+        days = 30
+    if days:
+        if days > MAX_QUERY_DAYS:
+            return None
+        return {'start': fmt(now - timedelta(days=days)), 'end': fmt(now)}
+    if '前天' in text:
+        d = now - timedelta(days=2)
+        return {'start': fmt(day(d)), 'end': fmt(last(d))}
+    if '昨天' in text or '昨晚' in text:
+        d = now - timedelta(days=1)
+        return {'start': fmt(day(d)), 'end': fmt(last(d))}
+    if '今天' in text:
+        return {'start': fmt(day(now)), 'end': fmt(now)}
+    monday = day(now - timedelta(days=now.weekday()))
+    if '上周' in text:
+        return {'start': fmt(monday - timedelta(days=7)), 'end': fmt(monday - timedelta(seconds=1))}
+    if '本周' in text or '这周' in text:
+        return {'start': fmt(monday), 'end': fmt(now)}
+    match = re.search(r'(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]', text)
+    if match and not re.search(r'\d{1,2}\s*月\s*\d{1,2}\s*[日号]\s*(?:至|到|-|—)', text):
+        try:
+            d = now.replace(month=int(match.group(1)), day=int(match.group(2)), hour=0, minute=0, second=0)
+        except ValueError:
+            return None
+        if d > now:
+            d = d.replace(year=d.year - 1)
+        return {'start': fmt(d), 'end': fmt(last(d))}
     return None
 
 
@@ -89,13 +209,14 @@ def scoring_requested(text, prior=None, direction=None):
 
 def infer_direction(confirmed, refs, text, prior=None):
     """Implicit case_to_person / person_to_case; user never picks a mode."""
-    if 'person_identity' in (confirmed or {}) or PERSON_HINT.search(text or ''):
+    if {'person_identity','person_name','person_phone'} & set(confirmed or {}) or PERSON_HINT.search(text or ''):
         return 'person_to_case'
     if refs:
         # Selected sources may already bind a person; prefer person_to_case when prior said so.
         if prior and prior.get('direction') == 'person_to_case' and 'person_identity' in (prior.get('confirmed') or {}):
             return 'person_to_case'
-    if {'lon', 'lat'} <= set((confirmed or {}).keys()) or CASE_HINT.search(text or '') or community_address(text):
+    if ({'lon', 'lat'} <= set((confirmed or {}).keys()) or (confirmed or {}).get('case_type')
+            or CASE_HINT.search(text or '') or case_address(text) or case_type(text)):
         return 'case_to_person'
     if prior and prior.get('direction') in ('case_to_person', 'person_to_case'):
         return prior['direction']
@@ -107,8 +228,14 @@ def freeze_context(store,uid,sid,data):
     text=data['text']
     parsed=slots(text,data.get('scope'))
     current={v['field']:v['value'] for v in parsed.values()}
-    address=None if {'person_identity','lon','lat'}&current.keys() else community_address(text)
-    if address:current['address']=address
+    lookup={} if {'person_identity','lon','lat'}&current.keys() else person_lookup(text)
+    entry={} if {'person_identity','lon','lat'}&current.keys() or lookup else {'address':case_address(text),'case_type':case_type(text)}
+    entry={k:v for k,v in entry.items() if v}
+    current.update(entry)
+    current.update(lookup)
+    incident_window=None
+    if entry:
+        incident_window={k:current[k] for k in ('start','end')} if {'start','end'}<=current.keys() else relative_window(text)
     prior=None
     for row in store.rows("SELECT request_ciphertext FROM business_runs WHERE uid=? AND session_id=? ORDER BY rowid DESC LIMIT 30",(uid,sid)):
         snapshot=store.decrypt(row['request_ciphertext'])
@@ -127,10 +254,20 @@ def freeze_context(store,uid,sid,data):
     if ambiguous_location:confirmed.pop('lon',None);confirmed.pop('lat',None)
     # A new explicit object or position supersedes any earlier selected source.
     # Otherwise a later question could silently query the old source instead.
-    changed_object=any(canonical_field(k, current[k]) != canonical_field(k, (prior or {}).get('confirmed', {}).get(k)) if (prior or {}).get('confirmed', {}).get(k) is not None else True for k in ('person_identity','lon','lat','address') if k in current) or ambiguous_person or ambiguous_location
-    if changed_object and 'address' not in current and {'person_identity','lon','lat'}&current.keys():confirmed.pop('address',None)
-    if 'address' in current and 'person_identity' not in current:
+    changed_object=any(canonical_field(k, current[k]) != canonical_field(k, (prior or {}).get('confirmed', {}).get(k)) if (prior or {}).get('confirmed', {}).get(k) is not None else True for k in ('person_identity','lon','lat','address','case_type','person_name','person_phone') if k in current) or ambiguous_person or ambiguous_location
+    if changed_object and not entry and {'person_identity','lon','lat'}&current.keys():
+        confirmed.pop('address',None);confirmed.pop('case_type',None)
+    if (entry or {'person_identity','lon','lat'}&current.keys()) and not lookup:
+        confirmed.pop('person_name',None);confirmed.pop('person_phone',None)
+    if lookup and changed_object:
+        # A person named by phone or name replaces every earlier object.
+        for key in ('person_identity','lon','lat','address','case_type','person_name','person_phone'):
+            if key not in lookup:confirmed.pop(key,None)
+    if entry and 'person_identity' not in current:
         confirmed.pop('person_identity',None);confirmed.pop('lon',None);confirmed.pop('lat',None)
+        # A new case entry replaces the former one as a whole.
+        for key in ('address','case_type'):
+            if key not in entry:confirmed.pop(key,None)
     if 'source_refs' in data:
         refs=copy.deepcopy(data['source_refs'])
     else:
@@ -172,10 +309,11 @@ def freeze_context(store,uid,sid,data):
         'person_case_plan':None,
         'center_set':[],
         'case_info':None if changed_object else copy.deepcopy((prior or {}).get('case_info')),
+        'incident_window':incident_window or (None if changed_object else copy.deepcopy((prior or {}).get('incident_window'))),
         'stop_followup':stop_followup}
 
 
-FIELD_NAMES = {'person_identity':'人员','start':'开始时间','end':'结束时间','lon':'经度','lat':'纬度','radius_m':'半径','page':'页码','page_size':'每页条数'}
+FIELD_NAMES = {'person_identity':'人员','person_name':'姓名','person_phone':'手机号','start':'开始时间','end':'结束时间','lon':'经度','lat':'纬度','radius_m':'半径','page':'页码','page_size':'每页条数'}
 
 
 def canonical_field(key, value):
@@ -229,6 +367,8 @@ def resolve_arguments(kind, args, context):
     if kind in adapter.PERSON and not context['source_refs']: reusable.add('person_identity')
     if kind in adapter.TIMED and kind!='captures': reusable.update(('start','end'))
     if kind=='captures': reusable.update({'start','end','radius_m'})
+    if kind=='warnings' and not {'person_name','person_phone'}&resolved.keys():
+        reusable.update(('person_name','person_phone'))
     for key in reusable:
         if key not in resolved and key in confirmed: resolved[key]=copy.deepcopy(confirmed[key])
     if kind=='incidents':
@@ -236,10 +376,14 @@ def resolve_arguments(kind, args, context):
             for key in ('start','end'):resolved.setdefault(key,copy.deepcopy(confirmed[key]))
         if context.get('direction')=='person_to_case' and context['source_refs'] and 'radius_m' in confirmed:
             resolved.setdefault('radius_m',copy.deepcopy(confirmed['radius_m']))
-        if (context.get('direction')=='case_to_person' and confirmed.get('address') and not context['source_refs']
-                and not {'lon','lat'}&resolved.keys()):
-            resolved['address']=confirmed['address']
+        if (context.get('direction')=='case_to_person' and not context['source_refs']
+                and not {'lon','lat'}&resolved.keys() and (confirmed.get('address') or confirmed.get('case_type'))):
+            for key in ('address','case_type'):
+                if confirmed.get(key):resolved[key]=confirmed[key]
             resolved.pop('radius_m',None)
+            # Card answers for captures also land in confirmed; only the incident window applies here.
+            resolved.pop('start',None);resolved.pop('end',None)
+            resolved.update(context.get('incident_window') or {})
     return {key:canonical_field(key,value) for key,value in resolved.items()}
 
 
@@ -254,10 +398,13 @@ def arguments(kind,args,context):
         error('native_tool_invalid','资料工具或参数无效。',422)
     supported={'lon','lat','radius_m','person_identity','start','end','page','page_size'}
     if kind=='captures':supported-={'lon','lat'}
-    if kind=='incidents':supported|={'address'}
+    if kind=='incidents':supported|={'address','case_type'}
+    if kind=='warnings':supported={'person_name','person_phone','page','page_size'}
     if set(args)-supported:
         error('native_tool_invalid','查询参数包含未开放的条件。',422)
     args=resolve_arguments(kind,args,context)
+    if kind=='warnings':
+        return lookup_arguments(args,context)
     if kind=='captures' and (context.get('capture_scope_version')=='capture-purpose-v1' or context.get('dialogue_policy')=='adaptive-dialogue-v1'):
         conditions=context.get('capture_conditions',{})
         absent={k:FIELD_NAMES[k]+'需针对抓拍查询明确' for k in ('start','end','radius_m') if k not in conditions or (k in args and canonical_field(k,args[k])!=canonical_field(k,conditions[k]))}
@@ -268,6 +415,7 @@ def arguments(kind,args,context):
         error('source_value_override','已选择来源时不能再替换对象或坐标。',409)
     required=({'radius_m'} if context['source_refs'] else {'lon','lat','radius_m'}) if kind=='incidents' else {'radius_m'} if kind=='captures' else set() if context['source_refs'] else {'person_identity'}
     if kind=='incidents' and args.get('address') and not context['source_refs']:required=set()
+    elif kind=='incidents' and args.get('case_type') and not context['source_refs']:required={'start','end'}
     if kind in adapter.TIMED:required|={'start','end'}
     if not required<=set(args):
         error('scope_missing','查询条件不完整，未访问资料接口；只补充列出的字段，不重试或猜测权限。',409,{k:FIELD_NAMES[k]+'尚未明确' for k in sorted(required-set(args))})
@@ -286,11 +434,26 @@ def arguments(kind,args,context):
     applicable=({'lon','lat','radius_m'} if kind in ('incidents','captures') else set())|({'start','end'} if kind in adapter.TIMED else set())|({'page','page_size'} if kind in adapter.PAGED else set())
     if kind=='incidents':
         applicable|={'start','end'} if {'start','end'}<=args.keys() else set()
-        if args.get('address') and not context['source_refs']:applicable|={'address'}
+        if not context['source_refs']:applicable|={k for k in ('address','case_type') if args.get(k)}
     query={key:copy.deepcopy(value) for key,value in args.items() if key in applicable}
     if kind=='captures' and not context['source_refs'] and context.get('capture_position_confirmed'):
         query.update({k:canonical_field(k,context['confirmed'][k]) for k in ('lon','lat')})
     return query
+
+def lookup_arguments(args,context):
+    """Only the name or phone the user wrote may be searched; one key per call."""
+    keys=[k for k in ('person_name','person_phone') if args.get(k)]
+    if not keys:
+        error('identity_parameter_invalid','缺少人员姓名或手机号。',409)
+    if len(keys)>1:
+        error('native_tool_invalid','姓名和手机号一次只能按一项查找。',422)
+    key=keys[0];value=str(args[key]).strip()
+    if value!=(context.get('confirmed') or {}).get(key):
+        error('identity_parameter_invalid','只能按用户提供的姓名或手机号查找。',409)
+    query={key:value}
+    query.update({k:args[k] for k in ('page','page_size') if k in args})
+    return query
+
 
 def source_values(store,uid,sid,kind,context):
     """Derive one coordinate/person from the exact selected prior source."""
@@ -372,8 +535,9 @@ def model_context(context):
 已取得资料足够时直接回答；普通问候、解释、表格调整不取数。
 沿用同一任务已确认且用途适用的人员、时间和位置；不要反复确认同一条件。
 人员不明确时用 question 只问缺项。缺时间、半径或案件时直接调用对应资料工具（缺项不传），平台返回选项卡后按原样用 question 提问，不要自己写要求填写精确时间的问题。
-由人到案：周边警情由平台按轨迹停留点自动查询（每次调用一个停留点，最多3个）。由案到人：周边警情由平台按小区名做地址模糊匹配，案件、抓拍时间（案发前N天）和半径由平台选项卡确认。抓拍时间与半径需用途明确，轨迹时间不自动变成抓拍时间。
+由人到案：周边警情由平台按轨迹停留点自动查询（每次调用一个停留点，最多3个）。由案到人：周边警情由平台按小区名、路名或场所做地址模糊匹配，或按案件类型加时间查询，案件、抓拍时间（案发前N天）和半径由平台选项卡确认。抓拍时间与半径需用途明确，轨迹时间不自动变成抓拍时间。
 person_identity 可使用已确认身份或该任务来源中的人员引用；已选来源的坐标由平台读取。
+用户只给姓名或手机号时，先调用 peixian_query_warnings（只传 person_name 或 person_phone 之一），按返回的 lookup.next 处理：唯一匹配直接用该人员引用继续，多人匹配用 question 让用户选一人，零条告知用户未查到。
 零记录只写查询时段和 0 条；不得自动扩大范围、自动翻页或重试未知调用。单次时间跨度不超过 31 天。
 答复不写免责声明或「不等于/不证明/不代表/仅作参考」类句子。
 用户取消补充时停止对应查询，基于成功资料给出阶段回答，不把取消解释为全部资料失败。

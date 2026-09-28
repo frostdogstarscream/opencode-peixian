@@ -62,6 +62,8 @@ def sentence(kind,f,version=None):
     if kind=='captures':
         count=f.get('capture_count','未提供')
         return f"{f.get('target_name','对象未提供')}（{f.get('target_id_card','未提供')}）：来源范围内抓拍汇总 {count} 次。"
+    if kind=='warnings' and 'sfz' in f:
+        return f"{f.get('xm','姓名未提供')}（{f.get('sfz','未提供')}）：户籍地址 {f.get('hjdz','未提供')}；实际居住地 {f.get('sjjzd','未提供')}；管控派出所 {f.get('gkpcs','未提供')}。"
     if kind in ('warnings','warning_detail'):
         types=f.get('warningTypes','未提供')
         count=f.get('warningCount','未提供')

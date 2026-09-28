@@ -106,7 +106,7 @@ def find_capture_person(store, uid, sid, context, person_ref):
             continue
         modules = (snapshot.get('provider_state') or {}).get('modules') or {}
         for call_id, call in (snapshot.get('native_calls') or {}).items():
-            if call.get('status') != 'completed' or (call.get('frozen') or {}).get('kind') != 'captures':
+            if call.get('status') != 'completed' or (call.get('frozen') or {}).get('kind') not in ('captures', 'warnings'):
                 continue
             entry = modules.get(call_id) or {}
             if entry.get('status') != 'completed':
@@ -114,7 +114,7 @@ def find_capture_person(store, uid, sid, context, person_ref):
             raw = entry.get('response') or {}
             for item in raw.get('records') or []:
                 fields = item.get('fields') or {}
-                names = [n for n in ('target_id_card', 'targetIdCard', 'idCard') if n in fields]
+                names = [n for n in ('target_id_card', 'targetIdCard', 'idCard', 'sfz') if n in fields]
                 if len(names) != 1:
                     continue
                 try:
@@ -128,7 +128,7 @@ def find_capture_person(store, uid, sid, context, person_ref):
                     'version': VERSION,
                     'rank': None,
                     'person_ref': person_ref,
-                    'name': fields.get('target_name') or fields.get('name'),
+                    'name': fields.get('target_name') or fields.get('personName') or fields.get('xm') or fields.get('name'),
                     'run_id': row['id'],
                     'record_id': record_id,
                     'snapshot_id': raw.get('response_snapshot_id'),
@@ -146,7 +146,7 @@ def resolve_capture_person(store, uid, sid, context, person_ref):
         return resolve(store, uid, sid, context, person_ref)
     found = find_capture_person(store, uid, sid, context, person_ref)
     if not found or not found.get('identity'):
-        error('identity_parameter_invalid', '该引用不在本任务已取得的抓拍结果中。', 409)
+        error('identity_parameter_invalid', '该引用不在本任务已取得的抓拍或查人结果中。', 409)
     return found['identity'], person_ref
 
 

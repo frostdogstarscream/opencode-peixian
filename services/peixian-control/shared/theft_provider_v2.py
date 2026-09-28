@@ -23,11 +23,12 @@ CATALOG = {
     'warning_detail': ('预警概况', 'GET', '/system/multiDimension/idCard/{person}', 'warning'),
     'warning_logs': ('近七天预警明细', 'GET', '/system/multiDimension/logs/{person}', 'warning'),
     'profile': ('档案与最近抓拍', 'GET', '/caputer/profile/{person}', 'warning'),
-    'warnings': ('指定人员预警列表', 'GET', '/system/multiDimension/list', 'warning'),
+    'warnings': ('按姓名或手机号查找人员', 'GET', '/system/multiDimension/list', 'warning'),
 }
+LOOKUP_PATHS = {'person_name': '/system/multiDimension/list', 'person_phone': '/zuoan/rupei'}
 PAGED = {'incidents', 'captures', 'night', 'community', 'warnings'}
 TIMED = {'captures', 'tracks', 'night', 'community'}
-PERSON = set(CATALOG) - {'incidents', 'captures'}
+PERSON = set(CATALOG) - {'incidents', 'captures', 'warnings'}
 IDS = {'target_id_card', 'targetIdCard', 'idCard', 'sfz', 'certificateNo'}
 FIELDS = {
     'incidents': ('cjbh','jjbh','cjsj','ddxcsj','cjxzqh','cjjlx','cjmlph','cjxz','sfcs','sfsjsx','sfsjxx','cljgnr','ssxxqk','cjfksj','gisX','gisY','ssxq','bzdzmc','qylb','sszrq','djdw','djdwmc','cjdw','cjdwmc','cjlb','cjlbDesc'),
@@ -39,7 +40,7 @@ FIELDS = {
     'warning_logs': ('warningType','count','deductScore','records'),
     'profile': ('person','captures','warning'),
 }
-FIELDS['warnings'] = FIELDS['warning_detail']
+FIELDS['warnings'] = FIELDS['warning_detail'] + ('xm','sfz','hjdz','gkpcs','sjjzd','xwbq','localAddress','first_capture_time','capture_time')
 LIMITATIONS = {
     'incidents': '上游默认覆盖辖区内有坐标的盗窃、抢劫、抢夺类警情；地址按标准地址、处警详址、接警地点模糊匹配，时间按处警时间筛选。处警时间不等于案发时间。',
     'captures': '来源限定人群的抓拍汇总，不代表全部路人；抓拍次数不等于到访次数。',
@@ -49,7 +50,7 @@ LIMITATIONS = {
     'warning_detail': '预警类型数量表示来源预警类型数量，不是事件数或个人嫌疑评分。',
     'warning_logs': '来源固定近七天窗口；触发次数不等于独立事件次数。',
     'profile': '来源档案及最近十条抓拍，不是任意时间范围的完整轨迹。',
-    'warnings': '来源预警类型数量不等于事件数；仅查询明确选定人员。',
+    'warnings': '姓名为模糊匹配，可能同名；手机号只覆盖入沛（外地）人员档案。',
 }
 
 
@@ -103,23 +104,31 @@ def normalize(kind, value, limits):
     required_limits = ('max_radius_m', 'max_duration_seconds', 'max_page', 'max_rows', 'max_response_bytes')
     if any(type(limits.get(k)) is not int or limits[k] <= 0 for k in required_limits):
         raise ContractError('technical_limits_required')
-    allowed = ({'lon','lat','radius_m'} if kind in ('incidents','captures') else {'person_ref'})
+    allowed = ({'lon','lat','radius_m'} if kind in ('incidents','captures') else set(LOOKUP_PATHS) if kind == 'warnings' else {'person_ref'})
     if kind in TIMED: allowed |= {'start','end'}
     if kind in PAGED: allowed |= {'page','page_size'}
     if kind == 'tracks': allowed |= {'track_types'}
-    if kind == 'warnings': allowed |= {'start_date','end_date'}
     if kind == 'incidents': allowed |= {'address','case_type','start','end'}
     if set(value) - allowed:
         raise ContractError('unsupported_query_conditions')
     q = copy.deepcopy(value)
     if kind in PERSON and not re.fullmatch(r'person-[a-f0-9]{32}', str(q.get('person_ref', ''))):
         raise ContractError('person_reference_required')
+    if kind == 'warnings':
+        keys = set(LOOKUP_PATHS) & q.keys()
+        if len(keys) != 1:
+            raise ContractError('lookup_key_required')
+        if 'person_name' in q and not (isinstance(q['person_name'], str) and re.fullmatch(r'[\u4e00-\u9fa5·]{2,10}', q['person_name'])):
+            raise ContractError('invalid_person_name')
+        if 'person_phone' in q and not (isinstance(q['person_phone'], str) and re.fullmatch(r'1[3-9]\d{9}', q['person_phone'])):
+            raise ContractError('invalid_person_phone')
     if kind == 'incidents':
         for field in ('address','case_type'):
             if field in q and (not isinstance(q[field],str) or not 2<=len(q[field].strip())<=40):
                 raise ContractError('invalid_'+field)
             if field in q: q[field]=q[field].strip()
-    area_optional = kind == 'incidents' and 'address' in q and not {'lon','lat','radius_m'} & q.keys()
+    area_optional = (kind == 'incidents' and not {'lon','lat','radius_m'} & q.keys()
+                     and ('address' in q or {'case_type','start','end'} <= q.keys()))
     if kind in ('incidents','captures') and not area_optional:
         for field, lo, hi in [('lon',-180,180),('lat',-90,90),('radius_m',Decimal('0.001'),limits['max_radius_m'])]:
             if field not in q: raise ContractError(field+'_required')
@@ -153,12 +162,6 @@ def normalize(kind, value, limits):
         q.setdefault('track_types',[0,1,2])
         if not isinstance(q['track_types'],list) or not q['track_types'] or any(type(x) is not int or x not in (0,1,2) for x in q['track_types']) or len(set(q['track_types']))!=len(q['track_types']):
             raise ContractError('invalid_track_types')
-    if kind == 'warnings' and ('start_date' in q or 'end_date' in q):
-        try:
-            if any(not isinstance(q.get(k),str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}',q[k]) for k in ('start_date','end_date')):raise ValueError()
-            a,b=(datetime.strptime(q[k],'%Y-%m-%d') for k in ('start_date','end_date'))
-            if a>b or (b-a).total_seconds()>limits['max_duration_seconds']:raise ValueError()
-        except (KeyError,ValueError,TypeError):raise ContractError('explicit_calendar_window_required') from None
     return q
 
 
@@ -176,8 +179,11 @@ def request_spec(kind, value, limits, identities):
     if kind in ('tracks','community'):body.update(beginTime=q['start'],endTime=q['end'])
     if kind=='tracks':body.update(certificateNo=identity,trackTypes=q['track_types'])
     if kind=='night':body['targetIdCard']=identity
-    if kind in ('community','warnings'):body['idCard']=identity
-    if kind=='warnings' and 'start_date' in q:body.update(beginTime=q['start_date'],endTime=q['end_date'])
+    if kind=='community':body['idCard']=identity
+    if kind=='warnings':
+        field=next(k for k in LOOKUP_PATHS if k in q)
+        path=LOOKUP_PATHS[field]
+        body['personName' if field=='person_name' else 'phone']=q[field]
     if '{person}' in path:path=path.replace('{person}',identity)
     return {'connection_group':group,'method':method,'path':path,('json' if method=='POST' else 'query'):body}
 
@@ -291,8 +297,9 @@ def parse_response(kind, query, payload, limits, identities, *, received_at=None
         if not fields:raise ContractError('record_fields_missing')
         if kind not in ('profile','warning_logs') and any(isinstance(x,(dict,list)) for x in fields.values()):
             raise ContractError('scalar_field_contract')
-        identity_field={'captures':'target_id_card','night':'targetIdCard','community':'idCard','warnings':'idCard'}.get(kind)
+        identity_field={'captures':'target_id_card','night':'targetIdCard','community':'idCard'}.get(kind)
         if identity_field and identity_field not in fields:raise ContractError('identity_missing')
+        if kind=='warnings' and len({'idCard','sfz'}&fields.keys())!=1:raise ContractError('identity_missing')
         if kind=='warning_logs' and (not isinstance(fields.get('records'),list) or len(fields['records'])>limits['max_rows']):raise ContractError('warning_records_contract')
         if kind=='warning_logs' and any(not isinstance(r,dict) or r.get('idCard')!=expected for r in fields['records']):raise ContractError('warning_subject_missing')
         for field in ('warningCount','capture_count','count','communityCount'):
@@ -301,7 +308,16 @@ def parse_response(kind, query, payload, limits, identities, *, received_at=None
         records.append({'source_ref':snapshot+':'+str(i+1),'source_index':i+1,'fields':fields})
     result={'version':VERSION,'kind':kind,'query':q,'response_snapshot_id':snapshot,'supplier_snapshot_id':None,'received_at':received_at or datetime.now(timezone.utc).isoformat(),'response_digest':digest(payload),'records':records,'returned_count':len(rows),'valid_count':len(records),'unusable_count':0,'total':total,'coverage':coverage,'has_more':has_more,'missing':sorted(set(missing)),'limitations':[LIMITATIONS[kind]],'coordinate_status':'unconfirmed'}
     if segments is not None:result['segments']=segments
+    if kind=='warnings':result['lookup']={'matched':total if isinstance(total,int) else len(records),'next':lookup_next(total if isinstance(total,int) else len(records))}
     return result
+
+
+def lookup_next(matched):
+    if not matched:
+        return '未找到匹配人员：告知用户未查到，请其核对姓名或手机号，或直接提供身份证号；不要猜测身份。'
+    if matched==1:
+        return '唯一匹配：直接用该记录中的人员引用作为 person_identity 继续用户要求的查询，不再让用户确认。'
+    return '多人匹配：先用 question 工具（header 写「选择人员」）列出候选让用户选一人，选项写姓名加户籍地址或最近预警时间以便区分，不要自行选择；用户选定后用对应记录的人员引用继续查询。'
 
 
 def public_result(result, key, scope):

@@ -207,3 +207,123 @@ def test_person_to_case_incidents_never_ask_for_coordinates(provider, monkeypatc
         assert exc.value.detail['code'] == code and '经度' not in json.dumps(exc.value.detail, ensure_ascii=False)
 
 
+def test_case_to_person_without_place_or_type_never_asks_for_coordinates(provider, monkeypatch):
+    import pytest
+    from fastapi import HTTPException
+    from control import native_tool_gate
+    from test_native_tool_execution import native_candidate
+    from test_provider_flow import tool
+    store = provider[0]; uid = provider[4]['uid']; row = native_candidate(provider, monkeypatch)
+    snap = store.decrypt(store.one('SELECT request_ciphertext FROM business_runs WHERE id=?', (row['id'],))['request_ciphertext'])
+    snap['native_tool_context'].update(direction='case_to_person', confirmed={})
+    with store.tx() as db:
+        db.execute('UPDATE business_runs SET request_ciphertext=? WHERE id=?', (store.encrypt(snap), row['id']))
+    with pytest.raises(HTTPException) as exc:
+        native_tool_gate.prepare(store, uid, 'ses_multi', row['message_id'], 'inc-none', tool('incidents'), {}, 1)
+    assert exc.value.detail['code'] == 'case_entry_missing' and '经度' not in json.dumps(exc.value.detail, ensure_ascii=False)
+
+
+def test_any_address_keyword_enters_case_to_person():
+    assert scope.case_address('汉城路附近有什么可疑人员') == '汉城路'
+    assert scope.case_address('查一下解放路88号附近的警情') == '解放路88号'
+    assert scope.case_address('星巴克附近有什么可疑人员') == '星巴克'
+    assert scope.case_address('在沛县实验小学周边有没有盗窃') == '沛县实验小学'
+    assert scope.case_address('只看9月15日至9月22日，重新查一下跨小区流动') is None
+    assert scope.case_address('这些点位里哪个地方出现得最多？再查一下同期的夜间活动') is None
+    assert scope.case_address('他平时走哪条路') is None
+    assert scope.infer_direction({}, [], '汉城路附近有什么可疑人员') == 'case_to_person'
+
+
+def test_case_type_and_relative_time():
+    from datetime import datetime
+    now = datetime(2026, 9, 28, 21, 30, 0)
+    assert scope.case_type('最近7天的入室盗窃') == '入室盗窃'
+    assert scope.case_type('这周电动车被盗的情况') == '盗窃电动车'
+    assert scope.case_type('盗窃前科人员') is None
+    assert scope.relative_window('最近7天的入室盗窃', now) == {'start': '2026-09-21 21:30:00', 'end': '2026-09-28 21:30:00'}
+    assert scope.relative_window('近十五天', now)['start'] == '2026-09-13 21:30:00'
+    assert scope.relative_window('近两天', now)['start'] == '2026-09-26 21:30:00'
+    assert scope.relative_window('近45天', now) is None
+    assert scope.relative_window('昨天的抢夺', now) == {'start': '2026-09-27 00:00:00', 'end': '2026-09-27 23:59:59'}
+    assert scope.relative_window('上周的扒窃', now) == {'start': '2026-09-21 00:00:00', 'end': '2026-09-27 23:59:59'}
+    assert scope.relative_window('9月20日的入室盗窃', now) == {'start': '2026-09-20 00:00:00', 'end': '2026-09-20 23:59:59'}
+    assert scope.infer_direction({}, [], '最近7天的入室盗窃') == 'case_to_person'
+
+
+def test_case_type_query_needs_time_then_skips_coordinates():
+    import pytest
+    from fastapi import HTTPException
+    from test_provider_contract_v2 import LIMITS
+    from shared import theft_provider_v2 as adapter
+    context = _context('case_to_person', {'case_type': '入室盗窃', 'start': '2026-09-01 00:00:00', 'end': '2026-09-02 00:00:00'})
+    args = scope.resolve_arguments('incidents', {}, context)
+    assert args == {'case_type': '入室盗窃'}
+    with pytest.raises(HTTPException) as exc:
+        scope.arguments('incidents', args, context)
+    assert set(exc.value.detail['field_errors']) == {'start', 'end'}
+    card = q.scope_card('incidents', ['start', 'end'], context, None, 'u', 's')
+    assert card[0][0]['header'] == '警情时间' and '入室盗窃' in card[0][0]['question']
+    window = {'start': '2026-09-21 21:30:00', 'end': '2026-09-28 21:30:00'}
+    context['incident_window'] = window
+    query = scope.arguments('incidents', scope.resolve_arguments('incidents', {}, context), context)
+    assert query == {'case_type': '入室盗窃', **window}
+    assert adapter.request_spec('incidents', query, LIMITS, {})['json'] == {
+        'pageNum': 1, 'pageSize': 20, 'ajType': '入室盗窃', 'startTime': window['start'], 'endTime': window['end']}
+    with pytest.raises(adapter.ContractError):
+        adapter.normalize('incidents', {'case_type': '入室盗窃'}, LIMITS)
+
+
+def test_incident_time_card_answer_sets_the_incident_window():
+    context = _context('case_to_person', {'case_type': '入室盗窃'})
+    questions, values, fields, extra = q.scope_card('incidents', ['start', 'end'], context, None, 'u', 's')
+    spec = {'token': 't', 'kind': 'incidents', 'status': 'pending', 'fields': fields, 'questions': questions, 'values': values}
+    nxt, _text, cancelled = q.apply_reply(spec, [['近7天']], context)
+    assert not cancelled and nxt['incident_window'] == {k: values['近7天'][k] for k in ('start', 'end')}
+
+
+def test_name_or_phone_enters_person_to_case():
+    assert scope.person_lookup('查一下孙强这个人') == {'person_name': '孙强'}
+    assert scope.person_lookup('核查欧阳娜娜的轨迹') == {'person_name': '欧阳娜娜'}
+    assert scope.person_lookup('姓名：张伟，看看他最近的情况') == {'person_name': '张伟'}
+    assert scope.person_lookup('手机号13912345678的人最近去过哪') == {'person_phone': '13912345678'}
+    assert scope.person_lookup('查一下320322198803159911 13912345678') == {}
+    for text in ('查一下这个人的情况', '紫薇花园附近有什么可疑人员', '他叫什么', '查一下近7天的轨迹', '最近7天的入室盗窃'):
+        assert scope.person_lookup(text) == {}, text
+    assert scope.infer_direction({'person_name': '孙强'}, [], '查一下孙强这个人') == 'person_to_case'
+
+
+def test_lookup_only_searches_what_the_user_wrote():
+    import pytest
+    from fastapi import HTTPException
+    context = _context('person_to_case', {'person_name': '孙强'})
+    assert scope.arguments('warnings', {}, context) == {'person_name': '孙强'}
+    assert scope.arguments('warnings', {'person_name': '孙强', 'page': 2}, context) == {'person_name': '孙强', 'page': 2}
+    for args in ({'person_name': '李四'}, {'person_phone': '13912345678'}, {'person_identity': '320322198803159911'}):
+        with pytest.raises(HTTPException):
+            scope.arguments('warnings', args, context)
+    with pytest.raises(HTTPException) as exc:
+        scope.arguments('warnings', {}, _context('person_to_case', {}))
+    assert exc.value.detail['code'] == 'identity_parameter_invalid'
+
+
+def test_lookup_result_reference_resolves_to_the_raw_identity():
+    from control import theft_candidates
+    from shared import theft_provider_v2 as adapter
+    identity = '320322198803159911'
+
+    class Store:
+        worker_key = 'k' * 40
+        def rows(self, *_):
+            return [{'id': 'run', 'request_ciphertext': 'x'}]
+        def decrypt(self, _):
+            return {'native_tool_context': {'task_id': 'task'},
+                    'native_calls': {'c1': {'status': 'completed', 'frozen': {'kind': 'warnings'}}},
+                    'provider_state': {'modules': {'c1': {'status': 'completed', 'response': {
+                        'response_snapshot_id': 'snap', 'records': [{'source_ref': 'snap:1', 'fields': {'sfz': identity, 'xm': '孙强'}}]}}}}}
+
+    ref = adapter.person_ref(identity, Store.worker_key.encode(), 'u/s')
+    found = theft_candidates.find_capture_person(Store(), 'u', 's', {'task_id': 'task'}, ref)
+    assert found['identity'] == identity and found['name'] == '孙强'
+    assert theft_candidates.resolve_capture_person(Store(), 'u', 's', {'task_id': 'task'}, ref) == (identity, ref)
+
+

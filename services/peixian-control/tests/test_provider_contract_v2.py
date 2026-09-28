@@ -11,7 +11,8 @@ LIMITS={'max_radius_m':5000,'max_duration_seconds':86400*31,'max_page':100,'max_
 
 
 def query(kind):
-    q={'lon':'116.1','lat':'34.1','radius_m':500} if kind in ('incidents','captures') else {'person_ref':REF}
+    q=({'lon':'116.1','lat':'34.1','radius_m':500} if kind in ('incidents','captures')
+       else {'person_name':'测试对象'} if kind=='warnings' else {'person_ref':REF})
     if kind in v.TIMED:q.update(start='2026-09-20 22:13:14',end='2026-09-21 02:03:04')
     return q
 
@@ -117,9 +118,29 @@ def test_serialized_details_cannot_bypass_redaction():
     assert v.public_result({'text':'123456789012345678'},KEY,'scope')['text']=='[身份号码已隐藏]'
 
 
-def test_warning_dates_are_explicit_calendar_dates():
+def test_person_lookup_by_name_or_phone():
+    r=v.request_spec('warnings',{'person_name':'孙强'},LIMITS,{})
+    assert r['path']=='/system/multiDimension/list' and r['query']=={'personName':'孙强','pageNum':1,'pageSize':20}
+    r=v.request_spec('warnings',{'person_phone':'13912345678'},LIMITS,{})
+    assert r['path']=='/zuoan/rupei' and r['query']=={'phone':'13912345678','pageNum':1,'pageSize':20}
+    for bad in ({},{'person_name':'孙强','person_phone':'13912345678'},{'person_name':'孙'},{'person_phone':'1391234567'},
+                {'person_ref':REF},{'person_name':'孙强','start_date':'2026-09-01'}):
+        with pytest.raises(v.ContractError):v.normalize('warnings',bad,LIMITS)
+    other='990000200001010022'
+    page={'code':200,'rows':[{'idCard':ID,'personName':'孙强','warningCount':1},{'idCard':other,'personName':'孙强强','warningCount':2}],'total':2}
+    result=v.parse_response('warnings',{'person_name':'孙强'},page,LIMITS,{})
+    assert result['lookup']['matched']==2 and '选择人员' in result['lookup']['next']
+    public=json.dumps(v.public_result(result,KEY,'s'),ensure_ascii=False)
+    assert ID not in public and other not in public and v.person_ref(ID,KEY,'s') in public
+    rupei={'code':200,'rows':[{'sfz':ID,'xm':'孙强','phone':'13912345678','hjdz':'外地某县','picImage':'http://x.invalid/a.jpg'}],'total':1}
+    result=v.parse_response('warnings',{'person_phone':'13912345678'},rupei,LIMITS,{})
+    assert result['lookup']['matched']==1 and 'phone' not in result['records'][0]['fields']
+    public=json.dumps(v.public_result(result,KEY,'s'),ensure_ascii=False)
+    assert '13912345678' not in public and 'x.invalid' not in public
+    empty=v.parse_response('warnings',{'person_name':'孙强'},{'code':200,'rows':[],'total':0},LIMITS,{})
+    assert empty['lookup']['matched']==0 and '未找到' in empty['lookup']['next']
     with pytest.raises(v.ContractError):
-        v.normalize('warnings',{**query('warnings'),'start_date':'2026-9-1','end_date':'2026-09-02'},LIMITS)
+        v.parse_response('warnings',{'person_name':'孙强'},{'code':200,'rows':[{'personName':'孙强'}],'total':1},LIMITS,{})
 
 
 def test_malformed_record_is_rejected_not_stringified():

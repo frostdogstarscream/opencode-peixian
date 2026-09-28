@@ -789,7 +789,7 @@ class RuntimeManager:
         config["plugin"] = []
         config["skills"] = {"paths": ["/managed/skills"]}
         seven_ids = {"peixian-records-" + m for m in ("funds","calls","portrait","composite","night","vehicle","lookup")}
-        provider_ids={'peixian-theft-'+m for m in ('incidents','captures','tracks','night','community','warning-detail','warning-logs','profile')}
+        provider_ids={'peixian-theft-'+m for m in ('incidents','captures','tracks','night','community','warning-detail','warning-logs','profile','warnings')}
         has_provider=any(p['id'] in provider_ids for p in spec['plugins'])
         has_seven = any(p["id"] in seven_ids for p in spec["plugins"])
         if has_seven and any(p["id"] == "peixian-synthetic-records" for p in spec["plugins"]):

@@ -455,12 +455,22 @@ def pending_center(store, uid, sid, context, calls=None, kind='incidents'):
     for call in (calls or {}).values():
         if isinstance(call, dict) and call.get('status') == 'completed' and (call.get('frozen') or {}).get('kind') == kind:
             done |= {ref['record_id'] + ':' + kind for ref in call.get('source_refs') or [] if isinstance(ref, dict) and ref.get('record_id')}
-    for center in centers:
+    for position, center in enumerate(centers, 1):
         if center.get('record_id') and center['record_id'] + ':' + kind not in done:
             ref = {k: center[k] for k in ('record_id', 'snapshot_id', 'result_digest')}
             ref['run_id'] = center['run_id']
-            return ref, center, len(centers)
+            return ref, {**center, 'position': position}, len(centers)
     return None, None, len(centers)
+
+
+def stay_progress(index, total):
+    """Model-facing note on which track stay centre an incidents result covers."""
+    if not isinstance(index, int) or not isinstance(total, int) or not 1 <= index <= total:
+        return None
+    left = total - index
+    return {'index': index, 'total': total, 'remaining': left,
+            'next': (f'还有 {left} 个轨迹停留点未比对，请继续调用 peixian_query_incidents（不传参数）。' if left
+                     else '轨迹停留点周边警情已全部比对，请按已取得资料作答。')}
 
 
 def next_center_source(context, kind):

@@ -205,6 +205,22 @@ def test_person_to_case_incidents_never_ask_for_coordinates(provider, monkeypatc
         with pytest.raises(HTTPException) as exc:
             native_tool_gate.prepare(store, uid, 'ses_multi', row['message_id'], f'inc-{count}', tool('incidents'), {'radius_m': 500}, 1)
         assert exc.value.detail['code'] == code and '经度' not in json.dumps(exc.value.detail, ensure_ascii=False)
+    snap['native_calls'] = {'done-1': {'tool': tool('incidents'), 'args_digest': native_tool_gate.digest({'radius_m': 500}),
+                                       'status': 'completed', 'public_response': {'records': []}}}
+    with store.tx() as db:
+        db.execute('UPDATE business_runs SET request_ciphertext=? WHERE id=?', (store.encrypt(snap), row['id']))
+    monkeypatch.setattr(person_case_flow, 'pending_center', lambda *a, **k: (None, None, 3))
+    with pytest.raises(HTTPException) as exc:
+        native_tool_gate.prepare(store, uid, 'ses_multi', row['message_id'], 'inc-repeat', tool('incidents'), {'radius_m': 500}, 1)
+    assert exc.value.detail['code'] == 'person_case_centers_done'
+
+
+def test_stay_progress_tells_the_model_to_continue_after_an_empty_centre():
+    from control.person_case_flow import stay_progress
+    first = stay_progress(1, 3)
+    assert first['remaining'] == 2 and '继续调用 peixian_query_incidents' in first['next']
+    assert stay_progress(3, 3)['remaining'] == 0 and '全部比对' in stay_progress(3, 3)['next']
+    assert stay_progress(None, 3) is None and stay_progress(4, 3) is None
 
 
 def test_case_to_person_without_place_or_type_never_asks_for_coordinates(provider, monkeypatch):
@@ -298,12 +314,16 @@ def test_lookup_only_searches_what_the_user_wrote():
     context = _context('person_to_case', {'person_name': '孙强'})
     assert scope.arguments('warnings', {}, context) == {'person_name': '孙强'}
     assert scope.arguments('warnings', {'person_name': '孙强', 'page': 2}, context) == {'person_name': '孙强', 'page': 2}
-    for args in ({'person_name': '李四'}, {'person_phone': '13912345678'}, {'person_identity': '320322198803159911'}):
-        with pytest.raises(HTTPException):
+    for args in ({'person_name': '李四'}, {'person_phone': '13912345678'}):
+        with pytest.raises(HTTPException) as exc:
             scope.arguments('warnings', args, context)
+        assert exc.value.detail['code'] == 'person_lookup_invalid'
+    with pytest.raises(HTTPException):
+        scope.arguments('warnings', {'person_identity': '320322198803159911'}, context)
     with pytest.raises(HTTPException) as exc:
         scope.arguments('warnings', {}, _context('person_to_case', {}))
-    assert exc.value.detail['code'] == 'identity_parameter_invalid'
+    assert exc.value.detail['code'] == 'person_lookup_invalid'
+    assert 'person_lookup_invalid' not in q.CLARIFIABLE
 
 
 def test_lookup_result_reference_resolves_to_the_raw_identity():

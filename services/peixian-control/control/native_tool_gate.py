@@ -87,14 +87,15 @@ def _prepare(store,uid,sid,message_id,call_id,tool,args,revision):
             from . import person_case_flow as pcf
             ref,center,centre_count=pcf.pending_center(store,uid,sid,context,calls)
             if ref:auto_center=(ref,center)
+        # Person-to-case never asks the user for coordinates; stay centres come from tracks.
+        # Checked before the replay cache so a repeat after the last centre does not return centre 1 again.
+        if centre_count is not None and not auto_center:
+            if centre_count:error('person_case_centers_done','轨迹停留点周边警情已全部比对，请按已取得资料作答。',409)
+            error('person_case_tracks_first','请先查询该人员轨迹，警情按轨迹停留点自动比对。',409)
         # After auto-compaction the model may repeat a finished call under a new ID.
         repeated=next((x for x in calls.values() if x['tool']==tool and x['args_digest']==digest(raw_args) and x['status']=='completed' and x.get('public_response')),None)
         if repeated and not auto_center:
             return {'cached':True,'response':copy.deepcopy(repeated['public_response'])}
-        # Person-to-case never asks the user for coordinates; stay centres come from tracks.
-        if centre_count is not None and not auto_center:
-            if centre_count:error('person_case_centers_done','轨迹停留点周边警情已全部比对，请按已取得资料作答。',409)
-            error('person_case_tracks_first','请先查询该人员轨迹，警情按轨迹停留点自动比对。',409)
         # Case-to-person never asks for coordinates either; it needs a place or a case type.
         if (kind=='incidents' and context.get('direction')=='case_to_person' and not context.get('source_refs')
                 and not {'lon','lat','address','case_type'}&(set(args)|set(context.get('confirmed') or {}))):
@@ -200,6 +201,7 @@ def _prepare(store,uid,sid,message_id,call_id,tool,args,revision):
         item={'call_id':call_id,'tool':tool,'args_digest':digest(raw_args),'plan_digest':plan_digest,
               'status':'review_pending','frozen':frozen,'scope_version':context['scope_version'],
               'source_refs':copy.deepcopy(work_context['source_refs']),'review_context_version':REVIEW_VERSION,'identity_input_format':identity_format,'created':now()}
+        if auto_center:item['stay_center']={'index':(auto_center[1] or {}).get('position'),'total':centre_count}
         calls[call_id]=item
         db.execute("UPDATE business_runs SET request_ciphertext=?,updated=? WHERE id=?",(store.encrypt(snapshot),now(),row['id']))
         return {'cached':False,'run_id':row['id'],'call_id':call_id,'review_id':review_id(row['id'],call_id,plan_digest),

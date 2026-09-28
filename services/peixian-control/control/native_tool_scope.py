@@ -444,12 +444,12 @@ def lookup_arguments(args,context):
     """Only the name or phone the user wrote may be searched; one key per call."""
     keys=[k for k in ('person_name','person_phone') if args.get(k)]
     if not keys:
-        error('identity_parameter_invalid','缺少人员姓名或手机号。',409)
+        error('person_lookup_invalid','缺少人员姓名或手机号。',409)
     if len(keys)>1:
         error('native_tool_invalid','姓名和手机号一次只能按一项查找。',422)
     key=keys[0];value=str(args[key]).strip()
     if value!=(context.get('confirmed') or {}).get(key):
-        error('identity_parameter_invalid','只能按用户提供的姓名或手机号查找。',409)
+        error('person_lookup_invalid','只能按用户提供的姓名或手机号查找。',409)
     query={key:value}
     query.update({k:args[k] for k in ('page','page_size') if k in args})
     return query

@@ -16,6 +16,7 @@ MESSAGES = {
  'scope_unconfirmed': ('查询条件需要核对，不表示缺少插件授权。', 'clarify'),
  'identity_parameter_invalid': ('人员引用无法与当前对象对应，请明确本次对象。', 'clarify'),
  'identity_unconfirmed': ('本次人员对象尚未明确。', 'clarify'),
+ 'person_lookup_invalid': ('按姓名或手机号查人时，只能使用用户原文中的一个姓名或手机号；原文没有时请用户提供，不要改问身份证号。', 'clarify'),
  'unsupported_scope': ('此接口不支持所要求的筛选条件，不能直接扩大范围查询。', 'clarify'),
  'unsupported_query_conditions': ('查询包含该接口不支持的条件。', 'clarify'),
  'precise_time_required': ('请提供符合接口格式的完整起止时间。', 'clarify'),

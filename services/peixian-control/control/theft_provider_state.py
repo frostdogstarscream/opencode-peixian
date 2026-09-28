@@ -21,8 +21,13 @@ class ProviderState(FactsState):
             value=copy.deepcopy({'plan':snap['provider_plan'],'state':state})
             if value['plan'].get('version')==v2.VERSION:
                 value['plan'].pop('identities',None)
-                for entry in value['state']['modules'].values():
-                    if 'response' in entry:entry['response']=v2.public_result(entry['response'],self.store.worker_key.encode(),uid+'/'+row['session_id'])
+                from .person_case_flow import stay_progress
+                for key,entry in value['state']['modules'].items():
+                    if 'response' in entry:
+                        entry['response']=v2.public_result(entry['response'],self.store.worker_key.encode(),uid+'/'+row['session_id'])
+                        stay=(snap.get('native_calls',{}).get(key) or {}).get('stay_center') or {}
+                        progress=stay_progress(stay.get('index'),stay.get('total'))
+                        if progress and isinstance(entry['response'],dict):entry['response']['stay_center']=progress
             return value
     def authorize(self,db,row,snapshot,module=None):
         from .agents.runtime import validate_execution

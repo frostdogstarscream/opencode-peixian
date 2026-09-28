@@ -49,8 +49,17 @@ def test_scope_time_units_and_no_unrequested_filters():
     assert r['json']=={'lon':'116.1','lat':'34.1','scope':0.5,'pageNum':1,'pageSize':20}
     r=v.request_spec('captures',query('captures'),LIMITS,{})
     assert r['json']['scope']==500 and r['json']['startTime'].endswith('22:13:14')
-    for field in ('start','end','address','ajType','djdwPrefix'):
+    for field in ('start','end','ajType','djdwPrefix'):
         with pytest.raises(v.ContractError):v.normalize('incidents',{**query('incidents'),field:'额外限制'},LIMITS)
+
+
+def test_incident_address_time_and_type_conditions():
+    r=v.request_spec('incidents',{'address':'紫薇花园'},LIMITS,{})
+    assert r['json']=={'address':'紫薇花园','pageNum':1,'pageSize':20}
+    r=v.request_spec('incidents',{**query('incidents'),'start':'2026-09-01 00:00:00','end':'2026-09-15 00:00:00','case_type':'入室盗窃'},LIMITS,{})
+    assert r['json']['startTime']=='2026-09-01 00:00:00' and r['json']['endTime']=='2026-09-15 00:00:00' and r['json']['ajType']=='入室盗窃' and r['json']['scope']==0.5
+    for bad in ({'address':'紫'},{'address':'紫薇花园','lon':'116.1'},{'address':'紫薇花园','start':'2026-09-01 00:00:00'},{'start':'2026-09-01 00:00:00','end':'2026-09-02 00:00:00'}):
+        with pytest.raises(v.ContractError):v.normalize('incidents',bad,LIMITS)
     for start in ('2026-09-20','昨晚','2026-9-20 22:13:14'):
         with pytest.raises(v.ContractError):v.normalize('tracks',{**query('tracks'),'start':start},LIMITS)
     assert v.request_spec('tracks',query('tracks'),LIMITS,{REF:ID})['json']['trackTypes']==[0,1,2]

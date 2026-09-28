@@ -84,9 +84,42 @@ def case_reference(context, records):
     """Case point for case-to-person D5 from the confirmed position and stated or matched case time."""
     confirmed = context.get('confirmed') or {}
     window = context.get('capture_conditions') or confirmed
+    case = context.get('case_info') or {}
+    if case.get('gisX') is not None and case.get('gisY') is not None and not {'lon', 'lat'} <= confirmed.keys():
+        ref = theft_scoring.case_reference(case['gisX'], case['gisY'], case.get('cjsj'))
+        ref['number'] = case.get('jjbh') or case.get('cjbh')
+        return ref
     return theft_scoring.case_reference(
         confirmed.get('lon'), confirmed.get('lat'), confirmed.get('case_time'),
         [r for r in records if r.get('module') == 'incidents'], window.get('start'), window.get('end'))
+
+
+def query_window(context, direction):
+    """Conditions actually used, so the officer can ask to change them."""
+    if direction == 'case_to_person':
+        window, label = context.get('capture_conditions') or {}, '抓拍'
+    elif direction == 'person_to_case':
+        window, label = context.get('confirmed') or {}, '警情关联'
+    else:
+        return None
+    parts = []
+    if window.get('start') and window.get('end'):
+        parts.append(f"时间 {window['start']} 至 {window['end']}")
+    if window.get('radius_m'):
+        parts.append(f"{label}半径 {window['radius_m']} 米")
+    return '；'.join(parts) or None
+
+
+STRONG_GRADES = ('时空同现较强', '时空接近')
+
+
+def suspect_case(case_view):
+    """Most suspicious incident for person-to-case; only space-time close rows qualify."""
+    if not isinstance(case_view, dict):
+        return None
+    items = [x for x in case_view.get('items') or [] if isinstance(x, dict) and x.get('grade')]
+    strong = [x for x in items if x['grade'] in STRONG_GRADES]
+    return {'top': strong[0] if strong else None, 'others': strong[1:3], 'checked': len(items)}
 
 
 def completed_queries(snapshot):
@@ -624,6 +657,13 @@ def build(result, snapshot):
             pass
 
     case_view = None if context.get('query_rules_version')=='on-demand-v1' else model_case_checks(chosen, {r['record_id'] for r in records})
+    if direction == 'person_to_case' and context.get('query_rules_version') == 'on-demand-v1' and snapshot.get('dialogue_policy') != 'adaptive-dialogue-v1':
+        tracks = [r for r in records if r.get('module') == 'tracks']
+        incidents = [r for r in records if r.get('module') == 'incidents']
+        searched = any((c.get('frozen') or {}).get('kind') == 'incidents' and c.get('status') == 'completed'
+                       for c in (snapshot.get('native_calls') or {}).values())
+        if tracks and (incidents or searched):
+            case_view = theft_scoring.case_checks(tracks, incidents)
     if direction == 'person_to_case' and context.get('query_rules_version') != 'on-demand-v1' and snapshot.get('dialogue_policy') != 'adaptive-dialogue-v1':
         tracks = [r for r in records if r.get('module') == 'tracks']
         incidents = [r for r in records if r.get('module') == 'incidents']
@@ -655,6 +695,18 @@ def build(result, snapshot):
             elif scoring.get('status') == 'insufficient':
                 pass
 
+    suspect = suspect_case(case_view) if direction == 'person_to_case' else None
+    if suspect and suspect['top']:
+        top = suspect['top']
+        conclusions = [{
+            'text': f"最可疑警情 {top['jjbh']}（{top['grade']}）" + (f"：{top['brief']}" if top.get('brief') else '') + '。',
+            'source_ids': top.get('source_ids') or [],
+            'source_run_id': result['run_id'],
+            'claim_id': 'platform-suspect-case',
+            'limitation': '',
+        }] + conclusions
+    case_info = context.get('case_info') if direction == 'case_to_person' else None
+
     coverage = None
     plan = context.get('person_case_plan')
     if isinstance(plan, dict) and plan.get('coverage'):
@@ -676,6 +728,8 @@ def build(result, snapshot):
         'selection_status': 'accepted' if chosen else 'fallback',
         'source_runs': sorted({r['source_run_id'] for r in records}),
         'scoring': scoring, 'ranking': ranking, 'case_checks': case_view,
+        'suspect_case': suspect, 'case_info': case_info,
+        'query_window': query_window(context, direction),
         'activity_summaries': model_activity_summaries(chosen, records, aliases),
         **({} if chosen else {'model_notes': note for note in [model_notes(snapshot.get('model_final_text'))] if note}),
         'coverage': coverage,
@@ -704,6 +758,15 @@ def markdown(view):
     revised=view.get('layout_version')=='theft-four-sections-v1'
     if view.get('model_notes'):
         sections += ['**模型分析（未结构化，平台未核验）**\n\n' + '\n\n'.join(escape(x) for x in view['model_notes'].splitlines())]
+    case = view.get('case_info')
+    if case:
+        sections += ['### 案件信息', table(['信息项', '内容'], [
+            ('警情编号', case.get('jjbh') or case.get('cjbh') or '来源未提供'),
+            ('处警时间', case.get('cjsj') or '来源未提供'),
+            ('地址', case.get('cjxz') or case.get('bzdzmc') or '来源未提供'),
+            ('警情类别', case.get('cjlbDesc') or '来源未提供'),
+            ('简要警情', case.get('cljgnr') or '来源未提供'),
+        ])]
     if view.get('basic'):
         sections += ['### 人员基本信息', table(['信息项', '内容', '来源／说明'],
             [(x['label'], x['value'], '、'.join(x['source_ids']) + '；取得时间：' + str(x['obtained_at'] or '未提供')) for x in view['basic']])]
@@ -757,6 +820,28 @@ def markdown(view):
                 f"覆盖不足：{(item.get('name') or '') + '／' + (item.get('person_ref') or '')}；缺：{gaps}"
             ]
 
+    suspect = view.get('suspect_case')
+    if suspect:
+        sections += ['### 最可疑警情']
+        if suspect.get('top'):
+            rows = []
+            for rank, item in enumerate([suspect['top']] + list(suspect.get('others') or []), 1):
+                rows.append((
+                    '最可疑' if rank == 1 else f'其次{rank - 1}',
+                    item.get('jjbh') or item.get('cjbh'),
+                    item.get('cjsj'),
+                    item.get('address') or '来源未提供',
+                    item.get('brief') or item.get('category') or '来源未提供',
+                    '—' if item.get('distance_m') is None else f"{item['distance_m']} 米",
+                    '—' if item.get('time_delta_hours') is None else f"{item['time_delta_hours']} 小时",
+                    item.get('grade') or '',
+                ))
+            sections += [table(['排序', '警情编号', '处警时间', '地址', '简要警情', '与轨迹最近距离', '时间差', '关联强度'], rows)]
+        else:
+            sections += [f"已比对 {suspect.get('checked', 0)} 起警情，未发现时空关联警情（距离 1000 米内且时间差 24 小时内）。"]
+    if view.get('query_window'):
+        sections += ['本次查询条件：' + escape(view['query_window']) + '。如需调整，可直接说明，例如「改成近31天」「半径改为1000米」。']
+
     scoring = view.get('scoring')
     if scoring:
         sections += ['### 可疑度评分']
@@ -777,7 +862,8 @@ def markdown(view):
         for item in case_view['items']:
             if graded:
                 rows.append((
-                    item.get('cjbh'),
+                    item.get('jjbh') or item.get('cjbh'),
+                    item.get('brief') or item.get('category') or '—',
                     item.get('cjsj'),
                     '—' if item.get('distance_m') is None else f"{item['distance_m']} 米",
                     '—' if item.get('time_delta_hours') is None else f"{item['time_delta_hours']} 小时",
@@ -803,7 +889,7 @@ def markdown(view):
                 ))
         if graded:
             sections += [table(
-                ['警情编号', '处警时间', '最近直线距离', '时间差', '时空等级', '关系', '主要依据', '建议核验', '核验状态'],
+                ['警情编号', '简要警情', '处警时间', '最近直线距离', '时间差', '时空等级', '关系', '主要依据', '建议核验', '核验状态'],
                 rows,
             )]
         else:

@@ -50,8 +50,11 @@ def recent_options(today=None):
 def limit_time_options(questions, today=None):
     """Drop time options longer than one query may span; readable labels only."""
     for q in questions:
-        if not isinstance(q,dict) or not isinstance(q.get('options'),list) or not q['options']:continue
+        if not isinstance(q,dict):continue
         if not TIME_QUESTION.search(str(q.get('header',''))+str(q.get('question',''))):continue
+        if not q.get('options') and q.get('custom',True) is not False:
+            q['options']=recent_options(today);continue
+        if not isinstance(q.get('options'),list):continue
         kept=[o for o in q['options'] if not isinstance(o,dict) or (label_span_days(o.get('label')) or 0)<=MAX_QUERY_DAYS]
         q['options']=kept or recent_options(today)
     return questions

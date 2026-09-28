@@ -23,6 +23,52 @@ SCORING_NEGATE=re.compile(
 )
 CASE_HINT=re.compile(r'案件|警情|案发|盗窃案|由案到人|周边人员|可疑人员')
 PERSON_HINT=re.compile(r'由人到案|此人|该人|这名人员|已确认人员')
+ADDRESS=re.compile(r'[\u4e00-\u9fa5A-Za-z0-9·]{2,20}?(?:小区|花园|家园|家属院|名邸|公寓|新村|苑|广场|大厦|商圈|御景|公园|玫瑰园|碧桂园)')
+ADDRESS_PREFIX=re.compile(r'^(?:由案到人)?(?:请|帮我|帮忙|麻烦)?(?:查一下|查询一下|查询|查查|查|看看|看一下|分析一下|分析|核查一下|核查|研判一下|研判|排查一下|排查)?')
+
+
+NUMBER=re.compile(r'-?\d+(?:\.\d+)?')
+
+
+def grounded_arguments(kind, args, context):
+    """Treat model-filled placeholders as missing so the platform card asks instead.
+
+    The plugin schemas make models fill lon/lat/start/end even when the user gave
+    none (0, "", 2000-01-01). Coordinates and times survive only when the user or
+    a card answer stated them.
+    """
+    if not isinstance(args,dict):
+        return args
+    kept={k:v for k,v in args.items() if v is not None and not (isinstance(v,str) and not v.strip())}
+    text=(context.get('constraints_text') or '')+' '+(context.get('current_text') or '')
+    if kind=='incidents' and {'lon','lat'}&kept.keys():
+        said={Decimal(n) for n in NUMBER.findall(text)}
+        def stated(value):
+            try:return Decimal(str(value).strip()) in said
+            except (InvalidOperation,ValueError):return False
+        if not all(stated(kept[k]) for k in ('lon','lat') if k in kept):
+            kept={k:v for k,v in kept.items() if k not in ('lon','lat')}
+    if 'radius_m' in kept:
+        try:
+            if Decimal(str(kept['radius_m']).strip())<=0:kept.pop('radius_m')
+        except (InvalidOperation,ValueError):pass
+    if {'start','end'}&kept.keys():
+        known=[context.get('confirmed') or {},context.get('capture_conditions') or {}]
+        def stated_time(key):
+            value=str(kept.get(key) or '').strip()
+            return bool(value) and (value[:10] in text or any(str(c.get(key) or '')==value for c in known))
+        if not all(stated_time(k) for k in ('start','end') if k in kept):
+            kept={k:v for k,v in kept.items() if k not in ('start','end')}
+    return kept
+
+
+def community_address(text):
+    """Community or address keyword for the incident address match; never coordinates."""
+    for match in ADDRESS.finditer(text or ''):
+        value = ADDRESS_PREFIX.sub('', match.group(0))
+        if len(value) >= 2:
+            return value[:40]
+    return None
 
 
 def scoring_requested(text, prior=None, direction=None):
@@ -49,7 +95,7 @@ def infer_direction(confirmed, refs, text, prior=None):
         # Selected sources may already bind a person; prefer person_to_case when prior said so.
         if prior and prior.get('direction') == 'person_to_case' and 'person_identity' in (prior.get('confirmed') or {}):
             return 'person_to_case'
-    if {'lon', 'lat'} <= set((confirmed or {}).keys()) or CASE_HINT.search(text or ''):
+    if {'lon', 'lat'} <= set((confirmed or {}).keys()) or CASE_HINT.search(text or '') or community_address(text):
         return 'case_to_person'
     if prior and prior.get('direction') in ('case_to_person', 'person_to_case'):
         return prior['direction']
@@ -61,6 +107,8 @@ def freeze_context(store,uid,sid,data):
     text=data['text']
     parsed=slots(text,data.get('scope'))
     current={v['field']:v['value'] for v in parsed.values()}
+    address=None if {'person_identity','lon','lat'}&current.keys() else community_address(text)
+    if address:current['address']=address
     prior=None
     for row in store.rows("SELECT request_ciphertext FROM business_runs WHERE uid=? AND session_id=? ORDER BY rowid DESC LIMIT 30",(uid,sid)):
         snapshot=store.decrypt(row['request_ciphertext'])
@@ -79,7 +127,10 @@ def freeze_context(store,uid,sid,data):
     if ambiguous_location:confirmed.pop('lon',None);confirmed.pop('lat',None)
     # A new explicit object or position supersedes any earlier selected source.
     # Otherwise a later question could silently query the old source instead.
-    changed_object=any(canonical_field(k, current[k]) != canonical_field(k, (prior or {}).get('confirmed', {}).get(k)) if (prior or {}).get('confirmed', {}).get(k) is not None else True for k in ('person_identity','lon','lat') if k in current) or ambiguous_person or ambiguous_location
+    changed_object=any(canonical_field(k, current[k]) != canonical_field(k, (prior or {}).get('confirmed', {}).get(k)) if (prior or {}).get('confirmed', {}).get(k) is not None else True for k in ('person_identity','lon','lat','address') if k in current) or ambiguous_person or ambiguous_location
+    if changed_object and 'address' not in current and {'person_identity','lon','lat'}&current.keys():confirmed.pop('address',None)
+    if 'address' in current and 'person_identity' not in current:
+        confirmed.pop('person_identity',None);confirmed.pop('lon',None);confirmed.pop('lat',None)
     if 'source_refs' in data:
         refs=copy.deepcopy(data['source_refs'])
     else:
@@ -120,6 +171,7 @@ def freeze_context(store,uid,sid,data):
         'enrichment_plan':None,
         'person_case_plan':None,
         'center_set':[],
+        'case_info':None if changed_object else copy.deepcopy((prior or {}).get('case_info')),
         'stop_followup':stop_followup}
 
 
@@ -179,6 +231,15 @@ def resolve_arguments(kind, args, context):
     if kind=='captures': reusable.update({'start','end','radius_m'})
     for key in reusable:
         if key not in resolved and key in confirmed: resolved[key]=copy.deepcopy(confirmed[key])
+    if kind=='incidents':
+        if context.get('direction')=='person_to_case' and {'start','end'}<=confirmed.keys():
+            for key in ('start','end'):resolved.setdefault(key,copy.deepcopy(confirmed[key]))
+        if context.get('direction')=='person_to_case' and context['source_refs'] and 'radius_m' in confirmed:
+            resolved.setdefault('radius_m',copy.deepcopy(confirmed['radius_m']))
+        if (context.get('direction')=='case_to_person' and confirmed.get('address') and not context['source_refs']
+                and not {'lon','lat'}&resolved.keys()):
+            resolved['address']=confirmed['address']
+            resolved.pop('radius_m',None)
     return {key:canonical_field(key,value) for key,value in resolved.items()}
 
 
@@ -193,6 +254,7 @@ def arguments(kind,args,context):
         error('native_tool_invalid','资料工具或参数无效。',422)
     supported={'lon','lat','radius_m','person_identity','start','end','page','page_size'}
     if kind=='captures':supported-={'lon','lat'}
+    if kind=='incidents':supported|={'address'}
     if set(args)-supported:
         error('native_tool_invalid','查询参数包含未开放的条件。',422)
     args=resolve_arguments(kind,args,context)
@@ -205,12 +267,13 @@ def arguments(kind,args,context):
     if context['source_refs'] and {'lon','lat','person_identity'} & args.keys():
         error('source_value_override','已选择来源时不能再替换对象或坐标。',409)
     required=({'radius_m'} if context['source_refs'] else {'lon','lat','radius_m'}) if kind=='incidents' else {'radius_m'} if kind=='captures' else set() if context['source_refs'] else {'person_identity'}
+    if kind=='incidents' and args.get('address') and not context['source_refs']:required=set()
     if kind in adapter.TIMED:required|={'start','end'}
     if not required<=set(args):
         error('scope_missing','查询条件不完整，未访问资料接口；只补充列出的字段，不重试或猜测权限。',409,{k:FIELD_NAMES[k]+'尚未明确' for k in sorted(required-set(args))})
     if kind=='captures' and len(context['source_refs'])!=1 and not (context.get('capture_position_confirmed') and {'lon','lat'} <= context.get('confirmed',{}).keys()):
         error('source_selection_required','周边抓拍必须先选择一个明确的位置来源。',409)
-    if kind in adapter.TIMED:
+    if kind in adapter.TIMED or (kind=='incidents' and {'start','end'}<=args.keys()):
         check_time_window(args['start'],args['end'])
     # Accept model values into confirmed so later turns see them as known.
     confirmed=context.setdefault('confirmed',{})
@@ -221,6 +284,9 @@ def arguments(kind,args,context):
         confirmed[key]=copy.deepcopy(value)
         user_conditions[key]=copy.deepcopy(value)
     applicable=({'lon','lat','radius_m'} if kind in ('incidents','captures') else set())|({'start','end'} if kind in adapter.TIMED else set())|({'page','page_size'} if kind in adapter.PAGED else set())
+    if kind=='incidents':
+        applicable|={'start','end'} if {'start','end'}<=args.keys() else set()
+        if args.get('address') and not context['source_refs']:applicable|={'address'}
     query={key:copy.deepcopy(value) for key,value in args.items() if key in applicable}
     if kind=='captures' and not context['source_refs'] and context.get('capture_position_confirmed'):
         query.update({k:canonical_field(k,context['confirmed'][k]) for k in ('lon','lat')})
@@ -305,13 +371,13 @@ def model_context(context):
 本轮对话规则：围绕用户当前问题选择必要工具，不要求八项全查，不按固定人员补查计划执行。
 已取得资料足够时直接回答；普通问候、解释、表格调整不取数。
 沿用同一任务已确认且用途适用的人员、时间和位置；不要反复确认同一条件。
-人员或地点不明确、多个候选时，用 question 只问缺项，不默认取第一项，不自动遍历所有位置。
-已取得位置只是候选，需用户明确选择。抓拍时间与半径需用途明确，轨迹时间不自动变成抓拍时间。
+人员不明确时用 question 只问缺项。缺时间、半径或案件时直接调用对应资料工具（缺项不传），平台返回选项卡后按原样用 question 提问，不要自己写要求填写精确时间的问题。
+由人到案：周边警情由平台按轨迹停留点自动查询（每次调用一个停留点，最多3个）。由案到人：周边警情由平台按小区名做地址模糊匹配，案件、抓拍时间（案发前N天）和半径由平台选项卡确认。抓拍时间与半径需用途明确，轨迹时间不自动变成抓拍时间。
 person_identity 可使用已确认身份或该任务来源中的人员引用；已选来源的坐标由平台读取。
 零记录只写查询时段和 0 条；不得自动扩大范围、自动翻页或重试未知调用。单次时间跨度不超过 31 天。
 答复不写免责声明或「不等于/不证明/不代表/仅作参考」类句子。
 用户取消补充时停止对应查询，基于成功资料给出阶段回答，不把取消解释为全部资料失败。
 资料类回答包含人员基本信息、研判摘要、分析依据、下一步研判；来源事实与模型说明区分。
 下一步研判默认不提建议；只有存在影响结论的缺口、需要新查询或需用户确认条件时才提，最多两项，不自动执行。资料已足够时写明现有资料可支撑当前结论即可。可以结合资料对人员的活动目的、行为特点和嫌疑作出研判。
-周边警情仅支持空间及分页条件；用户要求的时间或类别条件无法传给接口时，在答复中写明未按该条件筛选。时间线中区分处警时间与案发时间。
+由人到案有可疑结论时写明最可疑警情的警情编号和简要警情；平台未给出最可疑警情时写未发现时空关联警情。时间线中区分处警时间与案发时间。
 """ + ('用户已要求停止追问，直接整理已有资料。' if context.get('stop_followup') else '') + '\n' + adapter.canonical(payload)

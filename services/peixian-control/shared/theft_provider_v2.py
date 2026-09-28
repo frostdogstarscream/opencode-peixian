@@ -41,7 +41,7 @@ FIELDS = {
 }
 FIELDS['warnings'] = FIELDS['warning_detail']
 LIMITATIONS = {
-    'incidents': '上游默认覆盖辖区内有坐标的盗窃、抢劫、抢夺类警情；本次不按时间或单独类别筛选。处警时间不等于案发时间。',
+    'incidents': '上游默认覆盖辖区内有坐标的盗窃、抢劫、抢夺类警情；地址按标准地址、处警详址、接警地点模糊匹配，时间按处警时间筛选。处警时间不等于案发时间。',
     'captures': '来源限定人群的抓拍汇总，不代表全部路人；抓拍次数不等于到访次数。',
     'tracks': '来源轨迹总量未知；坐标未经兼容确认不得用于跨接口传递，不证明到达现场。',
     'night': '来源夜间规则为23:00至次日05:00，不代表全部夜间活动。',
@@ -108,15 +108,32 @@ def normalize(kind, value, limits):
     if kind in PAGED: allowed |= {'page','page_size'}
     if kind == 'tracks': allowed |= {'track_types'}
     if kind == 'warnings': allowed |= {'start_date','end_date'}
+    if kind == 'incidents': allowed |= {'address','case_type','start','end'}
     if set(value) - allowed:
         raise ContractError('unsupported_query_conditions')
     q = copy.deepcopy(value)
     if kind in PERSON and not re.fullmatch(r'person-[a-f0-9]{32}', str(q.get('person_ref', ''))):
         raise ContractError('person_reference_required')
-    if kind in ('incidents','captures'):
+    if kind == 'incidents':
+        for field in ('address','case_type'):
+            if field in q and (not isinstance(q[field],str) or not 2<=len(q[field].strip())<=40):
+                raise ContractError('invalid_'+field)
+            if field in q: q[field]=q[field].strip()
+    area_optional = kind == 'incidents' and 'address' in q and not {'lon','lat','radius_m'} & q.keys()
+    if kind in ('incidents','captures') and not area_optional:
         for field, lo, hi in [('lon',-180,180),('lat',-90,90),('radius_m',Decimal('0.001'),limits['max_radius_m'])]:
             if field not in q: raise ContractError(field+'_required')
             q[field] = format(decimal(q[field], lo, hi).normalize(), 'f')
+    if kind == 'incidents' and ('start' in q or 'end' in q):
+        values = []
+        for field in ('start','end'):
+            raw=q.get(field)
+            if not isinstance(raw,str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}',raw):
+                raise ContractError('precise_time_required')
+            try: values.append(datetime.strptime(raw,'%Y-%m-%d %H:%M:%S'))
+            except ValueError: raise ContractError('invalid_time') from None
+        if not 0 < (values[1]-values[0]).total_seconds() <= limits['max_duration_seconds']:
+            raise ContractError('time_range_limit')
     if kind in TIMED:
         values = []
         for field in ('start','end'):
@@ -151,8 +168,10 @@ def request_spec(kind, value, limits, identities):
     identity=person_id(identities.get(q['person_ref'])) if kind in PERSON else None
     body={}
     if kind in PAGED: body.update(pageNum=q['page'],pageSize=q['page_size'])
-    if kind in ('incidents','captures'):
+    if kind in ('incidents','captures') and 'lon' in q:
         body.update(lon=q['lon'],lat=q['lat'],scope=float(Decimal(q['radius_m'])/(1000 if kind=='incidents' else 1)))
+    if kind=='incidents':
+        body.update({name:q[key] for key,name in (('address','address'),('case_type','ajType'),('start','startTime'),('end','endTime')) if key in q})
     if kind in ('captures','night'):body.update(startTime=q['start'],endTime=q['end'])
     if kind in ('tracks','community'):body.update(beginTime=q['start'],endTime=q['end'])
     if kind=='tracks':body.update(certificateNo=identity,trackTypes=q['track_types'])

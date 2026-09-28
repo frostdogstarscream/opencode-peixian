@@ -249,9 +249,14 @@ def stay_points_from_tracks(track_records, domicile=None, max_centers=MAX_CENTER
         })
 
     centers.sort(key=lambda c: (-c['score'], -c['visit_count'], c['record_id'] or ''))
-    for index, item in enumerate(centers[:max_centers], 1):
+    chosen = centers[:max_centers]
+    # Busy daytime routes can crowd out a single late-night stop, which matters most for theft.
+    night = next((c for c in centers[max_centers:] if c['night_count'] and not c['domicile_like']), None)
+    if night and chosen and not any(c['night_count'] for c in chosen):
+        chosen = chosen[:max_centers - 1] + [night]
+    for index, item in enumerate(chosen, 1):
         item['rank'] = index
-    return centers[:max_centers]
+    return chosen
 
 
 def authorize_centers(centers, n=MAX_CENTERS, radius_m=DEFAULT_RADIUS_M):
@@ -424,6 +429,40 @@ def coverage_appendix(plan):
         label = {'done': '已查', 'failed': '失败', 'pending': '未查'}.get(status, status)
         rows.append((KIND_LABELS.get(kind, kind), label))
     return rows
+
+
+def pending_center(store, uid, sid, context, calls=None, kind='incidents'):
+    """Next track stay centre of this task without a completed location query.
+
+    Returns (source_ref, centre, centre_count). Reads live projections so tracks
+    obtained earlier in the same Run count.
+    """
+    from fastapi import HTTPException
+    from .live_sources import projection, reference
+    records = []
+    for row in store.rows("SELECT id FROM business_runs WHERE uid=? AND session_id=? ORDER BY rowid DESC LIMIT 20", (uid, sid)):
+        try:
+            result = projection(store, uid, sid, row['id'])
+        except HTTPException:
+            continue
+        if result.get('versions', {}).get('task_id') != context.get('task_id'):
+            continue
+        for record in result.get('records') or []:
+            if record.get('module') != 'tracks' or not record.get('call_id'):
+                continue
+            ref = reference(result, record)
+            records.append({**record, 'source_run_id': ref['run_id'], 'result_digest': ref['result_digest']})
+    centers = stay_points_from_tracks(records)
+    done = location_calls_by_center(store, uid, sid, context.get('task_id'))
+    for call in (calls or {}).values():
+        if isinstance(call, dict) and call.get('status') == 'completed' and (call.get('frozen') or {}).get('kind') == kind:
+            done |= {ref['record_id'] + ':' + kind for ref in call.get('source_refs') or [] if isinstance(ref, dict) and ref.get('record_id')}
+    for center in centers:
+        if center.get('record_id') and center['record_id'] + ':' + kind not in done:
+            ref = {k: center[k] for k in ('record_id', 'snapshot_id', 'result_digest')}
+            ref['run_id'] = center['run_id']
+            return ref, center, len(centers)
+    return None, None, len(centers)
 
 
 def next_center_source(context, kind):

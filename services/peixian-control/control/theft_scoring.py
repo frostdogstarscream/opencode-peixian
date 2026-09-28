@@ -205,8 +205,15 @@ def score_d5(records, queried=None):
     if not in_window:
         return _dim('d5', 'available', 0, '轨迹时间窗内无周边警情', limitation=f'仅比较轨迹前后{WINDOW_DAYS}天内的警情')
     targets = [{'lon': (inc.get('fields') or {}).get('gisX'), 'lat': (inc.get('fields') or {}).get('gisY'),
-                'time': _incident_time(inc), 'record_id': inc['record_id']} for inc in in_window]
+                'time': _incident_time(inc), 'record_id': inc['record_id'], 'number': incident_number(inc.get('fields'))}
+               for inc in in_window]
     return _coupling('d5', tracks, targets, '警情')
+
+
+def incident_number(fields):
+    fields = fields or {}
+    value = fields.get('jjbh') or fields.get('cjbh')
+    return str(value) if value else None
 
 
 WINDOW_DAYS = 7
@@ -297,11 +304,12 @@ def _coupling(key, tracks, targets, label):
             space, when = _space_score(dist), _time_score(hours)
             rank_key = (-(space + when), dist, hours)
             if best is None or rank_key < best[0]:
-                best = (rank_key, dist, hours, space, when, tr['record_id'], target.get('record_id'))
+                best = (rank_key, dist, hours, space, when, tr['record_id'], target.get('record_id'), target.get('number'))
     if best is None:
         return _dim(key, 'unavailable', evidence=f'轨迹或{label}缺少可比较的坐标/时间')
-    _, dist, hours, space, when, track_id, target_id = best
-    evidence = f'同一{label}最近直线距离约{int(dist)}米→空间{space}分；时间差约{hours:.1f}小时→时间{when}分'
+    _, dist, hours, space, when, track_id, target_id, number = best
+    subject = f'与{label} {number} ' if number else f'同一{label}'
+    evidence = f'{subject}最近直线距离约{int(dist)}米→空间{space}分；时间差约{hours:.1f}小时→时间{when}分'
     return _dim(key, 'available', space + when, evidence, sorted({x for x in (track_id, target_id) if x}))
 
 
@@ -675,6 +683,10 @@ def case_checks(track_records, incident_records):
         next_checks.append('核对处警记录原文与现场情况，不得直接认定为涉案')
         rows.append({
             'cjbh': str(cjbh),
+            'jjbh': incident_number(fields) or str(cjbh),
+            'brief': str(fields.get('cljgnr') or '')[:60] or None,
+            'category': fields.get('cjlbDesc'),
+            'address': fields.get('cjxz') or fields.get('bzdzmc'),
             'cjsj': str(cjsj),
             'distance_m': dist_m,
             'time_delta_hours': hours,
@@ -694,6 +706,14 @@ def case_checks(track_records, incident_records):
         r['time_delta_hours'] if r.get('time_delta_hours') is not None else 10**9,
         r.get('cjbh') or '',
     ))
+    seen = set()
+    unique = []
+    for row in rows:
+        if row['jjbh'] in seen and row['jjbh'] != '未提供编号':
+            continue
+        seen.add(row['jjbh'])
+        unique.append(row)
+    rows = unique
     return {
         'version': VERSION,
         'status': 'ready' if rows else 'empty',

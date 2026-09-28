@@ -63,6 +63,7 @@ PAGE_SIZE_OPTIONS = [
     ('每页 20 条', 20),
 ]
 CAPTURE_WINDOWS = (1, 2, 6)
+CASE_WINDOWS = (1, 3, 7, 15)
 
 
 def is_clarifiable(code):
@@ -121,7 +122,8 @@ def list_spatial_sources(store, uid, sid, limit=5, task_id=None):
             if record['module'] == 'incidents':
                 when = fields.get('cjsj') or '时间未提供'
                 where = fields.get('cjxz') or fields.get('bzdzmc') or fields.get('cjmlph') or '地址未提供'
-                title = f"警情位置{len(found)+1} · {where} · {when}"
+                number = fields.get('jjbh') or fields.get('cjbh')
+                title = f"警情位置{len(found)+1} · " + (f"{number} · " if number else '') + f"{where} · {when}"
             else:
                 when = fields.get('captureTime') or fields.get('time') or '时间未提供'
                 where = f"{fields.get('lon', '?')},{fields.get('lat', '?')}"
@@ -134,10 +136,71 @@ def list_spatial_sources(store, uid, sid, limit=5, task_id=None):
                 'ref': ref,
                 'cjsj': fields.get('cjsj') or fields.get('captureTime'),
                 'module': record['module'],
+                'fields': fields,
             })
             if len(found) >= limit:
                 return found
     return found
+
+
+def case_label(fields):
+    number = fields.get('jjbh') or fields.get('cjbh') or '未提供编号'
+    when = str(fields.get('cjsj') or '时间未提供')[:16]
+    brief = str(fields.get('cljgnr') or fields.get('cjlbDesc') or fields.get('cjxz') or '')[:18]
+    return ' · '.join(x for x in (str(number), when, brief) if x)
+
+
+def case_sources(store, uid, sid, task_id=None, limit=5):
+    """Distinct incidents of this task, newest handling time first, labelled for police."""
+    unique = {}
+    for item in list_spatial_sources(store, uid, sid, limit=500, task_id=task_id):
+        if item['module'] != 'incidents':
+            continue
+        fields = item.get('fields') or {}
+        unique.setdefault(fields.get('jjbh') or fields.get('cjbh') or item['ref']['record_id'], item)
+    items = sorted(unique.values(), key=lambda s: str(s.get('cjsj') or ''), reverse=True)[:limit]
+    seen = set()
+    for item in items:
+        label = case_label(item.get('fields') or {})
+        while label in seen:
+            label += '·'
+        seen.add(label)
+        item['label'] = label
+    return items
+
+
+def source_match(store, uid, sid, ref):
+    if store is None or not isinstance(ref, dict):
+        return None
+    return next((s for s in list_spatial_sources(store, uid, sid, limit=500)
+                 if s['ref'].get('record_id') == ref.get('record_id')), None)
+
+
+CASE_FIELDS = ('jjbh', 'cjbh', 'cjsj', 'cjxz', 'bzdzmc', 'cljgnr', 'cjlbDesc', 'gisX', 'gisY')
+
+
+def case_info(source):
+    if not source or source.get('module') != 'incidents':
+        return None
+    fields = source.get('fields') or {}
+    return {k: fields[k] for k in CASE_FIELDS if fields.get(k) not in (None, '')}
+
+
+def case_time_presets(anchor=None):
+    """'N days before the incident', ending at the incident handling time."""
+    center = _parse_cjsj(anchor) if anchor else None
+    options, values = [], {}
+    for days in CASE_WINDOWS:
+        label = f'案发前{days}天'
+        if center:
+            start = (center - timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
+            end = center.strftime('%Y-%m-%d %H:%M:%S')
+            options.append({'label': label, 'description': f'{start} 至 {end}'})
+            values[label] = {'start': start, 'end': end}
+        else:
+            options.append({'label': label, 'description': f'以所选警情处警时间为终点，向前 {days} 天'})
+            values[label] = {'case_days': days}
+    return options, values
 
 
 def capture_time_presets(anchor):
@@ -157,12 +220,13 @@ def capture_time_presets(anchor):
 def recent_time_presets(now=None):
     """Windows ending now; none exceeds the single-query span limit."""
     end = (now or datetime.now()).replace(microsecond=0)
-    pairs = []
+    options, values = [], {}
     for days in RECENT_WINDOWS:
         start = (end - timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
         stop = end.strftime('%Y-%m-%d %H:%M:%S')
-        pairs.append((f'近{days}天（{start} 至 {stop}）', {'start': start, 'end': stop}))
-    return _label_options(pairs)
+        options.append({'label': f'近{days}天', 'description': f'{start} 至 {stop}'})
+        values[f'近{days}天'] = {'start': start, 'end': stop}
+    return options, values
 
 
 def check_window(start, end):
@@ -188,6 +252,7 @@ def build(kind, code, field_errors, context, store, uid, sid):
     questions = []
     values = {}
     fields = []
+    extra = {}
 
     if code == 'unsupported_scope':
         label = '同意使用上游默认覆盖范围'
@@ -201,8 +266,17 @@ def build(kind, code, field_errors, context, store, uid, sid):
         values['取消本次查询'] = {'cancel': True}
         fields = ['supported_scope']
     elif code in ('source_selection_required', 'explicit_source_required', 'source_selection_limit'):
-        sources = list_spatial_sources(store, uid, sid, task_id=context.get('task_id'))
-        if not sources:
+        cases = case_sources(store, uid, sid, context.get('task_id')) if context.get('direction') == 'case_to_person' else []
+        sources = cases or list_spatial_sources(store, uid, sid, task_id=context.get('task_id'))
+        if cases:
+            questions.append(_field_question(
+                'source', custom=False,
+                options=[{'label': c['label'], 'description': str((c.get('fields') or {}).get('cjxz') or '')[:40]} for c in cases],
+                question='请选择要核查的案件；以该警情位置为中心查询周边抓拍。'))
+            questions[-1]['header'] = '选择案件'
+            values.update({c['label']: {'source_ref': c['ref']} for c in cases})
+            fields = ['source']
+        elif not sources:
             questions.extend([_field_question('lon', question='当前没有可选的位置记录，请提供本次查询位置的经度。'),
                               _field_question('lat', question='请提供同一位置的纬度；不支持仅凭地名自动转换坐标。')])
             fields = ['lon','lat']
@@ -265,14 +339,20 @@ def build(kind, code, field_errors, context, store, uid, sid):
                  if k in (field_errors or {})]
         if not asked:
             asked = ['start', 'end', 'radius_m'] if kind == 'captures' else ['person_identity']
+        card = scope_card(kind, asked, context, store, uid, sid)
+        if card:
+            questions, values, fields, extra = card
+            asked = []
         # Collapse start+end into one time question when both missing.
         if 'start' in asked and 'end' in asked:
             asked = [k for k in asked if k not in ('start', 'end')]
+            time_options, time_values = recent_time_presets()
+            values.update(time_values)
             questions.append(_field_question(
                 'time_window',
-                options=[],
+                options=time_options,
                 custom=True,
-                question='请提供开始时间与结束时间，格式为 YYYY-MM-DD HH:mm:ss。',
+                question='请选择时间范围；自行填写时需同时给出开始与结束时间。',
             ))
             questions[-1]['header'] = '时间窗口'
             fields.extend(['start', 'end'])
@@ -304,7 +384,74 @@ def build(kind, code, field_errors, context, store, uid, sid):
         'fields': list(dict.fromkeys(fields)),
         'questions': questions,
         'values': values,
+        **extra,
     }
+
+
+def _time_question(options, question, header):
+    item = _field_question('time_window', options=options, custom=True, question=question)
+    item['header'] = header
+    return item
+
+
+def scope_card(kind, asked, context, store, uid, sid):
+    """One option-only card per scenario: person scope, or case plus capture scope."""
+    direction = context.get('direction')
+    confirmed = context.get('confirmed') or {}
+    questions, values, fields, extra = [], {}, [], {}
+    if kind == 'captures' and set(asked) & {'start', 'end', 'radius_m'}:
+        refs = context.get('source_refs') or []
+        anchor, cases, relative = None, [], False
+        if len(refs) == 1:
+            match = source_match(store, uid, sid, refs[0])
+            if match and match['module'] == 'incidents':
+                anchor, relative = match.get('cjsj'), True
+        elif not context.get('capture_position_confirmed') and store is not None:
+            cases = case_sources(store, uid, sid, context.get('task_id'))
+            if len(cases) == 1:
+                extra.update(auto_source_ref=cases[0]['ref'], auto_source_label=cases[0]['label'])
+                anchor, relative = cases[0].get('cjsj'), True
+            elif cases:
+                relative = True
+                questions.append(_field_question(
+                    'source', custom=False,
+                    options=[{'label': c['label'], 'description': str((c.get('fields') or {}).get('cjxz') or '')[:40]} for c in cases],
+                    question='请选择要核查的案件；以该警情位置为中心查询周边抓拍。'))
+                questions[-1]['header'] = '选择案件'
+                values.update({c['label']: {'source_ref': c['ref']} for c in cases})
+                fields.append('source')
+        if {'start', 'end'} & set(asked):
+            if relative:
+                options, mapped = case_time_presets(anchor)
+                question = '请选择抓拍时间范围（以警情处警时间为终点）。'
+            else:
+                options, mapped = recent_time_presets()
+                question = '请选择抓拍时间范围。'
+            values.update(mapped)
+            questions.append(_time_question(options, question, '抓拍时间'))
+            fields += ['start', 'end']
+        if 'radius_m' in asked:
+            options, mapped = _label_options(RADIUS_OPTIONS)
+            values.update(mapped)
+            questions.append(_field_question('radius_m', options=options, custom=True,
+                                             question='请选择以案发点为中心的抓拍查询半径。'))
+            questions[-1]['header'] = '抓拍范围'
+            fields.append('radius_m')
+        return questions, values, fields, extra
+    if kind in ('tracks', 'night', 'community') and {'start', 'end'} <= set(asked) and direction == 'person_to_case':
+        options, mapped = recent_time_presets()
+        values.update(mapped)
+        questions.append(_time_question(options, '请选择本次核查的时间范围（轨迹、夜间、跨小区和周边警情共用）。', '时间范围'))
+        fields += ['start', 'end']
+        if 'radius_m' not in confirmed:
+            options, mapped = _label_options(RADIUS_OPTIONS)
+            values.update(mapped)
+            questions.append(_field_question('radius_m', options=options, custom=True,
+                                             question='请选择以轨迹停留点关联周边警情的半径。'))
+            questions[-1]['header'] = '警情关联半径'
+            fields.append('radius_m')
+        return questions, values, fields, extra
+    return None
 
 
 def public(spec):
@@ -318,7 +465,7 @@ def public(spec):
         'questions': [{
             'header': q['header'],
             'question': q['question'],
-            'options': [{'label': o['label'], **({'description': o['description']} if o.get('description') else {})}
+            'options': [{'label': o['label'], 'description': o.get('description') or o['label']}
                         for o in (q.get('options') or [])],
             'custom': q.get('custom', True),
             'multiple': False,
@@ -342,8 +489,7 @@ def match_public(spec, asked):
         right_labels = [o.get('label') for o in (right.get('options') or [])]
         if left_labels != right_labels:
             return False
-        if bool(left.get('custom', True)) != bool(right.get('custom', True)):
-            return False
+    # Models often drop "custom"; free text is still refused by the pending spec in _resolve_answer.
     return True
 
 
@@ -427,11 +573,15 @@ def apply_reply(spec, answers, context, store=None, uid=None, sid=None):
     if not isinstance(answers, list) or len(answers) != len(questions):
         error('clarification_incomplete', '请回答全部问题。', 422)
     updates = {}
-    source_ref = None
+    source_ref = copy.deepcopy(spec.get('auto_source_ref'))
     cancel = False
-    literals = []
+    literals = [spec['auto_source_label']] if spec.get('auto_source_label') else []
+    case_days = None
     for question, answer in zip(questions, answers):
         piece = _resolve_answer(question, answer, spec.get('values') or {})
+        if 'case_days' in piece:
+            case_days = piece['case_days']
+            continue
         if piece.get('cancel'):
             cancel = True
             literals.append('取消本次查询')
@@ -463,6 +613,16 @@ def apply_reply(spec, answers, context, store=None, uid=None, sid=None):
         # User declined — leave context unchanged but mark answered.
         next_context = copy.deepcopy(context)
         return next_context, '取消本次查询', True
+
+    anchor_ref = source_ref or ((context.get('source_refs') or [None])[0] if len(context.get('source_refs') or []) == 1 else None)
+    chosen_case = case_info(source_match(store, uid, sid, anchor_ref)) if anchor_ref and store is not None else None
+    if case_days is not None:
+        center = _parse_cjsj((chosen_case or {}).get('cjsj'))
+        if not center:
+            error('clarification_invalid', '无法确定所选警情的处警时间，请自行填写开始与结束时间。', 422)
+        updates['start'] = (center - timedelta(days=case_days)).strftime('%Y-%m-%d %H:%M:%S')
+        updates['end'] = center.strftime('%Y-%m-%d %H:%M:%S')
+        literals.append(f"抓拍时间：案发前{case_days}天（{updates['start']} 至 {updates['end']}）")
 
     # Only fields this question asked for.
     allowed = set(spec.get('fields') or [])
@@ -496,6 +656,8 @@ def apply_reply(spec, answers, context, store=None, uid=None, sid=None):
             from .analysis_tasks import source
             source(store, uid, sid, source_ref, 'acceptance_real')
         next_context['source_refs'] = [copy.deepcopy(source_ref)]
+    if chosen_case:
+        next_context['case_info'] = chosen_case
     next_context['scope_version'] = int(next_context.get('scope_version') or 0) + 1
     text = '；'.join(literals)
     if text:

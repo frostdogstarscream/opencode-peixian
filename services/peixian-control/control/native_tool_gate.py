@@ -74,15 +74,29 @@ def _prepare(store,uid,sid,message_id,call_id,tool,args,revision):
             if item['status']=='completed':
                 return {'cached':True,'response':copy.deepcopy(item['public_response'])}
             error('tool_call_unconfirmed','该调用已进入核对或投递流程，结果未知时不会重发。',409)
-        # After auto-compaction the model may repeat a finished call under a new ID.
-        repeated=next((x for x in calls.values() if x['tool']==tool and x['args_digest']==digest(args) and x['status']=='completed' and x.get('public_response')),None)
-        if repeated:
-            return {'cached':True,'response':copy.deepcopy(repeated['public_response'])}
-        if any(x['status'] in ('review_pending','approved','dispatching') for x in calls.values()):
-            error('tool_call_busy','当前工具调用尚未结束。',409)
         context=snapshot.get('native_tool_context')
         if not context or context.get('version')!='native-tool-context-v1':
             error('scope_unavailable','本轮确认范围不可用。',409)
+        from .native_tool_scope import grounded_arguments
+        raw_args=args
+        args=grounded_arguments(kind,args,context)
+        auto_center=None
+        centre_count=None
+        if (kind=='incidents' and context.get('direction')=='person_to_case' and not context.get('source_refs')
+                and not {'lon','lat','address'}&set(args) and snapshot.get('dialogue_policy')!='adaptive-dialogue-v1'):
+            from . import person_case_flow as pcf
+            ref,center,centre_count=pcf.pending_center(store,uid,sid,context,calls)
+            if ref:auto_center=(ref,center)
+        # After auto-compaction the model may repeat a finished call under a new ID.
+        repeated=next((x for x in calls.values() if x['tool']==tool and x['args_digest']==digest(raw_args) and x['status']=='completed' and x.get('public_response')),None)
+        if repeated and not auto_center:
+            return {'cached':True,'response':copy.deepcopy(repeated['public_response'])}
+        # Person-to-case never asks the user for coordinates; stay centres come from tracks.
+        if centre_count is not None and not auto_center:
+            if centre_count:error('person_case_centers_done','轨迹停留点周边警情已全部比对，请按已取得资料作答。',409)
+            error('person_case_tracks_first','请先查询该人员轨迹，警情按轨迹停留点自动比对。',409)
+        if any(x['status'] in ('review_pending','approved','dispatching') for x in calls.values()):
+            error('tool_call_busy','当前工具调用尚未结束。',409)
         # A scoped display reference is accepted when it equals the confirmed
         # identity, belongs to candidate_set, or appears in this task's captures.
         from fastapi import HTTPException
@@ -127,15 +141,18 @@ def _prepare(store,uid,sid,message_id,call_id,tool,args,revision):
                 # Bind the resolved identity into a call-local confirmed view so
                 # arguments() accepts it without mutating the frozen task context.
                 work_context=copy.deepcopy(context)
+                if identity_format!='confirmed_scoped_reference':
+                    # The selected case located the captures; it is not this candidate's source.
+                    work_context['source_refs']=[]
                 work_context['confirmed']=dict(work_context.get('confirmed') or {})
                 work_context['confirmed']['person_identity']=checked_args['person_identity']
                 work_context['user_conditions']=dict(work_context.get('user_conditions') or {})
                 work_context['user_conditions']['person_identity']=checked_args['person_identity']
             from .native_tool_scope import resolve_arguments
-            # Person-to-case: bind next stay-center source for location tools when none selected
-            if work_context.get('source_selection') != 'explicit' and snapshot.get('dialogue_policy') != 'adaptive-dialogue-v1' and kind in ('incidents', 'captures') and not (work_context.get('source_refs') or []) and not (kind=='captures' and work_context.get('capture_position_confirmed')):
+            # Person-to-case: bind the next track stay centre for incidents when none selected
+            if auto_center:
                 from . import person_case_flow as pcf
-                ref, _item = pcf.next_center_source(work_context, kind)
+                ref, _item = auto_center
                 if ref:
                     work_context = copy.deepcopy(work_context)
                     work_context['source_refs'] = [ref]
@@ -174,10 +191,11 @@ def _prepare(store,uid,sid,message_id,call_id,tool,args,revision):
             error('native_plugin_version_required','资料插件原生调用版本尚未生效。',409)
         plan_digest=digest(frozen)
         confirmation_basis=('selected_source' if context['source_refs']
+            else 'track_stay_center' if auto_center
             else ('model_selected_candidate' if candidate_authorized else 'user_supplied_values'))
-        item={'call_id':call_id,'tool':tool,'args_digest':digest(args),'plan_digest':plan_digest,
+        item={'call_id':call_id,'tool':tool,'args_digest':digest(raw_args),'plan_digest':plan_digest,
               'status':'review_pending','frozen':frozen,'scope_version':context['scope_version'],
-              'source_refs':copy.deepcopy(context['source_refs']),'review_context_version':REVIEW_VERSION,'identity_input_format':identity_format,'created':now()}
+              'source_refs':copy.deepcopy(work_context['source_refs']),'review_context_version':REVIEW_VERSION,'identity_input_format':identity_format,'created':now()}
         calls[call_id]=item
         db.execute("UPDATE business_runs SET request_ciphertext=?,updated=? WHERE id=?",(store.encrypt(snapshot),now(),row['id']))
         return {'cached':False,'run_id':row['id'],'call_id':call_id,'review_id':review_id(row['id'],call_id,plan_digest),
@@ -192,7 +210,7 @@ def _prepare(store,uid,sid,message_id,call_id,tool,args,revision):
                 'identity_binding':({'status':'matched','person_ref':query['person_ref']} if kind in adapter.PERSON else None),
                 'confirmed_values':{('person_ref' if k=='person_identity' else k):(query['person_ref'] if k=='person_identity' else v) for k,v in checked_args.items()},
                 'source_refs':copy.deepcopy(context['source_refs']),
-                'selected_source_values':derived if context['source_refs'] else {},
+                'selected_source_values':derived if work_context['source_refs'] else {},
                 'contract_defaults':{k:v for k,v in frozen['query'].items() if k not in query},
                 'query_fields':sorted(frozen['query']),'requested_values':copy.deepcopy(frozen['query']),
                 'scoring_requested':bool(context.get('scoring_requested')),
@@ -260,8 +278,8 @@ def prepare(store,uid,sid,message_id,call_id,tool,args,revision):
                         latest=db.execute('SELECT * FROM business_runs WHERE id=?',(row['id'],)).fetchone()
                         snapshot=store.decrypt(latest['request_ciphertext']);context=snapshot.get('native_tool_context') or {}
                         kind=TOOL_TO_KIND.get(tool)
-                        from .native_tool_scope import canonical_field
-                        for field,value in (args.items() if isinstance(args,dict) else []):
+                        from .native_tool_scope import canonical_field, grounded_arguments
+                        for field,value in (grounded_arguments(kind,args,context).items() if isinstance(args,dict) else []):
                             if field not in ('start','end','radius_m','page','page_size') or field in detail['field_errors']:continue
                             try:value=canonical_field(field,value)
                             except HTTPException:continue

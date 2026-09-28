@@ -48,6 +48,8 @@ MESSAGES = {
  'provider_rows_limit': ('资料服务本次结果过多，超过单次返回上限；请缩短时间范围后再查。', 'clarify'),
  'provider_response_too_large': ('资料服务响应超过大小上限；请缩短时间范围或减少每页条数。', 'clarify'),
  'provider_binding_changed': ('资料配置已变化，请核对当前执行状态。', 'reconcile'),
+ 'person_case_centers_done': ('轨迹停留点周边警情已全部比对，不再追问位置；请按已取得资料作答。', 'stop'),
+ 'person_case_tracks_first': ('请先查询该人员轨迹；警情按轨迹停留点自动比对，不向用户追问经纬度。', 'stop'),
 }
 LIMIT_TEXT={'max_days':'单次时间跨度上限 {} 天','max_radius_m':'半径上限 {} 米','max_page':'页码上限 {}','max_page_size':'每页条数上限 {}'}
 FIELDS={'person_identity':'人员','start':'开始时间','end':'结束时间','lon':'经度','lat':'纬度','radius_m':'半径','page':'页码','page_size':'每页条数'}

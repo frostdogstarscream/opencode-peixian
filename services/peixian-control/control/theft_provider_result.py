@@ -56,7 +56,9 @@ def sentence(kind,f,version=None):
             code=str(code) if type(code) is int else '未提供'
             return f"观测时间 {f.get('captureTime','未提供')}；设备 {f.get('deviceId','未提供')}；来源地点 {f.get('deviceName','未提供')}；轨迹类型 {label}；来源类型代码 {code}。"
         return f"观测时间 {f.get('captureTime','未提供')}；设备 {f.get('deviceId','未提供')}；来源地点 {f.get('deviceName','未提供')}；轨迹类型 {label}。"
-    if kind=='incidents':return f"警情引用 {f.get('cjbh','未提供')}；处警时间 {f.get('cjsj','未提供')}；来源地址 {f.get('bzdzmc') or f.get('cjxz') or f.get('address','未提供')}。"
+    if kind=='incidents':
+        brief=str(f.get('cljgnr') or '')[:60]
+        return f"警情编号 {f.get('jjbh') or f.get('cjbh') or '未提供'}；处警时间 {f.get('cjsj','未提供')}；来源地址 {f.get('bzdzmc') or f.get('cjxz') or f.get('address','未提供')}"+(f"；简要警情 {brief}" if brief else '')+"。"
     if kind=='captures':
         count=f.get('capture_count','未提供')
         return f"{f.get('target_name','对象未提供')}（{f.get('target_id_card','未提供')}）：来源范围内抓拍汇总 {count} 次。"

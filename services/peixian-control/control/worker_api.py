@@ -9,7 +9,7 @@ from fastapi import Request, Depends
 from fastapi.responses import FileResponse
 
 from .store import now, ident, encode
-from .connections import resolved_bindings, connection_headers
+from .connections import resolved_bindings, connection_extras, connection_headers
 
 
 def runtime_spec(s, uid, revision, *, db=None):
@@ -57,6 +57,7 @@ def runtime_spec(s, uid, revision, *, db=None):
             connections.append({"id": binding_id, "plugin_id": installed["plugin"], "alias": alias,
                                 "allowed_user": uid, "token": token, "headers": connection_headers(s, row),
                                 **({"request_rules": value["request_rules"]} if "request_rules" in value else {}),
+                                **connection_extras(s, row),
                                 **{k: value[k] for k in ("base_url", "allowed_methods", "allowed_paths", "timeout_seconds", "max_response_bytes")}})
             platform_connections[alias] = {"id": binding_id, "token": token}
         plugins.append({"id": installed["plugin"], "version": installed["version"], "manifest": manifest, "digest": installed["digest"], "options": s.decrypt(installed["config"]), "platform_connections": platform_connections})

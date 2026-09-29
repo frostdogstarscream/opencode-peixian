@@ -288,6 +288,8 @@ async def run_probes(request, app, value, rpc, parent, process, probe, question)
         if isinstance(done.get('probe'), dict):
             probe = done['probe']
             continue
+        if done.get('no_data') is True:
+            return {'no_data': True, 'summary': str(done.get('summary') or '各可选范围均无记录')[:300]}
         return done.get('question') or question
     return question
 
@@ -302,6 +304,17 @@ async def _execute_native(request, app, value, rpc, parent, process):
         question = prepared.get('question')
         if isinstance(prepared.get('probe'), dict):
             question = await run_probes(request, app, value, rpc, parent, process, prepared['probe'], question)
+        if isinstance(question, dict) and question.get('no_data') is True:
+            return {
+                'status': 'no_data',
+                'dispatch_status': 'not_dispatched',
+                'records': [],
+                'message': f"预查结果：{question['summary']}，未弹出补充卡片。",
+                'instruction': (
+                    '各可选范围均无记录，不要再用 question 工具询问，也不要换参数或改用其他工具重试此项；'
+                    '直接按 JSON 输出本轮结论，写明查询范围内 0 条。'
+                ),
+            }
         return {
             'status': 'needs_input',
             'dispatch_status': 'not_dispatched',

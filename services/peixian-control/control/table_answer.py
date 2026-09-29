@@ -210,7 +210,8 @@ def select_records(result, snapshot, subject, spatial=False, subjects=None):
 
 INSTRUCTION = """
 本轮调用过资料工具后的每次答复（包括追问、对比、复核、换条件重查、0条或失败）都只输出一个 person-tables-v3 JSON 对象，由平台渲染为人员基本信息、研判摘要、分析依据、下一步研判四段式。不要用Markdown自己写四段式，也不要问「是否需要输出JSON／终稿」。0条、失败和需要民警确认的范围写进JSON的结论、missing或suggestions。
-格式：{"format":"person-tables-v3","mode":"data","source_refs":["已取得的记录编号"],"scoring":{"requested":true},"suggestions":[]}。
+格式：{"format":"person-tables-v3","mode":"data","conclusion":"研判结论","source_refs":["已取得的记录编号"],"scoring":{"requested":true},"suggestions":[]}。
+conclusion写一段不超过400字的中文研判结论，平台放在答复最上方、平台核心结论之下：直接回答当前问题；由案到人说明首位及靠前嫌疑人的主要依据，由人到案说明最可疑警情与轨迹的时空关系和可疑度档位。引用得分率时必须与平台评分一致，不一致的百分比会被删除。重点用**加粗**（最多6处），最关键的结论用==红色==（最多3处），每处不超过40字；不要用其他Markdown或HTML。
 scoring仅当用户明确要求综合研判、嫌疑评估、评分或排序，且处于由人到案或由案到人工作流时才声明requested=true；其余场景省略该字段。评分与排名由平台按确定性规则计算并在终稿表格中呈现，你不得自行给出、修改分数或排序。
 source_refs只能引用当前任务已取得资料；平台逐字段核对并生成事实表，不把自由文字当作已核验结论。
 suggestions默认留空。已取得资料能回答当前问题时不提建议；只有存在影响结论的具体缺口，且补上它需要新的查询或需要用户确认时间、半径、人员等条件时才提出，一般一项，最多两项。action只用query或clarify_scope：条件已齐、可以直接查询时用query，须提供当前授权的kind，reply写成民警口吻的查询请求（如「查询此人2026-09-01至2026-09-15的夜间活动记录」）；还缺位置、半径、时间、人员等条件时用clarify_scope，缺项放fields，reply写成带空位、民警补全后即可发送的句子（如「核对案发地周边抓拍：位置＿＿，半径＿＿米，时间＿＿至＿＿」），不要写成「请提供……」这类向民警索要条件的话。具体建议用text、reason、conditions、reply，reason写清对应哪条结论或缺口。不要把「查看来源详情」「查看已有记录」「继续核实」「持续关注」这类不产生新资料的事项写成建议。不得自动执行建议。
@@ -266,6 +267,69 @@ def model_notes(text):
     if not cjk or cjk / (cjk + latin) < 0.3:
         return ''
     return body[:NOTE_MAX]
+
+
+CONCLUSION_MAX = 400
+MARK = re.compile(r'\*\*(.+?)\*\*|==(.+?)==')
+MARK_LIMITS = {'bold': 6, 'alert': 3}
+MARK_SPAN = 40
+PERCENT = re.compile(r'(\d+(?:\.\d+)?)\s*[%％]')
+ALERT = '<strong class="px-alert">{}</strong>'
+
+
+def model_conclusion(chosen, rates):
+    """Model summary with **bold** / ==alert== marks; percentages must match platform-computed rates."""
+    text = chosen.get('conclusion') if isinstance(chosen, dict) else None
+    if not isinstance(text, str):
+        return ''
+    text = re.sub(r'\s+', ' ', text).strip()[:CONCLUSION_MAX]
+    allowed = {float(r) for r in rates if isinstance(r, (int, float)) and not isinstance(r, bool)}
+    text = PERCENT.sub(lambda m: m.group(0) if float(m.group(1)) in allowed else '', text)
+    plain = MARK.sub(lambda m: m.group(1) or m.group(2), text)
+    cjk = len(re.findall(r'[\u4e00-\u9fff]', plain))
+    latin = len(re.findall(r'[A-Za-z]', plain))
+    if not cjk or cjk / (cjk + latin) < 0.3:
+        return ''
+    return text
+
+
+def render_conclusion(text):
+    out, pos, used = [], 0, {'bold': 0, 'alert': 0}
+    for match in MARK.finditer(text):
+        out.append(escape(text[pos:match.start()]))
+        kind, inner = ('bold', match.group(1)) if match.group(1) is not None else ('alert', match.group(2))
+        if used[kind] < MARK_LIMITS[kind] and len(inner) <= MARK_SPAN:
+            used[kind] += 1
+            out.append('**' + escape(inner) + '**' if kind == 'bold' else ALERT.format(escape(inner)))
+        else:
+            out.append(escape(inner))
+        pos = match.end()
+    out.append(escape(text[pos:]))
+    return ''.join(out)
+
+
+def headline(direction, ranking, scoring, suspect):
+    """Platform-only core conclusion: (alert text, plain tail) or None."""
+    if direction == 'case_to_person' and ranking and ranking.get('items'):
+        top, items = ranking['items'][0], ranking['items']
+        who = '／'.join(x for x in (top.get('name'), top.get('person_ref')) if x) or '未识别人员'
+        title = '初步关注首位' if ranking.get('stage') == 'stage1' else '首位嫌疑人'
+        alert = f"{title} {who}，有效得分率 {top.get('rate')}%，{top.get('band') or '等级未定'}"
+        tail = f"共 {len(items)} 名候选参与排序"
+        if ranking.get('insufficient'):
+            tail += f"，另有 {len(ranking['insufficient'])} 人资料覆盖不足"
+        return alert, tail
+    if direction == 'person_to_case':
+        ready = scoring and scoring.get('status') == 'ready'
+        score = f"可疑度有效得分率 {scoring['rate']}%，{scoring['band']}" if ready else ''
+        if suspect and suspect.get('top'):
+            top = suspect['top']
+            alert = f"最可疑警情 {top.get('jjbh') or top.get('cjbh')}（{top.get('grade') or '关联待核'}）" + (f"：{top['brief']}" if top.get('brief') else '')
+            return alert, score
+        if score:
+            tail = f"已比对 {suspect.get('checked', 0)} 起警情，未发现时空关联警情" if suspect else ''
+            return score, tail
+    return None
 
 
 def suggestion_key(item):
@@ -718,8 +782,12 @@ def build(result, snapshot):
     if context.get('query_rules_version')=='on-demand-v1':
         tools=set(snapshot.get('native_tool_policy',{}).get('allowed_tools',[]))
         suggestions=[x for x in suggestions if x['action']!='authorize_candidates' and (x['action']!='query' or 'peixian_query_'+str(x['kind']) in tools)][:3]
+    rates = [x.get('rate') for x in (ranking or {}).get('items', []) + (ranking or {}).get('insufficient', [])] + [(scoring or {}).get('rate')]
+    head = headline(direction, ranking, scoring, suspect)
 
-    return {'version': VERSION, 'run_id': result['run_id'], 'person_ref': policy.get('person_ref'),
+    return {
+        'headline': {'alert': head[0], 'text': head[1]} if head else None,
+        'conclusion': model_conclusion(chosen, rates),'version': VERSION, 'run_id': result['run_id'], 'person_ref': policy.get('person_ref'),
         **({'layout_version':policy['layout_version']} if policy.get('layout_version') else {}),
         'status': 'partial' if missing else 'ready',
         'basic': basic, 'conclusions': conclusions, 'evidence': evidence, 'suggestions': suggestions,
@@ -756,6 +824,14 @@ def markdown(view):
         return '当前表格版本暂不受支持，请查看已有来源。'
     sections = []
     revised=view.get('layout_version')=='theft-four-sections-v1'
+    head, summary = view.get('headline'), view.get('conclusion')
+    if head or summary:
+        lines = []
+        if head:
+            lines.append(ALERT.format(escape(head['alert'])) + ('；' + escape(head['text']) if head.get('text') else '') + '。')
+        if summary:
+            lines.append(render_conclusion(summary))
+        sections += ['### 研判结论', '\n>\n'.join('> ' + line for line in lines)]
     if view.get('model_notes'):
         sections += ['**模型分析（未结构化，平台未核验）**\n\n' + '\n\n'.join(escape(x) for x in view['model_notes'].splitlines())]
     case = view.get('case_info')

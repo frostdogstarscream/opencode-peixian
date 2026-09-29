@@ -66,6 +66,8 @@ def _prepare(store,uid,sid,message_id,call_id,tool,args,revision):
             error('native_authority_changed','授权或运行环境已变化。',409)
         if any(q.get('kind')==kind and q.get('status')=='rejected' for q in snapshot.get('native_pending_questions',{}).values()):
             error('run_not_active','本轮已取消此资料查询。',409)
+        if any(q.get('kind')==kind and q.get('status')=='no_data' for q in snapshot.get('native_pending_questions',{}).values()):
+            error('native_no_progress','本轮预查各可选范围均无记录，不再查询此项。',409)
         calls=snapshot.setdefault('native_calls',{})
         if call_id in calls:
             item=calls[call_id]
@@ -298,12 +300,22 @@ def probe_complete(store,uid,sid,message_id,token,results,revision):
         except Exception:
             plans=[]
             spec['probe_state']['round']='done'
+        empty=False
         if not plans:
             snapshot.setdefault('question_probes',{})[token]=question_probes.audit(spec)
+            empty=spec['probe_state'].get('empty') is True
             spec.pop('probe_state',None)
+            if empty:
+                spec['status']='no_data'
+                spec['empty_summary']=question_probes.empty_summary(spec)
         db.execute("UPDATE business_runs SET request_ciphertext=?,updated=? WHERE id=?",(store.encrypt(snapshot),now(),row['id']))
         if plans:return {'probe':{'token':token,'plans':plans}}
-        return {'question':questions.public(spec)}
+        if not empty:return {'question':questions.public(spec)}
+    if isinstance(spec.get('call_id'),str):
+        from . import business_runs
+        business_runs.event(store,row['id'],'native-rejection:'+spec['call_id'],'analysis','预查无数据，未弹出补充卡片','completed',
+                            completed=now(),metadata={'output_summary':spec['empty_summary']})
+    return {'no_data':True,'kind':spec.get('kind'),'summary':spec['empty_summary']}
 
 
 def prepare(store,uid,sid,message_id,call_id,tool,args,revision):
@@ -340,6 +352,7 @@ def prepare(store,uid,sid,message_id,call_id,tool,args,revision):
                                 questions.record_pending(snapshot,spec)
                                 plans=probe_plans(store,uid,sid,db,spec,context)
                         if spec:
+                            spec['call_id']=call_id
                             db.execute('UPDATE business_runs SET request_ciphertext=?,updated=? WHERE id=?',(store.encrypt(snapshot),now(),row['id']))
                             response={'needs_question':True,'code':detail['code'],'question':questions.public(spec),'dispatch_status':'not_dispatched'}
                             if plans:response['probe']={'token':spec['token'],'plans':plans}

@@ -284,6 +284,7 @@ def annotate_counts(spec, state):
                         hits.add(number)
             bucket[label] = len(hits)
     counts = {k: v for k, v in counts.items() if v and k is not None}
+    state['empty'] = all_empty(spec, counts)
     annotate(spec, counts, {int(k): v for k, v in state['units'].items()},
              {int(k): v for k, v in (state.get('notes') or {}).items()})
     state['counts'] = {str(k): v for k, v in counts.items()}
@@ -293,10 +294,26 @@ def annotate_counts(spec, state):
     return counts
 
 
+def all_empty(spec, counts):
+    """Every option of every question was probed successfully and found nothing."""
+    questions = spec.get('questions') or []
+    base = spec.get('base_labels') or {}
+    return bool(questions) and all(
+        question.get('options') and all(counts.get(index, {}).get(base.get(o['label'], o['label']), None) == 0
+                                        for o in question['options'])
+        for index, question in enumerate(questions))
+
+
+def empty_summary(spec):
+    labels = [(spec.get('base_labels') or {}).get(o['label'], o['label'])
+              for q in spec.get('questions') or [] for o in q.get('options') or []]
+    return '、'.join(labels) + '均无记录' if labels else '各可选范围均无记录'
+
+
 def audit(spec):
     """Counts-only record for the Run snapshot."""
     state = spec.get('probe_state') or {}
     return {'version': VERSION, 'kind': spec.get('kind'), 'code': spec.get('code'),
             'jobs': [{'kind': j['kind'], 'window': j['window'], 'radius': j['radius'], 'status': j['status']}
                      for j in state.get('jobs', {}).values()],
-            'counts': copy.deepcopy(state.get('counts') or {})}
+            'counts': copy.deepcopy(state.get('counts') or {}), 'empty': state.get('empty') is True}

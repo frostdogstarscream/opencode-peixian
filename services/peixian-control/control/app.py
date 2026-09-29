@@ -877,6 +877,8 @@ def create_app(store=None):
     register_admin(app)
     from .connections import register_connections
     register_connections(app)
+    from .provider_endpoints import register_provider_endpoints
+    register_provider_endpoints(app)
     register_worker(app)
     from .runtime_api import register_runtime
     register_runtime(app)

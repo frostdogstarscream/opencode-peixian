@@ -713,3 +713,58 @@ def test_oversized_history_is_not_counted_as_queried(monkeypatch):
 def test_basic_identity_row_label():
     result, snap = fixture()
     assert any(x['label'] == '身份证号' for x in t.build(result, snap)['basic'])
+
+
+def _stage1(conclusion=None):
+    result, snap = fixture()
+    snap['native_tool_context'] = {'confirmed': {}, 'task_id': 'task', 'scoring_requested': True, 'direction': 'case_to_person', 'candidate_set': []}
+    snap['table_answer_policy']['person_ref'] = None
+    snap['table_answer_policy']['direction'] = 'case_to_person'
+    snap['native_calls'] = {'cap': {'status': 'completed', 'frozen': {'kind': 'captures', 'query': {}}}}
+    result['records'] = [
+        {'record_id': 'run:call:a', 'source_run_id': 'run', 'call_id': 'cap', 'module': 'captures', 'snapshot_id': 'a',
+         'fields': {'target_id_card': 'person-a', 'target_name': '甲', 'capture_count': 12, 'tags': '盗窃'}, 'result_digest': 'd'},
+        {'record_id': 'run:call:b', 'source_run_id': 'run', 'call_id': 'cap', 'module': 'captures', 'snapshot_id': 'b',
+         'fields': {'target_id_card': 'person-b', 'target_name': '乙', 'capture_count': 1, 'tags': ''}, 'result_digest': 'd'},
+    ]
+    result['claims'] = []
+    choose(snap, source_refs=['run:call:a'], **({'conclusion': conclusion} if conclusion is not None else {}))
+    return t.build(result, snap)
+
+
+def test_case_to_person_headline_leads_the_answer():
+    view = _stage1()
+    top = view['ranking']['items'][0]
+    assert view['headline']['alert'].startswith('初步关注首位 甲／person-a，有效得分率 ' + str(top['rate']) + '%')
+    assert view['headline']['text'] == '共 2 名候选参与排序'
+    assert view['conclusion'] == ''
+    output = t.markdown(view)
+    assert output.startswith('### 研判结论\n\n> <strong class="px-alert">初步关注首位 甲／person-a')
+
+
+def test_model_conclusion_marks_rates_and_escaping():
+    view = _stage1()
+    rate = view['ranking']['items'][0]['rate']
+    text = f'甲在案发时段**多次出现**于现场周边，==首位嫌疑突出==，得分率 {rate}%，另一说法 99.9% 不采信。<script>x</script>'
+    view = _stage1(text)
+    assert f'{rate}%' in view['conclusion'] and '99.9%' not in view['conclusion']
+    output = t.markdown(view)
+    assert '**多次出现**' in output and '<strong class="px-alert">首位嫌疑突出</strong>' in output
+    assert '<script>' not in output and '&lt;script&gt;' in output
+
+
+def test_conclusion_mark_limits_and_language():
+    rendered = t.render_conclusion('中文' + '==重点== ' * 5 + '**' + '长' * 41 + '**')
+    assert rendered.count('px-alert') == 3 and '**' + '长' * 41 not in rendered
+    assert t.model_conclusion({'conclusion': 'The first suspect is clearly guilty.'}, []) == ''
+    assert t.model_conclusion({'conclusion': '[链接](http://x) 测试 # 标题'}, []) == '[链接](http://x) 测试 # 标题'
+    assert '\\[链接\\]' in t.render_conclusion('[链接](http://x) 测试')
+
+
+def test_person_to_case_headline():
+    scoring = {'status': 'ready', 'rate': 62.5, 'band': '中度关联'}
+    suspect = {'top': {'jjbh': 'J001', 'grade': '强关联', 'brief': '电动车被盗'}, 'checked': 3}
+    assert t.headline('person_to_case', None, scoring, suspect) == ('最可疑警情 J001（强关联）：电动车被盗', '可疑度有效得分率 62.5%，中度关联')
+    assert t.headline('person_to_case', None, scoring, {'top': None, 'checked': 3}) == ('可疑度有效得分率 62.5%，中度关联', '已比对 3 起警情，未发现时空关联警情')
+    assert t.headline('person_to_case', None, None, None) is None
+    assert t.headline('unknown', None, scoring, suspect) is None

@@ -248,9 +248,12 @@ def schemas():
     connection_fields = {
         "name": {"type": "string", "minLength": 1, "maxLength": 100},
         "base_url": {"type": "string", "format": "uri", "maxLength": 1000},
-        "auth_type": {"type": "string", "enum": ["none", "bearer", "api_key"], "default": "none"},
+        "auth_type": {"type": "string", "enum": ["none", "bearer", "api_key", "login"], "default": "none",
+                      "description": "login：Gateway 用登录路径、用户名和 secret 中的密码自动登录取令牌，遇到 401 重新登录一次。"},
         "secret": {"type": "string", "format": "password", "writeOnly": True, "maxLength": 4096,
-                   "description": "不回显；鉴权方式及头名未变时，省略或空串保留旧值。修改鉴权方式须重新填写，none 清除旧值。"},
+                   "description": "不回显；鉴权方式及头名未变时，省略或空串保留旧值。修改鉴权方式须重新填写，none 清除旧值。login 方式下为登录密码。"},
+        "login_path": {"type": "string", "maxLength": 1000, "default": "/login"},
+        "login_username": {"type": "string", "minLength": 1, "maxLength": 200},
         "header_name": STRING, "enabled": BOOL,
         "allowed_methods": array({"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, minItems=1, maxItems=5),
         "allowed_paths": array({"type": "string", "description": "精确路径或末尾 /* 前缀匹配；不接受转义、查询、片段和目录跳转。"}, minItems=1, maxItems=100),
@@ -261,7 +264,17 @@ def schemas():
     result["Platform"] = obj({"name": STRING, "short_name": STRING, "description": STRING}, ("name", "short_name", "description"))
     result["ServiceConnectionCreate"] = obj(connection_fields, ("name", "base_url"))
     result["ServiceConnectionUpdate"] = obj(connection_fields)
-    result["ServiceConnection"] = obj({**{k: v for k, v in connection_fields.items() if k != "secret"}, "id": ID, "secret_configured": BOOL, "revision": INTEGER}, ("id", "name", "base_url", "secret_configured", "revision"))
+    endpoint_path = obj({"path": STRING, "updated_by": STRING, "updated_at": INTEGER}, ("path",))
+    result["ServiceConnection"] = obj({**{k: v for k, v in connection_fields.items() if k != "secret"}, "id": ID, "secret_configured": BOOL, "revision": INTEGER,
+                                       "endpoint_paths": {"type": "object", "additionalProperties": endpoint_path}}, ("id", "name", "base_url", "secret_configured", "revision"))
+    nullable_string = {"type": ["string", "null"]}
+    result["ProviderEndpoint"] = obj({"key": STRING, "kind": STRING, "name": STRING, "method": STRING, "plugin_id": STRING, "plugin_version": STRING,
+                                      "published": BOOL, "enabled": BOOL, "connection_id": nullable_string, "connection_name": nullable_string,
+                                      "default_path": STRING, "path": STRING, "updated_by": nullable_string, "updated_at": {"type": ["integer", "null"]}},
+                                     ("key", "kind", "name", "method", "plugin_id", "plugin_version", "published", "enabled", "default_path", "path"))
+    result["ProviderEndpointUpdate"] = obj({"key": STRING, "path": {"type": ["string", "null"], "maxLength": 1000,
+                                            "description": "以 / 开头；{person} 仅可作为原本带占位接口的最后一段；null 或默认路径表示恢复默认。"}}, ("key",))
+    result["ProviderEndpointChanged"] = obj({"items": array(ref("ProviderEndpoint")), "jobs": array(ref("Job"))}, ("items", "jobs"))
     result["ServiceConnectionChanged"] = obj({"connection": ref("ServiceConnection"), "jobs": array(ref("Job"))}, ("connection", "jobs"))
     result["ServiceRequest"] = obj({"method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]},
                                     "path": STRING, "query": {"type": "object", "additionalProperties": {"type": ["string", "number", "boolean"]}}, "json": {}}, ("path",))
@@ -295,6 +308,8 @@ CONTRACTS = {
     ("post", "/admin/connections"): ("ServiceConnectionCreate", ref("ServiceConnection"), "创建固定服务连接", "管理：连接", "配置鉴权、固定地址、方法及路径范围。"),
     ("patch", "/admin/connections/{cid}"): ("ServiceConnectionUpdate", ref("ServiceConnectionChanged"), "更新服务连接", "管理：连接", "新版本配置与受影响安装账号的应用任务在同一事务保存；不影响其他账号。"),
     ("delete", "/admin/connections/{cid}"): (None, ref("Ok"), "删除未绑定的服务连接", "管理：连接", "仍被插件版本引用时返回409；可先停用或解除绑定。"),
+    ("get", "/admin/provider-endpoints"): (None, items(ref("ProviderEndpoint")), "列出业务数据接口", "管理：连接", "仅超级管理员；每项接口的启用状态、所用连接、默认与当前请求路径。启停使用插件版本状态接口。"),
+    ("put", "/admin/provider-endpoints"): ("ProviderEndpointUpdate", ref("ProviderEndpointChanged"), "修改业务数据接口请求路径", "管理：连接", "路径保存在该接口专属连接上，连接修订加一并重新下发受影响账号；Gateway 按原合同路径校验后改写到此路径。"),
     ("post", "/admin/connections/{cid}/test"): ("ServiceRequest", ref("ServiceTest"), "测试固定服务连接", "管理：连接", "沿用出口相同的范围、超时与大小校验。只返回状态，不返回业务正文；默认使用已允许的GET路径，写方法测试由超级管理员明确提交。"),
     ("get", "/admin/plugins/{pid}/{version}/connections"): (None, ref("PluginBindings"), "查看插件版本连接绑定", "管理：连接", "别名由不可变发布清单声明，不能由普通用户配置。"),
     ("put", "/admin/plugins/{pid}/{version}/connections"): ("PluginBindingBody", ref("PluginBindings"), "保存插件版本连接绑定", "管理：连接", "完整替换此版本绑定并原子排队应用。未绑定或停用的必需连接使插件处于 unconfigured，停止在新配置中加载。"),
@@ -518,12 +533,12 @@ def build_openapi(app):
                 anonymous = path in (P + "/auth/login", P + "/platform")
                 common = path in (P + "/me", P + "/me/password", P + "/auth/logout") or path.startswith(P + "/tokens")
                 management = path.startswith(P + "/admin/")
-                super_only = management and (path.startswith((P + "/admin/plugins", P + "/admin/templates", P + "/admin/jobs", P + "/admin/connections", P + "/admin/maintenance", P + "/admin/recovery/", P + "/admin/diagnostics/")) or "/runtime/" in path)
+                super_only = management and (path.startswith((P + "/admin/plugins", P + "/admin/templates", P + "/admin/jobs", P + "/admin/connections", P + "/admin/provider-endpoints", P + "/admin/maintenance", P + "/admin/recovery/", P + "/admin/diagnostics/")) or "/runtime/" in path)
                 super_only = super_only or (path.startswith(P + "/admin/departments") and method != "get")
                 operation["x-role"] = "anonymous" if anonymous else "super_admin" if super_only else "super_admin|admin" if management else "authenticated" if common else "user"
                 if management:
                     operation["x-roles"] = ["super_admin"] if super_only else ["super_admin", "admin"]
-                    capability = ("connections.manage" if "/admin/connections" in path or path.endswith("/connections") else "plugins.manage" if "/admin/plugins" in path else "templates.manage" if "/admin/templates" in path
+                    capability = ("connections.manage" if "/admin/connections" in path or "/admin/provider-endpoints" in path or path.endswith("/connections") else "plugins.manage" if "/admin/plugins" in path else "templates.manage" if "/admin/templates" in path
                                   else "jobs.read" if "/admin/jobs" in path else "runtimes.manage" if "/runtime/" in path or "/admin/maintenance" in path or "/admin/recovery/" in path or "/admin/diagnostics/" in path
                                   else "departments.manage" if "/admin/departments" in path and method != "get" else "invocations.read" if "/admin/invocations" in path else "models.manage" if "/admin/models" in path else "audit.read" if "/admin/audit" in path else "users.manage")
                     operation["x-capability"] = capability

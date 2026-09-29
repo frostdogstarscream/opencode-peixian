@@ -41,7 +41,7 @@ def binding(store,uid,kind,applied):
     row=store.one('SELECT c.* FROM connections c JOIN plugin_connections b ON b.connection_id=c.id WHERE b.plugin=? AND b.version=? AND b.alias=? AND c.id=?',(plugin_id,plugin['version'],'provider',cid))
     if not row:error('provider_connection_mismatch','资料连接与发布绑定不一致。',409)
     policy=json.loads(row['config'])
-    if not policy.get('enabled') or policy.get('auth_type')!=('none' if group=='police' else 'bearer'):
+    if not policy.get('enabled') or policy.get('auth_type') not in (('none',) if group=='police' else ('bearer','login')):
         error('provider_connection_unavailable','资料连接未启用或认证合同不匹配。',409)
     return {'plugin_id':plugin_id,'plugin_version':plugin['version'],'tool_id':'peixian_query_'+kind,'connection_id':cid,'connection_revision':row['revision'],'contract_version':adapter.VERSION,'data_environment':'acceptance_real','limits':config['limits'],'coordinate_compatibility':config.get('coordinate_compatibility',{}),'binding_digest':adapter.digest({'manifest':plugin['manifest'],'connection':policy,'revision':row['revision'],'deployment':config})}
 

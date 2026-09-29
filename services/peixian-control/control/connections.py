@@ -5,12 +5,14 @@ import re
 
 from fastapi import Depends, Request
 
-from shared.connection_policy import ConnectionFailure, HEADER, FORBIDDEN_HEADERS, exchange, policy
+from shared.connection_policy import ConnectionFailure, HEADER, FORBIDDEN_HEADERS, exchange, login_settings, policy
+from shared.theft_provider_v2 import default_path
 from .store import encode, ident
 
 ALIAS = re.compile(r"^[a-z][a-z0-9_-]{0,39}$")
+AUTH_TYPES = ("none", "bearer", "api_key", "login")
 FIELDS = {"name", "base_url", "auth_type", "secret", "header_name", "allowed_methods", "allowed_paths",
-          "timeout_seconds", "max_response_bytes", "enabled", "request_rules"}
+          "timeout_seconds", "max_response_bytes", "enabled", "request_rules", "login_path", "login_username"}
 DEFAULTS = {"auth_type": "none", "header_name": "", "allowed_methods": ["GET"], "allowed_paths": ["/health"],
             "timeout_seconds": 15, "max_response_bytes": 1048576, "enabled": True}
 
@@ -34,9 +36,21 @@ def connection_public(store, row):
 def connection_headers(store, row):
     value = json.loads(row["config"])
     secret = store.decrypt(row["secret"])
-    if value["auth_type"] == "none":
+    if value["auth_type"] in ("none", "login"):
         return {}
     return {"Authorization": "Bearer " + secret} if value["auth_type"] == "bearer" else {value["header_name"]: secret}
+
+
+def connection_extras(store, row):
+    """Egress-only fields: the login password and endpoint path rewrites."""
+    value = json.loads(row["config"])
+    extra = {}
+    if value["auth_type"] == "login":
+        extra["login"] = {"path": value["login_path"], "username": value["login_username"], "password": store.decrypt(row["secret"])}
+    rewrites = [[default_path(key), item["path"]] for key, item in sorted(value.get("endpoint_paths", {}).items())]
+    if rewrites:
+        extra["path_rewrites"] = rewrites
+    return extra
 
 
 def resolved_bindings(db, plugin, version, manifest):
@@ -60,8 +74,17 @@ def register_connections(app):
         if not isinstance(merged.get("name"), str) or not 1 <= len(merged["name"].strip()) <= 100:
             fail("连接名称应为 1 至 100 个字符")
         merged["name"] = merged["name"].strip()
-        if type(merged.get("enabled")) is not bool or merged.get("auth_type") not in ("none", "bearer", "api_key"):
+        if type(merged.get("enabled")) is not bool or merged.get("auth_type") not in AUTH_TYPES:
             fail("连接启用状态或鉴权类型无效")
+        if merged["auth_type"] == "login":
+            merged["login_path"] = merged.get("login_path") or "/login"
+            try:
+                login_settings({"path": merged["login_path"], "username": merged.get("login_username"), "password": "x"})
+            except ConnectionFailure:
+                fail("登录路径或用户名无效")
+        else:
+            merged.pop("login_path", None)
+            merged.pop("login_username", None)
         if merged["auth_type"] == "api_key":
             header = merged.get("header_name") or "X-API-Key"
             if not isinstance(header, str) or not HEADER.fullmatch(header) or header.lower() in FORBIDDEN_HEADERS or header.lower() == "authorization":
@@ -72,6 +95,8 @@ def register_connections(app):
         secret = value.get("secret")
         if secret is not None and (not isinstance(secret, str) or len(secret) > 4096 or any(ord(c) < 32 or ord(c) > 126 for c in secret)):
             fail("连接凭据格式无效")
+        if merged["auth_type"] == "login" and secret and len(secret) > 256:
+            fail("登录密码不能超过 256 个字符")
         same_auth = old and all(base[k] == merged[k] for k in ("auth_type", "header_name"))
         if merged["auth_type"] == "none":
             secret = ""
@@ -125,7 +150,7 @@ def register_connections(app):
             users = affected(db, cid=cid)
             previous = json.loads(old["config"])
             restricted = (previous["enabled"] and not config["enabled"]
-                          or any(previous[k] != config[k] for k in ("base_url", "auth_type", "header_name"))
+                          or any(previous.get(k) != config.get(k) for k in ("base_url", "auth_type", "header_name", "login_path", "login_username"))
                           or bool(set(previous["allowed_methods"]) - set(config["allowed_methods"]))
                           or bool(set(previous["allowed_paths"]) - set(config["allowed_paths"]))
                           or previous.get("request_rules") != config.get("request_rules"))
@@ -157,7 +182,8 @@ def register_connections(app):
             fail("此连接已停用", 409)
         try:
             headers = await app.state.db_work.run(connection_headers, s, row)
-            result = await exchange(app.state.http, {**config, "headers": headers}, await request.json())
+            extras = await app.state.db_work.run(connection_extras, s, row)
+            result = await exchange(app.state.http, {**config, "headers": headers, **extras}, await request.json())
         except ConnectionFailure as exc:
             return {"ok": False, "message": str(exc)}
         return {"ok": True, "message": "服务连接成功，已确认 JSON 响应", "status": result["status"]}

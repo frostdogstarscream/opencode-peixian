@@ -20,6 +20,8 @@ def extend_schemas(result):
     result['PersonTableAnswer']['properties']['suspect_case']=nullable({'type':'object','additionalProperties':True})
     result['PersonTableAnswer']['properties']['case_info']=nullable({'type':'object','additionalProperties':True})
     result['PersonTableAnswer']['properties']['query_window']=nullable(STRING)
+    result['PersonTableAnswer']['properties']['headline']=nullable(obj({'alert':STRING,'text':STRING},('alert','text')))
+    result['PersonTableAnswer']['properties']['conclusion']=STRING
     result['TrustedResultV2']['properties']['answer_view']=ref('PersonTableAnswer')
     result['TrustedResultPending']=obj({'schema':{'const':'peixian.analysis-result'},'version':{'const':'2.0'},'run_id':ID,'status':{'const':'pending'},'data_environment':{'enum':['synthetic','acceptance_real']},'data_usage':ref('DataUsageV1')},('schema','version','run_id','status','data_environment','data_usage'))
     result['TrustedResultLegacy']=obj({'schema':{'const':'peixian.analysis-result'},'version':{'const':'legacy'},'run_id':ID,'status':{'const':'legacy'},'result':{'type':'null'}},('schema','version','run_id','status','result'))

@@ -11,6 +11,7 @@ from .http_utils import json_body
 
 FIELDS = {"id", "plugin_id", "alias", "allowed_user", "token", "headers", "base_url", "allowed_methods",
           "allowed_paths", "timeout_seconds", "max_response_bytes"}
+OPTIONAL = {"request_rules", "login", "path_rewrites"}
 
 
 def load_connections(path, account_id):
@@ -25,7 +26,7 @@ def load_connections(path, account_id):
             raise ValueError()
         result = {}
         for item in payload["connections"]:
-            if (not isinstance(item, dict) or not FIELDS <= set(item) or set(item) - FIELDS - {"request_rules"} or item["allowed_user"] != account_id
+            if (not isinstance(item, dict) or not FIELDS <= set(item) or set(item) - FIELDS - OPTIONAL or item["allowed_user"] != account_id
                     or any(not isinstance(item[k], str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", item[k]) for k in ("id", "plugin_id", "alias"))
                     or not isinstance(item["token"], str) or not re.fullmatch(r"[a-f0-9]{64}", item["token"])
                     or item["id"] in result):

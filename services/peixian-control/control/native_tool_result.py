@@ -58,6 +58,9 @@ def project(row,snapshot):
     questions=[q for q in snapshot.get('native_pending_questions',{}).values() if q.get('status') in ('pending','rejected')]
     for q in questions:
         missing.append(adapter.CATALOG[q['kind']][0]+('：已取消补充，尚未查询。' if q['status']=='rejected' else '：等待补充条件，尚未查询。'))
+    for q in snapshot.get('native_pending_questions',{}).values():
+        if q.get('status')=='no_data':
+            missing.append(adapter.CATALOG[q['kind']][0]+'：预查'+(q.get('empty_summary') or '各可选范围均无记录')+'，未弹出补充卡片。')
     confirmed=[m for m in modules if m['response_confirmed']]
     if confirmed and len(confirmed)==len(modules) and not questions:
         use_status='confirmed'

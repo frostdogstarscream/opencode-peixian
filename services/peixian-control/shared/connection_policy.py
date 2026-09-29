@@ -1,5 +1,6 @@
 """Fixed destinations and bounded JSON exchanges for platform service connections."""
 import asyncio
+import hashlib
 import json
 import re
 from urllib.parse import urlsplit
@@ -7,7 +8,12 @@ from urllib.parse import urlsplit
 import httpx
 
 MAX_REQUEST_BYTES = 1024 * 1024
+MAX_LOGIN_BYTES = 64 * 1024
 METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
+PERSON = "{person}"
+TOKEN = re.compile(r"^[A-Za-z0-9._~+/=-]{1,4096}$")
+LOGIN_TOKENS = {}
+LOGIN_LOCKS = {}
 HEADER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,63}$")
 FORBIDDEN_HEADERS = {"host", "connection", "content-length", "transfer-encoding", "content-type", "accept", "accept-encoding", "cookie", "set-cookie", "proxy-authorization", "proxy-authenticate"}
 
@@ -26,6 +32,40 @@ def safe_path(value, *, pattern=False):
     if (not plain.startswith("/") or "//" in plain or not re.fullmatch(r"/[A-Za-z0-9_./~-]*", plain)
             or any(part in (".", "..") for part in plain.split("/"))):
         raise ConnectionFailure("服务路径必须是无转义、查询参数和目录跳转的绝对路径")
+    return value
+
+
+def template_path(value):
+    """A fixed path, or one whose last segment is the single {person} placeholder."""
+    if not isinstance(value, str):
+        raise ConnectionFailure("服务路径格式不正确")
+    if PERSON in value:
+        if value.count(PERSON) != 1 or not value.endswith("/" + PERSON):
+            raise ConnectionFailure("人员占位 {person} 只能作为路径最后一段")
+        safe_path(value[:-len(PERSON)] + "x")
+    else:
+        safe_path(value)
+    return value
+
+
+def rewritten(connection, path):
+    for source, target in connection.get("path_rewrites", ()):
+        if source.endswith(PERSON):
+            prefix, rest = source[:-len(PERSON)], path[len(source) - len(PERSON):]
+            if path.startswith(prefix) and rest and "/" not in rest:
+                return target[:-len(PERSON)] + rest
+        elif path == source:
+            return target
+    return path
+
+
+def login_settings(value):
+    if (not isinstance(value, dict) or set(value) != {"path", "username", "password"}
+            or not isinstance(value["username"], str) or not 1 <= len(value["username"]) <= 200
+            or not isinstance(value["password"], str) or not 1 <= len(value["password"]) <= 256
+            or any(ord(c) < 32 or ord(c) == 127 for c in value["username"] + value["password"])):
+        raise ConnectionFailure("账号密码登录配置无效")
+    safe_path(value["path"])
     return value
 
 
@@ -81,6 +121,20 @@ def policy(value):
                 raise ConnectionFailure("固定规则必须是有效JSON") from None
             if len(raw.encode()) > 16384:
                 raise ConnectionFailure("固定规则超过大小限制")
+    if "path_rewrites" in result:
+        rewrites = result["path_rewrites"]
+        if not isinstance(rewrites, list) or len(rewrites) > 20:
+            raise ConnectionFailure("路径改写规则格式不正确")
+        for pair in rewrites:
+            if not isinstance(pair, list) or len(pair) != 2:
+                raise ConnectionFailure("路径改写规则格式不正确")
+            source, target = template_path(pair[0]), template_path(pair[1])
+            if source.endswith(PERSON) != target.endswith(PERSON):
+                raise ConnectionFailure("人员占位 {person} 只能用在原本带占位的接口上")
+        if len({pair[0] for pair in rewrites}) != len(rewrites):
+            raise ConnectionFailure("路径改写规则重复")
+    if "login" in result:
+        login_settings(result["login"])
     return result
 
 
@@ -113,7 +167,7 @@ def request_data(connection, value):
             same = json.dumps(rule["json"], sort_keys=True, allow_nan=False) == json.dumps(value["json"], sort_keys=True, allow_nan=False)
         if not same or query:
             raise ConnectionFailure("请求不符合此连接的固定模块规则", 403)
-    return method, connection["base_url"] + path, query
+    return method, connection["base_url"] + rewritten(connection, path), query
 
 
 def validate_headers(headers):
@@ -124,40 +178,101 @@ def validate_headers(headers):
     return headers
 
 
+class Unauthorized(Exception):
+    pass
+
+
+async def bounded_json(response, limit, too_large):
+    media = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    if media != "application/json" and not media.endswith("+json"):
+        raise ConnectionFailure("服务必须返回 JSON 内容", 502)
+    if response.headers.get("content-encoding", "identity").lower() != "identity":
+        raise ConnectionFailure("服务未遵守无压缩响应要求", 502)
+    raw = bytearray()
+    async for chunk in response.aiter_bytes(chunk_size=16384):
+        raw.extend(chunk)
+        if len(raw) > limit:
+            raise too_large
+    try:
+        return json.loads(raw, parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+    except (ValueError, UnicodeError, RecursionError):
+        raise ConnectionFailure("服务返回了无效 JSON", 502) from None
+
+
+def login_key(connection):
+    login = connection["login"]
+    return hashlib.sha256(json.dumps([connection["base_url"], login["path"], login["username"], login["password"]]).encode()).hexdigest()
+
+
+async def login_token(client, connection, stale=None):
+    """One cached token per account; a rejected token is replaced once by a fresh login."""
+    key = login_key(connection)
+    async with LOGIN_LOCKS.setdefault(key, asyncio.Lock()):
+        cached = LOGIN_TOKENS.get(key)
+        if cached and cached != stale:
+            return cached
+        LOGIN_TOKENS.pop(key, None)
+        login = connection["login"]
+        failure = ConnectionFailure("资料服务登录失败，请检查登录路径和账号密码", 502)
+        async with asyncio.timeout(connection["timeout_seconds"]):
+            async with client.stream("POST", connection["base_url"] + login["path"],
+                                     json={"username": login["username"], "password": login["password"]},
+                                     headers={"Accept": "application/json", "Accept-Encoding": "identity"},
+                                     follow_redirects=False, timeout=connection["timeout_seconds"]) as response:
+                if response.status_code != 200:
+                    raise failure
+                result = await bounded_json(response, MAX_LOGIN_BYTES, failure)
+        token = result.get("token") if isinstance(result, dict) and result.get("code") == 200 else None
+        if not isinstance(token, str) or not TOKEN.fullmatch(token):
+            raise failure
+        LOGIN_TOKENS[key] = token
+        return token
+
+
+async def send(client, connection, method, url, query, value, headers):
+    async with asyncio.timeout(connection["timeout_seconds"]):
+        async with client.stream(method, url, params=query, json=value.get("json") if "json" in value else None,
+                                 headers=headers, follow_redirects=False, timeout=connection["timeout_seconds"]) as response:
+            if 300 <= response.status_code < 400:
+                raise ConnectionFailure("服务返回了未允许的重定向", 502)
+            if response.status_code == 401 and "login" in connection:
+                raise Unauthorized()
+            if response.status_code == 413:
+                raise ConnectionFailure("服务结果超过单次返回上限", 413, "upstream_rows_limit")
+            if response.status_code >= 400:
+                raise ConnectionFailure("服务拒绝了本次请求，请检查配置或参数", 502)
+            result = await bounded_json(response, connection["max_response_bytes"],
+                                        ConnectionFailure("服务响应超过配置的大小限制", 413, "response_too_large"))
+            if "login" in connection and isinstance(result, dict) and result.get("code") == 401:
+                raise Unauthorized()
+            return response.status_code, result
+
+
 async def exchange(client, connection, value):
     """Never return upstream error bodies, redirects, headers, or authentication values."""
     method, url, query = request_data(connection, value)
     headers = {"Accept": "application/json", "Accept-Encoding": "identity", **validate_headers(connection.get("headers", {}))}
+    secrets = list(connection.get("headers", {}).values())
     try:
-        async with asyncio.timeout(connection["timeout_seconds"]):
-            async with client.stream(method, url, params=query, json=value.get("json") if "json" in value else None,
-                                     headers=headers, follow_redirects=False, timeout=connection["timeout_seconds"]) as response:
-                if 300 <= response.status_code < 400:
-                    raise ConnectionFailure("服务返回了未允许的重定向", 502)
-                if response.status_code == 413:
-                    raise ConnectionFailure("服务结果超过单次返回上限", 413, "upstream_rows_limit")
-                if response.status_code >= 400:
-                    raise ConnectionFailure("服务拒绝了本次请求，请检查配置或参数", 502)
-                media = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
-                if media != "application/json" and not media.endswith("+json"):
-                    raise ConnectionFailure("服务必须返回 JSON 内容", 502)
-                if response.headers.get("content-encoding", "identity").lower() != "identity":
-                    raise ConnectionFailure("服务未遵守无压缩响应要求", 502)
-                raw = bytearray()
-                async for chunk in response.aiter_bytes(chunk_size=16384):
-                    raw.extend(chunk)
-                    if len(raw) > connection["max_response_bytes"]:
-                        raise ConnectionFailure("服务响应超过配置的大小限制", 413, "response_too_large")
+        if "login" in connection:
+            token = await login_token(client, connection)
+            try:
+                status, result = await send(client, connection, method, url, query, value, {**headers, "Authorization": "Bearer " + token})
+            except Unauthorized:
+                token = await login_token(client, connection, stale=token)
                 try:
-                    result = json.loads(raw, parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
-                except (ValueError, UnicodeError, RecursionError):
-                    raise ConnectionFailure("服务返回了无效 JSON", 502) from None
-                # Credentials accidentally reflected by an upstream are not business data.
-                text = json.dumps(result, ensure_ascii=False)
-                secrets = list(connection.get("headers", {}).values())
-                secrets += [v[7:] for v in secrets if v.startswith("Bearer ")]
-                if any(secret and secret in text for secret in secrets):
-                    raise ConnectionFailure("服务响应包含鉴权信息，已阻止返回", 502)
-                return {"status": response.status_code, "data": result}
+                    status, result = await send(client, connection, method, url, query, value, {**headers, "Authorization": "Bearer " + token})
+                except Unauthorized:
+                    raise ConnectionFailure("资料服务拒绝了登录令牌，请检查账号权限", 502) from None
+            password = connection["login"]["password"]
+            secrets += [token] + ([password] if len(password) >= 8 else [])
+        else:
+            status, result = await send(client, connection, method, url, query, value, headers)
     except (httpx.HTTPError, TimeoutError):
         raise ConnectionFailure("服务暂时无法连接或响应超时", 502) from None
+    # Credentials accidentally reflected by an upstream are not business data.
+    text = json.dumps(result, ensure_ascii=False)
+    secrets += [v[7:] for v in secrets if v.startswith("Bearer ")]
+    if any(secret and secret in text for secret in secrets):
+        raise ConnectionFailure("服务响应包含鉴权信息，已阻止返回", 502)
+    return {"status": status, "data": result}

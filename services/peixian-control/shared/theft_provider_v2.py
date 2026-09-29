@@ -26,6 +26,12 @@ CATALOG = {
     'warnings': ('按姓名或手机号查找人员', 'GET', '/system/multiDimension/list', 'warning'),
 }
 LOOKUP_PATHS = {'person_name': '/system/multiDimension/list', 'person_phone': '/zuoan/rupei'}
+ENDPOINT_KEYS = {'warnings': ('warnings', 'person_name'), 'warnings_phone': ('warnings', 'person_phone')}
+
+
+def default_path(key):
+    kind, field = ENDPOINT_KEYS.get(key, (key, None))
+    return LOOKUP_PATHS[field] if field else CATALOG[kind][2]
 PAGED = {'incidents', 'captures', 'night', 'community', 'warnings'}
 TIMED = {'captures', 'tracks', 'night', 'community'}
 PERSON = set(CATALOG) - {'incidents', 'captures', 'warnings'}

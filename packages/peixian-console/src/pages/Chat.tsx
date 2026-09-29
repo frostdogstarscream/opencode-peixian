@@ -14,7 +14,7 @@ import SmoothMarkdown from "../SmoothMarkdown"
 import type { StreamProjection } from "../stream-markdown"
 import { FollowScroll } from "../follow-scroll"
 import { ChatScroll } from "../chat-scroll"
-import { applyLive, fromPage, needsBackfill, withLive, type LiveAnswer } from "../live-answer"
+import { applyLive, deltaBehind, fromPage, needsBackfill, withLive, type LiveAnswer } from "../live-answer"
 import type { TrustedEvidence } from "../TrustedAnalysis"
 import { isAnalysisResult, legacyPresentation, sourcePresentation } from "../result-contract"
 import RuntimeStatus from "../RuntimeStatus"
@@ -484,7 +484,8 @@ export default function Chat() {
     const run = currentRun()
     if (run && run.id !== notice.run_id && !terminalRun(run.status)) return
     const previous = live()
-    const next = applyLive(previous, notice)
+    const knownText = (partID: string) => messages().flatMap((message) => message.parts).find((part) => part.id === partID)?.text
+    const next = applyLive(previous, notice, knownText)
     setLive(next)
     if (notice.type === "run.progress") {
       if (notice.status && terminalRun(notice.status as Run["status"])) void fetchMessages(sid, true)
@@ -492,6 +493,10 @@ export default function Chat() {
       return
     }
     animatedRuns.add(notice.run_id)
+    if (notice.type === "answer.delta") {
+      if (deltaBehind(next, notice, knownText(notice.part_id))) void fetchMessages(sid, false)
+      return
+    }
     if (needsBackfill(previous?.runID === notice.run_id ? previous : { ...next, segments: [] }, notice)) void backfill(sid, notice.run_id, notice.display_kind === "final_answer" ? notice.message_id : undefined)
     if (notice.final) void fetchMessages(sid, true)
   })

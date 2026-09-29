@@ -1,17 +1,31 @@
-import type { AnswerSegmentNotice, LiveNotice } from "./events"
+import type { AnswerDeltaNotice, AnswerSegmentNotice, LiveNotice } from "./events"
 import type { Message, Part } from "./types"
 
-export type LiveAnswer = { sessionID: string; runID: string; progress?: string; segments: AnswerSegmentNotice[] }
+export type LiveDraft = { messageID: string; text: string }
+export type LiveAnswer = { sessionID: string; runID: string; progress?: string; segments: AnswerSegmentNotice[]; drafts?: Record<string, LiveDraft> }
 
-export function applyLive(current: LiveAnswer | undefined, notice: LiveNotice): LiveAnswer {
-  const base = current && current.runID === notice.run_id && current.sessionID === notice.session_id
+// `known` returns the part text from /messages, so a delta can continue a part joined mid-stream.
+export function applyLive(current: LiveAnswer | undefined, notice: LiveNotice, known?: (partID: string) => string | undefined): LiveAnswer {
+  const base: LiveAnswer = current && current.runID === notice.run_id && current.sessionID === notice.session_id
     ? current
     : { sessionID: notice.session_id, runID: notice.run_id, segments: [] }
   if (notice.type === "run.progress") return base.progress === notice.label ? base : { ...base, progress: notice.label }
+  if (notice.type === "answer.delta") {
+    const text = base.drafts?.[notice.part_id]?.text ?? known?.(notice.part_id) ?? ""
+    if (text.length !== notice.offset) return base
+    return { ...base, drafts: { ...base.drafts, [notice.part_id]: { messageID: notice.message_id, text: text + notice.text } } }
+  }
+  const drafts = notice.display_kind === "final_answer" ? undefined : base.drafts
   const existing = base.segments.find((item) => item.sequence === notice.sequence)
-  if (existing && (existing.text !== undefined || notice.text === undefined)) return base
+  if (existing && (existing.text !== undefined || notice.text === undefined)) return drafts === base.drafts ? base : { ...base, drafts }
   const segments = [...base.segments.filter((item) => item.sequence !== notice.sequence), notice].sort((a, b) => a.sequence - b.sequence)
-  return { ...base, segments }
+  return { ...base, segments, drafts }
+}
+
+// Neither the pushed draft nor /messages reached the end of this delta: some text was missed.
+export function deltaBehind(state: LiveAnswer, notice: AnswerDeltaNotice, known?: string) {
+  const end = notice.offset + notice.text.length
+  return (state.drafts?.[notice.part_id]?.text.length ?? 0) < end && (known?.length ?? 0) < end
 }
 
 // A gap or a text-less (oversized) notice means the replayable segment log must be read.
@@ -51,7 +65,10 @@ export function fromPage(state: LiveAnswer, page: SegmentPage, finalMessageID?: 
 // Pushed parts are shown until /messages returns the same part id; final-answer sections
 // are only joined while contiguous so a missing section never produces spliced text.
 export function withLive(messages: Message[], state: LiveAnswer | undefined, parentID?: string): Message[] {
-  if (!state?.segments.length) return messages
+  if (!state) return messages
+  const answered = messages.some((message) => message.parts.some((part) => part.display_kind === "final_answer" && part.run_id === state.runID))
+  const drafts = answered ? [] : Object.entries(state.drafts ?? {})
+  if (!state.segments.length && !drafts.length) return messages
   const known = new Set(messages.flatMap((message) => message.parts.map((part) => part.id)).filter(Boolean))
   const parts = new Map<string, { messageID: string; part: Part }>()
   const nextSection = new Map<string, number>()
@@ -72,8 +89,19 @@ export function withLive(messages: Message[], state: LiveAnswer | undefined, par
     if (entry) entry.part = { ...entry.part, text: (entry.part.text ?? "") + segment.text }
     else parts.set(segment.part_id, { messageID, part: { id: segment.part_id, type: "text", text: segment.text, display_kind: "final_answer", run_id: state.runID } })
   }
-  if (!parts.size) return messages
   const result = [...messages]
+  // A draft yields once /messages holds at least as much text for the same part.
+  for (const [partID, draft] of drafts) {
+    const index = result.findIndex((message) => message.parts.some((part) => part.id === partID))
+    if (index < 0) {
+      parts.set(partID, { messageID: draft.messageID, part: { id: partID, type: "text", text: draft.text, run_id: state.runID } })
+      continue
+    }
+    const message = result[index]
+    if (message.parts.some((part) => part.id === partID && (part.text ?? "").length >= draft.text.length)) continue
+    result[index] = { ...message, parts: message.parts.map((part) => part.id === partID ? { ...part, text: draft.text } : part) }
+  }
+  if (!parts.size) return drafts.length ? result : messages
   for (const { messageID, part } of parts.values()) {
     const index = result.findIndex((message) => message.info.id === messageID)
     if (index >= 0) result[index] = { ...result[index], parts: [...result[index].parts, part] }

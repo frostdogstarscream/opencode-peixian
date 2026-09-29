@@ -48,7 +48,9 @@ export type AnswerSegmentNotice = {
   truncated?: boolean
 }
 export type RunProgressNotice = { type: "run.progress"; session_id: string; run_id: string; phase: string; label: string; status?: string }
-export type LiveNotice = AnswerSegmentNotice | RunProgressNotice
+// Filtered analysis prose of a table run before its platform answer; `offset` is the position in the part.
+export type AnswerDeltaNotice = { type: "answer.delta"; session_id: string; run_id: string; message_id: string; part_id: string; offset: number; text: string }
+export type LiveNotice = AnswerSegmentNotice | RunProgressNotice | AnswerDeltaNotice
 
 const identifier = (value: unknown): value is string => typeof value === "string" && /^[A-Za-z0-9_-]{1,160}$/.test(value)
 
@@ -61,6 +63,11 @@ export function parseLive(event: ServerEvent): LiveNotice | undefined {
     if (data.type === "run.progress") {
       if (typeof data.phase !== "string" || typeof data.label !== "string" || data.label.length > 200) return
       return { type: "run.progress", session_id: data.session_id, run_id: data.run_id, phase: data.phase, label: data.label, ...(typeof data.status === "string" ? { status: data.status } : {}) }
+    }
+    if (data.type === "answer.delta") {
+      if (!identifier(data.message_id) || !identifier(data.part_id) || !Number.isInteger(data.offset) || data.offset < 0) return
+      if (typeof data.text !== "string" || !data.text) return
+      return { type: "answer.delta", session_id: data.session_id, run_id: data.run_id, message_id: data.message_id, part_id: data.part_id, offset: data.offset, text: data.text }
     }
     if (data.type !== "answer.segment") return
     if (!identifier(data.part_id) || !Number.isInteger(data.sequence) || data.sequence < 1) return

@@ -24,8 +24,9 @@ import {
   visibleManagementTabs,
 } from "../access"
 import type { ManagementTab } from "../access"
-import type { Audit, Capability, Job, Model, Plugin, ServiceConnection, Skill, User } from "../types"
+import type { Audit, Capability, Job, Model, Plugin, ProviderEndpoint, ServiceConnection, Skill, User } from "../types"
 import Connections, { PluginConnections } from "./Connections"
+import ProviderEndpoints from "./ProviderEndpoints"
 import RuntimeMaintenance from "./RuntimeMaintenance"
 import { runtimeNotice } from "../runtime-view"
 const auditActions: Record<string, string> = {
@@ -73,6 +74,7 @@ export default function Admin(props: { section?: string } = {}) {
   const [models, setModels] = createSignal<Model[]>([])
   const [plugins, setPlugins] = createSignal<Plugin[]>([])
   const [connections, setConnections] = createSignal<ServiceConnection[]>([])
+  const [endpoints, setEndpoints] = createSignal<ProviderEndpoint[]>([])
   const [binding, setBinding] = createSignal<{ plugin: Plugin; version: string }>()
   const [templates, setTemplates] = createSignal<Skill[]>([])
   const [jobs, setJobs] = createSignal<Job[]>([])
@@ -129,7 +131,7 @@ export default function Admin(props: { section?: string } = {}) {
     previousTab = tab()
     const results = await Promise.allSettled(
       resources.map((resource) =>
-        list<User | Model | Plugin | ServiceConnection | Skill | Job | Audit>(
+        list<User | Model | Plugin | ServiceConnection | ProviderEndpoint | Skill | Job | Audit>(
           "/admin/" + resource + (resource === "audit" ? auditQuery() : ""),
         ),
       ),
@@ -170,6 +172,9 @@ export default function Admin(props: { section?: string } = {}) {
           break
         case "connections":
           setConnections(result.value as ServiceConnection[])
+          break
+        case "provider-endpoints":
+          setEndpoints(result.value as ProviderEndpoint[])
           break
         case "jobs":
           setJobs(result.value as Job[])
@@ -780,6 +785,9 @@ export default function Admin(props: { section?: string } = {}) {
           </Match>
           <Match when={tab() === "connections" && app.can("connections.manage")}>
             <Connections items={connections()} onRefresh={refresh} />
+          </Match>
+          <Match when={tab() === "provider-endpoints" && app.can("connections.manage")}>
+            <ProviderEndpoints items={endpoints()} onRefresh={refresh} />
           </Match>
           <Match when={tab() === "templates"}>
             <div class="card-grid">

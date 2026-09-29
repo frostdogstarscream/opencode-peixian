@@ -338,8 +338,10 @@ export type ServiceConnection = {
   id: string
   name: string
   base_url: string
-  auth_type: "none" | "bearer" | "api_key"
+  auth_type: "none" | "bearer" | "api_key" | "login"
   header_name: string
+  login_path?: string
+  login_username?: string
   allowed_methods: string[]
   allowed_paths: string[]
   timeout_seconds: number
@@ -347,6 +349,22 @@ export type ServiceConnection = {
   enabled: boolean
   secret_configured: boolean
   revision: number
+}
+export type ProviderEndpoint = {
+  key: string
+  kind: string
+  name: string
+  method: string
+  plugin_id: string
+  plugin_version: string
+  published: boolean
+  enabled: boolean
+  connection_id: string | null
+  connection_name: string | null
+  default_path: string
+  path: string
+  updated_by: string | null
+  updated_at: number | null
 }
 export type Job = {
   id: string

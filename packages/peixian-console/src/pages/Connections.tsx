@@ -128,9 +128,11 @@ export default function Connections(props: { items: ServiceConnection[]; onRefre
                 <span>
                   {item.auth_type === "none"
                     ? "无需凭据"
-                    : item.secret_configured
-                      ? "访问凭据已配置"
-                      : "待填写访问凭据"}
+                    : item.auth_type === "login"
+                      ? "账号密码登录 · " + (item.login_username ?? "")
+                      : item.secret_configured
+                        ? "访问凭据已配置"
+                        : "待填写访问凭据"}
                 </span>
                 <span>配置版本 {item.revision}</span>
               </div>
@@ -198,8 +200,19 @@ export default function Connections(props: { items: ServiceConnection[]; onRefre
                   <option value="none">无需鉴权</option>
                   <option value="bearer">Bearer 访问令牌</option>
                   <option value="api_key">请求头 API Key</option>
+                  <option value="login">账号密码登录</option>
                 </select>
               </Field>
+              <Show when={draft().auth_type === "login"}>
+                <Field label="登录路径" required hint="平台自动登录取令牌，令牌失效时重新登录一次。">
+                  <input
+                    required
+                    value={draft().login_path}
+                    onInput={(event) => setDraft({ ...draft(), login_path: event.currentTarget.value })}
+                    placeholder="/login"
+                  />
+                </Field>
+              </Show>
               <Show when={draft().auth_type === "api_key"}>
                 <Field label="凭据请求头" required>
                   <input
@@ -211,13 +224,24 @@ export default function Connections(props: { items: ServiceConnection[]; onRefre
                 </Field>
               </Show>
             </div>
+            <Show when={draft().auth_type === "login"}>
+              <Field label="登录用户名" required>
+                <input
+                  required
+                  maxlength={200}
+                  autocomplete="off"
+                  value={draft().login_username}
+                  onInput={(event) => setDraft({ ...draft(), login_username: event.currentTarget.value })}
+                />
+              </Field>
+            </Show>
             <Show when={draft().auth_type !== "none"}>
               <Field
-                label="访问凭据"
+                label={draft().auth_type === "login" ? "登录密码" : "访问凭据"}
                 hint={
                   editing()?.existing?.secret_configured && editing()?.existing?.auth_type === draft().auth_type
-                    ? "已配置。留空保留当前凭据，填写后替换。"
-                    : "凭据加密保存，保存后不再显示明文。"
+                    ? "已配置。留空保留当前值，填写后替换。"
+                    : "加密保存，保存后不再显示明文。"
                 }
               >
                 <input

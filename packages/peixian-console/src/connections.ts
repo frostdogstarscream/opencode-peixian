@@ -1,7 +1,11 @@
 import type { Plugin, ServiceConnection } from "./types"
 
 export const connectionMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const
-export type ConnectionDraft = Omit<ServiceConnection, "id" | "revision" | "secret_configured"> & { secret: string }
+export type ConnectionDraft = Omit<ServiceConnection, "id" | "revision" | "secret_configured" | "login_path" | "login_username"> & {
+  secret: string
+  login_path: string
+  login_username: string
+}
 
 export function connectionDraft(value?: ServiceConnection): ConnectionDraft {
   return {
@@ -9,6 +13,8 @@ export function connectionDraft(value?: ServiceConnection): ConnectionDraft {
     base_url: value?.base_url ?? "",
     auth_type: value?.auth_type ?? "none",
     header_name: value?.header_name ?? "X-API-Key",
+    login_path: value?.login_path ?? "/login",
+    login_username: value?.login_username ?? "",
     secret: "",
     allowed_methods: value?.allowed_methods ?? ["GET"],
     allowed_paths: value?.allowed_paths ?? ["/health"],
@@ -48,6 +54,10 @@ export function connectionBody(draft: ConnectionDraft, existing?: ServiceConnect
     )
   )
     throw new Error("请填写以 / 开头的允许路径，每行一条，不包含查询参数。")
+  const login = draft.auth_type === "login"
+  if (login && !draft.login_username.trim()) throw new Error("请填写登录用户名。")
+  if (login && !/^\/[A-Za-z0-9_./~-]*$/.test(draft.login_path.trim() || "/login"))
+    throw new Error("登录路径应以 / 开头，不包含查询参数。")
   if (
     draft.auth_type !== "none" &&
     !draft.secret &&
@@ -57,7 +67,7 @@ export function connectionBody(draft: ConnectionDraft, existing?: ServiceConnect
       (draft.auth_type !== "api_key" || existing.header_name === draft.header_name.trim())
     )
   )
-    throw new Error("请填写访问凭据。")
+    throw new Error(login ? "请填写登录密码。" : "请填写访问凭据。")
   if (!Number.isInteger(draft.timeout_seconds) || draft.timeout_seconds < 1 || draft.timeout_seconds > 60)
     throw new Error("请求超时应为 1 至 60 秒。")
   if (
@@ -71,6 +81,7 @@ export function connectionBody(draft: ConnectionDraft, existing?: ServiceConnect
     base_url: draft.base_url.trim(),
     auth_type: draft.auth_type,
     header_name: draft.auth_type === "api_key" ? draft.header_name.trim() : "",
+    ...(login ? { login_path: draft.login_path.trim() || "/login", login_username: draft.login_username.trim() } : {}),
     ...(draft.auth_type !== "none" && draft.secret ? { secret: draft.secret } : {}),
     allowed_methods: [...new Set(draft.allowed_methods)],
     allowed_paths: paths,

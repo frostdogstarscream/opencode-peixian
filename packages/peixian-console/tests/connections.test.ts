@@ -47,6 +47,17 @@ describe("service connection editor preserves protected credentials", () => {
       "synthetic-only",
     )
   })
+  test("account login needs a username and keeps a stored password when left blank", () => {
+    const login: ServiceConnection = { ...connection, auth_type: "login", login_path: "/login", login_username: "reader" }
+    expect(() => connectionBody({ ...connectionDraft(connection), auth_type: "login", secret: "pw" }, connection)).toThrow(
+      "用户名",
+    )
+    expect(() => connectionBody({ ...connectionDraft(login), login_username: "reader" })).toThrow("登录密码")
+    const body = connectionBody({ ...connectionDraft(login), login_path: " " }, login)
+    expect(body).toMatchObject({ auth_type: "login", login_path: "/login", login_username: "reader" })
+    expect(body).not.toHaveProperty("secret")
+    expect(connectionBody({ ...connectionDraft(login), auth_type: "none" }, login)).not.toHaveProperty("login_username")
+  })
 })
 
 describe("service request policy form", () => {

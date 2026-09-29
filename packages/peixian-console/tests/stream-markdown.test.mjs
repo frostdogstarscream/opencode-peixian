@@ -17,6 +17,16 @@ test("every character boundary keeps incomplete tables and source anchors out of
   assert.equal(buffer.project(true).text, answer)
 })
 
+test("the conclusion's alert tags never show up half-written", () => {
+  const conclusion = `### 研判结论\n\n> <strong class="px-alert">首位嫌疑人 甲，有效得分率 75%，高度关联</strong>；共 3 名候选参与排序。\n>\n> 甲在案发时段**多次出现**。<strong class="px-alert">首位嫌疑突出。</strong>建议优先核验。\n`
+  const buffer = new MarkdownStreamBuffer()
+  for (const character of conclusion) {
+    buffer.append(character)
+    assert.doesNotMatch(buffer.project().text, /<\/?[a-z][^>]*$/)
+  }
+  assert.equal(buffer.project(true).text, conclusion)
+})
+
 test("ordinary columns stream while the source column waits for a complete link", () => {
   const buffer = new MarkdownStreamBuffer()
   buffer.append("| 姓名 | 来源 |")

@@ -176,6 +176,12 @@ class LiveTextCache:
         self.account_bytes[key[0]] = self.account_bytes.get(key[0], 0) + size
         return True
 
+    def text(self, uid, sid, mid, pid):
+        """Current cached text of one open part, or None."""
+        with self.lock:
+            part = self.parts.get((uid, sid, mid, pid))
+            return part.text if part is not None else None
+
     def discard_message(self, uid, sid, mid):
         with self.lock:
             self._drop_message((uid, sid, mid))

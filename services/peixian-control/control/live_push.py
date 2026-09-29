@@ -1,7 +1,8 @@
 """Post-commit delivery of verified answer content and run progress onto account event hubs.
 
-Notices are only ever built from durable, already-verified data (source segments,
-platform-rendered answer sections, run phases); unverified model text never passes here.
+Segments come from durable, already-verified data (source segments, platform-rendered answer
+sections, run phases). The only model text is controlled_answer's answer.delta: the Chinese prose
+of a table run before its JSON answer, which the platform table later replaces.
 """
 import asyncio
 import json

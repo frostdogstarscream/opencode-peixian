@@ -39,6 +39,11 @@ def register(app):
                 raise HTTPException(422,'原生资料调用协议无效')
             from .native_tool_gate import prepare
             return prepare(store,uid,data['session_id'],data['message_id'],data['call_id'],data['tool'],data['args'],data['revision'])
+        if action=='native_probe_complete':
+            if set(data)!={'action','runtime_id','revision','gateway_boot_id','session_id','message_id','token','results'}:
+                raise HTTPException(422,'选项预查协议无效')
+            from .native_tool_gate import probe_complete
+            return probe_complete(store,uid,data['session_id'],data['message_id'],data['token'],data['results'],data['revision'])
         if action=='native_review_failed':
             if set(data)!={'action','runtime_id','revision','gateway_boot_id','run_id','call_id','digest'}:
                 raise HTTPException(422,'原生意图核对协议无效')

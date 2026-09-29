@@ -7,7 +7,14 @@ question; only the independent execution gate may call a supplier.
 import copy
 import re
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+BEIJING = timezone(timedelta(hours=8))
+
+
+def local_now():
+    """Wall-clock time of the police data (UTC+8); the container clock is UTC."""
+    return datetime.now(BEIJING).replace(tzinfo=None)
 from decimal import Decimal, InvalidOperation
 
 from .backend_contract import error
@@ -142,7 +149,7 @@ def case_type(text):
 def relative_window(text, now=None):
     """Start/end for relative phrases; None when absent or longer than one query may span."""
     text = text or ''
-    now = (now or datetime.now()).replace(microsecond=0)
+    now = (now or local_now()).replace(microsecond=0)
     day = lambda d: d.replace(hour=0, minute=0, second=0)
     fmt = lambda d: d.strftime('%Y-%m-%d %H:%M:%S')
     last = lambda d: d.replace(hour=23, minute=59, second=59)

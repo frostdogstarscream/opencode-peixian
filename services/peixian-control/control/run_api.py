@@ -122,7 +122,12 @@ def register(app):
     def run_source(sid:str,rid:str,evidence_id:str,request:Request,user=Depends(normal)):
         from .trusted_results import read
         from .reply_presentation import source_detail
-        return source_detail(read(app.state.store,user['uid'],sid,rid),evidence_id)
+        from .display_identity import mapping
+        from . import business_runs
+        store=app.state.store
+        result=read(store,user['uid'],sid,rid)
+        snapshot=store.decrypt(business_runs.owned(store,user['uid'],sid,rid)['request_ciphertext'])
+        return source_detail(result,evidence_id,mapping(snapshot))
 
     @app.get(PREFIX+'/sessions/{sid}/runs/{rid}/claims')
     @blocking_endpoint(app)

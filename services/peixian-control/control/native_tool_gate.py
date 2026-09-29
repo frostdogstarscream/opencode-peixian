@@ -266,6 +266,46 @@ def review_failed(store,uid,rid,call_id,plan_digest,revision):
         return {'ok':True}
 
 
+def probe_plans(store,uid,sid,db,spec,context):
+    """Option-count probe plans for a new card; a failure only leaves the card unlabelled."""
+    from . import question_probes
+    runtime=db.execute("SELECT applied_spec_ciphertext FROM runtimes WHERE uid=?",(uid,)).fetchone()
+    if not runtime or not runtime['applied_spec_ciphertext']:return []
+    try:return question_probes.start(spec,context,store,uid,sid,store.decrypt(runtime['applied_spec_ciphertext']))
+    except Exception:
+        spec.pop('probe_state',None)
+        return []
+
+
+def probe_complete(store,uid,sid,message_id,token,results,revision):
+    """Counts from gateway-run probes; returns another probe round or the labelled card."""
+    from . import native_precheck_questions as questions, question_probes
+    if not isinstance(token,str) or not re.fullmatch(r'[0-9a-f]{24}',token) or not isinstance(results,list) or len(results)>question_probes.MAX_PROBES:
+        error('native_tool_invalid','预查结果无效。',422)
+    with store.tx() as db:
+        row=db.execute("SELECT * FROM business_runs WHERE uid=? AND session_id=? AND message_id=?",(uid,sid,message_id)).fetchone()
+        if not row:error('run_not_found','执行记录不存在。',404)
+        if row['status'] not in ('queued','running') or row['cancel_requested'] or row['revision']!=revision:
+            error('run_not_active','本轮执行已停止或配置已变化。',409)
+        snapshot=store.decrypt(row['request_ciphertext'])
+        spec=(snapshot.get('native_pending_questions') or {}).get(token)
+        if not isinstance(spec,dict) or spec.get('status')!='pending' or not spec.get('probe_state'):
+            error('native_tool_invalid','待补充信息已变化。',409)
+        runtime=db.execute("SELECT applied_spec_ciphertext FROM runtimes WHERE uid=?",(uid,)).fetchone()
+        applied=store.decrypt(runtime['applied_spec_ciphertext']) if runtime and runtime['applied_spec_ciphertext'] else {}
+        context=snapshot.get('native_tool_context') or {}
+        try:plans=question_probes.complete(spec,results,context,store,uid,sid,applied)
+        except Exception:
+            plans=[]
+            spec['probe_state']['round']='done'
+        if not plans:
+            snapshot.setdefault('question_probes',{})[token]=question_probes.audit(spec)
+            spec.pop('probe_state',None)
+        db.execute("UPDATE business_runs SET request_ciphertext=?,updated=? WHERE id=?",(store.encrypt(snapshot),now(),row['id']))
+        if plans:return {'probe':{'token':token,'plans':plans}}
+        return {'question':questions.public(spec)}
+
+
 def prepare(store,uid,sid,message_id,call_id,tool,args,revision):
     """Persist recoverable missing fields before any provider dispatch."""
     from fastapi import HTTPException
@@ -293,13 +333,16 @@ def prepare(store,uid,sid,message_id,call_id,tool,args,revision):
                             context.setdefault('user_conditions',{})[field]=value
                         pending=snapshot.get('native_pending_questions',{})
                         spec=next((x for x in pending.values() if x.get('kind')==kind and x.get('code')==detail['code'] and x.get('scope_version')==context.get('scope_version') and x.get('status')=='pending'),None)
+                        plans=[]
                         if not spec:
                             spec=questions.build(kind,detail['code'],detail['field_errors'],context,store,uid,sid)
                             if spec:
                                 questions.record_pending(snapshot,spec)
+                                plans=probe_plans(store,uid,sid,db,spec,context)
                         if spec:
                             db.execute('UPDATE business_runs SET request_ciphertext=?,updated=? WHERE id=?',(store.encrypt(snapshot),now(),row['id']))
                             response={'needs_question':True,'code':detail['code'],'question':questions.public(spec),'dispatch_status':'not_dispatched'}
+                            if plans:response['probe']={'token':spec['token'],'plans':plans}
                 key='native-rejection:'+call_id
                 business_runs.event(store,row['id'],key,'analysis','等待补充查询条件' if response else '资料调用未执行','pending' if response else 'failed',completed=None if response else now(),metadata={'output_summary':detail['message'],'failure':detail})
                 if not response:

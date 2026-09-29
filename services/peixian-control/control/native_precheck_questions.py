@@ -219,7 +219,8 @@ def capture_time_presets(anchor):
 
 def recent_time_presets(now=None):
     """Windows ending now; none exceeds the single-query span limit."""
-    end = (now or datetime.now()).replace(microsecond=0)
+    from .native_tool_scope import local_now
+    end = (now or local_now()).replace(microsecond=0)
     options, values = [], {}
     for days in RECENT_WINDOWS:
         start = (end - timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
@@ -460,6 +461,44 @@ def scope_card(kind, asked, context, store, uid, sid):
     return None
 
 
+def annotate(spec, counts, units, notes=None):
+    """Label options with probed record counts; zero-count options go last.
+
+    counts: {question index: {base label: int, or None when the probe failed}}.
+    Values are re-keyed to the new labels; base_labels maps them back.
+    """
+    base_labels = spec.setdefault('base_labels', {})
+    values = spec.setdefault('values', {})
+    for index, question in enumerate(spec.get('questions') or []):
+        found = counts.get(index)
+        if not found:
+            continue
+        unit = units.get(index, '{} 条')
+        note = (notes or {}).get(index)
+        present, empty = [], []
+        for option in question.get('options') or []:
+            base = base_labels.get(option['label'], option['label'])
+            if base not in found:
+                present.append(option)
+                continue
+            count = found[base]
+            description = option.get('description') or ''
+            if count is None:
+                label, description = base, (description + '；' if description else '') + '未能预查'
+            else:
+                label = f'{base}（{unit.format(count)}）' if count else f'{base}（无数据）'
+                if note:
+                    description = (description + '；' if description else '') + note
+            if option['label'] in values:
+                values[label] = values.pop(option['label'])
+            base_labels.pop(option['label'], None)
+            if label != base:
+                base_labels[label] = base
+            (empty if count == 0 else present).append({**option, 'label': label, 'description': description})
+        question['options'] = present + empty
+    return spec
+
+
 def public(spec):
     """Payload for the model / UI. No option values or source refs."""
     if not spec:
@@ -598,7 +637,7 @@ def apply_reply(spec, answers, context, store=None, uid=None, sid=None):
             continue
         if 'source_ref' in piece:
             source_ref = piece['source_ref']
-            literals.append(answer[0].strip())
+            literals.append((spec.get('base_labels') or {}).get(answer[0].strip(), answer[0].strip()))
             continue
         for key, value in piece.items():
             updates[key] = value

@@ -22,6 +22,8 @@ TRACK_MAX_CALLS = 20
 TRACK_MAX_CONSECUTIVE_FAILURES = 3
 INCIDENT_PAGE_SIZE = 100
 INCIDENT_MAX_PAGES = 5
+PROBE_BUDGET_SECONDS = 20
+PROBE_MAX_ROUNDS = 2
 
 
 class TrackRowsLimit(ValueError):
@@ -238,6 +240,58 @@ async def execute_native(request, app, value, rpc, parent, process):
             locks.pop(key, None)
 
 
+async def run_probes(request, app, value, rpc, parent, process, probe, question):
+    """Run Control's option-count probes before the card reaches the model.
+
+    Only compact counts go back to Control; any failure keeps the unlabelled card.
+    """
+    from shared import question_probe
+    config = app.state.settings
+    gate = app.state.runtime_management.gate
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + PROBE_BUDGET_SECONDS
+    for _ in range(PROBE_MAX_ROUNDS):
+        results = []
+        for item in probe.get('plans') or []:
+            plan = item.get('plan') if isinstance(item, dict) else None
+            left = deadline - loop.time()
+            if not isinstance(plan, dict) or left <= 0:
+                results.append({'id': item.get('id') if isinstance(item, dict) else None, 'status': 'skipped'})
+                continue
+            try:
+                gate.require_egress()
+                if await request.is_disconnected():
+                    raise asyncio.CancelledError()
+                spec = specification(config.managed_root, plan['plugin_id'])
+
+                async def invoke(provider_request, spec=spec, plan=plan):
+                    return await process({**spec, 'action': 'invoke', 'tool': plan['tool_id'],
+                                          'args': {'request': provider_request}})
+                if plan['kind'] == 'tracks' and isinstance(plan['request'].get('json'), dict):
+                    work = collect_tracks(plan, invoke)
+                elif plan['kind'] == 'incidents' and isinstance(plan['request'].get('json'), dict):
+                    work = collect_incidents(plan, invoke)
+                else:
+                    work = invoke(plan['request'])
+                data = question_probe.digest(plan['kind'], await asyncio.wait_for(work, timeout=left))
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                data = None
+            results.append({'id': item['id'], 'status': 'ok', 'data': data} if data is not None
+                           else {'id': item['id'], 'status': 'failed'})
+        try:
+            done = await rpc('native_probe_complete', session_id=value['session_id'], message_id=parent,
+                             token=probe.get('token'), results=results)
+        except (HTTPException, httpx.HTTPError, ValueError):
+            return question
+        if isinstance(done.get('probe'), dict):
+            probe = done['probe']
+            continue
+        return done.get('question') or question
+    return question
+
+
 async def _execute_native(request, app, value, rpc, parent, process):
     prepared = await rpc('native_prepare', session_id=value['session_id'],
         message_id=parent, call_id=value['call_id'], tool=value['tool'],
@@ -245,11 +299,14 @@ async def _execute_native(request, app, value, rpc, parent, process):
     if prepared.get('cached'):
         return theft_provider_v2.model_view(prepared['response'])
     if prepared.get('needs_question'):
+        question = prepared.get('question')
+        if isinstance(prepared.get('probe'), dict):
+            question = await run_probes(request, app, value, rpc, parent, process, prepared['probe'], question)
         return {
             'status': 'needs_input',
             'dispatch_status': 'not_dispatched',
             'code': prepared.get('code'),
-            'question': prepared.get('question'),
+            'question': question,
             'instruction': (
                 '请使用 question 工具补充以上缺项，题干可自然改写；保持 header、选项和 custom 不变以绑定来源，'
                 '等待用户回答后再调用同一工具一次；不要更换参数或改用其他工具重试。'

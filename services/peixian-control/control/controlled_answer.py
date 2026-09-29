@@ -1,6 +1,10 @@
 """Code-owned Chinese answers. Input is an authorized, frozen Result V2, never prose."""
 import copy
 import html
+import json
+from .display_identity import mapping
+from .live_prose import COMPOSING, Pushes, visible
+from .live_text import completed, valid_id
 from .trusted_results import LABELS, local
 
 VERSION = "controlled-zh-v1"
@@ -129,19 +133,71 @@ def public_result(result):
     return value
 
 
-def message_policy(store, uid, sid, info):
+TABLE_VERSIONS = ("person-tables-v1", "person-tables-v2", "person-tables-v3")
+LIVE_STATUSES = ("queued", "running")
+_PUSHES = Pushes()
+
+
+def live_prose(store, row, snapshot):
+    """Table runs show their pre-JSON prose until the platform answer exists."""
+    return ((snapshot.get("table_answer_policy") or {}).get("version") in TABLE_VERSIONS
+            and row["status"] in LIVE_STATUSES and final_body(store, row, snapshot) is None)
+
+
+def message_target(store, uid, sid, info):
+    """(blocked, live target) for one assistant message."""
     rows = store.rows("SELECT * FROM business_runs WHERE uid=? AND session_id=?", (uid, sid))
     for row in rows:
         snapshot = store.decrypt(row["request_ciphertext"])
         if (info.get("parentID") == row["message_id"] or info.get("id") == row["assistant_id"]
                 or info.get("id") in snapshot.get("observed_message_ids", [])):
-            return enabled(snapshot)
+            if not enabled(snapshot):
+                return False, None
+            if live_prose(store, row, snapshot):
+                return False, {"run_id": row["id"], "identities": mapping(snapshot)}
+            return True, None
     # An unbound assistant must not expose text while a controlled run exists.
     controlled = [r for r in rows if enabled(store.decrypt(r["request_ciphertext"]))]
     created = info.get("time", {}).get("created")
     if controlled and isinstance(created, (int, float)) and created < min(r["created"] for r in controlled) * 1000:
-        return False
-    return bool(controlled)
+        return False, None
+    return bool(controlled), None
+
+
+def message_policy(store, uid, sid, info):
+    return message_target(store, uid, sid, info)[0]
+
+
+def push_prose(app, uid, payload):
+    """Append-only delta of the filtered prose; the frontend falls back to /messages on any gap."""
+    props = payload.get("properties") or {}
+    if payload.get("type") == "message.part.updated":
+        part = props.get("part") or {}
+        if part.get("type") != "text" or part.get("synthetic") is True or part.get("ignored") is True:
+            return
+        sid, mid, pid = part.get("sessionID"), part.get("messageID"), part.get("id")
+        timing = part.get("time")
+        open_part = not (isinstance(timing, dict) and timing.get("end") is not None)
+        text = app.state.live_text.text(uid, sid, mid, pid) if open_part else part.get("text")
+    elif payload.get("type") == "message.part.delta" and props.get("field") == "text":
+        sid, mid, pid = props.get("sessionID"), props.get("messageID"), props.get("partID")
+        open_part, text = True, app.state.live_text.text(uid, sid, mid, pid)
+    else:
+        return
+    target = _PUSHES.target(uid, mid)
+    if not target or not isinstance(text, str) or not all(valid_id(x) for x in (sid, mid, pid)):
+        return
+    body, composing = visible(text, target["identities"], open_part)
+    step = _PUSHES.advance(uid, mid, pid, body, composing)
+    if not step:
+        return
+    offset, added, started = step
+    from .live_push import MAX_EVENT_TEXT, VERSION as LIVE_VERSION, progress_notice, push
+    if added and len(json.dumps(added)) <= MAX_EVENT_TEXT:
+        push(uid, {"type": "answer.delta", "version": LIVE_VERSION, "session_id": sid, "run_id": target["run_id"],
+                   "message_id": mid, "part_id": pid, "offset": offset, "text": added})
+    if started:
+        push(uid, progress_notice({"session_id": sid, "id": target["run_id"]}, *COMPOSING))
 
 
 async def observe(app, uid, envelope, stream_id):
@@ -150,13 +206,18 @@ async def observe(app, uid, envelope, stream_id):
         props = payload.get("properties") or {}; info = props.get("info") or {}
         if info.get("role") == "assistant":
             try:
-                blocked = await app.state.db_work.run(message_policy, app.state.store, uid, props.get("sessionID") or info.get("sessionID"), info)
+                blocked, target = await app.state.db_work.run(message_target, app.state.store, uid, props.get("sessionID") or info.get("sessionID"), info)
             except Exception:
-                blocked = True  # Never retain unverified text when policy lookup fails.
+                blocked, target = True, None  # Never retain unverified text when policy lookup fails.
+            if target and not completed(info):
+                _PUSHES.target(uid, info.get("id"), target)
+            else:
+                _PUSHES.forget(uid, info.get("id"))
             if blocked:
                 app.state.live_text.discard_message(uid, info.get("sessionID"), info.get("id"))
                 return
     app.state.live_text.observe(uid, envelope, stream_id)
+    push_prose(app, uid, payload)
 
 
 def messages(store, uid, sid, values):
@@ -165,6 +226,7 @@ def messages(store, uid, sid, values):
     managed = [r for r in rows if enabled(snapshots[r["id"]])]
     if not managed:
         return values
+    live = {r["id"]: live_prose(store, r, snapshots[r["id"]]) for r in managed}
     for message in values:
         info = message["info"]
         if info.get("role") != "assistant":
@@ -174,6 +236,22 @@ def messages(store, uid, sid, values):
             continue
         created = info.get("time", {}).get("created")
         if not row and isinstance(created, (int, float)) and created < min(r["created"] for r in managed) * 1000:
+            continue
+        if row and live[row["id"]]:
+            identities = mapping(snapshots[row["id"]])
+            parts = []
+            for part in message.get("parts", []):
+                if part.get("type") == "reasoning":
+                    continue
+                if part.get("type") == "text":
+                    timing = part.get("time")
+                    open_part = not (isinstance(timing, dict) and timing.get("end") is not None)
+                    body, _ = visible(part.get("text"), identities, open_part)
+                    if body and part.get("synthetic") is not True and part.get("ignored") is not True:
+                        parts.append({**part, "text": body})
+                    continue
+                parts.append(part)
+            message["parts"] = parts
             continue
         message["parts"] = [p for p in message.get("parts", []) if p.get("type") not in ("text", "reasoning")]
         if not row or info.get("id") != row["assistant_id"]:

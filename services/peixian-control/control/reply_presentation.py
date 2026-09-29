@@ -54,7 +54,28 @@ def build(result):
             'revision': revision, 'clues': cards, 'missing': copy.deepcopy(result.get('missing', []))}
 
 
-def source_detail(result,evidence_id):
+def reveal_cards(presentation, identities):
+    """Police-facing cards show identity numbers; model input keeps person- references."""
+    from .display_identity import reveal
+    for card in presentation.get('clues', []):
+        for key in ('title', 'headline', 'summary'):
+            card[key] = reveal(card.get(key), identities)
+        card['discoveries'] = [reveal(text, identities) for text in card.get('discoveries', [])]
+        for item in card.get('evidence', []):
+            item['content'] = reveal(item.get('content'), identities)
+    return presentation
+
+
+def _reveal_fields(value, identities):
+    from .display_identity import reveal
+    if isinstance(value, dict):
+        return {k: _reveal_fields(v, identities) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_reveal_fields(v, identities) for v in value]
+    return reveal(value, identities)
+
+
+def source_detail(result,evidence_id,identities=None):
     from .backend_contract import error
     presentation=result.get('presentation') or {}
     if presentation.get('version')!=VERSION:error('source_not_found','来源不存在或当前版本不支持。',404)
@@ -62,4 +83,6 @@ def source_detail(result,evidence_id):
     if evidence is None:error('source_not_found','来源不存在或无权访问。',404)
     record=next((r for r in result.get('records',[]) if r.get('record_id')==evidence['record_id'] and r.get('snapshot_id')==evidence['snapshot_id'] and r.get('source_run_id',evidence['source_run_id'])==evidence['source_run_id']),None)
     if record is None:error('source_not_found','来源记录无法对应当前快照。',404)
-    return {'version':'source-detail-v1','run_id':result['run_id'],'evidence':copy.deepcopy(evidence),'record':copy.deepcopy(record),'versions':copy.deepcopy(result.get('versions',{}))}
+    record=copy.deepcopy(record)
+    if identities and isinstance(record.get('fields'),dict):record['fields']=_reveal_fields(record['fields'],identities)
+    return {'version':'source-detail-v1','run_id':result['run_id'],'evidence':copy.deepcopy(evidence),'record':record,'versions':copy.deepcopy(result.get('versions',{}))}

@@ -4,6 +4,7 @@ import re
 from shared import tool_failure
 
 CONTROL = pathlib.Path(__file__).resolve().parents[1] / 'control'
+AGENT_CLIENT = pathlib.Path(__file__).resolve().parents[3] / 'deploy/peixian/platform-facts/agent-client.mjs'
 GATEWAY_PATH_MODULES = ('native_tool_gate.py', 'native_tool_scope.py', 'theft_candidates.py')
 PRECHECK_CODES = (
     'candidate_limit_invalid', 'candidate_set_empty', 'candidate_source_incomplete',
@@ -28,6 +29,15 @@ def test_every_gateway_facing_code_has_a_public_message():
 def test_public_keeps_scene_entry_codes():
     for code in ('case_entry_missing', 'person_case_tracks_first', 'person_case_centers_done', 'person_lookup_invalid'):
         assert tool_failure.public({'code': code})['code'] == code
+
+
+def test_agent_client_forwards_every_public_code():
+    listed = re.search(r"const codes=new Set\(\[([^\]]*)\]\)", AGENT_CLIENT.read_text(encoding='utf-8'))
+    assert listed, 'agent-client.mjs code allowlist not found'
+    codes = set(re.findall(r"'([a-z_]+)'", listed.group(1)))
+    assert codes == set(tool_failure.MESSAGES), (
+        'sync deploy/peixian/platform-facts/agent-client.mjs with shared/tool_failure.MESSAGES; '
+        f'missing={sorted(set(tool_failure.MESSAGES) - codes)} extra={sorted(codes - set(tool_failure.MESSAGES))}')
 
 
 def test_precheck_codes_are_reported_as_not_dispatched():

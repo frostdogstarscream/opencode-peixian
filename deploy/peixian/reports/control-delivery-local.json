@@ -1,0 +1,517 @@
+{
+  "format": 1,
+  "status": "passed",
+  "scope": "single_control_image_windows_docker_desktop_synthetic_local_acceptance",
+  "collected_at": "2026-09-30T09:15:59.967450+00:00",
+  "baseline_commit": "ea36aa8ec39bc319b66596f7774537891d8f0d97",
+  "runtime_source_commit": "cb983294d7c08557c59a3d4bd8d6793a39c65e4d",
+  "branch": "codex/control-delivery",
+  "candidate": {
+    "architecture": "amd64",
+    "build": {
+      "base_images": {
+        "frontend": "oven/bun:1.3.14-slim@sha256:d56a2534ffd262e92c12fd3249d3924d296d97086da773f821d7d0477435ea04",
+        "runtime": "python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea"
+      },
+      "build_id": "release-db19b06d2b1c47f0e50e6c2d",
+      "files": {
+        "assets/index-By6VYQIL.js": {
+          "bytes": 216415,
+          "sha256": "32e197e14f066f36a9c6fcae012afc54db8ef0a87b22152f9c7701e1af9925c1"
+        },
+        "assets/index-CxWJFts5.css": {
+          "bytes": 64396,
+          "sha256": "d519ee2cede24507bc260d5ba24e4d3bf8af2c0c8f93ad3e47483c6099c99b32"
+        },
+        "index.html": {
+          "bytes": 454,
+          "sha256": "6b0c931cf329204921756f9b10f95f5c87ef8c31d4f274e23efc1aaad4133800"
+        }
+      },
+      "format": 1,
+      "frontend_digest": "f36e0ca8ed6f4633cd3a0ed6c8291f5620e0347fe196a785698680c5a63f7e0e",
+      "input_digest": "e105000f642c3c16c6fc851ba19f9d015f5d921dcd9b5807d78ce602af3aea3c",
+      "mode": "release",
+      "source_commit": "cb983294d7c08557c59a3d4bd8d6793a39c65e4d"
+    },
+    "image": "sha256:a28ec2657aa1302170aaed6c547415bea1f8632a5a03cadc9f6a8eff4c844984",
+    "image_id": "sha256:a28ec2657aa1302170aaed6c547415bea1f8632a5a03cadc9f6a8eff4c844984",
+    "os": "linux",
+    "requested_tag": "agent-platform-control:delivery-cb983294d7c0",
+    "user": "10001:10001"
+  },
+  "health": {
+    "status": "ok",
+    "version": "1.3.0",
+    "schema_version": 5,
+    "runtime_protocol_version": 2,
+    "build": {
+      "mode": "release",
+      "source_commit": "cb983294d7c08557c59a3d4bd8d6793a39c65e4d",
+      "build_id": "release-db19b06d2b1c47f0e50e6c2d",
+      "frontend_digest": "f36e0ca8ed6f4633cd3a0ed6c8291f5620e0347fe196a785698680c5a63f7e0e"
+    }
+  },
+  "environment": {
+    "os": "Windows",
+    "docker_engine": "Docker Desktop / Linux",
+    "target": "linux/amd64",
+    "deployment_id": "synthetic-control-delivery",
+    "ports": {
+      "https": 19461,
+      "control": 14111
+    },
+    "max_test_runtimes": 2,
+    "management_roles_without_runtime": true,
+    "data": "synthetic_only"
+  },
+  "tests": {
+    "control_pytest": {
+      "passed": 387,
+      "skipped": 0
+    },
+    "deploy_pytest": {
+      "passed": 269,
+      "skipped": 2,
+      "subtests_passed": 163,
+      "skip_reason": "unprivileged Windows symlink creation unavailable"
+    },
+    "frontend_bun": {
+      "passed": 55,
+      "failed": 0,
+      "expect_calls": 2165
+    },
+    "frontend_typecheck": "passed_in_Docker_and_isolated_package",
+    "frontend_vite_build": "passed_in_Docker_and_isolated_package",
+    "windows_build_control_entry": "passed",
+    "backend_dev_real_store_and_lifespan_without_static": "passed"
+  },
+  "build_negative_checks": {
+    "type-error": {
+      "rejected": true,
+      "candidate_created": false
+    },
+    "lock-mismatch": {
+      "rejected": true,
+      "candidate_created": false
+    },
+    "dev-export": {
+      "rejected": true
+    },
+    "vite-error": {
+      "rejected": true,
+      "candidate_created": false
+    }
+  },
+  "image_startup_checks": {
+    "missing-index": {
+      "startup_rejected": true
+    },
+    "missing-asset": {
+      "startup_rejected": true
+    },
+    "digest-mismatch": {
+      "startup_rejected": true
+    },
+    "image-content": {
+      "ordinary_user": true,
+      "manifest_valid": true,
+      "build_tools_absent": true,
+      "app_paths": [
+        "build-manifest.json",
+        "control",
+        "requirements.lock",
+        "shared",
+        "static"
+      ]
+    },
+    "backend-dev": {
+      "static_optional": true
+    }
+  },
+  "http": {
+    "health": {
+      "status": "ok",
+      "version": "1.3.0",
+      "schema_version": 5,
+      "runtime_protocol_version": 2,
+      "build": {
+        "mode": "release",
+        "source_commit": "cb983294d7c08557c59a3d4bd8d6793a39c65e4d",
+        "build_id": "release-db19b06d2b1c47f0e50e6c2d",
+        "frontend_digest": "f36e0ca8ed6f4633cd3a0ed6c8291f5620e0347fe196a785698680c5a63f7e0e"
+      }
+    },
+    "index": {
+      "status": 200,
+      "cache_control": "no-cache"
+    },
+    "assets": [
+      {
+        "path": "assets/index-By6VYQIL.js",
+        "status": 200,
+        "sha256": "32e197e14f066f36a9c6fcae012afc54db8ef0a87b22152f9c7701e1af9925c1",
+        "conditional_status": 304,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "assets/index-CxWJFts5.css",
+        "status": 200,
+        "sha256": "d519ee2cede24507bc260d5ba24e4d3bf8af2c0c8f93ad3e47483c6099c99b32",
+        "conditional_status": 304,
+        "cache_control": "public, max-age=31536000, immutable"
+      }
+    ],
+    "spa_fallback": true,
+    "not_found": {
+      "/assets/missing.js": 404,
+      "/missing.js": 404,
+      "/api": 404,
+      "/internal": 404,
+      "/internal/unknown": 404,
+      "/api/console/v1/unknown/deep": 404
+    },
+    "authenticated_api_404": true,
+    "archive_identity": {
+      "object_kind": "oci_index",
+      "index_digest": "sha256:a28ec2657aa1302170aaed6c547415bea1f8632a5a03cadc9f6a8eff4c844984",
+      "manifest_digest": "sha256:54f5b33a9a861dda938e9cb81b06bf8ab9cd3f6df706b5c453cfc9ac98893414",
+      "config_digest": "sha256:621eedd9926679142f7c058cacdb0a540c564ee729b063861708a45100187e1c",
+      "descriptor_chain_verified": true
+    }
+  },
+  "browser": {
+    "browser": "Microsoft Edge / Playwright",
+    "cache_disabled": true,
+    "roles": {
+      "super_admin": {
+        "login": true,
+        "menus": true,
+        "cookie_secure_http_only_same_site": true,
+        "refresh": true
+      },
+      "admin": {
+        "login": true,
+        "menus": true,
+        "cookie_secure_http_only_same_site": true,
+        "refresh": true
+      },
+      "user": {
+        "login": true,
+        "menus": true,
+        "cookie_secure_http_only_same_site": true,
+        "refresh": true
+      }
+    },
+    "viewports": [
+      {
+        "role": "super_admin",
+        "width": 1366,
+        "viewport": 1366,
+        "document": 1366,
+        "screenshot": "super_admin-1366.png"
+      },
+      {
+        "role": "super_admin",
+        "width": 1920,
+        "viewport": 1920,
+        "document": 1920,
+        "screenshot": "super_admin-1920.png"
+      },
+      {
+        "role": "super_admin",
+        "width": 390,
+        "viewport": 390,
+        "document": 390,
+        "screenshot": "super_admin-390.png"
+      },
+      {
+        "role": "admin",
+        "width": 1366,
+        "viewport": 1366,
+        "document": 1366,
+        "screenshot": "admin-1366.png"
+      },
+      {
+        "role": "admin",
+        "width": 1920,
+        "viewport": 1920,
+        "document": 1920,
+        "screenshot": "admin-1920.png"
+      },
+      {
+        "role": "admin",
+        "width": 390,
+        "viewport": 390,
+        "document": 390,
+        "screenshot": "admin-390.png"
+      },
+      {
+        "role": "user",
+        "width": 1366,
+        "viewport": 1366,
+        "document": 1366,
+        "screenshot": "user-1366.png"
+      },
+      {
+        "role": "user",
+        "width": 1920,
+        "viewport": 1920,
+        "document": 1920,
+        "screenshot": "user-1920.png"
+      },
+      {
+        "role": "user",
+        "width": 390,
+        "viewport": 390,
+        "document": 390,
+        "screenshot": "user-390.png"
+      }
+    ],
+    "asset_responses": [
+      {
+        "path": "/assets/index-By6VYQIL.js",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-CxWJFts5.css",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-CxWJFts5.css",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-By6VYQIL.js",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-CxWJFts5.css",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-By6VYQIL.js",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-CxWJFts5.css",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-By6VYQIL.js",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-CxWJFts5.css",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-By6VYQIL.js",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-CxWJFts5.css",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      },
+      {
+        "path": "/assets/index-By6VYQIL.js",
+        "status": 200,
+        "cache_control": "public, max-age=31536000, immutable"
+      }
+    ],
+    "page_errors": 0,
+    "asset_errors": 0,
+    "login_error_visible": true,
+    "chinese_input": true,
+    "keyboard_tab": true,
+    "skill_error_visible": true,
+    "mobile_navigation": true
+  },
+  "api": {
+    "three_roles_created": true,
+    "initial_password_changed": true,
+    "manager_capabilities": true,
+    "users": {
+      "delivery-user-a": {
+        "sessions": true,
+        "files": true,
+        "skills": true,
+        "authorized_plugin": true,
+        "csrf": true,
+        "token_revoke": true,
+        "sse_change": true,
+        "logout_invalidates_subscription": true,
+        "management_denied": true
+      },
+      "delivery-user-b": {
+        "sessions": true,
+        "files": true,
+        "skills": true,
+        "authorized_plugin": true,
+        "csrf": true,
+        "token_revoke": true,
+        "sse_change": true,
+        "logout_invalidates_subscription": true,
+        "management_denied": true
+      }
+    }
+  },
+  "lifecycle": [
+    {
+      "phase": "rebuild",
+      "control_container_replaced": true,
+      "control_volume_preserved": true,
+      "account_containers_preserved": true,
+      "image_id": "sha256:a28ec2657aa1302170aaed6c547415bea1f8632a5a03cadc9f6a8eff4c844984",
+      "schema_version": 5,
+      "roles": {
+        "admin": 1,
+        "super_admin": 1,
+        "user": 2
+      },
+      "counts": {
+        "users": 4,
+        "runtimes": 2,
+        "grants": 2,
+        "installs": 2,
+        "skills": 2,
+        "files": 1,
+        "models": 0,
+        "templates": 0,
+        "jobs": 5,
+        "audit": 81
+      },
+      "backup_verified": true,
+      "management_networks_restored": {
+        "registered": 2,
+        "connected": 2,
+        "paused_missing": 0
+      },
+      "account_and_synthetic_data_readback": "passed_after_worker_reconciliation"
+    },
+    {
+      "phase": "compatible",
+      "control_container_replaced": true,
+      "control_volume_preserved": true,
+      "account_containers_preserved": true,
+      "image_id": "sha256:66d289d842e203f2f493cd043df4abc478dc2bb2ac45a95f5c23cf47a953dab9",
+      "schema_version": 5,
+      "roles": {
+        "admin": 1,
+        "super_admin": 1,
+        "user": 2
+      },
+      "counts": {
+        "users": 4,
+        "runtimes": 2,
+        "grants": 2,
+        "installs": 2,
+        "skills": 2,
+        "files": 2,
+        "models": 0,
+        "templates": 0,
+        "jobs": 7,
+        "audit": 82
+      },
+      "backup_verified": true,
+      "management_networks_restored": {
+        "registered": 2,
+        "connected": 2,
+        "paused_missing": 0
+      },
+      "account_and_synthetic_data_readback": "passed_after_worker_reconciliation"
+    },
+    {
+      "phase": "restore-release",
+      "control_container_replaced": true,
+      "control_volume_preserved": true,
+      "account_containers_preserved": true,
+      "image_id": "sha256:a28ec2657aa1302170aaed6c547415bea1f8632a5a03cadc9f6a8eff4c844984",
+      "schema_version": 5,
+      "roles": {
+        "admin": 1,
+        "super_admin": 1,
+        "user": 2
+      },
+      "counts": {
+        "users": 4,
+        "runtimes": 2,
+        "grants": 2,
+        "installs": 2,
+        "skills": 2,
+        "files": 2,
+        "models": 0,
+        "templates": 0,
+        "jobs": 9,
+        "audit": 83
+      },
+      "backup_verified": true,
+      "management_networks_restored": {
+        "registered": 2,
+        "connected": 2,
+        "paused_missing": 0
+      },
+      "account_and_synthetic_data_readback": "passed_after_worker_reconciliation"
+    }
+  ],
+  "archive": {
+    "file": "control-image.tar",
+    "bytes": 69843456,
+    "sha256": "a1384b7dc90ee7e01ad8ae59cbe2ee83cb95d1978a3592724184ec83c82467f5",
+    "oci_descriptor_chain": {
+      "object_kind": "oci_index",
+      "index_digest": "sha256:a28ec2657aa1302170aaed6c547415bea1f8632a5a03cadc9f6a8eff4c844984",
+      "manifest_digest": "sha256:54f5b33a9a861dda938e9cb81b06bf8ab9cd3f6df706b5c453cfc9ac98893414",
+      "config_digest": "sha256:621eedd9926679142f7c058cacdb0a540c564ee729b063861708a45100187e1c",
+      "descriptor_chain_verified": true
+    },
+    "docker_load": "passed_same_image_identity"
+  },
+  "cleanup": {
+    "user_runtimes": {
+      "delivery-user-a": {
+        "status": "paused",
+        "data_retained": true,
+        "job_complete": true
+      },
+      "delivery-user-b": {
+        "status": "paused",
+        "data_retained": true,
+        "job_complete": true
+      }
+    },
+    "host_worker": "stopped",
+    "control_and_https": "stopped",
+    "running_test_containers": 0,
+    "named_volumes_retained": 7
+  },
+  "excluded": [
+    "real_model_requests",
+    "paid_model_requests",
+    "large_scale_concurrency",
+    "linux_host_load_test",
+    "real_intranet_endpoints",
+    "full_platform_offline_bundle",
+    "remote_push",
+    "replacement_of_existing_accounts"
+  ],
+  "notes": [
+    "Initial Docker Desktop startup issue was restored using user-authorized retained directory backups; no reset or image/data purge.",
+    "Initial Worker publication failed under the deep scratch data path; the same synthetic deployment passed after moving to a shorter data root. Worker long-path handling was not changed.",
+    "A ready status alone is insufficient; access checks waited for the explicit ready=true flag and Worker reconciliation after Control restart.",
+    "HTTPS proxy internal-path 404 is the existing nginx error page; direct Control returns JSON 404. Neither returns the frontend index.",
+    "Image ID is the OCI index digest on this Docker Desktop backend; config and manifest digests are recorded separately.",
+    "Runtime/image source is the implementation commit. A later documentation-only commit does not change this accepted image."
+  ]
+}

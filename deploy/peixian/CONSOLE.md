@@ -43,17 +43,18 @@
 Windows PowerShell 从仓库根目录执行：
 
 ```powershell
-# Python 3.12、Bun 1.3.14、Docker Desktop Linux 引擎应已可用。
+# Python 3.12、Docker Desktop Linux 引擎应已可用；Control 的前端由 Docker 构建阶段编译。
 # Python 环境只安装到本项目，勿使用其它项目或全局生产环境。
 py -3.12 -m venv services/peixian-control/.venv
 & '.\services\peixian-control\.venv\Scripts\python.exe' -m pip install -r services/peixian-control/requirements.lock
-bun install --frozen-lockfile --ignore-scripts
 deploy/peixian/console.ps1 init
 deploy/peixian/console.ps1 build
 deploy/peixian/console.ps1 up
 deploy/peixian/console.ps1 worker-start
 deploy/peixian/console.ps1 status
 ```
+
+Control 已采用 Docker 多阶段构建，不读取宿主机旧 `dist`。`build` 默认生成开发镜像；正式交付使用 `build-control -BuildMode release -Commit <已提交SHA>`，详见 [统一构建与发布](CONTROL_DELIVERY.md)。构建完成不会自动更新正在运行的服务。
 
 `console.ps1` 固定使用仓库下 `services/peixian-control/.venv/Scripts/python.exe`，不会回退到系统 Python，也不使用旧一期 `deploy/peixian/.venv`。以上创建环境命令使用 Windows Python Launcher 选择 3.12；若未安装 Launcher，应使用已安装的 Python 3.12 解释器完整路径创建同一目录。
 

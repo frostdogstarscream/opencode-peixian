@@ -499,6 +499,40 @@
       "Health": {
         "additionalProperties": false,
         "properties": {
+          "build": {
+            "additionalProperties": false,
+            "description": "可选的控制镜像构建身份；dev 的 source_commit 为 null。仅描述页面与控制后端，不代表账号运行环境或模型联调已通过。",
+            "properties": {
+              "build_id": {
+                "type": "string"
+              },
+              "frontend_digest": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "mode": {
+                "enum": [
+                  "dev",
+                  "release"
+                ],
+                "type": "string"
+              },
+              "source_commit": {
+                "pattern": "^[0-9a-f]{40}$",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "mode",
+              "source_commit",
+              "build_id",
+              "frontend_digest"
+            ],
+            "type": "object"
+          },
           "runtime_protocol_version": {
             "const": 2,
             "type": "integer"

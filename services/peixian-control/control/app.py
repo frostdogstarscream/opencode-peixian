@@ -20,7 +20,6 @@ from argon2.exceptions import VerificationError
 from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .settings import configured_store
@@ -417,6 +416,11 @@ async def shutdown_app(app):
 def create_app(store=None):
     @asynccontextmanager
     async def lifespan(app):
+        from shared.control_delivery import load
+        # Check the entire immutable frontend before creating database or worker resources.
+        app.state.delivery = load(Path(os.getenv("CONSOLE_STATIC", "/app/static")),
+            Path(os.getenv("CONSOLE_BUILD_MANIFEST", "/app/build-manifest.json")),
+            required=os.getenv("CONSOLE_REQUIRE_STATIC", "0") == "1")
         app.state.shutdown_task = None
         from shared.orchestration_config import from_environment
         from .runtime_security import SafetyCoordinator
@@ -527,7 +531,11 @@ def create_app(store=None):
     @app.get("/health")
     @blocking_endpoint(app)
     def health():
-        return {"status": "ok", "version": "1.3.0", "schema_version": app.state.store.schema_version(), "runtime_protocol_version": 2}
+        result = {"status": "ok", "version": "1.3.0", "schema_version": app.state.store.schema_version(), "runtime_protocol_version": 2}
+        if app.state.delivery:
+            from shared.control_delivery import public_build
+            result["build"] = public_build(app.state.delivery)
+        return result
 
     @app.get(PREFIX + "/platform")
     async def platform():
@@ -732,10 +740,11 @@ def create_app(store=None):
     static = Path(os.getenv("CONSOLE_STATIC", "/app/static"))
     if static.is_dir():
         if (static / "assets").is_dir():
-            app.mount("/assets", StaticFiles(directory=static / "assets"), name="assets")
+            from .static_delivery import DeliveryStaticFiles
+            app.mount("/assets", DeliveryStaticFiles(directory=static / "assets"), name="assets")
         @app.get("/{path:path}")
         async def spa(path: str):
-            if path.startswith(("api/", "internal/")):
+            if path in ("api", "internal") or path.startswith(("api/", "internal/")) or Path(path).suffix:
                 fail("接口不存在", 404)
             return FileResponse(static / "index.html", headers={"Cache-Control": "no-cache"})
     from .openapi import install_openapi

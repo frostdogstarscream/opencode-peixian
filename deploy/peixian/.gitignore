@@ -15,3 +15,5 @@ output/
 .pytest-evidence-*/
 .pytest-pr6-*/
 .pytest-review-*/
+.pytest-control-delivery-*/
+.scratch/

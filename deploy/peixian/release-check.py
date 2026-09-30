@@ -43,6 +43,13 @@ def verify_package(folder):
     manifest = read_json(folder / 'release-manifest.json')
     require(manifest.get('source_matches_commit') is True, 'package_source_mismatch')
     require(re.fullmatch('[0-9a-f]{40}', manifest.get('source_commit', '')) is not None, 'fixed_source_commit_required')
+    for image in manifest.get('images', []):
+        if image.get('labels', {}).get('org.peixian.control.delivery.format') == '1':
+            control = manifest.get('control_delivery') or {}
+            build = control.get('build') or {}
+            require(build.get('mode') == 'release', 'control_development_image_not_publishable')
+            require(build.get('source_commit') == manifest['source_commit'], 'control_delivery_source_mismatch')
+            require(control.get('image_id') in (image.get('config_id'), image.get('archive_image_id')), 'control_delivery_image_mismatch')
     # Independently compare exported deployment sources to the fixed source archive.
     with tarfile.open(regular(folder / 'source.tar.gz'), 'r:gz') as source:
         members = {m.name: m for m in source.getmembers()}

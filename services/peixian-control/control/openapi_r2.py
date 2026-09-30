@@ -9,6 +9,12 @@ def extend(s, obj, ref, array, ID, STRING, BOOL, INTEGER):
                    "host_boot_id": ID, "observed_at": INTEGER, "components": components,
                    "mutation_state": {**STRING, "enum": ["idle", "running", "unknown"]}, "complete": BOOL, "evidence_ref": ID}
     s["Health"]["properties"].update(schema_version={**INTEGER, "enum": [4, 5]}, runtime_protocol_version={**INTEGER, "const": 2})
+    s["Health"]["properties"]["build"] = obj({
+        "mode": {**STRING, "enum": ["dev", "release"]},
+        "source_commit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+        "build_id": STRING, "frontend_digest": {**STRING, "pattern": "^[0-9a-f]{64}$"}},
+        ("mode", "source_commit", "build_id", "frontend_digest"),
+        description="可选的控制镜像构建身份；dev 的 source_commit 为 null。仅描述页面与控制后端，不代表账号运行环境或模型联调已通过。")
     s["RuntimeStartBody"] = obj({})
     inventory_resource = obj({"runtime_id": ID, "uid": ID, "running": BOOL, "mutation_state": {**STRING, "enum": ["idle", "running", "unknown"]}}, ("runtime_id", "uid", "running", "mutation_state"))
     s["PoolInventoryBody"] = obj({"host_boot_id": ID, "observed_at": INTEGER, "registry_digest": STRING, "complete": BOOL, "resources": array(inventory_resource, maxItems=10000)}, ("host_boot_id", "observed_at", "registry_digest", "complete", "resources"))

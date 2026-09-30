@@ -1,8 +1,11 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('init','build','up','status','stop','start','backup','worker','worker-start','worker-stop','export')]
-    [string]$Action
+    [ValidateSet('init','build','build-control','up','status','stop','start','backup','worker','worker-start','worker-stop','export')]
+    [string]$Action,
+    [ValidateSet('dev','release')][string]$BuildMode = 'dev',
+    [string]$Commit,
+    [string]$ControlImage = 'peixian-control:console-r2-roles'
 )
 $ErrorActionPreference = 'Stop'
 $consoleRepo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
@@ -11,6 +14,14 @@ $consoleCompose = Join-Path $PSScriptRoot 'compose.console.yaml'
 function Invoke-ConsoleCommand([string]$Program, [string[]]$Arguments) {
     & $Program @Arguments
     if ($LASTEXITCODE -ne 0) { throw 'Console operation failed; existing data was preserved.' }
+}
+function Build-ConsoleControl {
+    $buildArguments = @((Join-Path $PSScriptRoot 'control-build.py'), $BuildMode, '--tag', $ControlImage)
+    if ($BuildMode -eq 'release') {
+        if (-not $Commit) { throw 'A fixed source commit is required for a release build.' }
+        $buildArguments += @('--commit', $Commit)
+    } elseif ($Commit) { throw 'Development builds do not accept a release commit.' }
+    Invoke-ConsoleCommand $consolePython $buildArguments
 }
 function Start-CheckedConsole {
     $guardOutput = & $consolePython (Join-Path $PSScriptRoot 'console-guard.py') check --compose $consoleCompose
@@ -71,18 +82,12 @@ switch ($Action) {
     'build' {
         Push-Location $consoleRepo
         try {
-            $consoleBun = Join-Path $PSScriptRoot '.runtime/bun-1.3.14/bun-windows-x64/bun.exe'
-            if (-not (Test-Path -LiteralPath $consoleBun)) { $consoleBun = 'bun' }
-            Push-Location (Join-Path $consoleRepo 'packages/peixian-console')
-            try {
-                Invoke-ConsoleCommand $consoleBun @('run','typecheck')
-                Invoke-ConsoleCommand $consoleBun @('run','build')
-            } finally { Pop-Location }
             Invoke-ConsoleCommand 'docker' @('build','-f','services/peixian-control/Gateway.Dockerfile','-t','peixian-gateway:console-r1','.')
             Invoke-ConsoleCommand 'docker' @('build','-f','deploy/peixian/Managed.Dockerfile','-t','peixian-opencode:1.18.30-managed-r1','.')
-            Invoke-ConsoleCommand 'docker' @('build','-f','services/peixian-control/Dockerfile','-t','peixian-control:console-r2-roles','.')
+            Build-ConsoleControl
         } finally { Pop-Location }
     }
+    'build-control' { Build-ConsoleControl }
     'up' {
         $listener = Get-NetTCPConnection -State Listen -LocalPort 14090 -ErrorAction SilentlyContinue
         if ($listener) {

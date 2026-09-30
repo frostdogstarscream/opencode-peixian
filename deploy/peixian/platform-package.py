@@ -30,6 +30,8 @@ ALLOWED_FILES = (
     "deploy/peixian/examples/records-plugin/entry.mjs", "deploy/peixian/examples/records-plugin/manifest.json",
     "deploy/peixian/examples/records-plugin/SKILL.md", "services/peixian-control/docs/openapi.json",
     "services/peixian-control/requirements.lock",
+    "services/peixian-control/shared/control_delivery.py",
+    "deploy/peixian/control-build.py", "deploy/peixian/CONTROL_DELIVERY.md",
     "services/peixian-control/shared/orchestration_config.py",
     "services/peixian-control/shared/runtime_pool_config.py",
     "deploy/peixian/PR7A_CONTRACT.md",
@@ -241,6 +243,19 @@ def assemble(destination, wheels, commit, *, export_images=False, config_path=No
         except (PackageError, ValueError, KeyError, IndexError):
             item["local_image_id"] = None
             item["local_matches_archive"] = None
+    control_delivery = None
+    if not source_only:
+        control_item = images[expected_images["control"]]
+        if control_item["labels"].get("org.peixian.control.delivery.format") == "1":
+            delivery_spec = importlib.util.spec_from_file_location("platform_control_delivery", DEPLOY / "control-build.py")
+            delivery = importlib.util.module_from_spec(delivery_spec)
+            delivery_spec.loader.exec_module(delivery)
+            try:
+                control_delivery = delivery.verify_release(delivery.inspect_image(expected_images["control"]), full_commit)
+                if control_delivery["image_id"] not in (control_item["config_id"], control_item.get("archive_image_id")):
+                    raise PackageError("control_delivery_archive_mismatch")
+            except (delivery.BuildError, delivery.DeliveryError) as error:
+                raise PackageError(str(error)) from None
     for name in selected:
         target = destination / name
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -292,6 +307,7 @@ images.tar 不存在。镜像构建、Linux 容器运行、真实 50 环境容�
                 "proxy_upstream": settings.PROXY_UPSTREAM,
                 "excluded": ["accounts", "credentials", "databases", "runtime_data", "private_backups", "Ubuntu_deb_packages"],
                 "ubuntu_host_validation": "not_performed", "intranet_vllm_validation": "not_performed",
+                "control_delivery": control_delivery,
                 "files": {path.relative_to(destination).as_posix(): {"sha256": sha256(path), "bytes": path.stat().st_size}
                           for path in sorted(destination.rglob("*")) if path.is_file() and path.name not in ("release-manifest.json", "SHA256SUMS")}}
     (destination / "release-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")

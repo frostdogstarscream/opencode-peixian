@@ -15,7 +15,8 @@ def settings(uid):
         path=os.getenv('PX_THEFT_REAL_CONFIG_FILE')
         config=json.loads(Path(path).read_text(encoding='utf-8') if path else os.getenv('PX_THEFT_REAL_CONFIG','{}'))
         if not isinstance(config,dict):raise ValueError()
-        if config.get('enabled') is not True or uid not in config.get('users',[]):
+        users=config.get('users',[])
+        if config.get('enabled') is not True or not (users=='*' or uid in users):
             error('real_provider_disabled','真实资料连接尚未开放。',409)
         if config.get('environment')!='acceptance_real':raise ValueError()
         limits=config['limits']

@@ -17,7 +17,8 @@ def digest(value):return hashlib.sha256(json.dumps(value,ensure_ascii=False,sort
 
 
 def enabled(store,uid):
-    return store.schema_version()>=9 and uid in {s.strip() for s in os.getenv('PX_TRUSTED_RESULT_V2_UIDS','').split(',') if s.strip()}
+    from .feature_scope import allowed
+    return store.schema_version()>=9 and allowed('PX_TRUSTED_RESULT_V2_UIDS',uid)
 
 
 def local(value):

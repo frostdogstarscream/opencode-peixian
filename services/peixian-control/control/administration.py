@@ -260,8 +260,9 @@ def register_admin(app):
 
     async def test_connection(data):
         started=time.monotonic();found=False
+        key=app.state.store.decrypt(data['secret'])
         try:
-            async with app.state.http.stream('GET',data['base_url']+'/models',headers={'Authorization':'Bearer '+app.state.store.decrypt(data['secret'])},follow_redirects=False,timeout=15) as response:
+            async with app.state.http.stream('GET',data['base_url']+'/models',headers={'Authorization':'Bearer '+key} if key else {},follow_redirects=False,timeout=15) as response:
                 content=bytearray()
                 async for chunk in response.aiter_bytes():
                     content.extend(chunk)

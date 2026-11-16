@@ -89,7 +89,8 @@ def candidate_schema(profile):
 
 
 def enabled(uid):
-    return uid in {x.strip() for x in os.getenv('PX_TASKSPEC_V1_UIDS', '').split(',') if x.strip()}
+    from .feature_scope import allowed
+    return allowed('PX_TASKSPEC_V1_UIDS', uid)
 
 
 def resolve_legacy(store, uid, sid, data, applied, confirmed=None):

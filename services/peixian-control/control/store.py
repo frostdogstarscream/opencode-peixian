@@ -319,6 +319,28 @@ class Store:
             block_runtime(self, db, uid, reason="authorization_revoked")
         db.execute("DELETE FROM grants WHERE uid=? AND kind=?", (uid, kind))
         db.executemany("INSERT INTO grants VALUES(?,?,?)", [(uid, kind, value) for value in set(values)])
+        if kind == "plugin":
+            self.install_granted(db, uid, set(values) - previous)
+
+    def default_grants(self, db, kind, values):
+        """With PX_DEFAULT_GRANTS=1 an empty grant list means the default model and every available plugin."""
+        if os.getenv("PX_DEFAULT_GRANTS") != "1" or values:
+            return values
+        if kind == "model":
+            rows = db.execute("SELECT id FROM models WHERE enabled=1 ORDER BY is_default DESC,name").fetchall()
+            return [rows[0][0]] if rows else []
+        from .data_plugin_policy import installable
+        return sorted({r[0] for r in db.execute("SELECT id FROM plugins WHERE enabled=1") if installable(r[0])})
+
+    def install_granted(self, db, uid, plugins):
+        """Newly granted plugins without required parameters are installed for the account."""
+        for pid in sorted(plugins):
+            if db.execute("SELECT 1 FROM installs WHERE uid=? AND plugin=?", (uid, pid)).fetchone():
+                continue
+            row = db.execute("SELECT version,manifest FROM plugins WHERE id=? AND enabled=1 ORDER BY rowid DESC LIMIT 1", (pid,)).fetchone()
+            if not row or json.loads(row[1]).get("config_schema", {}).get("required"):
+                continue
+            db.execute("INSERT INTO installs VALUES(?,?,?,?,?,NULL)", (uid, pid, row[0], 1, self.encrypt({})))
 
     def queue(self, uid, action="apply", **kwargs):
         with self.tx() as db:
@@ -432,6 +454,8 @@ class Store:
                 raise ValueError("管理员账号不接受业务授权")
             for kind, key in (("model", "model_ids"), ("plugin", "plugin_ids")):
                 if key in data:
+                    if target["role"] == "user":
+                        data[key] = self.default_grants(db, kind, data[key])
                     self.set_grants(db, uid, kind, data[key])
             active = bool(target["active"])
             if "active" in data:
@@ -562,8 +586,8 @@ class Store:
             if db.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone():
                 raise ValueError("账号已存在")
             db.execute("INSERT INTO users(id,username,password,role,created) VALUES(?,?,?,'user',?)", (uid, username, password_hash, now()))
-            self.set_grants(db, uid, "model", [] if model_ids is None else model_ids)
-            self.set_grants(db, uid, "plugin", [] if plugin_ids is None else plugin_ids)
+            self.set_grants(db, uid, "model", self.default_grants(db, "model", [] if model_ids is None else model_ids))
+            self.set_grants(db, uid, "plugin", self.default_grants(db, "plugin", [] if plugin_ids is None else plugin_ids))
             if on_demand:
                 db.execute("INSERT INTO runtimes(uid,id,status,reserved,stop_reason,spec,updated) VALUES(?,?,'unprovisioned',0,'unprovisioned',?,?)", (uid, rid, self.encrypt(spec), now()))
                 job = None

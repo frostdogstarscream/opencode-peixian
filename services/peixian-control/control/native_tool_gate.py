@@ -19,7 +19,8 @@ REVIEW_PROMPT=native_intent_review.PROMPT
 REVIEW_VERSION=native_intent_review.VERSION
 
 def enabled(store,uid):
-    return store.schema_version()>=11 and uid in {value.strip() for value in os.getenv('PX_THEFT_NATIVE_UIDS','').split(',') if value.strip()}
+    from .feature_scope import allowed
+    return store.schema_version()>=11 and allowed('PX_THEFT_NATIVE_UIDS',uid)
 
 
 def digest(value):
